@@ -1,17 +1,18 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { BrowserRouter } from 'react-router-dom';
 
-function App() {
+import { AppSidebar } from '@/app-components/AppSidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import AppRoutes from '@/app-components/AppRoutes';
+
+export default function ExpenseTracker() {
   return (
     <>
-      <h1 className='text-3xl font-bold underline'>
-        Hello world!
-      </h1>
-      <div className='flex flex-col items-center justify-center min-h-svh'>
-        <Button>Click me</Button>
-      </div>
+      <BrowserRouter>
+        <SidebarProvider defaultOpen={true}>
+          <AppSidebar />
+          <AppRoutes />
+        </SidebarProvider>
+      </BrowserRouter>
     </>
   );
 }
-
-export default App;
