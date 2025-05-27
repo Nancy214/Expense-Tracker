@@ -145,10 +145,8 @@ const HomePage = () => {
     initialBalance - totalExpense;
 
   return (
+    <>
     <div className='p-6 space-y-4 mx-auto'>
-      <h1 className='text-2xl font-bold text-center'>
-        Expense Tracker
-      </h1>
 
       <div className='flex justify-between space-x-4'>
         <Card className='w-1/2'>
@@ -166,7 +164,7 @@ const HomePage = () => {
         <Card className='w-1/2'>
           <CardContent
             className={cardHeaderClass}
-          >
+            >
             <h2 className='text-lg font-semibold'>
               Today's Expenses
             </h2>
@@ -214,7 +212,7 @@ const HomePage = () => {
                 value={formData.title}
                 onChange={handleInputChange}
                 required
-              />
+                />
             </div>
             <div>
               <label className='block text-sm mb-1'>
@@ -229,7 +227,7 @@ const HomePage = () => {
                 value={formData.category}
                 onChange={handleInputChange}
                 required
-              />
+                />
             </div>
             <div>
               <label className='block text-sm mb-1'>
@@ -240,7 +238,7 @@ const HomePage = () => {
                 name='description'
                 value={formData.description}
                 onChange={handleInputChange}
-              />
+                />
             </div>
             <div>
               <label className='block text-sm mb-1'>
@@ -256,7 +254,7 @@ const HomePage = () => {
                 value={formData.amount}
                 onChange={handleInputChange}
                 required
-              />
+                />
             </div>
             <DialogFooter className='mt-4'>
               <Button onClick={addTransaction}>
@@ -266,7 +264,7 @@ const HomePage = () => {
                 onClick={resetForm}
                 variant='outline'
                 type='button'
-              >
+                >
                 Reset
               </Button>
             </DialogFooter>
@@ -286,7 +284,7 @@ const HomePage = () => {
             <>
               <ExpenseDataTable
                 data={transactions}
-              />
+                />
               <div className='mt-4 flex justify-between p-4 bg-muted/50 rounded-lg'>
                 <span className='font-medium'>
                   Total Expenses
@@ -300,6 +298,7 @@ const HomePage = () => {
         </CardContent>
       </Card>
     </div>
+          </>
   );
 };
 

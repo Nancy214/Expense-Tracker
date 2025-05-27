@@ -4,7 +4,7 @@ import HomePage from '@/app-components/pages/HomePage';
 import StatisticsPage from '@/app-components/pages/StatisticsPage';
 import TransactionsPage from '@/app-components/pages/TransactionsPage';
 import BudgetPage from '@/app-components/pages/BudgetPage';
-
+import LoginPage from '@/app-components/pages/LoginPage';
 import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
@@ -12,7 +12,6 @@ import {
 export default function AppRoutes(): React.ReactElement {
   return (
     <main className='flex-1 transition-all duration-300'>
-      <SidebarTrigger />
       <Routes>
         <Route
           path='/'
@@ -29,6 +28,10 @@ export default function AppRoutes(): React.ReactElement {
         <Route
           path='/budget'
           element={<BudgetPage />}
+        />
+        <Route
+          path='/login'
+          element={<LoginPage />}
         />
       </Routes>
     </main>
