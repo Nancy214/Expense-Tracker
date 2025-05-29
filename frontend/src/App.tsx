@@ -4,15 +4,17 @@ import { AppSidebar } from "@/app-components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import AppRoutes from "@/app-components/AppRoutes";
 import Navbar from "@/app-components/Navbar";
+import { useEffect } from "react";
+
 export default function ExpenseTracker() {
-	return (
-		<>
-			<BrowserRouter>
-				<Navbar />
-				<AppRoutes />
-				{/* <SidebarProvider defaultOpen={true}>
+  return (
+    <>
+      <BrowserRouter>
+        <Navbar />
+        <AppRoutes />
+        {/* <SidebarProvider defaultOpen={true}>
 				</SidebarProvider> */}
-			</BrowserRouter>
-		</>
-	);
+      </BrowserRouter>
+    </>
+  );
 }
