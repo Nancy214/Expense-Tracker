@@ -1,7 +1,7 @@
 import { Document } from "mongoose";
 import { Request } from "express";
 
-export interface IUser extends Document {
+export interface UserType extends Document {
   email: string;
   password: string;
   refreshToken?: string;
