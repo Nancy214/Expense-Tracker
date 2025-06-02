@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { IUser } from "../types/auth";
+import { UserType } from "../types/auth";
 
 const userSchema = new Schema({
   email: {
@@ -17,4 +17,4 @@ const userSchema = new Schema({
   },
 });
 
-export const User = mongoose.model<IUser>("User", userSchema);
+export const User = mongoose.model<UserType>("User", userSchema);
