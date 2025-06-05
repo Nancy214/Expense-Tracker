@@ -96,3 +96,23 @@ export const login: RequestHandler = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const logout: RequestHandler = async (req: Request, res: Response) => {
+  try {
+    console.log("Logged out successfully");
+    const { refreshToken } = req.body as { refreshToken: string };
+    const user = await User.findOne({ refreshToken });
+    if (!user) {
+      res.status(200).json({ message: "Logged out successfully" });
+      return;
+    }
+    user.refreshToken = undefined;
+    await user.save();
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error logging out",
+      error: (error as Error).message,
+    });
+  }
+};

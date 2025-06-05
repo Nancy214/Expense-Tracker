@@ -5,21 +5,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { logout } from "@/services/auth.service";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const Navbar: React.FC = () => {
-  const [location, setLocation] = useState<string>(window.location.pathname);
+  const navigate = useNavigate();
 
-  /* useEffect(() => {
-        console.log(location);
-        setLocation(window.location.pathname);
-    }, [window.location.pathname]); */
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+
+      //navigate("/login");
+    }
+  };
 
   return (
-    <div className="bg-primary dark:bg-slate-700 text-white py-4 px-5 flex justify-between">
-      Expense Tracker
-      {!location.includes("login") ? (
+    <div className="bg-primary dark:bg-slate-700 text-white py-5 px-5 flex items-center justify-between">
+      <span className="text-2xl font-semibold">Expense Tracker</span>
+      {localStorage.getItem("accessToken") ? (
         <DropdownMenu>
           <DropdownMenuTrigger>
             <Avatar>
@@ -32,8 +39,13 @@ const Navbar: React.FC = () => {
             <DropdownMenuItem>Billing</DropdownMenuItem>
             <DropdownMenuItem>Team</DropdownMenuItem>
             <DropdownMenuItem>Subscription</DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to={"/login"}>Log out</Link>
+            <DropdownMenuItem
+              onSelect={async (e) => {
+                e.preventDefault();
+                await handleLogout();
+              }}
+            >
+              Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

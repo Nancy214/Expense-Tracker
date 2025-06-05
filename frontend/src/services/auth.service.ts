@@ -10,7 +10,7 @@ const storeTokens = (tokens: AuthResponse) => {
 };
 
 // Remove tokens from localStorage
-export const removeTokens = () => {
+const removeTokens = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
 };
@@ -24,7 +24,7 @@ const authApi = axios.create({
 });
 
 // Add interceptor to handle token refresh
-/* authApi.interceptors.response.use(
+authApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
@@ -49,7 +49,7 @@ const authApi = axios.create({
     }
     return Promise.reject(error);
   }
-); */
+);
 
 export const login = async (
   credentials: LoginCredentials
@@ -64,21 +64,27 @@ export const login = async (
   }
 };
 
-export const logout = async () => {
+export const logout = async (): Promise<void> => {
   try {
-    const accessToken = localStorage.getItem("accessToken");
-    await authApi.post(
-      "/auth/logout",
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
+    const refreshToken = localStorage.getItem("refreshToken");
+    await authApi.post("/auth/logout", { refreshToken });
     removeTokens();
   } catch (error) {
+    // Even if the server request fails, we still want to remove tokens
     removeTokens();
+    throw error;
+  }
+};
+
+export const register = async (
+  credentials: LoginCredentials
+): Promise<AuthResponse> => {
+  try {
+    const response = await authApi.post("/auth/register", credentials);
+    const tokens = response.data;
+    storeTokens(tokens);
+    return tokens;
+  } catch (error) {
     throw error;
   }
 };
