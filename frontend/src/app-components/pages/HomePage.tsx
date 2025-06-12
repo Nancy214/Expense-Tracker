@@ -13,20 +13,28 @@ import {
   DialogFooter,
 } from "../../components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { CalendarIcon } from "@radix-ui/react-icons";
+import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const cardHeaderClass = "pt-2";
@@ -69,7 +77,9 @@ interface Transaction {
 const HomePage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([
+    "all",
+  ]);
   const initialBalance = 1000;
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -97,6 +107,25 @@ const HomePage = () => {
       ...prev,
       category: value,
     }));
+  };
+
+  const handleCategoryFilterChange = (category: string, checked: boolean) => {
+    let newCategories: string[];
+
+    if (category === "all") {
+      newCategories = ["all"];
+    } else if (checked) {
+      // Add the category and remove 'all' if present
+      newCategories = [
+        ...selectedCategories.filter((cat) => cat !== "all"),
+        category,
+      ];
+    } else {
+      // Remove the category
+      newCategories = selectedCategories.filter((cat) => cat !== category);
+    }
+    // If no categories are selected, default to "all"
+    setSelectedCategories(newCategories.length ? newCategories : ["all"]);
   };
 
   const handleDateChange = (date: Date | undefined) => {
@@ -164,12 +193,11 @@ const HomePage = () => {
     resetForm();
   };
 
-  // Filter transactions based on selected date and category
+  // Filter transactions based on selected date and categories
   const filteredTransactions = transactions.filter((transaction) => {
     const matchesCategory =
-      selectedCategory === "all" || selectedCategory === ""
-        ? true
-        : transaction.category === selectedCategory;
+      selectedCategories.includes("all") ||
+      selectedCategories.includes(transaction.category);
     const matchesDate = selectedDate
       ? transaction.date === format(selectedDate, "dd/MM")
       : true;
@@ -318,22 +346,45 @@ const HomePage = () => {
           <CardContent className={cardHeaderClass}>
             <h2 className="text-lg font-semibold mb-4">Expenses</h2>
             <div className="flex items-center gap-4 mb-4">
-              <Select
-                value={selectedCategory}
-                onValueChange={setSelectedCategory}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-[180px] justify-between"
+                  >
+                    <span className="truncate">
+                      {selectedCategories.includes("all")
+                        ? "All Categories"
+                        : `${selectedCategories.length} selected`}
+                    </span>
+                    <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[180px]">
+                  <DropdownMenuLabel>Categories</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={selectedCategories.includes("all")}
+                    onCheckedChange={(checked) =>
+                      handleCategoryFilterChange("all", checked)
+                    }
+                  >
+                    All Categories
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuSeparator />
                   {EXPENSE_CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>
+                    <DropdownMenuCheckboxItem
+                      key={category}
+                      checked={selectedCategories.includes(category)}
+                      onCheckedChange={(checked) =>
+                        handleCategoryFilterChange(category, checked)
+                      }
+                    >
                       {category}
-                    </SelectItem>
+                    </DropdownMenuCheckboxItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Popover>
                 <PopoverTrigger asChild>
@@ -354,6 +405,7 @@ const HomePage = () => {
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
+                    className="pointer-events-auto"
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
@@ -362,12 +414,12 @@ const HomePage = () => {
                 </PopoverContent>
               </Popover>
 
-              {(selectedDate || selectedCategory !== "all") && (
+              {(selectedDate || !selectedCategories.includes("all")) && (
                 <Button
                   variant="ghost"
                   onClick={() => {
                     setSelectedDate(undefined);
-                    setSelectedCategory("all");
+                    setSelectedCategories(["all"]);
                   }}
                 >
                   Reset Filters
