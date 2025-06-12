@@ -12,14 +12,43 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "../../components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { CalendarIcon } from "@radix-ui/react-icons";
+import { cn } from "@/lib/utils";
 
 const cardHeaderClass = "pt-2";
 
+const EXPENSE_CATEGORIES: string[] = [
+  "Food & Dining",
+  "Transportation",
+  "Shopping",
+  "Entertainment",
+  "Bills & Utilities",
+  "Healthcare",
+  "Travel",
+  "Education",
+  "Other",
+];
+
 interface FormData {
   title: string;
-  category: string;
+  category?: string;
   description: string;
   amount: string;
+  date: Date | undefined;
 }
 
 interface Alert {
@@ -39,12 +68,15 @@ interface Transaction {
 
 const HomePage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const initialBalance = 1000;
   const [formData, setFormData] = useState<FormData>({
     title: "",
     category: "",
     description: "",
     amount: "",
+    date: new Date(),
   });
   const [alert, setAlert] = useState<Alert>({
     show: false,
@@ -60,14 +92,29 @@ const HomePage = () => {
     }));
   };
 
-  const resetForm = (): void => {
+  const handleCategoryChange = (value: string) => {
     setFormData((prev) => ({
       ...prev,
+      category: value,
+    }));
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    console.log("Selected date:", date);
+    setFormData((prev) => ({
+      ...prev,
+      date: date,
+    }));
+  };
+
+  const resetForm = (): void => {
+    setFormData({
       title: "",
       category: "",
       description: "",
       amount: "",
-    }));
+      date: new Date(),
+    });
   };
 
   const addTransaction = (): void => {
@@ -77,7 +124,12 @@ const HomePage = () => {
       title: "",
     });
 
-    if (!formData.title || !formData.category || !formData.amount) {
+    if (
+      !formData.title ||
+      !formData.category ||
+      !formData.amount ||
+      !formData.date
+    ) {
       setAlert({
         show: true,
         title: "Missing Fields",
@@ -106,16 +158,25 @@ const HomePage = () => {
         category: formData.category,
         description: formData.description,
         amount: newAmount,
-        date: new Date().toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
-        }),
+        date: format(formData.date, "dd/MM"),
       },
     ]);
     resetForm();
   };
 
-  const totalExpense: number = transactions.reduce(
+  // Filter transactions based on selected date and category
+  const filteredTransactions = transactions.filter((transaction) => {
+    const matchesCategory =
+      selectedCategory === "all" || selectedCategory === ""
+        ? true
+        : transaction.category === selectedCategory;
+    const matchesDate = selectedDate
+      ? transaction.date === format(selectedDate, "dd/MM")
+      : true;
+    return matchesCategory && matchesDate;
+  });
+
+  const totalExpense: number = filteredTransactions.reduce(
     (acc, t) => acc + t.amount,
     0
   );
@@ -174,13 +235,21 @@ const HomePage = () => {
                 <label className="block text-sm mb-1">
                   Category <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  placeholder="Category"
-                  name="category"
+                <Select
                   value={formData.category}
-                  onChange={handleInputChange}
-                  required
-                />
+                  onValueChange={handleCategoryChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXPENSE_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm mb-1">Description</label>
@@ -190,6 +259,38 @@ const HomePage = () => {
                   value={formData.description}
                   onChange={handleInputChange}
                 />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-[180px] justify-start text-left font-normal",
+                        !formData.date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.date ? (
+                        format(formData.date, "dd/MM")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      className="pointer-events-auto"
+                      mode="single"
+                      selected={formData.date}
+                      onSelect={handleDateChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <label className="block text-sm mb-1">
@@ -216,11 +317,69 @@ const HomePage = () => {
         <Card>
           <CardContent className={cardHeaderClass}>
             <h2 className="text-lg font-semibold mb-4">Expenses</h2>
-            {transactions.length === 0 ? (
-              <p className="text-gray-500">No expenses added yet.</p>
+            <div className="flex items-center gap-4 mb-4">
+              <Select
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {EXPENSE_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[180px] justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? (
+                      format(selectedDate, "dd/MM")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {(selectedDate || selectedCategory !== "all") && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setSelectedDate(undefined);
+                    setSelectedCategory("all");
+                  }}
+                >
+                  Reset Filters
+                </Button>
+              )}
+            </div>
+
+            {filteredTransactions.length === 0 ? (
+              <p className="text-gray-500">No expenses found.</p>
             ) : (
               <>
-                <ExpenseDataTable data={transactions} />
+                <ExpenseDataTable data={filteredTransactions} />
                 <div className="mt-4 flex justify-between p-4 bg-muted/50 rounded-lg">
                   <span className="font-medium">Total Expenses</span>
                   <span className="font-medium">

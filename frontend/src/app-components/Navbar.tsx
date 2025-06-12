@@ -6,7 +6,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { logout } from "@/services/auth.service";
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const Navbar: React.FC = () => {
