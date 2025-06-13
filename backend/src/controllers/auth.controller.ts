@@ -1,118 +1,139 @@
-import { RequestHandler, Request, Response } from "express";
-import bcrypt from "bcrypt";
+import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import passport from "passport";
 import { User } from "../models/user.model";
-import { UserType } from "../types/auth";
-import { LoginRequest } from "../types/auth";
 
-// Generate Tokens
-const generateAccessToken = (user: UserType): string => {
-  return jwt.sign(
-    { id: user._id, email: user.email },
-    process.env.ACCESS_TOKEN_SECRET || "",
-    {
-      expiresIn: "15m",
-    }
+// Generate tokens
+const generateTokens = (user: any) => {
+  const accessToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_SECRET || "your-secret-key",
+    { expiresIn: "15m" }
   );
+
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key",
+    { expiresIn: "7d" }
+  );
+
+  return { accessToken, refreshToken };
 };
 
-const generateRefreshToken = (user: UserType): string => {
-  return jwt.sign(
-    { id: user._id, email: user.email },
-    process.env.REFRESH_TOKEN_SECRET || ""
-  );
-};
-
-export const register: RequestHandler = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body as LoginRequest;
+    const { email, password } = req.body;
 
     // Check if user exists
-    const existingUser = (await User.findOne({ email })) as UserType | null;
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      res.status(400).json({ message: "User already exists" });
-      return;
+      return res.status(400).json({ message: "User already exists" });
     }
-
-    // Hash password
-    const hashedPassword: string = await bcrypt.hash(password, 10);
 
     // Create new user
-    const user: UserType = new User({
-      email,
-      password: hashedPassword,
-    });
-
+    const user = new User({ email, password });
     await user.save();
 
     // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    const { accessToken, refreshToken } = generateTokens(user);
 
     // Save refresh token
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.status(201).json({ accessToken, refreshToken });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error creating user",
-      error: (error as Error).message,
+    res.status(201).json({
+      accessToken,
+      refreshToken,
+      user: {
+        id: user._id,
+        email: user.email,
+      },
     });
+  } catch (error) {
+    res.status(500).json({ message: "Error registering user" });
   }
 };
 
-export const login: RequestHandler = async (req: Request, res: Response) => {
+export const login = (req: Request, res: Response, next: any) => {
+  passport.authenticate(
+    "local",
+    { session: false },
+    (err: any, user: any, info: any) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.status(401).json({ message: info.message });
+      }
+
+      // Generate tokens
+      const { accessToken, refreshToken } = generateTokens(user);
+
+      // Save refresh token
+      user.refreshToken = refreshToken;
+      user.save();
+
+      res.json({
+        accessToken,
+        refreshToken,
+        user: {
+          id: user._id,
+          email: user.email,
+        },
+      });
+    }
+  )(req, res, next);
+};
+
+export const refreshToken = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body as LoginRequest;
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token required" });
+    }
+
+    // Verify refresh token
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key"
+    ) as { id: string };
 
     // Find user
-    const user = (await User.findOne({ email })) as UserType | null;
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return;
+    const user = await User.findById(decoded.id);
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ message: "Invalid refresh token" });
     }
 
-    // Check password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      res.status(401).json({ message: "Invalid password" });
-      return;
-    }
+    // Generate new tokens
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+      generateTokens(user);
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-
-    // Save refresh token
-    user.refreshToken = refreshToken;
+    // Update refresh token
+    user.refreshToken = newRefreshToken;
     await user.save();
 
-    res.json({ accessToken, refreshToken });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error logging in",
-      error: (error as Error).message,
+    res.json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
     });
+  } catch (error) {
+    res.status(401).json({ message: "Invalid refresh token" });
   }
 };
 
-export const logout: RequestHandler = async (req: Request, res: Response) => {
+export const logout = async (req: Request, res: Response) => {
   try {
-    console.log("Logged out successfully");
-    const { refreshToken } = req.body as { refreshToken: string };
+    const { refreshToken } = req.body;
     const user = await User.findOne({ refreshToken });
-    if (!user) {
-      res.status(200).json({ message: "Logged out successfully" });
-      return;
+
+    if (user) {
+      user.refreshToken = undefined;
+      await user.save();
     }
-    user.refreshToken = undefined;
-    await user.save();
-    res.status(200).json({ message: "Logged out successfully" });
+
+    res.json({ message: "Logged out successfully" });
   } catch (error) {
-    res.status(500).json({
-      message: "Error logging out",
-      error: (error as Error).message,
-    });
+    res.status(500).json({ message: "Error logging out" });
   }
 };
