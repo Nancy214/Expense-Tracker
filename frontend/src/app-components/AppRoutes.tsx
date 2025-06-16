@@ -5,7 +5,6 @@ import StatisticsPage from "@/app-components/pages/StatisticsPage";
 import TransactionsPage from "@/app-components/pages/TransactionsPage";
 import BudgetPage from "@/app-components/pages/BudgetPage";
 import LoginPage from "@/app-components/pages/LoginPage";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function AppRoutes(): React.ReactElement {
   return (

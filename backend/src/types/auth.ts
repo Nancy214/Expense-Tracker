@@ -4,7 +4,7 @@ import { Request } from "express";
 export interface UserType extends Document {
   email: string;
   password: string;
-  refreshToken?: string;
+  //refreshToken?: string;
 }
 
 export interface LoginRequest {
@@ -22,10 +22,6 @@ export interface AuthRequest extends Request {
     authorization?: string;
   };
   user?: TokenPayload;
-}
-
-export interface RefreshTokenRequest {
-  refreshToken: string;
 }
 
 export interface AuthResponse {
