@@ -3,18 +3,16 @@ import { LoginCredentials, AuthResponse } from "@/types/auth";
 
 const API_URL = "http://localhost:8000/api";
 
-// Store tokens and user data in localStorage
-const storeAuthData = (data: AuthResponse) => {
-  localStorage.setItem("accessToken", data.accessToken);
-  localStorage.setItem("refreshToken", data.refreshToken);
-  localStorage.setItem("user", JSON.stringify(data.user));
+// Store tokens in localStorage
+const storeTokens = (tokens: AuthResponse) => {
+  localStorage.setItem("accessToken", tokens.accessToken);
+  localStorage.setItem("refreshToken", tokens.refreshToken);
 };
 
-// Remove auth data from localStorage
-const removeAuthData = () => {
+// Remove tokens from localStorage
+const removeTokens = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
 };
 
 // Create axios instance
@@ -45,7 +43,7 @@ authApi.interceptors.response.use(
         originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
         return authApi(originalRequest);
       } catch (error) {
-        removeAuthData();
+        removeTokens();
         return Promise.reject(error);
       }
     }
@@ -58,9 +56,9 @@ export const login = async (
 ): Promise<AuthResponse> => {
   try {
     const response = await authApi.post("/auth/login", credentials);
-    const authData = response.data;
-    storeAuthData(authData);
-    return authData;
+    const tokens = response.data;
+    storeTokens(tokens);
+    return tokens;
   } catch (error) {
     throw error;
   }
@@ -70,10 +68,10 @@ export const logout = async (): Promise<void> => {
   try {
     const refreshToken = localStorage.getItem("refreshToken");
     await authApi.post("/auth/logout", { refreshToken });
-    removeAuthData();
+    removeTokens();
   } catch (error) {
-    // Even if the server request fails, we still want to remove auth data
-    removeAuthData();
+    // Even if the server request fails, we still want to remove tokens
+    removeTokens();
     throw error;
   }
 };
@@ -83,9 +81,9 @@ export const register = async (
 ): Promise<AuthResponse> => {
   try {
     const response = await authApi.post("/auth/register", credentials);
-    const authData = response.data;
-    storeAuthData(authData);
-    return authData;
+    const tokens = response.data;
+    storeTokens(tokens);
+    return tokens;
   } catch (error) {
     throw error;
   }

@@ -2,11 +2,9 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import passport from "passport";
 import { User } from "../models/user.model";
-import { AuthRequest, AuthResponse } from "../types/auth";
-import bcrypt from "bcrypt";
 
 // Generate tokens
-const generateTokens = (user: any): AuthResponse => {
+const generateTokens = (user: any) => {
   const accessToken = jwt.sign(
     { id: user._id },
     process.env.JWT_SECRET || "your-secret-key",
@@ -19,10 +17,7 @@ const generateTokens = (user: any): AuthResponse => {
     { expiresIn: "7d" }
   );
 
-  return {
-    accessToken: `Bearer ${accessToken}`,
-    refreshToken: `Bearer ${refreshToken}`,
-  };
+  return { accessToken, refreshToken };
 };
 
 export const register = async (req: Request, res: Response) => {
@@ -36,22 +31,22 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Create new user
-    const user = new User({ email, password: await bcrypt.hash(password, 10) });
+    const user = new User({ email, password });
     await user.save();
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user);
 
     // Save refresh token
-    //user.refreshToken = refreshToken;
-    //await user.save();
+    user.refreshToken = refreshToken;
+    await user.save();
 
     res.status(201).json({
       accessToken,
       refreshToken,
       user: {
         id: user._id,
-        //email: user.email,
+        email: user.email,
       },
     });
   } catch (error) {
@@ -59,10 +54,10 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-export const login = (req: AuthRequest, res: Response, next: any) => {
+export const login = (req: Request, res: Response, next: any) => {
   passport.authenticate(
     "local",
-    { successRedirect: "/", failureRedirect: "/login", session: false },
+    { session: false },
     (err: any, user: any, info: any) => {
       if (err) {
         return next(err);
@@ -76,14 +71,14 @@ export const login = (req: AuthRequest, res: Response, next: any) => {
 
       // Save refresh token
       user.refreshToken = refreshToken;
-      //user.save();
+      user.save();
 
       res.json({
         accessToken,
         refreshToken,
         user: {
           id: user._id,
-          //email: user.email,
+          email: user.email,
         },
       });
     }
@@ -106,7 +101,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 
     // Find user
     const user = await User.findById(decoded.id);
-    if (!user) {
+    if (!user || user.refreshToken !== refreshToken) {
       return res.status(401).json({ message: "Invalid refresh token" });
     }
 
@@ -115,8 +110,8 @@ export const refreshToken = async (req: Request, res: Response) => {
       generateTokens(user);
 
     // Update refresh token
-    //user.refreshToken = newRefreshToken;
-    //await user.save();
+    user.refreshToken = newRefreshToken;
+    await user.save();
 
     res.json({
       accessToken: newAccessToken,
@@ -133,9 +128,8 @@ export const logout = async (req: Request, res: Response) => {
     const user = await User.findOne({ refreshToken });
 
     if (user) {
-      ///user.refreshToken = undefined;
-      //await user.save();
-      localStorage.removeItem("refreshToken");
+      user.refreshToken = undefined;
+      await user.save();
     }
 
     res.json({ message: "Logged out successfully" });

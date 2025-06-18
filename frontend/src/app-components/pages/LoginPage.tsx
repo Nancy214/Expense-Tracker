@@ -27,6 +27,7 @@ const LoginPage: React.FC = () => {
 
     try {
       const response = await login(formData as LoginCredentials);
+      console.log(response);
       console.log("Logged in successfully!");
       navigate("/");
     } catch (error: any) {
