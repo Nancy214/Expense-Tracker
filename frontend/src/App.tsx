@@ -1,44 +1,14 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import LoginPage from "@/app-components/pages/LoginPage";
-import RegisterPage from "@/app-components/pages/RegisterPage";
-import { AuthRoute, PrivateRoute } from "@/app-components/AuthRoutes";
-
-import Navbar from "@/app-components/Navbar";
-
-import HomePage from "./app-components/pages/HomePage";
+import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import Navbar from "@/app-components/Navbar";
+import { AppRoutes } from "@/routes";
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Navbar />
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <AuthRoute>
-                <LoginPage />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <AuthRoute>
-                <RegisterPage />
-              </AuthRoute>
-            }
-          />
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <HomePage />
-              </PrivateRoute>
-            }
-          />
-        </Routes>
+        <AppRoutes />
       </Router>
     </AuthProvider>
   );

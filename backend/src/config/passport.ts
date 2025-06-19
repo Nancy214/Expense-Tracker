@@ -1,8 +1,16 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import bcrypt from "bcrypt";
+import dotenv from "dotenv";
 import { User } from "../models/user.model";
+import { generateTokens } from "../controllers/auth.controller";
+
+dotenv.config();
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
 // Local Strategy for username/password login
 passport.use(
@@ -51,5 +59,71 @@ passport.use(
     }
   )
 );
+
+// Google Strategy
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: GOOGLE_CLIENT_ID || "",
+      clientSecret: GOOGLE_CLIENT_SECRET || "",
+      callbackURL: "http://localhost:8000/api/auth/google/callback",
+    },
+    async (
+      accessToken: string,
+      refreshToken: string,
+      profile: any,
+      done: any
+    ) => {
+      try {
+        const user = await User.findOne({
+          googleId: profile.id,
+          /* email: profile.emails[0].value,
+          password: bcrypt.hashSync(profile.id, 10), */
+        });
+        if (user) {
+          //console.log("User found");
+          const { accessToken, refreshToken } = generateTokens(user);
+          const userWithTokens = {
+            ...user.toJSON(),
+            accessToken,
+            refreshToken,
+          };
+          return done(null, userWithTokens);
+        } else {
+          const newUser = new User({
+            googleId: profile.id,
+            email: profile.emails[0].value,
+            password: bcrypt.hashSync(profile.id, 10),
+          });
+          const { accessToken, refreshToken } = generateTokens(newUser);
+          const userWithTokens = {
+            ...newUser.toJSON(),
+            accessToken,
+            refreshToken,
+          };
+          await newUser.save();
+          return done(null, userWithTokens);
+        }
+      } catch (err) {
+        return done(err);
+      }
+    }
+  )
+);
+
+// Serialize user for session
+passport.serializeUser((user: any, done) => {
+  done(null, user._id || user.id);
+});
+
+// Deserialize user from session
+passport.deserializeUser(async (id: string, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+});
 
 export default passport;

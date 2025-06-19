@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { UserType } from "../types/auth";
+import { UserLocalType, UserGoogleType } from "../types/auth";
 
 const userSchema = new Schema({
   email: {
@@ -11,10 +11,24 @@ const userSchema = new Schema({
     type: String,
     required: true,
   },
+  googleId: {
+    type: String,
+    default: null,
+    required: false,
+  },
+  accessToken: {
+    type: String,
+    default: null,
+    required: false,
+  },
   refreshToken: {
     type: String,
     default: null,
+    required: false,
   },
 });
 
-export const User = mongoose.model<UserType>("User", userSchema);
+export const User = mongoose.model<UserLocalType | UserGoogleType>(
+  "User",
+  userSchema
+);

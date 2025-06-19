@@ -64,6 +64,11 @@ export const login = async (
   }
 };
 
+// Initiate Google OAuth flow
+export const initiateGoogleLogin = () => {
+  window.location.href = `${API_URL}/auth/google`;
+};
+
 export const logout = async (): Promise<void> => {
   try {
     const refreshToken = localStorage.getItem("refreshToken");

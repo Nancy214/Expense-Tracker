@@ -5,16 +5,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { logout } from "@/services/auth.service";
+import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Navbar: React.FC = () => {
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (error) {
       console.error("Logout failed:", error);
 

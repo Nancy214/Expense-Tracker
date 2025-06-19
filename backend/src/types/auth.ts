@@ -1,11 +1,21 @@
 import { Document } from "mongoose";
 import { Request } from "express";
 
-export interface UserType extends Document {
+export interface UserType {
   email: string;
   password: string;
+  googleId?: string;
+  accessToken?: string;
   refreshToken?: string;
+  //refreshToken?: string;
 }
+
+export type UserLocalType = Pick<UserType, "email" | "password">;
+
+export type UserGoogleType = Pick<
+  UserType,
+  "email" | "password" | "googleId" | "accessToken" | "refreshToken"
+>;
 
 export interface LoginRequest {
   email: string;
@@ -29,6 +39,7 @@ export interface RefreshTokenRequest {
 }
 
 export interface AuthResponse {
+  user: UserLocalType | UserGoogleType;
   accessToken: string;
   refreshToken: string;
 }

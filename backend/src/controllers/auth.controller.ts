@@ -2,9 +2,15 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import passport from "passport";
 import { User } from "../models/user.model";
+import {
+  AuthResponse,
+  UserGoogleType,
+  UserLocalType,
+  UserType,
+} from "../types/auth";
 
 // Generate tokens
-const generateTokens = (user: any) => {
+export const generateTokens = (user: any) => {
   const accessToken = jwt.sign(
     { id: user._id },
     process.env.JWT_SECRET || "your-secret-key",
@@ -27,6 +33,7 @@ export const register = async (req: Request, res: Response) => {
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log("User already exists");
       return res.status(400).json({ message: "User already exists" });
     }
 
@@ -38,16 +45,12 @@ export const register = async (req: Request, res: Response) => {
     const { accessToken, refreshToken } = generateTokens(user);
 
     // Save refresh token
-    user.refreshToken = refreshToken;
-    await user.save();
+    //user.refreshToken = refreshToken;
+    //await user.save();
 
     res.status(201).json({
       accessToken,
       refreshToken,
-      user: {
-        id: user._id,
-        email: user.email,
-      },
     });
   } catch (error) {
     res.status(500).json({ message: "Error registering user" });
@@ -58,7 +61,7 @@ export const login = (req: Request, res: Response, next: any) => {
   passport.authenticate(
     "local",
     { session: false },
-    (err: any, user: any, info: any) => {
+    (err: Error, user: UserLocalType | UserGoogleType, info: Error) => {
       if (err) {
         return next(err);
       }
@@ -70,19 +73,29 @@ export const login = (req: Request, res: Response, next: any) => {
       const { accessToken, refreshToken } = generateTokens(user);
 
       // Save refresh token
-      user.refreshToken = refreshToken;
-      user.save();
+      //user.refreshToken = refreshToken;
+      //user.save();
 
-      res.json({
+      res.status(200).json({
+        user,
         accessToken,
         refreshToken,
-        user: {
-          id: user._id,
-          email: user.email,
-        },
       });
     }
   )(req, res, next);
+};
+
+export const googleAuthCallback = async (req: Request, res: Response) => {
+  const user = req.user as any;
+  // Redirect to frontend with tokens as URL parameters
+  const tokens = encodeURIComponent(
+    JSON.stringify({
+      accessToken: user.accessToken,
+      refreshToken: user.refreshToken,
+      user: user,
+    })
+  );
+  res.redirect(`http://localhost:3000/auth/google/callback?tokens=${tokens}`);
 };
 
 export const refreshToken = async (req: Request, res: Response) => {
@@ -101,7 +114,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 
     // Find user
     const user = await User.findById(decoded.id);
-    if (!user || user.refreshToken !== refreshToken) {
+    if (!user) {
       return res.status(401).json({ message: "Invalid refresh token" });
     }
 
@@ -110,8 +123,8 @@ export const refreshToken = async (req: Request, res: Response) => {
       generateTokens(user);
 
     // Update refresh token
-    user.refreshToken = newRefreshToken;
-    await user.save();
+    //user.refreshToken = newRefreshToken;
+    //await user.save();
 
     res.json({
       accessToken: newAccessToken,
@@ -124,16 +137,41 @@ export const refreshToken = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
   try {
-    const { refreshToken } = req.body;
-    const user = await User.findOne({ refreshToken });
+    // Clear any auth cookies
+    res.clearCookie("connect.sid"); // Clear session cookie
+    res.clearCookie("accessToken"); // Clear JWT token if using cookies
 
-    if (user) {
-      user.refreshToken = undefined;
-      await user.save();
+    // Only try session operations if session exists
+    if (req.session) {
+      // Try to destroy session first
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Error destroying session:", err);
+        }
+      });
     }
 
-    res.json({ message: "Logged out successfully" });
+    // Try Passport logout if available and session exists
+    if (req.logout && req.session) {
+      req.logout((err) => {
+        if (err) {
+          console.error("Error during Passport logout:", err);
+        }
+      });
+    }
+
+    // Send success response
+    res.status(200).json({
+      success: true,
+      message: "Successfully logged out",
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error logging out" });
+    console.error("Logout error:", error);
+    // Even if there's an error, we still want to send a success response
+    // since the client will clear tokens anyway
+    res.status(200).json({
+      success: true,
+      message: "Successfully logged out",
+    });
   }
 };
