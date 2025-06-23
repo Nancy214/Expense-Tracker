@@ -1,8 +1,11 @@
 import { Document } from "mongoose";
 import { Request } from "express";
+import multer from "multer";
 
 export interface UserType {
   email: string;
+  name: string;
+  profilePicture?: string;
   password: string;
   googleId?: string;
   accessToken?: string;

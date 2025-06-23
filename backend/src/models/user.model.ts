@@ -7,24 +7,22 @@ const userSchema = new Schema({
     required: true,
     unique: true,
   },
+  name: {
+    type: String,
+    required: true,
+  },
+  profilePicture: {
+    type: String,
+    required: false,
+  },
   password: {
     type: String,
     required: true,
   },
   googleId: {
     type: String,
-    default: null,
-    required: false,
-  },
-  accessToken: {
-    type: String,
-    default: null,
-    required: false,
-  },
-  refreshToken: {
-    type: String,
-    default: null,
-    required: false,
+    unique: true,
+    sparse: true,
   },
 });
 

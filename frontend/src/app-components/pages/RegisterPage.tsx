@@ -10,18 +10,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { LoginCredentials } from "@/types/auth";
 import { register } from "@/services/auth.service";
+import { RegisterCredentials } from "@/types/auth";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
+    profilePicture: undefined as File | undefined,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const validFileTypes: string[] = ["image/jpeg", "image/png", "image/jpg"];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,12 +39,7 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      await register(formData as LoginCredentials);
-
-      // Store tokens in localStorage
-      /* localStorage.setItem("accessToken", response.data.accessToken);
-      localStorage.setItem("refreshToken", response.data.refreshToken); */
-
+      await register(formData as RegisterCredentials);
       console.log("Registered successfully!");
       navigate("/login");
     } catch (error: any) {
@@ -61,6 +59,22 @@ const RegisterPage = () => {
     });
   };
 
+  const handleProfilePictureChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
+      if (validFileTypes.includes(file.type)) {
+        setFormData({
+          ...formData,
+          profilePicture: file,
+        });
+      } else {
+        setError("Please upload a valid image file (JPEG, PNG, or JPG)");
+      }
+    }
+  };
+
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
@@ -75,6 +89,17 @@ const RegisterPage = () => {
             <CardContent>
               <form onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-6">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Enter your name"
+                      required
+                      value={formData.name}
+                      onChange={handleChange}
+                    />
+                  </div>
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -104,6 +129,14 @@ const RegisterPage = () => {
                       required
                       value={formData.confirmPassword}
                       onChange={handleChange}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="profilePicture">Profile Picture</Label>
+                    <Input
+                      id="profilePicture"
+                      type="file"
+                      onChange={handleProfilePictureChange}
                     />
                   </div>
                   {error && <div className="text-sm text-red-500">{error}</div>}

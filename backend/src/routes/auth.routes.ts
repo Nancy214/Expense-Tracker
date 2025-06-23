@@ -5,14 +5,15 @@ import {
   Request,
   Response,
 } from "express";
+import passport from "../config/passport";
+import { authenticateToken } from "../middleware/auth.middleware";
 import {
   login,
   register,
   logout,
   googleAuthCallback,
 } from "../controllers/auth.controller";
-import passport from "../config/passport";
-import { authenticateToken } from "../middleware/auth.middleware";
+import { upload } from "../config/multer";
 
 const router = Router();
 
@@ -30,7 +31,11 @@ router.get(
   googleAuthCallback as RequestHandler
 );
 
-router.post("/register", register as RequestHandler);
+router.post(
+  "/register",
+  upload.single("profilePicture"),
+  register as RequestHandler
+);
 router.post("/login", login as RequestHandler);
 router.post("/logout", logout as RequestHandler);
 router.get(

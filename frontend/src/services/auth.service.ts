@@ -1,5 +1,9 @@
 import axios from "axios";
-import { LoginCredentials, AuthResponse } from "@/types/auth";
+import {
+  LoginCredentials,
+  AuthResponse,
+  RegisterCredentials,
+} from "@/types/auth";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -82,13 +86,47 @@ export const logout = async (): Promise<void> => {
 };
 
 export const register = async (
-  credentials: LoginCredentials
-): Promise<AuthResponse> => {
+  credentials: RegisterCredentials
+): Promise<void> => {
   try {
-    const response = await authApi.post("/auth/register", credentials);
-    const tokens = response.data;
-    storeTokens(tokens);
-    return tokens;
+    // Create FormData for multipart/form-data
+    const formData = new FormData();
+    formData.append("email", credentials.email);
+    formData.append("name", credentials.name);
+    formData.append("password", credentials.password);
+
+    // Add profile picture if it exists
+    if (credentials.profilePicture) {
+      formData.append("profilePicture", credentials.profilePicture);
+    }
+
+    const response = await authApi.post("/auth/register", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        withCredentials: true,
+      },
+    });
+    console.log(response);
+    //const tokens = response.data;
+    //storeTokens(tokens);
+    //return tokens;
+    //return response;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export const uploadProfilePicture = async (
+  profilePicture: File
+): Promise<string> => {
+  try {
+    const formData = new FormData();
+    formData.append("profilePicture", profilePicture);
+    const response = await authApi.post(
+      "/auth/upload-profile-picture",
+      formData
+    );
+    return response.data;
   } catch (error) {
     throw error;
   }

@@ -8,7 +8,7 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   loginWithGoogle: (userData: any) => void;
   logout: () => Promise<void>;
-  register: (credentials: LoginCredentials) => Promise<void>;
+  //register: (credentials: LoginCredentials) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -27,7 +27,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const accessToken = localStorage.getItem("accessToken");
         const userData = localStorage.getItem("user");
 
-        if (accessToken && userData) {
+        if (
+          accessToken &&
+          (accessToken !== "undefined" || accessToken !== null) &&
+          userData
+        ) {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           setIsAuthenticated(true);
@@ -80,19 +84,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const handleRegister = async (credentials: LoginCredentials) => {
-    try {
-      const response = await register(credentials);
-      localStorage.setItem("user", JSON.stringify(response.user));
-      setUser(response.user);
-      setIsAuthenticated(true);
-    } catch (error) {
-      setUser(null);
-      setIsAuthenticated(false);
-      throw error;
-    }
-  };
-
   if (isLoading) {
     return <div>Loading...</div>; // Or your loading component
   }
@@ -105,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login: handleLogin,
         loginWithGoogle: handleGoogleLogin,
         logout: handleLogout,
-        register: handleRegister,
+        //register: handleRegister,
         isLoading,
       }}
     >

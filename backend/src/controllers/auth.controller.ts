@@ -8,6 +8,16 @@ import {
   UserLocalType,
   UserType,
 } from "../types/auth";
+import bcrypt from "bcrypt";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import dotenv from "dotenv";
+import { s3Client } from "../config/s3Client";
+
+//const upload = multer({ storage: multer.memoryStorage() });
+
+dotenv.config();
+const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
+const AWS_REGION = process.env.AWS_REGION || "";
 
 // Generate tokens
 export const generateTokens = (user: any) => {
@@ -28,7 +38,8 @@ export const generateTokens = (user: any) => {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, name } = req.body;
+    let profilePictureUrl = "";
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -36,24 +47,40 @@ export const register = async (req: Request, res: Response) => {
       console.log("User already exists");
       return res.status(400).json({ message: "User already exists" });
     }
+    if (req.file) {
+      const uploadCommand = new PutObjectCommand({
+        Bucket: AWS_BUCKET_NAME,
+        Key: req.file.originalname,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      });
 
-    // Create new user
-    const user = new User({ email, password });
+      await s3Client.send(uploadCommand);
+      //console.log(response);
+    }
+    profilePictureUrl = `https://${AWS_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${req.file?.originalname}`;
+    //console.log(profilePictureUrl);
+
+    const user = new User({
+      email,
+      password: bcrypt.hashSync(password, 10),
+      name,
+      profilePicture: profilePictureUrl,
+    });
+    //console.log(user);
+
     await user.save();
 
     // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user);
+    //const { accessToken, refreshToken } = generateTokens(user);
 
     // Save refresh token
     //user.refreshToken = refreshToken;
     //await user.save();
 
-    res.status(201).json({
-      accessToken,
-      refreshToken,
-    });
+    res.status(200).json({ message: "User registered successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error registering user" });
+    res.status(500).json({ message: error });
   }
 };
 
