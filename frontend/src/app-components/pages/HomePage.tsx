@@ -334,7 +334,11 @@ const HomePage = () => {
         {/* Today's Expenses Heading */}
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            Today's Expenses
+            {format(selectedDate, "dd/MM/yyyy") ===
+            format(new Date(), "dd/MM/yyyy")
+              ? "Today's"
+              : format(selectedDate, "MMMM d, yyyy")}{" "}
+            Expenses
           </h2>
           <p className="text-sm text-gray-600 mt-1">
             {format(selectedDate, "EEEE, MMMM d, yyyy")}
