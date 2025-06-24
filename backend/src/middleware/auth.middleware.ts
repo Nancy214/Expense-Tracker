@@ -5,7 +5,7 @@ import { TokenPayload, AuthRequest } from "../types/auth";
 export const authenticateToken = (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: any
 ) => {
   const authHeader: string | undefined = req.headers.authorization;
   const token: string | undefined = authHeader?.split(" ")[1];
@@ -16,7 +16,7 @@ export const authenticateToken = (
 
   jwt.verify(
     token,
-    process.env.ACCESS_TOKEN_SECRET || "",
+    process.env.JWT_SECRET || "your-secret-key",
     (err: jwt.VerifyErrors | null, decoded: any) => {
       if (err) {
         return res.status(403).json({ message: "Invalid or expired token" });

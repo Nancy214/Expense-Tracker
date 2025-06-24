@@ -1,8 +1,7 @@
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useEffect } from "react";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Alert, AlertTitle, AlertDescription } from "../../components/ui/alert";
 import { ExpenseDataTable } from "@/app-components/ExpenseTableData";
 import {
   Dialog,
@@ -27,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -36,6 +35,14 @@ import {
 } from "@/components/ui/popover";
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  createExpense,
+  getExpenses,
+  updateExpense,
+  deleteExpense,
+} from "@/services/expense.service";
+import { ExpenseType } from "@/types/expense";
+import { useToast } from "@/hooks/use-toast";
 
 const cardHeaderClass = "pt-2";
 
@@ -51,54 +58,45 @@ const EXPENSE_CATEGORIES: string[] = [
   "Other",
 ];
 
-interface FormData {
-  title: string;
-  category?: string;
-  description: string;
-  amount: string;
-  date: Date | undefined;
-}
-
-interface Alert {
-  show: boolean;
-  message: string;
-  title: string;
-}
-
-interface Transaction {
-  id: number;
-  title: string;
-  category: string;
-  description: string;
-  amount: number;
-  date: string;
-}
-
 const HomePage = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      const response = await getExpenses();
+      // Convert date strings back to Date objects
+      const expensesWithDates = response.map((expense) => ({
+        ...expense,
+        date: format(expense.date, "dd/MM/yyyy"), //new Date(expense.date), format(expense.date, "dd/MM/yyyy"),
+      }));
+      setTransactions(expensesWithDates);
+    };
+    fetchExpenses();
+  }, []);
+  const [transactions, setTransactions] = useState<ExpenseType[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
     "all",
   ]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const initialBalance = 1000;
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<ExpenseType>({
     title: "",
     category: "",
     description: "",
-    amount: "",
-    date: new Date(),
-  });
-  const [alert, setAlert] = useState<Alert>({
-    show: false,
-    message: "",
-    title: "",
+    amount: 0,
+    date: format(new Date(), "dd/MM/yyyy"), //new Date(), //format(new Date(), "dd/MM/yyyy"),
   });
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "amount" ? parseFloat(value) || 0 : value,
     }));
   };
 
@@ -129,11 +127,13 @@ const HomePage = () => {
   };
 
   const handleDateChange = (date: Date | undefined) => {
-    console.log("Selected date:", date);
-    setFormData((prev) => ({
-      ...prev,
-      date: date,
-    }));
+    console.log(typeof date);
+    if (date) {
+      setFormData((prev) => ({
+        ...prev,
+        date: format(date, "dd/MM/yyyy"), //date.toISOString(),
+      }));
+    }
   };
 
   const resetForm = (): void => {
@@ -141,56 +141,141 @@ const HomePage = () => {
       title: "",
       category: "",
       description: "",
-      amount: "",
-      date: new Date(),
+      amount: 0,
+      date: format(new Date(), "dd/MM/yyyy"), //new Date(), //format(new Date(), "dd/MM/yyyy"),
     });
+    setIsEditing(false);
+    setEditingExpenseId(null);
   };
 
-  const addTransaction = (): void => {
-    setAlert({
-      show: false,
-      message: "",
-      title: "",
-    });
+  const handleEdit = async (expense: ExpenseType) => {
+    // Convert the formatted date string back to a Date object
+    /* const [day, month, year] = expense.date.split("/");
+    const dateObject = new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day)
+    ); */
 
+    setFormData({
+      title: expense.title,
+      category: expense.category,
+      description: expense.description || "",
+      amount: expense.amount,
+      date: expense.date, //parse(expense.date, "dd/MM/yyyy", new Date()).toISOString(),
+    });
+    setIsEditing(true);
+    await updateExpense(expense._id || "", expense);
+    setEditingExpenseId(expense._id || null);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (expenseId: string) => {
+    setExpenseToDelete(expenseId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!expenseToDelete) return;
+
+    try {
+      await deleteExpense(expenseToDelete);
+      const updatedExpenses = await getExpenses();
+      setTransactions(
+        updatedExpenses.map((expense) => ({
+          ...expense,
+          date: format(expense.date, "dd/MM/yyyy"),
+        }))
+      );
+      toast({
+        title: "Success",
+        description: "Expense deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete expense. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setExpenseToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteDialogOpen(false);
+    setExpenseToDelete(null);
+  };
+
+  const addTransaction = async (): Promise<void> => {
     if (
       !formData.title ||
       !formData.category ||
-      !formData.amount ||
+      formData.amount <= 0 ||
       !formData.date
     ) {
-      setAlert({
-        show: true,
+      toast({
         title: "Missing Fields",
-        message: "Please fill in the required fields.",
+        description: "Please fill in all required fields with valid values.",
+        variant: "destructive",
       });
       return;
     }
 
-    const newAmount = parseFloat(formData.amount);
-    const newBalance = initialBalance - (totalExpense + newAmount);
+    const newAmount = formData.amount;
+    const currentTotalExpense = filteredTransactions.reduce(
+      (acc, t) => acc + t.amount,
+      0
+    );
+    const newBalance = initialBalance - (currentTotalExpense + newAmount);
 
     if (newBalance < 0) {
-      setAlert({
-        show: true,
+      toast({
         title: "Invalid Transaction",
-        message: "Cannot add expense: It exceeds your available balance!",
+        description: "Cannot add expense: It exceeds your available balance!",
+        variant: "destructive",
       });
       return;
     }
+    const newExpense = {
+      title: formData.title,
+      category: formData.category,
+      description: formData.description,
+      amount: newAmount,
+      date: formData.date, //parse(formData.date, "dd/MM/yyyy", new Date()).toISOString(),
+    };
 
-    setTransactions([
-      ...transactions,
-      {
-        id: Date.now(),
-        title: formData.title,
-        category: formData.category,
-        description: formData.description,
-        amount: newAmount,
-        date: format(formData.date, "dd/MM"),
-      },
-    ]);
-    resetForm();
+    try {
+      if (isEditing && editingExpenseId) {
+        await updateExpense(editingExpenseId, newExpense);
+        toast({
+          title: "Success",
+          description: "Expense updated successfully",
+        });
+      } else {
+        await createExpense(newExpense);
+        toast({
+          title: "Success",
+          description: "Expense added successfully",
+        });
+      }
+      const updatedExpenses = await getExpenses();
+      setTransactions(
+        updatedExpenses.map((expense) => ({
+          ...expense,
+          date: format(expense.date, "dd/MM/yyyy"), //expense.date, //format(expense.date, "dd/MM/yyyy"),
+        }))
+      );
+      resetForm();
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save expense. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Filter transactions based on selected date and categories
@@ -199,7 +284,7 @@ const HomePage = () => {
       selectedCategories.includes("all") ||
       selectedCategories.includes(transaction.category);
     const matchesDate = selectedDate
-      ? transaction.date === format(selectedDate, "dd/MM")
+      ? transaction.date === format(selectedDate, "dd/MM/yyyy") //transaction.date.toISOString()
       : true;
     return matchesCategory && matchesDate;
   });
@@ -229,19 +314,17 @@ const HomePage = () => {
             </CardContent>
           </Card>
         </div>
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Add New Expense</Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              Add New Expense
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Expense</DialogTitle>
-              {alert.show && (
-                <Alert variant="destructive">
-                  <AlertTitle>{alert.title}</AlertTitle>
-                  <AlertDescription>{alert.message}</AlertDescription>
-                </Alert>
-              )}
+              <DialogTitle>
+                {isEditing ? "Edit Expense" : "Add Expense"}
+              </DialogTitle>
               <p className="text-sm text-gray-500 mt-1">
                 <span className="text-red-500">*</span> Required fields
               </p>
@@ -303,7 +386,10 @@ const HomePage = () => {
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {formData.date ? (
-                        format(formData.date, "dd/MM")
+                        format(
+                          parse(formData.date, "dd/MM/yyyy", new Date()),
+                          "dd/MM/yyyy"
+                        )
                       ) : (
                         <span>Pick a date</span>
                       )}
@@ -313,7 +399,7 @@ const HomePage = () => {
                     <Calendar
                       className="pointer-events-auto"
                       mode="single"
-                      selected={formData.date}
+                      selected={parse(formData.date, "dd/MM/yyyy", new Date())}
                       onSelect={handleDateChange}
                       initialFocus
                     />
@@ -326,15 +412,17 @@ const HomePage = () => {
                 </label>
                 <Input
                   placeholder="Amount"
-                  type="number"
                   name="amount"
+                  //type="number"
                   value={formData.amount}
                   onChange={handleInputChange}
                   required
                 />
               </div>
               <DialogFooter className="mt-4">
-                <Button onClick={addTransaction}>Add Expense</Button>
+                <Button onClick={addTransaction}>
+                  {isEditing ? "Update Expense" : "Add Expense"}
+                </Button>
                 <Button onClick={resetForm} variant="outline" type="button">
                   Reset
                 </Button>
@@ -342,6 +430,30 @@ const HomePage = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Delete</DialogTitle>
+            </DialogHeader>
+            <div className="mt-2">
+              <p className="text-sm text-gray-600">
+                Are you sure you want to delete this expense? This action cannot
+                be undone.
+              </p>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button onClick={confirmDelete} variant="destructive">
+                Delete
+              </Button>
+              <Button onClick={cancelDelete} variant="outline">
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Card>
           <CardContent className={cardHeaderClass}>
             <h2 className="text-lg font-semibold mb-4">Expenses</h2>
@@ -397,7 +509,7 @@ const HomePage = () => {
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {selectedDate ? (
-                      format(selectedDate, "dd/MM")
+                      format(selectedDate, "dd/MM/yyyy")
                     ) : (
                       <span>Pick a date</span>
                     )}
@@ -431,12 +543,14 @@ const HomePage = () => {
               <p className="text-gray-500">No expenses found.</p>
             ) : (
               <>
-                <ExpenseDataTable data={filteredTransactions} />
+                <ExpenseDataTable
+                  data={filteredTransactions}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
                 <div className="mt-4 flex justify-between p-4 bg-muted/50 rounded-lg">
                   <span className="font-medium">Total Expenses</span>
-                  <span className="font-medium">
-                    ${totalExpense.toFixed(2)}
-                  </span>
+                  <span className="font-medium">${totalExpense}</span>
                 </div>
               </>
             )}

@@ -3,6 +3,7 @@ import { Request } from "express";
 import multer from "multer";
 
 export interface UserType {
+  _id: string;
   email: string;
   name: string;
   profilePicture?: string;
@@ -13,11 +14,11 @@ export interface UserType {
   //refreshToken?: string;
 }
 
-export type UserLocalType = Pick<UserType, "email" | "password">;
+export type UserLocalType = Pick<UserType, "email" | "password" | "_id">;
 
 export type UserGoogleType = Pick<
   UserType,
-  "email" | "password" | "googleId" | "accessToken" | "refreshToken"
+  "email" | "password" | "googleId" | "accessToken" | "refreshToken" | "_id"
 >;
 
 export interface LoginRequest {

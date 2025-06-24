@@ -1,10 +1,4 @@
-import {
-  NextFunction,
-  RequestHandler,
-  Router,
-  Request,
-  Response,
-} from "express";
+import { RequestHandler, Router } from "express";
 import passport from "../config/passport";
 import { authenticateToken } from "../middleware/auth.middleware";
 import {

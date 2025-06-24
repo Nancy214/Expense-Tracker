@@ -6,7 +6,7 @@ import {
   getSortedRowModel,
   Row,
   useReactTable,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -14,132 +14,110 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { ArrowUpDown } from 'lucide-react';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { ArrowUpDown, Edit, Trash2 } from "lucide-react";
+import { ExpenseType } from "@/types/expense";
 
-interface Expense {
-  date: string;
-  title: string;
-  category: string;
-  description: string;
-  amount: number;
+interface ExpenseDataTableProps {
+  data: ExpenseType[];
+  onEdit: (expense: ExpenseType) => void;
+  onDelete: (expenseId: string) => void;
 }
 
 export function ExpenseDataTable({
   data,
-}: {
-  data: Expense[];
-}) {
-  const columns: ColumnDef<Expense>[] = [
+  onEdit,
+  onDelete,
+}: ExpenseDataTableProps) {
+  const columns: ColumnDef<ExpenseType>[] = [
     {
-      accessorKey: 'date',
-      header: ({
-        column,
-      }: {
-        column: Column<Expense>;
-      }) => {
+      accessorKey: "date",
+      header: ({ column }: { column: Column<ExpenseType> }) => {
         return (
-          <Button
-            variant='ghost'
-            onClick={() => column.toggleSorting()}
-          >
+          <Button variant="ghost" onClick={() => column.toggleSorting()}>
             Date
-            <ArrowUpDown className='ml-2 h-4 w-4' />
+            <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
       size: 100,
     },
     {
-      accessorKey: 'title',
-      header: ({
-        column,
-      }: {
-        column: Column<Expense>;
-      }) => {
+      accessorKey: "title",
+      header: ({ column }: { column: Column<ExpenseType> }) => {
         return (
-          <Button
-            variant='ghost'
-            onClick={() => column.toggleSorting()}
-          >
+          <Button variant="ghost" onClick={() => column.toggleSorting()}>
             Title
-            <ArrowUpDown className='ml-2 h-4 w-4' />
+            <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
       size: 200,
     },
     {
-      accessorKey: 'category',
-      header: ({
-        column,
-      }: {
-        column: Column<Expense>;
-      }) => {
+      accessorKey: "category",
+      header: ({ column }: { column: Column<ExpenseType> }) => {
         return (
-          <Button
-            variant='ghost'
-            onClick={() => column.toggleSorting()}
-          >
+          <Button variant="ghost" onClick={() => column.toggleSorting()}>
             Category
-            <ArrowUpDown className='ml-2 h-4 w-4' />
+            <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
       size: 150,
     },
     {
-      accessorKey: 'description',
-      header: ({
-        column,
-      }: {
-        column: Column<Expense>;
-      }) => {
+      accessorKey: "description",
+      header: ({ column }: { column: Column<ExpenseType> }) => {
         return (
-          <Button
-            variant='ghost'
-            onClick={() => column.toggleSorting()}
-          >
+          <Button variant="ghost" onClick={() => column.toggleSorting()}>
             Description
-            <ArrowUpDown className='ml-2 h-4 w-4' />
+            <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
       size: 250,
     },
     {
-      accessorKey: 'amount',
-      header: ({
-        column,
-      }: {
-        column: Column<Expense>;
-      }) => {
+      accessorKey: "amount",
+      header: ({ column }: { column: Column<ExpenseType> }) => {
         return (
-          <div className='text-right'>
-            <Button
-              variant='ghost'
-              onClick={() =>
-                column.toggleSorting()
-              }
-            >
+          <div className="text-right">
+            <Button variant="ghost" onClick={() => column.toggleSorting()}>
               Amount
-              <ArrowUpDown className='ml-2 h-4 w-4' />
+              <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </div>
         );
       },
-      cell: ({ row }: { row: Row<Expense> }) => {
-        const amount = parseFloat(
-          row.getValue('amount')
-        );
+      cell: ({ row }: { row: Row<ExpenseType> }) => {
+        const amount = parseFloat(row.getValue("amount"));
+        return <div className="text-right font-medium">${amount}</div>;
+      },
+      size: 100,
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }: { row: Row<ExpenseType> }) => {
+        const expense = row.original;
         return (
-          <div className='text-right font-medium'>
-            ${amount}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => onEdit(expense)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDelete(expense._id || "")}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         );
       },
-      size: 100,
+      size: 120,
     },
   ];
 
@@ -148,65 +126,49 @@ export function ExpenseDataTable({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    columnResizeMode: 'onChange',
+    columnResizeMode: "onChange",
   });
 
   return (
-    <div className='rounded-md border w-full overflow-hidden'>
+    <div className="rounded-md border w-full overflow-hidden">
       <Table>
         <TableHeader>
-          {table
-            .getHeaderGroups()
-            .map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(
-                  (header) => {
-                    return (
-                      <TableHead
-                        key={header.id}
-                        style={{
-                          width: header.getSize(),
-                        }}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column
-                                .columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    );
-                  }
-                )}
-              </TableRow>
-            ))}
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                return (
+                  <TableHead
+                    key={header.id}
+                    style={{
+                      width: header.getSize(),
+                    }}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          ))}
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows?.length ? (
-            table
-              .getRowModel()
-              .rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row
-                    .getVisibleCells()
-                    .map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef
-                            .cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                </TableRow>
-              ))
+            table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className='h-24 text-center'
-              >
+              <TableCell colSpan={columns.length} className="h-24 text-center">
                 No expenses found.
               </TableCell>
             </TableRow>
