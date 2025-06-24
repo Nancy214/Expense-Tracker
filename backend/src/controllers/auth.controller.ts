@@ -9,11 +9,10 @@ import {
   UserType,
 } from "../types/auth";
 import bcrypt from "bcrypt";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import { s3Client } from "../config/s3Client";
-
-//const upload = multer({ storage: multer.memoryStorage() });
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
@@ -39,7 +38,7 @@ export const generateTokens = (user: any) => {
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
-    let profilePictureUrl = "";
+    let profilePictureName = "";
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -48,9 +47,10 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "User already exists" });
     }
     if (req.file) {
+      profilePictureName = bcrypt.hashSync(req.file.originalname, 10);
       const uploadCommand = new PutObjectCommand({
         Bucket: AWS_BUCKET_NAME,
-        Key: req.file.originalname,
+        Key: profilePictureName,
         Body: req.file.buffer,
         ContentType: req.file.mimetype,
       });
@@ -58,14 +58,13 @@ export const register = async (req: Request, res: Response) => {
       await s3Client.send(uploadCommand);
       //console.log(response);
     }
-    profilePictureUrl = `https://${AWS_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${req.file?.originalname}`;
     //console.log(profilePictureUrl);
 
     const user = new User({
       email,
       password: bcrypt.hashSync(password, 10),
       name,
-      profilePicture: profilePictureUrl,
+      profilePicture: profilePictureName,
     });
     //console.log(user);
 
@@ -88,7 +87,7 @@ export const login = (req: Request, res: Response, next: any) => {
   passport.authenticate(
     "local",
     { session: false },
-    (err: Error, user: UserLocalType | UserGoogleType, info: Error) => {
+    async (err: Error, user: UserLocalType | UserGoogleType, info: Error) => {
       if (err) {
         return next(err);
       }
@@ -99,14 +98,30 @@ export const login = (req: Request, res: Response, next: any) => {
       // Generate tokens
       const { accessToken, refreshToken } = generateTokens(user);
 
+      let profilePictureUrl = "";
+      if (user.profilePicture) {
+        const getCommand = new GetObjectCommand({
+          Bucket: AWS_BUCKET_NAME,
+          Key: user.profilePicture,
+        });
+        profilePictureUrl = await getSignedUrl(s3Client, getCommand, {
+          expiresIn: 30,
+        });
+      }
+
       // Save refresh token
       //user.refreshToken = refreshToken;
       //user.save();
 
       res.status(200).json({
-        user,
         accessToken,
         refreshToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name || "",
+          profilePicture: profilePictureUrl,
+        },
       });
     }
   )(req, res, next);
@@ -117,9 +132,14 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
   // Redirect to frontend with tokens as URL parameters
   const tokens = encodeURIComponent(
     JSON.stringify({
-      accessToken: user.accessToken,
-      refreshToken: user.refreshToken,
-      user: user,
+      accessToken: user?.accessToken,
+      refreshToken: user?.refreshToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name || "",
+        profilePicture: user.profilePicture || "",
+      },
     })
   );
   res.redirect(`http://localhost:3000/auth/google/callback?tokens=${tokens}`);

@@ -9,17 +9,11 @@ export interface UserType {
   profilePicture?: string;
   password: string;
   googleId?: string;
-  accessToken?: string;
-  refreshToken?: string;
-  //refreshToken?: string;
 }
 
-export type UserLocalType = Pick<UserType, "email" | "password" | "_id">;
+export type UserLocalType = Omit<UserType, "googleId">;
 
-export type UserGoogleType = Pick<
-  UserType,
-  "email" | "password" | "googleId" | "accessToken" | "refreshToken" | "_id"
->;
+export type UserGoogleType = UserType;
 
 export interface LoginRequest {
   email: string;

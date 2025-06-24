@@ -3,14 +3,8 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { ExpenseDataTable } from "@/app-components/ExpenseTableData";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "../../components/ui/dialog";
+import GeneralDialog from "@/app-components/Dialog";
+import { useAuth } from "@/context/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +37,13 @@ import {
 } from "@/services/expense.service";
 import { ExpenseType } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const cardHeaderClass = "pt-2";
 
@@ -60,6 +61,7 @@ const EXPENSE_CATEGORIES: string[] = [
 
 const HomePage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -74,7 +76,7 @@ const HomePage = () => {
     fetchExpenses();
   }, []);
   const [transactions, setTransactions] = useState<ExpenseType[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
     "all",
   ]);
@@ -298,7 +300,48 @@ const HomePage = () => {
   return (
     <>
       <div className="p-6 space-y-4 mx-auto">
-        <div className="flex justify-between space-x-4">
+        {/* Greeting Section */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Hello, {user?.name || "User"}! 👋
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Welcome to your expense tracker
+            </p>
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn("w-[180px] justify-start text-left font-normal")}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(selectedDate, "dd/MM/yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Today's Expenses Heading */}
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Today's Expenses
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {format(selectedDate, "EEEE, MMMM d, yyyy")}
+          </p>
+        </div>
+
+        {/* <div className="flex justify-between space-x-4">
           <Card className="w-1/2">
             <CardContent className={cardHeaderClass}>
               <h2 className="text-lg font-semibold">Today's Balance</h2>
@@ -313,123 +356,122 @@ const HomePage = () => {
               <p className="text-red-500 text-xl">${totalExpense.toFixed(2)}</p>
             </CardContent>
           </Card>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
+        </div> */}
+        <GeneralDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          title={isEditing ? "Edit Expense" : "Add Expense"}
+          size="lg"
+          triggerButton={
             <Button onClick={() => setIsDialogOpen(true)}>
               Add New Expense
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {isEditing ? "Edit Expense" : "Add Expense"}
-              </DialogTitle>
-              <p className="text-sm text-gray-500 mt-1">
-                <span className="text-red-500">*</span> Required fields
-              </p>
-            </DialogHeader>
-            <div className="mt-2 space-y-2">
-              <div>
-                <label className="block text-sm mb-1">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  placeholder="Expense Title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">
-                  Category <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  value={formData.category}
-                  onValueChange={handleCategoryChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXPENSE_CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Description</label>
-                <Input
-                  placeholder="Description (Optional)"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-[180px] justify-start text-left font-normal",
-                        !formData.date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.date ? (
-                        format(
-                          parse(formData.date, "dd/MM/yyyy", new Date()),
-                          "dd/MM/yyyy"
-                        )
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      className="pointer-events-auto"
-                      mode="single"
-                      selected={parse(formData.date, "dd/MM/yyyy", new Date())}
-                      onSelect={handleDateChange}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <label className="block text-sm mb-1">
-                  Amount <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  placeholder="Amount"
-                  name="amount"
-                  //type="number"
-                  value={formData.amount}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <DialogFooter className="mt-4">
-                <Button onClick={addTransaction}>
-                  {isEditing ? "Update Expense" : "Add Expense"}
-                </Button>
-                <Button onClick={resetForm} variant="outline" type="button">
-                  Reset
-                </Button>
-              </DialogFooter>
+          }
+          footerActions={
+            <>
+              <Button onClick={addTransaction}>
+                {isEditing ? "Update Expense" : "Add Expense"}
+              </Button>
+              <Button onClick={resetForm} variant="outline" type="button">
+                Reset
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-2">
+            <p className="text-sm text-gray-500">
+              <span className="text-red-500">*</span> Required fields
+            </p>
+            <div>
+              <label className="block text-sm mb-1">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="Expense Title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                required
+              />
             </div>
-          </DialogContent>
-        </Dialog>
+            <div>
+              <label className="block text-sm mb-1">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formData.category}
+                onValueChange={handleCategoryChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPENSE_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Description</label>
+              <Input
+                placeholder="Description (Optional)"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">
+                Date <span className="text-red-500">*</span>
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[180px] justify-start text-left font-normal",
+                      !formData.date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.date ? (
+                      format(
+                        parse(formData.date, "dd/MM/yyyy", new Date()),
+                        "dd/MM/yyyy"
+                      )
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    className="pointer-events-auto"
+                    mode="single"
+                    selected={parse(formData.date, "dd/MM/yyyy", new Date())}
+                    onSelect={handleDateChange}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div>
+              <label className="block text-sm mb-1">
+                Amount <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="Amount"
+                name="amount"
+                value={formData.amount}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
+        </GeneralDialog>
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -498,39 +540,10 @@ const HomePage = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-[180px] justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? (
-                      format(selectedDate, "dd/MM/yyyy")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    className="pointer-events-auto"
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-
-              {(selectedDate || !selectedCategories.includes("all")) && (
+              {!selectedCategories.includes("all") && (
                 <Button
                   variant="ghost"
                   onClick={() => {
-                    setSelectedDate(undefined);
                     setSelectedCategories(["all"]);
                   }}
                 >

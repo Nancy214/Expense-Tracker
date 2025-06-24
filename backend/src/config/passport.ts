@@ -94,6 +94,8 @@ passport.use(
             googleId: profile.id,
             email: profile.emails[0].value,
             password: bcrypt.hashSync(profile.id, 10),
+            name: profile.displayName,
+            profilePicture: profile.photos[0].value,
           });
           const { accessToken, refreshToken } = generateTokens(newUser);
           const userWithTokens = {
