@@ -97,6 +97,13 @@ const LoginPage: React.FC = () => {
                       value={formData.password}
                       onChange={handleChange}
                     />
+                    <Button
+                      variant="link"
+                      className="p-0 text-sm"
+                      onClick={() => navigate("/forgot-password")}
+                    >
+                      Forgot password?
+                    </Button>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Logging in..." : "Login"}

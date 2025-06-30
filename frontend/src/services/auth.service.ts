@@ -131,3 +131,29 @@ export const uploadProfilePicture = async (
     throw error;
   }
 };
+
+export const forgotPassword = async (email: string): Promise<void> => {
+  try {
+    const response = await authApi.post("/auth/forgot-password", { email });
+    return response.data;
+  } catch (error: any) {
+    console.error("Forgot password error:", error);
+    throw error;
+  }
+};
+
+export const resetPassword = async (
+  token: string,
+  newPassword: string
+): Promise<void> => {
+  try {
+    const response = await authApi.post("/auth/reset-password", {
+      token,
+      newPassword,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Reset password error:", error);
+    throw error;
+  }
+};

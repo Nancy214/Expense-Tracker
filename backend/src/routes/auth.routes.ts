@@ -6,6 +6,8 @@ import {
   register,
   logout,
   googleAuthCallback,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/auth.controller";
 import { upload } from "../config/multer";
 
@@ -32,6 +34,8 @@ router.post(
 );
 router.post("/login", login as RequestHandler);
 router.post("/logout", logout as RequestHandler);
+router.post("/forgot-password", forgotPassword as RequestHandler);
+router.post("/reset-password", resetPassword as RequestHandler);
 router.get(
   "/myprofile",
   authenticateToken as RequestHandler,

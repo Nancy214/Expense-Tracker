@@ -4,6 +4,8 @@ import LoginPage from "@/app-components/pages/LoginPage";
 import RegisterPage from "@/app-components/pages/RegisterPage";
 import HomePage from "@/app-components/pages/HomePage";
 import GoogleCallback from "@/app-components/pages/GoogleCallback";
+import ForgotPasswordPage from "@/app-components/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/app-components/pages/ResetPasswordPage";
 
 interface RouteConfig {
   path: string;
@@ -30,6 +32,16 @@ const routes: RouteConfig[] = [
   {
     path: "/auth/google/callback",
     element: <GoogleCallback />,
+    requireAuth: false,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
+    requireAuth: false,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
     requireAuth: false,
   },
 ];
