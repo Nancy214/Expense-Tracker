@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BudgetFrequency, BudgetData, BudgetResponse } from "../types/budget";
+import { BudgetData, BudgetResponse } from "../types/budget";
 
 const API_URL = "http://localhost:8000/api";
 
