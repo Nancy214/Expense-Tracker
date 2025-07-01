@@ -25,6 +25,15 @@ const expenseSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
   },
+  isRecurring: {
+    type: Boolean,
+    default: false,
+  },
+  recurringFrequency: {
+    type: String,
+    enum: ["daily", "weekly", "monthly", "yearly"],
+    required: false,
+  },
 });
 
 export const Expense = mongoose.model<ExpenseType>("Expense", expenseSchema);

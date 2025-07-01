@@ -16,8 +16,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Edit, Trash2 } from "lucide-react";
+import { ArrowUpDown, Edit, Trash2, Repeat } from "lucide-react";
 import { ExpenseType } from "@/types/expense";
+import { Badge } from "@/components/ui/badge";
 
 interface ExpenseDataTableProps {
   data: ExpenseType[];
@@ -96,6 +97,25 @@ export function ExpenseDataTable({
         return <div className="text-right font-medium">${amount}</div>;
       },
       size: 100,
+    },
+    {
+      accessorKey: "isRecurring",
+      header: "Recurring",
+      cell: ({ row }: { row: Row<ExpenseType> }) => {
+        const expense = row.original;
+        if (expense.isRecurring && expense.recurringFrequency) {
+          return (
+            <div className="flex items-center gap-1">
+              <Repeat className="h-3 w-3 text-blue-500" />
+              <Badge variant="secondary" className="text-xs">
+                {expense.recurringFrequency}
+              </Badge>
+            </div>
+          );
+        }
+        return <span className="text-gray-400">-</span>;
+      },
+      size: 120,
     },
     {
       id: "actions",

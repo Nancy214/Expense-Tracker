@@ -24,7 +24,7 @@ import {
   getBudgets,
 } from "../../services/budget.service";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, X } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { ToastAction } from "@/components/ui/toast";
 
 const BudgetPage: React.FC = () => {

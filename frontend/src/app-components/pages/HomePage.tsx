@@ -35,7 +35,7 @@ import {
   updateExpense,
   deleteExpense,
 } from "@/services/expense.service";
-import { ExpenseType } from "@/types/expense";
+import { ExpenseType, RecurringFrequency } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -44,6 +44,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const cardHeaderClass = "pt-2";
 
@@ -91,7 +93,9 @@ const HomePage = () => {
     category: "",
     description: "",
     amount: 0,
-    date: format(new Date(), "dd/MM/yyyy"), //new Date(), //format(new Date(), "dd/MM/yyyy"),
+    date: format(new Date(), "dd/MM/yyyy"),
+    isRecurring: false,
+    recurringFrequency: undefined,
   });
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -144,7 +148,9 @@ const HomePage = () => {
       category: "",
       description: "",
       amount: 0,
-      date: format(new Date(), "dd/MM/yyyy"), //new Date(), //format(new Date(), "dd/MM/yyyy"),
+      date: format(new Date(), "dd/MM/yyyy"),
+      isRecurring: false,
+      recurringFrequency: undefined,
     });
     setIsEditing(false);
     setEditingExpenseId(null);
@@ -165,6 +171,8 @@ const HomePage = () => {
       description: expense.description || "",
       amount: expense.amount,
       date: expense.date, //parse(expense.date, "dd/MM/yyyy", new Date()).toISOString(),
+      isRecurring: expense.isRecurring,
+      recurringFrequency: expense.recurringFrequency,
     });
     setIsEditing(true);
     await updateExpense(expense._id || "", expense);
@@ -246,6 +254,8 @@ const HomePage = () => {
       description: formData.description,
       amount: newAmount,
       date: formData.date, //parse(formData.date, "dd/MM/yyyy", new Date()).toISOString(),
+      isRecurring: formData.isRecurring,
+      recurringFrequency: formData.recurringFrequency,
     };
 
     try {
@@ -295,7 +305,7 @@ const HomePage = () => {
     (acc, t) => acc + t.amount,
     0
   );
-  const totalBalance: number = initialBalance - totalExpense;
+  //const totalBalance: number = initialBalance - totalExpense;
 
   return (
     <>
@@ -474,6 +484,48 @@ const HomePage = () => {
                 required
               />
             </div>
+            <div>
+              <label className="block text-sm mb-1">Recurring Expense</label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={formData.isRecurring || false}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      isRecurring: checked,
+                      recurringFrequency: checked
+                        ? prev.recurringFrequency || "monthly"
+                        : undefined,
+                    }))
+                  }
+                />
+                <Label htmlFor="recurring">Enable recurring expense</Label>
+              </div>
+            </div>
+            {formData.isRecurring && (
+              <div>
+                <label className="block text-sm mb-1">Frequency</label>
+                <Select
+                  value={formData.recurringFrequency || "monthly"}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      recurringFrequency: value as RecurringFrequency,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </GeneralDialog>
 

@@ -1,3 +1,5 @@
+export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
+
 export interface ExpenseType {
   _id?: string;
   date: string;
@@ -5,6 +7,8 @@ export interface ExpenseType {
   amount: number;
   description?: string;
   category: string;
+  isRecurring?: boolean;
+  recurringFrequency?: RecurringFrequency;
 }
 
 export interface ExpenseResponseType {
