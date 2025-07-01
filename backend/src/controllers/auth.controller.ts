@@ -306,7 +306,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
 export const resetPassword = async (req: Request, res: Response) => {
   const { token, newPassword } = req.body;
-  console.log(token, newPassword);
+  //console.log(token, newPassword);
 
   if (!token || !newPassword) {
     return res.status(400).json({
@@ -325,7 +325,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       type: string;
       timestamp: number;
     };
-    console.log(decoded);
+    //console.log(decoded);
     // Verify it's a password reset token
     if (decoded.type !== "password_reset") {
       return res.status(400).json({
@@ -375,18 +375,6 @@ export const resetPassword = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Password reset error:", error);
-
-    if (error.name === "JsonWebTokenError") {
-      return res.status(400).json({
-        message: "Invalid reset token",
-      });
-    }
-
-    if (error.name === "TokenExpiredError") {
-      return res.status(400).json({
-        message: "Reset token has expired",
-      });
-    }
 
     res.status(500).json({
       message: "Failed to reset password. Please try again.",

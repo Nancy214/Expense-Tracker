@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import LoginPage from "@/app-components/pages/LoginPage";
 import RegisterPage from "@/app-components/pages/RegisterPage";
 import HomePage from "@/app-components/pages/HomePage";
+import BudgetPage from "@/app-components/pages/BudgetPage";
 import GoogleCallback from "@/app-components/pages/GoogleCallback";
 import ForgotPasswordPage from "@/app-components/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/app-components/pages/ResetPasswordPage";
@@ -17,6 +18,11 @@ const routes: RouteConfig[] = [
   {
     path: "/",
     element: <HomePage />,
+    requireAuth: true,
+  },
+  {
+    path: "/budget",
+    element: <BudgetPage />,
     requireAuth: true,
   },
   {

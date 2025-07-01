@@ -99,7 +99,7 @@ const LoginPage: React.FC = () => {
                     />
                     <Button
                       variant="link"
-                      className="p-0 text-sm"
+                      className="p-0 text-sm justify-end"
                       onClick={() => navigate("/forgot-password")}
                     >
                       Forgot password?

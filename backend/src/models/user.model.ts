@@ -28,6 +28,16 @@ const userSchema = new Schema({
     unique: true,
     sparse: true,
   },
+  budget: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+  budgetType: {
+    type: String,
+    required: false,
+    default: "monthly",
+  },
 });
 
 export const User = mongoose.model<UserLocalType | UserGoogleType>(

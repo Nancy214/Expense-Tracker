@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes";
 import passport from "./config/passport";
 import session from "express-session";
 import expenseRoutes from "./routes/expense.routes";
+import budgetRoutes from "./routes/budget.routes";
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ mongoose
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/budget", budgetRoutes);
 
 const PORT = process.env.PORT || 8000;
 
