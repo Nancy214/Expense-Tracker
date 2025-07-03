@@ -44,8 +44,13 @@ const Navbar: React.FC = () => {
             <DropdownMenuItem onClick={() => navigate("/budget")}>
               Budget
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/calendar")}>
+              Calendar
+            </DropdownMenuItem>
             <DropdownMenuItem>Profile</DropdownMenuItem>
-
+            <DropdownMenuItem>Billing</DropdownMenuItem>
+            <DropdownMenuItem>Team</DropdownMenuItem>
+            <DropdownMenuItem>Subscription</DropdownMenuItem>
             <DropdownMenuItem
               onSelect={async (e) => {
                 e.preventDefault();

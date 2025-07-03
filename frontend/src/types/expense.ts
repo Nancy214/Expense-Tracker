@@ -18,4 +18,6 @@ export interface ExpenseResponseType {
   amount: number;
   description?: string;
   category: string;
+  isRecurring?: boolean;
+  recurringFrequency?: RecurringFrequency;
 }
