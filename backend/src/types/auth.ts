@@ -1,4 +1,4 @@
-import { Document } from "mongoose";
+import { Document, Schema } from "mongoose";
 import { Request } from "express";
 import multer from "multer";
 
@@ -9,6 +9,20 @@ export interface UserType {
   profilePicture?: string;
   password: string;
   googleId?: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  currency?: string;
+  budget?: boolean;
+  budgetType?: string;
+}
+
+export interface SettingsType {
+  userId: Schema.Types.ObjectId;
+  emailNotifications?: boolean;
+  pushNotifications?: boolean;
+  monthlyReports?: boolean;
+  budgetAlerts?: boolean;
+  expenseReminders?: boolean;
 }
 
 export type UserLocalType = Omit<UserType, "googleId">;

@@ -31,7 +31,7 @@ const Navbar: React.FC = () => {
           <DropdownMenuTrigger>
             <Avatar>
               <AvatarImage
-                src={user?.profilePicture || "https://github.com/shadcn.png"}
+                src={user?.profilePicture || ""}
                 alt="profile picture"
               />
               <AvatarFallback>CN</AvatarFallback>
@@ -47,10 +47,10 @@ const Navbar: React.FC = () => {
             <DropdownMenuItem onClick={() => navigate("/calendar")}>
               Calendar
             </DropdownMenuItem>
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Billing</DropdownMenuItem>
-            <DropdownMenuItem>Team</DropdownMenuItem>
-            <DropdownMenuItem>Subscription</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
+              Profile
+            </DropdownMenuItem>
+
             <DropdownMenuItem
               onSelect={async (e) => {
                 e.preventDefault();

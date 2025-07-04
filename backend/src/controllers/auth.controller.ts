@@ -8,6 +8,7 @@ import {
   UserGoogleType,
   UserLocalType,
   UserType,
+  TokenPayload,
 } from "../types/auth";
 import bcrypt from "bcrypt";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -15,6 +16,7 @@ import dotenv from "dotenv";
 import { s3Client } from "../config/s3Client";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sgMail from "@sendgrid/mail";
+import Currency from "../models/currency.model";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
@@ -378,6 +380,82 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     res.status(500).json({
       message: "Failed to reset password. Please try again.",
+    });
+  }
+};
+
+export const getCurrencyOptions = async (req: Request, res: Response) => {
+  try {
+    const currencies = await Currency.find();
+    res.status(200).json(currencies);
+  } catch (error) {
+    console.error("Error fetching currency options:", error);
+    res.status(500).json({ message: "Failed to fetch currency options" });
+  }
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as TokenPayload;
+    const userId = user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Current password and new password are required",
+      });
+    }
+
+    // Find user and verify current password
+    const userDoc = await User.findById(userId);
+    if (!userDoc) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = bcrypt.compareSync(
+      currentPassword,
+      userDoc.password
+    );
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    // Check if new password is different from current password
+    const isNewPasswordSame = bcrypt.compareSync(newPassword, userDoc.password);
+    if (isNewPasswordSame) {
+      return res.status(400).json({
+        message: "New password must be different from current password",
+      });
+    }
+
+    // Hash the new password
+    const hashedNewPassword = bcrypt.hashSync(newPassword, 10);
+
+    // Update user's password
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { password: hashedNewPassword },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(500).json({ message: "Failed to update password" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error: any) {
+    console.error("Change password error:", error);
+    res.status(500).json({
+      message: "Failed to change password. Please try again.",
     });
   }
 };

@@ -5,6 +5,8 @@ import RegisterPage from "@/app-components/pages/RegisterPage";
 import HomePage from "@/app-components/pages/HomePage";
 import BudgetPage from "@/app-components/pages/BudgetPage";
 import CalendarPage from "@/app-components/pages/CalendarPage";
+import ProfilePage from "@/app-components/pages/ProfilePage";
+import ChangePasswordPage from "@/app-components/pages/ChangePasswordPage";
 import GoogleCallback from "@/app-components/pages/GoogleCallback";
 import ForgotPasswordPage from "@/app-components/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/app-components/pages/ResetPasswordPage";
@@ -29,6 +31,16 @@ const routes: RouteConfig[] = [
   {
     path: "/calendar",
     element: <CalendarPage />,
+    requireAuth: true,
+  },
+  {
+    path: "/profile",
+    element: <ProfilePage />,
+    requireAuth: true,
+  },
+  {
+    path: "/change-password",
+    element: <ChangePasswordPage />,
     requireAuth: true,
   },
   {

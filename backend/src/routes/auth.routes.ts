@@ -8,6 +8,8 @@ import {
   googleAuthCallback,
   forgotPassword,
   resetPassword,
+  getCurrencyOptions,
+  changePassword,
 } from "../controllers/auth.controller";
 import { upload } from "../config/multer";
 
@@ -36,12 +38,17 @@ router.post("/login", login as RequestHandler);
 router.post("/logout", logout as RequestHandler);
 router.post("/forgot-password", forgotPassword as RequestHandler);
 router.post("/reset-password", resetPassword as RequestHandler);
+router.put(
+  "/change-password",
+  authenticateToken as RequestHandler,
+  changePassword as RequestHandler
+);
 router.get(
-  "/myprofile",
+  "/profile",
   authenticateToken as RequestHandler,
   ((req, res) => {
     res.json({ message: "Hello World", user: req.user });
   }) as RequestHandler
 );
-
+router.get("/currency-options", getCurrencyOptions as RequestHandler);
 export default router;

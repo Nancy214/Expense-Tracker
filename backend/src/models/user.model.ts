@@ -28,6 +28,19 @@ const userSchema = new Schema({
     unique: true,
     sparse: true,
   },
+  phoneNumber: {
+    type: String,
+    required: false,
+  },
+  dateOfBirth: {
+    type: String,
+    required: false,
+  },
+  currency: {
+    type: String,
+    required: false,
+    default: "INR",
+  },
   budget: {
     type: Boolean,
     required: false,
@@ -40,7 +53,40 @@ const userSchema = new Schema({
   },
 });
 
+const settingsSchema = new Schema({
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  emailNotifications: {
+    type: Boolean,
+    required: false,
+    default: true,
+  },
+
+  pushNotifications: {
+    type: Boolean,
+    default: false,
+  },
+
+  monthlyReports: {
+    type: Boolean,
+    default: true,
+  },
+  budgetAlerts: {
+    type: Boolean,
+    default: true,
+  },
+  expenseReminders: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 export const User = mongoose.model<UserLocalType | UserGoogleType>(
   "User",
   userSchema
 );
+
+export const Settings = mongoose.model("Settings", settingsSchema);

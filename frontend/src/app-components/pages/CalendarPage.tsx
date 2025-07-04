@@ -190,14 +190,12 @@ const CalendarPage: React.FC = () => {
             <CardTitle>Calendar View</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Placeholder for FullCalendar */}
-
             <FullCalendar
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
               events={calendarEvents}
               dateClick={handleDateClick}
-              eventClick={handleEventClick}
+              //eventClick={handleEventClick}
               eventContent={renderEventContent}
               height="600px"
               headerToolbar={{

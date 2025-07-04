@@ -7,6 +7,9 @@ import passport from "./config/passport";
 import session from "express-session";
 import expenseRoutes from "./routes/expense.routes";
 import budgetRoutes from "./routes/budget.routes";
+import profileRoutes from "./routes/profile.routes";
+import axios from "axios";
+import currencyRoutes from "./routes/currency.routes";
 
 dotenv.config();
 
@@ -54,9 +57,18 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/budget", budgetRoutes);
+app.use("/api/profile", profileRoutes);
+app.use("/api/currency", currencyRoutes);
 
 const PORT = process.env.PORT || 8000;
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
+
+  try {
+    await axios.post(`http://localhost:${PORT}/api/currency/init`);
+    console.log("Currencies initialized");
+  } catch (error) {
+    console.error("Error initializing currencies:", error);
+  }
 });

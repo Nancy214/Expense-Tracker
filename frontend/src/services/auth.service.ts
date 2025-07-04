@@ -3,6 +3,7 @@ import {
   LoginCredentials,
   AuthResponse,
   RegisterCredentials,
+  User,
 } from "@/types/auth";
 
 const API_URL = "http://localhost:8000/api";
@@ -26,6 +27,20 @@ const authApi = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+// Add request interceptor to include Authorization header
+authApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Add interceptor to handle token refresh
 authApi.interceptors.response.use(
@@ -154,6 +169,42 @@ export const resetPassword = async (
     return response.data;
   } catch (error: any) {
     console.error("Reset password error:", error);
+    throw error;
+  }
+};
+
+export const getProfile = async (): Promise<User> => {
+  try {
+    const response = await authApi.get("/auth/profile");
+    return response.data;
+  } catch (error: any) {
+    console.error("Get profile error:", error);
+    throw error;
+  }
+};
+
+export const getCurrencyOptions = async (): Promise<string[]> => {
+  try {
+    const response = await authApi.get("/auth/currency-options");
+    return response.data;
+  } catch (error: any) {
+    console.error("Get currency options error:", error);
+    throw error;
+  }
+};
+
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string
+): Promise<void> => {
+  try {
+    const response = await authApi.put("/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Change password error:", error);
     throw error;
   }
 };

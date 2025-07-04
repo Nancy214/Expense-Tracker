@@ -17,6 +17,9 @@ export interface User {
   email: string;
   name?: string;
   profilePicture?: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  currency?: string;
 }
 
 export interface AuthResponse {
