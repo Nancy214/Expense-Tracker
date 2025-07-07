@@ -7,6 +7,9 @@ export interface ExpenseType {
   amount: number;
   description?: string;
   category: string;
+  currency?: string;
+  fromRate?: number;
+  toRate?: number;
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;
 }
@@ -18,6 +21,9 @@ export interface ExpenseResponseType {
   amount: number;
   description?: string;
   category: string;
+  currency?: string;
+  fromRate?: number;
+  toRate?: number;
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;
 }

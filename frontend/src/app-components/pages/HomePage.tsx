@@ -46,6 +46,9 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { getCurrencyOptions } from "@/services/auth.service";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const cardHeaderClass = "pt-2";
 
@@ -64,6 +67,7 @@ const EXPENSE_CATEGORIES: string[] = [
 const HomePage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -77,6 +81,24 @@ const HomePage = () => {
     };
     fetchExpenses();
   }, []);
+
+  useEffect(() => {
+    fetchCurrencyOptions();
+  }, []);
+
+  const fetchCurrencyOptions = async () => {
+    try {
+      const response = await getCurrencyOptions();
+      const data = response.map((currency: any) => ({
+        code: currency.code,
+        name: currency.name,
+      }));
+      setCurrencyOptions(data);
+    } catch (error) {
+      console.error("Error fetching currency options:", error);
+    }
+  };
+
   const [transactions, setTransactions] = useState<ExpenseType[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
@@ -87,16 +109,26 @@ const HomePage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [currencyOptions, setCurrencyOptions] = useState<
+    { code: string; name: string }[]
+  >([]);
   const initialBalance = 1000;
-  const [formData, setFormData] = useState<ExpenseType>({
+  const [formData, setFormData] = useState<
+    ExpenseType & { fromRate?: number; toRate?: number }
+  >({
     title: "",
     category: "",
     description: "",
     amount: 0,
     date: format(new Date(), "dd/MM/yyyy"),
+    currency: user?.currency || "INR",
     isRecurring: false,
     recurringFrequency: undefined,
+    fromRate: 1,
+    toRate: 1,
   });
+
+  const [showExchangeRate, setShowExchangeRate] = useState(false);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -112,6 +144,49 @@ const HomePage = () => {
       category: value,
     }));
   };
+
+  const handleCurrencyChange = async (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      currency: value,
+    }));
+
+    // Show exchange rate fields only when currency is changed from profile currency
+    if (value !== user?.currency) {
+      setShowExchangeRate(true);
+    } else if (value === user?.currency) {
+      setShowExchangeRate(false);
+    }
+
+    //console.log(user?.currency);
+    const response = await axios.get(
+      `https://api.fxratesapi.com/convert?from=${
+        user?.currency
+      }&to=${value}&date=${formData.date
+        .split("/")
+        .reverse()
+        .join("-")}&amount=1`
+    );
+    //console.log(response.data);
+
+    setFormData((prev) => ({
+      ...prev,
+      toRate: response.data.info.rate,
+    }));
+  };
+
+  const handleExchangeRateChange = (
+    field: "fromRate" | "toRate",
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: parseFloat(value) || 0,
+    }));
+  };
+
+  // Check if selected currency is different from user's profile currency
+  const isDifferentCurrency = formData.currency !== user?.currency;
 
   const handleCategoryFilterChange = (category: string, checked: boolean) => {
     let newCategories: string[];
@@ -149,9 +224,13 @@ const HomePage = () => {
       description: "",
       amount: 0,
       date: format(new Date(), "dd/MM/yyyy"),
+      currency: user?.currency || "INR",
       isRecurring: false,
       recurringFrequency: undefined,
+      fromRate: 1,
+      toRate: 1,
     });
+    setShowExchangeRate(false);
     setIsEditing(false);
     setEditingExpenseId(null);
   };
@@ -171,9 +250,16 @@ const HomePage = () => {
       description: expense.description || "",
       amount: expense.amount,
       date: expense.date, //parse(expense.date, "dd/MM/yyyy", new Date()).toISOString(),
+      currency: expense.currency,
       isRecurring: expense.isRecurring,
       recurringFrequency: expense.recurringFrequency,
+      fromRate: expense.fromRate,
+      toRate: expense.toRate,
     });
+
+    // Show exchange rate fields if the expense currency is different from user's profile currency
+    setShowExchangeRate(expense.currency !== user?.currency);
+
     setIsEditing(true);
     await updateExpense(expense._id || "", expense);
     setEditingExpenseId(expense._id || null);
@@ -254,8 +340,11 @@ const HomePage = () => {
       description: formData.description,
       amount: newAmount,
       date: formData.date, //parse(formData.date, "dd/MM/yyyy", new Date()).toISOString(),
+      currency: formData.currency,
       isRecurring: formData.isRecurring,
       recurringFrequency: formData.recurringFrequency,
+      fromRate: formData.fromRate,
+      toRate: formData.toRate,
     };
 
     try {
@@ -300,6 +389,31 @@ const HomePage = () => {
       : true;
     return matchesCategory && matchesDate;
   });
+
+  // Calculate total expenses by currency
+  const totalExpensesByCurrency = filteredTransactions.reduce(
+    (acc, transaction) => {
+      const currency = transaction.currency || "INR";
+      const amount = transaction.amount;
+
+      // Add original amount
+      acc[currency] = (acc[currency] || 0) + amount;
+
+      // Add converted amount if exchange rates are available
+      if (
+        transaction.fromRate &&
+        transaction.toRate &&
+        (transaction.fromRate !== 1 || transaction.toRate !== 1)
+      ) {
+        const convertedAmount = amount * transaction.fromRate;
+        const userCurrency = user?.currency || "INR";
+        acc[userCurrency] = (acc[userCurrency] || 0) + convertedAmount;
+      }
+
+      return acc;
+    },
+    {} as { [key: string]: number }
+  );
 
   const totalExpense: number = filteredTransactions.reduce(
     (acc, t) => acc + t.amount,
@@ -475,14 +589,40 @@ const HomePage = () => {
             <div>
               <label className="block text-sm mb-1">
                 Amount <span className="text-red-500">*</span>
+                <p className="text-xs text-gray-500">
+                  ₹{" "}
+                  {formData.toRate && formData.amount
+                    ? (formData.amount / formData.toRate).toFixed(2)
+                    : "0.00"}
+                </p>
               </label>
-              <Input
-                placeholder="Amount"
-                name="amount"
-                value={formData.amount}
-                onChange={handleInputChange}
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Amount"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleInputChange}
+                  required
+                  className="flex-1"
+                />
+                <Select
+                  value={formData.currency}
+                  onValueChange={handleCurrencyChange}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Currency">
+                      {formData.currency}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencyOptions.map((currency) => (
+                      <SelectItem key={currency.code} value={currency.code}>
+                        {currency.name} ({currency.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div>
               <label className="block text-sm mb-1">Recurring Expense</label>
@@ -524,6 +664,48 @@ const HomePage = () => {
                     <SelectItem value="yearly">Yearly</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+            {showExchangeRate && (
+              <div>
+                <label className="block text-sm mb-1">Exchange Rate</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      {user?.currency || "INR"}
+                    </label>
+                    <Input
+                      placeholder="Exchange rate"
+                      value={formData.fromRate || 1}
+                      onChange={(e) =>
+                        handleExchangeRateChange("fromRate", e.target.value)
+                      }
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      {formData.currency}
+                    </label>
+                    <Input
+                      placeholder="Exchange rate"
+                      value={formData.toRate || 1}
+                      onChange={(e) =>
+                        handleExchangeRateChange("toRate", e.target.value)
+                      }
+                      type="number"
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  You're entering money in {formData.currency}. What exchange
+                  rate do you wish to use for this transaction
+                </p>
               </div>
             )}
           </div>
@@ -619,7 +801,31 @@ const HomePage = () => {
                 />
                 <div className="mt-4 flex justify-between p-4 bg-muted/50 rounded-lg">
                   <span className="font-medium">Total Expenses</span>
-                  <span className="font-medium">${totalExpense}</span>
+                  <div className="text-right">
+                    {Object.entries(totalExpensesByCurrency).map(
+                      ([currency, amount], index) => {
+                        const currencySymbols: { [key: string]: string } = {
+                          INR: "₹",
+                          EUR: "€",
+                          GBP: "£",
+                          JPY: "¥",
+                          USD: "$",
+                          CAD: "C$",
+                          AUD: "A$",
+                          CHF: "CHF",
+                          CNY: "¥",
+                          KRW: "₩",
+                        };
+                        const symbol = currencySymbols[currency] || currency;
+                        return (
+                          <div key={currency} className="font-medium">
+                            {symbol}
+                            {amount.toFixed(2)} {currency}
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
                 </div>
               </>
             )}

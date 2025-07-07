@@ -385,7 +385,7 @@ const ProfilePage: React.FC = () => {
                   <div className="space-y-2">
                     <Label htmlFor="currency">Currency</Label>
                     <Select
-                      defaultValue="USD"
+                      defaultValue="INR"
                       value={profileData.currency}
                       onValueChange={(value) =>
                         handleProfileDataChange("currency", value)
@@ -398,7 +398,7 @@ const ProfilePage: React.FC = () => {
                       <SelectContent>
                         {currencyOptions.map((currency) => (
                           <SelectItem key={currency.code} value={currency.code}>
-                            {currency.code} ({currency.name})
+                            {currency.name} ({currency.code})
                           </SelectItem>
                         ))}
                       </SelectContent>

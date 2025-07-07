@@ -21,6 +21,18 @@ const expenseSchema = new Schema({
     type: String,
     required: true,
   },
+  currency: {
+    type: String,
+    default: "INR",
+  },
+  fromRate: {
+    type: Number,
+    default: 1,
+  },
+  toRate: {
+    type: Number,
+    default: 1,
+  },
   userId: {
     type: Schema.Types.ObjectId,
     ref: "User",

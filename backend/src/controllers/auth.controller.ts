@@ -125,6 +125,7 @@ export const login = (req: Request, res: Response, next: any) => {
           email: user.email,
           name: user.name || "",
           profilePicture: profilePictureUrl,
+          currency: user.currency,
         },
       });
     }
@@ -387,7 +388,9 @@ export const resetPassword = async (req: Request, res: Response) => {
 export const getCurrencyOptions = async (req: Request, res: Response) => {
   try {
     const currencies = await Currency.find();
-    res.status(200).json(currencies);
+    res
+      .status(200)
+      .json(currencies.sort((a, b) => a.name.localeCompare(b.name)));
   } catch (error) {
     console.error("Error fetching currency options:", error);
     res.status(500).json({ message: "Failed to fetch currency options" });

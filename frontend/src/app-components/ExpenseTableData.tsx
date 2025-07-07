@@ -94,10 +94,45 @@ export function ExpenseDataTable({
       },
       cell: ({ row }: { row: Row<ExpenseType> }) => {
         const amount = parseFloat(row.getValue("amount"));
-        return <div className="text-right font-medium">${amount}</div>;
+        const currency = row.original.currency || "INR";
+        const currencySymbols: { [key: string]: string } = {
+          INR: "₹",
+          USD: "$",
+          EUR: "€",
+          GBP: "£",
+          JPY: "¥",
+          CAD: "C$",
+          AUD: "A$",
+          CHF: "CHF",
+          CNY: "¥",
+          KRW: "₩",
+        };
+        const symbol = currencySymbols[currency] || currency;
+        return (
+          <div className="text-right font-medium">
+            {symbol}
+            {amount.toFixed(2)}
+          </div>
+        );
       },
       size: 100,
     },
+    /* {
+      accessorKey: "currency",
+      header: ({ column }: { column: Column<ExpenseType> }) => {
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting()}>
+            Currency
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        );
+      },
+      cell: ({ row }: { row: Row<ExpenseType> }) => {
+        const currency = row.getValue("currency") as string;
+        return <div className="font-medium">{currency || "INR"}</div>;
+      },
+      size: 80,
+    }, */
     {
       accessorKey: "isRecurring",
       header: "Recurring",

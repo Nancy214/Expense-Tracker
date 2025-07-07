@@ -48,21 +48,39 @@ const CalendarPage: React.FC = () => {
   };
 
   // Convert expenses to FullCalendar events
-  const calendarEvents = expenses.map((expense) => ({
-    id: expense._id,
-    title: `${expense.title} - $${expense.amount}`,
-    date: new Date(expense.date.split("/").reverse().join("-")).toISOString(), // Convert dd/MM/yyyy to ISO format
-    backgroundColor: getCategoryColor(expense.category),
-    borderColor: getCategoryColor(expense.category),
-    textColor: "#ffffff",
-    extendedProps: {
-      category: expense.category,
-      description: expense.description,
-      amount: expense.amount,
-      isRecurring: expense.isRecurring,
-      recurringFrequency: expense.recurringFrequency,
-    },
-  }));
+  const calendarEvents = expenses.map((expense) => {
+    const currency = expense.currency || "INR";
+    const currencySymbols: { [key: string]: string } = {
+      INR: "₹",
+      EUR: "€",
+      GBP: "£",
+      JPY: "¥",
+      USD: "$",
+      CAD: "C$",
+      AUD: "A$",
+      CHF: "CHF",
+      CNY: "¥",
+      KRW: "₩",
+    };
+    const symbol = currencySymbols[currency] || currency;
+
+    return {
+      id: expense._id,
+      title: `${expense.title} - ${symbol}${expense.amount}`,
+      date: new Date(expense.date.split("/").reverse().join("-")).toISOString(), // Convert dd/MM/yyyy to ISO format
+      backgroundColor: getCategoryColor(expense.category),
+      borderColor: getCategoryColor(expense.category),
+      textColor: "#ffffff",
+      extendedProps: {
+        category: expense.category,
+        description: expense.description,
+        amount: expense.amount,
+        currency: currency,
+        isRecurring: expense.isRecurring,
+        recurringFrequency: expense.recurringFrequency,
+      },
+    };
+  });
 
   // Color coding for different categories
   function getCategoryColor(category: string): string {
@@ -88,13 +106,27 @@ const CalendarPage: React.FC = () => {
   const handleEventClick = (arg: any) => {
     const event = arg.event;
     const expense = event.extendedProps;
+    const currency = expense.currency || "INR";
+    const currencySymbols: { [key: string]: string } = {
+      INR: "₹",
+      USD: "$",
+      EUR: "€",
+      GBP: "£",
+      JPY: "¥",
+      CAD: "C$",
+      AUD: "A$",
+      CHF: "CHF",
+      CNY: "¥",
+      KRW: "₩",
+    };
+    const symbol = currencySymbols[currency] || currency;
 
     // Show expense details in a modal or toast
     toast({
       title: event.title,
       description: `${expense.description || "No description"}\nCategory: ${
         expense.category
-      }\nAmount: $${expense.amount}${
+      }\nAmount: ${symbol}${expense.amount.toFixed(2)} ${currency}${
         expense.isRecurring ? `\nRecurring: ${expense.recurringFrequency}` : ""
       }`,
     });
@@ -122,7 +154,27 @@ const CalendarPage: React.FC = () => {
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Amount:</span>
-                  <span className="font-medium">${expense.amount}</span>
+                  <span className="font-medium">
+                    {(() => {
+                      const currency = expense.currency || "INR";
+                      const currencySymbols: { [key: string]: string } = {
+                        INR: "₹",
+                        EUR: "€",
+                        GBP: "£",
+                        JPY: "¥",
+                        USD: "$",
+                        CAD: "C$",
+                        AUD: "A$",
+                        CHF: "CHF",
+                        CNY: "¥",
+                        KRW: "₩",
+                      };
+                      const symbol = currencySymbols[currency] || currency;
+                      return `${symbol}${expense.amount.toFixed(
+                        2
+                      )} ${currency}`;
+                    })()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Category:</span>
