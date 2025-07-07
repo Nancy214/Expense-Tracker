@@ -23,3 +23,30 @@ export const initCurrencies = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to initialize currencies" });
   }
 };
+
+export const getExchangeRate = async (req: Request, res: Response) => {
+  try {
+    const { from, to, date } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        message: "From currency, to currency, and date are required",
+      });
+    }
+
+    const response = await axios.get(
+      `https://api.fxratesapi.com/convert?from=${from}&to=${to}&date=${date}&amount=1`
+    );
+
+    res.status(200).json({
+      success: true,
+      rate: response.data.info.rate,
+      data: response.data,
+    });
+  } catch (error: any) {
+    console.error("Exchange rate error:", error);
+    res.status(500).json({
+      message: "Failed to fetch exchange rate. Please try again.",
+    });
+  }
+};

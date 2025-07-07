@@ -47,8 +47,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { getCurrencyOptions } from "@/services/auth.service";
+import { getExchangeRate } from "@/services/currency.service";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
 const cardHeaderClass = "pt-2";
 
@@ -159,19 +159,16 @@ const HomePage = () => {
     }
 
     //console.log(user?.currency);
-    const response = await axios.get(
-      `https://api.fxratesapi.com/convert?from=${
-        user?.currency
-      }&to=${value}&date=${formData.date
-        .split("/")
-        .reverse()
-        .join("-")}&amount=1`
+    const response = await getExchangeRate(
+      user?.currency || "INR",
+      value,
+      formData.date.split("/").reverse().join("-")
     );
     //console.log(response.data);
 
     setFormData((prev) => ({
       ...prev,
-      toRate: response.data.info.rate,
+      toRate: response.rate,
     }));
   };
 

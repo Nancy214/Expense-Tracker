@@ -208,3 +208,19 @@ export const changePassword = async (
     throw error;
   }
 };
+
+export const getExchangeRate = async (
+  from: string,
+  to: string,
+  date: string
+): Promise<{ rate: number; data: any }> => {
+  try {
+    const response = await authApi.get("/auth/exchange-rate", {
+      params: { from, to, date },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Get exchange rate error:", error);
+    throw error;
+  }
+};
