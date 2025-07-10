@@ -26,11 +26,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { ToastAction } from "@/components/ui/toast";
+import GeneralDialog from "@/app-components/Dialog";
 
 const BudgetPage: React.FC = () => {
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<BudgetResponse | null>(
     null
   );
@@ -61,9 +62,7 @@ const BudgetPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
       toast({
         title: "Invalid Amount",
@@ -93,7 +92,7 @@ const BudgetPage: React.FC = () => {
         });
       }
 
-      setShowForm(false);
+      setIsDialogOpen(false);
       setEditingBudget(null);
       setFormData({ amount: "", frequency: "monthly" });
       fetchBudgets();
@@ -113,7 +112,7 @@ const BudgetPage: React.FC = () => {
       amount: budget.amount.toString(),
       frequency: budget.frequency,
     });
-    setShowForm(true);
+    setIsDialogOpen(true);
   };
 
   const handleDelete = (budget: BudgetResponse) => {
@@ -151,7 +150,7 @@ const BudgetPage: React.FC = () => {
   };
 
   const handleCancel = () => {
-    setShowForm(false);
+    setIsDialogOpen(false);
     setEditingBudget(null);
     setFormData({ amount: "", frequency: "monthly" });
   };
@@ -191,7 +190,7 @@ const BudgetPage: React.FC = () => {
           <h1 className="text-3xl font-bold">Budgets</h1>
           {budgets.length !== 0 ? (
             <Button
-              onClick={() => setShowForm(true)}
+              onClick={() => setIsDialogOpen(true)}
               className="flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
@@ -200,81 +199,75 @@ const BudgetPage: React.FC = () => {
           ) : null}
         </div>
 
-        {showForm && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-xl">
-                {editingBudget ? "Edit Budget" : "Create New Budget"}
-              </CardTitle>
-              <CardDescription>
-                {editingBudget
-                  ? "Update your budget details"
-                  : "Set a new budget amount and frequency"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Budget Amount</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="Enter amount"
-                      value={formData.amount}
-                      onChange={(e) =>
-                        setFormData({ ...formData, amount: e.target.value })
-                      }
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-                  </div>
+        {/* Add/Edit Budget Dialog */}
+        <GeneralDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          title={editingBudget ? "Edit Budget" : "Create New Budget"}
+          size="lg"
+          footerActions={
+            <>
+              <Button onClick={handleSubmit}>
+                {editingBudget ? "Update Budget" : "Create Budget"}
+              </Button>
+              <Button onClick={handleCancel} variant="outline" type="button">
+                Cancel
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">
+              {editingBudget
+                ? "Update your budget details"
+                : "Set a new budget amount and frequency"}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">Budget Amount</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="Enter amount"
+                  value={formData.amount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, amount: e.target.value })
+                  }
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="frequency">Budget Frequency</Label>
-                    <Select
-                      value={formData.frequency}
-                      onValueChange={(value: BudgetFrequency) =>
-                        setFormData({ ...formData, frequency: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select frequency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button type="submit">
-                    {editingBudget ? "Update Budget" : "Create Budget"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCancel}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        )}
+              <div className="space-y-2">
+                <Label htmlFor="frequency">Budget Frequency</Label>
+                <Select
+                  value={formData.frequency}
+                  onValueChange={(value: BudgetFrequency) =>
+                    setFormData({ ...formData, frequency: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </GeneralDialog>
 
         {budgets.length === 0 ? (
           <Card>
             <CardContent className="flex items-center justify-center p-12">
               <div className="text-center">
                 <p className="text-lg text-gray-600 mb-4">No budgets found</p>
-                <Button onClick={() => setShowForm(true)}>
+                <Button onClick={() => setIsDialogOpen(true)}>
                   Create your first budget
                 </Button>
               </div>

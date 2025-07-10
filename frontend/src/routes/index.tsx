@@ -10,6 +10,7 @@ import ChangePasswordPage from "@/app-components/pages/ChangePasswordPage";
 import GoogleCallback from "@/app-components/pages/GoogleCallback";
 import ForgotPasswordPage from "@/app-components/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/app-components/pages/ResetPasswordPage";
+import TransactionsPage from "@/app-components/pages/TransactionsPage";
 
 interface RouteConfig {
   path: string;
@@ -21,6 +22,11 @@ const routes: RouteConfig[] = [
   {
     path: "/",
     element: <HomePage />,
+    requireAuth: true,
+  },
+  {
+    path: "/transactions",
+    element: <TransactionsPage />,
     requireAuth: true,
   },
   {

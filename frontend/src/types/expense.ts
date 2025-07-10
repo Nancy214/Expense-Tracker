@@ -1,4 +1,5 @@
 export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
+export type TransactionType = "income" | "expense";
 
 export interface ExpenseType {
   _id?: string;
@@ -8,6 +9,7 @@ export interface ExpenseType {
   description?: string;
   category: string;
   currency?: string;
+  type: TransactionType;
   fromRate?: number;
   toRate?: number;
   isRecurring?: boolean;
@@ -22,6 +24,7 @@ export interface ExpenseResponseType {
   description?: string;
   category: string;
   currency?: string;
+  type: TransactionType;
   fromRate?: number;
   toRate?: number;
   isRecurring?: boolean;

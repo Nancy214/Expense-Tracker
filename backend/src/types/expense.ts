@@ -1,6 +1,7 @@
 import { Schema } from "mongoose";
 
 export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
+export type TransactionType = "income" | "expense";
 
 interface ExpenseType {
   date: Date;
@@ -9,6 +10,7 @@ interface ExpenseType {
   description: string;
   category: string;
   currency: string;
+  type: TransactionType;
   fromRate?: number;
   toRate?: number;
   userId: Schema.Types.ObjectId;

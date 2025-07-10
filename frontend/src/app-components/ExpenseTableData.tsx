@@ -69,6 +69,33 @@ export function ExpenseDataTable({
       size: 150,
     },
     {
+      accessorKey: "type",
+      header: ({ column }: { column: Column<ExpenseType> }) => {
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting()}>
+            Type
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        );
+      },
+      cell: ({ row }: { row: Row<ExpenseType> }) => {
+        const type = row.getValue("type") as string;
+        return (
+          <Badge
+            variant={type === "income" ? "default" : "secondary"}
+            className={
+              type === "income"
+                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                : "bg-red-100 text-red-800 hover:bg-red-100"
+            }
+          >
+            {type === "income" ? "Income" : "Expense"}
+          </Badge>
+        );
+      },
+      size: 100,
+    },
+    {
       accessorKey: "description",
       header: ({ column }: { column: Column<ExpenseType> }) => {
         return (
@@ -95,6 +122,7 @@ export function ExpenseDataTable({
       cell: ({ row }: { row: Row<ExpenseType> }) => {
         const amount = parseFloat(row.getValue("amount"));
         const currency = row.original.currency || "INR";
+        const type = row.original.type || "expense";
         const currencySymbols: { [key: string]: string } = {
           INR: "₹",
           USD: "$",
@@ -109,7 +137,11 @@ export function ExpenseDataTable({
         };
         const symbol = currencySymbols[currency] || currency;
         return (
-          <div className="text-right font-medium">
+          <div
+            className={`text-right font-medium ${
+              type === "income" ? "text-green-600" : "text-red-600"
+            }`}
+          >
             {symbol}
             {amount.toFixed(2)}
           </div>

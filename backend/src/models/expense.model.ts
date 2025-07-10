@@ -25,6 +25,12 @@ const expenseSchema = new Schema({
     type: String,
     default: "INR",
   },
+  type: {
+    type: String,
+    enum: ["income", "expense"],
+    default: "expense",
+    required: true,
+  },
   fromRate: {
     type: Number,
     default: 1,

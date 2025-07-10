@@ -34,12 +34,15 @@ const Navbar: React.FC = () => {
                 src={user?.profilePicture || ""}
                 alt="profile picture"
               />
-              <AvatarFallback>CN</AvatarFallback>
+              <AvatarFallback>N/A</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => navigate("/")}>
               Dashboard
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/transactions")}>
+              Transactions
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/budget")}>
               Budget
