@@ -1,8 +1,20 @@
 import { Response } from "express";
 import { Budget } from "../models/budget.model";
+import { Expense } from "../models/expense.model";
 import { AuthRequest } from "../types/auth";
 import { BudgetRequest } from "../types/budget";
 import mongoose from "mongoose";
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  isWithinInterval,
+} from "date-fns";
 
 export const createBudget = async (req: AuthRequest, res: Response) => {
   try {
@@ -11,17 +23,18 @@ export const createBudget = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const { amount, frequency }: BudgetRequest = req.body;
-    if (!amount || !frequency) {
+    const { amount, frequency, startDate }: BudgetRequest = req.body;
+    if (!amount || !frequency || !startDate) {
       return res
         .status(400)
-        .json({ message: "Amount and frequency are required." });
+        .json({ message: "Amount, frequency, and start date are required." });
     }
 
     const budget = new Budget({
       userId: new mongoose.Types.ObjectId(userId),
       amount,
       frequency,
+      startDate,
     });
 
     const savedBudget = await budget.save();
@@ -40,12 +53,12 @@ export const updateBudget = async (req: AuthRequest, res: Response) => {
     }
 
     const { id } = req.params;
-    const { amount, frequency }: BudgetRequest = req.body;
+    const { amount, frequency, startDate }: BudgetRequest = req.body;
 
-    if (!amount || !frequency) {
+    if (!amount || !frequency || !startDate) {
       return res
         .status(400)
-        .json({ message: "Amount and frequency are required." });
+        .json({ message: "Amount, frequency, and start date are required." });
     }
 
     const budget = await Budget.findOneAndUpdate(
@@ -53,7 +66,7 @@ export const updateBudget = async (req: AuthRequest, res: Response) => {
         _id: new mongoose.Types.ObjectId(id),
         userId: new mongoose.Types.ObjectId(userId),
       },
-      { amount, frequency },
+      { amount, frequency, startDate },
       { new: true }
     );
 
@@ -132,5 +145,177 @@ export const getBudget = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error("Budget fetch error:", error);
     res.status(500).json({ message: "Failed to fetch budget." });
+  }
+};
+
+export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    console.log("Budget progress request - User ID:", userId);
+    console.log("Request headers:", req.headers);
+
+    if (!userId) {
+      console.log("No user ID found in request");
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    // Get all budgets for the user
+    const budgets = await Budget.find({
+      userId: new mongoose.Types.ObjectId(userId),
+    });
+
+    console.log("Found budgets:", budgets.length);
+
+    if (budgets.length === 0) {
+      return res.status(200).json({ budgets: [], totalProgress: 0 });
+    }
+
+    // Get all expenses for the user
+    const expenses = await Expense.find({
+      userId: new mongoose.Types.ObjectId(userId),
+      type: "expense", // Only consider expenses, not income
+    });
+
+    console.log(`Found ${expenses.length} total expenses for user ${userId}`);
+    expenses.forEach((expense, index) => {
+      console.log(
+        `  Expense ${index + 1}: ${expense.title} - ₹${expense.amount} - ${
+          expense.date
+        } - Type: ${expense.type}`
+      );
+    });
+
+    const budgetProgress = budgets.map((budget) => {
+      const now = new Date();
+      const budgetStartDate = new Date(budget.startDate);
+
+      // Calculate the current period based on frequency
+      let periodStart: Date;
+      let periodEnd: Date;
+      let budgetAmount: number;
+
+      switch (budget.frequency) {
+        case "daily":
+          periodStart = startOfDay(now);
+          periodEnd = endOfDay(now);
+          budgetAmount = budget.amount;
+          break;
+        case "weekly":
+          periodStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
+          periodEnd = endOfWeek(now, { weekStartsOn: 1 });
+          budgetAmount = budget.amount;
+          break;
+        case "monthly":
+          periodStart = startOfMonth(now);
+          periodEnd = endOfMonth(now);
+          budgetAmount = budget.amount;
+          break;
+        case "yearly":
+          periodStart = startOfYear(now);
+          periodEnd = endOfYear(now);
+          budgetAmount = budget.amount;
+          break;
+        default:
+          periodStart = startOfMonth(now);
+          periodEnd = endOfMonth(now);
+          budgetAmount = budget.amount;
+      }
+
+      console.log(`Budget ${budget._id} (${budget.frequency}):`);
+      console.log(`  Budget start date: ${budgetStartDate.toISOString()}`);
+      console.log(`  Current date: ${now.toISOString()}`);
+      console.log(`  Budget amount: ${budgetAmount}`);
+
+      // Filter expenses from the budget start date to now (not just current period)
+      const budgetExpenses = expenses.filter((expense) => {
+        const expenseDate = new Date(expense.date);
+        // Set time to start of day for consistent comparison
+        const expenseDateStart = new Date(
+          expenseDate.getFullYear(),
+          expenseDate.getMonth(),
+          expenseDate.getDate()
+        );
+        const budgetStartDateStart = new Date(
+          budgetStartDate.getFullYear(),
+          budgetStartDate.getMonth(),
+          budgetStartDate.getDate()
+        );
+        const nowStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+
+        const isInRange =
+          expenseDateStart >= budgetStartDateStart &&
+          expenseDateStart <= nowStart;
+        console.log(
+          `  Expense ${expense._id}: ${
+            expense.title
+          } - ${expenseDateStart.toISOString()} - Budget start: ${budgetStartDateStart.toISOString()} - Current: ${nowStart.toISOString()} - ${
+            isInRange ? "IN RANGE" : "OUTSIDE RANGE"
+          }`
+        );
+        return isInRange;
+      });
+
+      console.log(
+        `  Found ${budgetExpenses.length} expenses from budget start date`
+      );
+
+      // Calculate total spent from budget start date
+      const totalSpent = budgetExpenses.reduce((sum, expense) => {
+        // Convert to user's currency if different
+        let amount = expense.amount;
+        if (expense.currency !== "INR") {
+          // Use exchange rates if available, otherwise assume 1:1
+          if (expense.fromRate && expense.toRate) {
+            amount = expense.amount * expense.fromRate;
+          }
+        }
+        return sum + amount;
+      }, 0);
+
+      const progress = (totalSpent / budgetAmount) * 100;
+      const remaining = budgetAmount - totalSpent;
+      const isOverBudget = totalSpent > budgetAmount;
+
+      return {
+        _id: budget._id,
+        amount: budget.amount,
+        frequency: budget.frequency,
+        startDate: budget.startDate,
+        createdAt: budget.createdAt,
+        periodStart,
+        periodEnd,
+        totalSpent,
+        remaining,
+        progress: Math.min(progress, 100), // Cap at 100%
+        isOverBudget,
+        expensesCount: budgetExpenses.length,
+      };
+    });
+
+    // Calculate overall progress
+    const totalBudgetAmount = budgetProgress.reduce(
+      (sum, budget) => sum + budget.amount,
+      0
+    );
+    const totalSpent = budgetProgress.reduce(
+      (sum, budget) => sum + budget.totalSpent,
+      0
+    );
+    const totalProgress =
+      totalBudgetAmount > 0 ? (totalSpent / totalBudgetAmount) * 100 : 0;
+
+    res.status(200).json({
+      budgets: budgetProgress,
+      totalProgress: Math.min(totalProgress, 100),
+      totalBudgetAmount,
+      totalSpent,
+    });
+  } catch (error) {
+    console.error("Budget progress fetch error:", error);
+    res.status(500).json({ message: "Failed to fetch budget progress." });
   }
 };

@@ -14,6 +14,7 @@ const budgetSchema = new Schema<BudgetType>({
     enum: ["daily", "weekly", "monthly", "yearly"],
     required: true,
   },
+  startDate: { type: Date, required: true },
   createdAt: { type: Date, default: Date.now },
 });
 

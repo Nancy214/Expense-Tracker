@@ -1,5 +1,10 @@
 import axios from "axios";
-import { BudgetData, BudgetResponse } from "../types/budget";
+import {
+  BudgetData,
+  BudgetResponse,
+  BudgetProgressResponse,
+  BudgetReminder,
+} from "../types/budget";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -68,8 +73,106 @@ export const getBudget = async (id: string): Promise<BudgetResponse> => {
   try {
     const response = await budgetApi.get(`/budget/${id}`);
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Budget fetch error:", error);
     throw error;
   }
+};
+
+export const getBudgetProgress = async (): Promise<BudgetProgressResponse> => {
+  try {
+    const response = await budgetApi.get("/budget/progress/track");
+    return response.data;
+  } catch (error) {
+    console.error("Budget progress fetch error:", error);
+    throw error;
+  }
+};
+
+export const checkBudgetReminders = async (): Promise<BudgetReminder[]> => {
+  try {
+    const progressData = await getBudgetProgress();
+    const reminders: BudgetReminder[] = [];
+
+    progressData.budgets.forEach((budget) => {
+      const progress = budget.progress;
+      const remaining = budget.remaining;
+      const isOverBudget = budget.isOverBudget;
+
+      // Check for over-budget alerts
+      if (isOverBudget) {
+        reminders.push({
+          id: `over-${budget._id}`,
+          budgetId: budget._id,
+          budgetName: `${
+            budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)
+          } Budget`,
+          type: "danger",
+          title: "Budget Exceeded!",
+          message: `You've exceeded your ${
+            budget.frequency
+          } budget by ₹${Math.abs(remaining).toFixed(
+            2
+          )}. Consider reviewing your spending.`,
+          progress,
+          remaining,
+          isOverBudget: true,
+        });
+      }
+      // Check for warning alerts (80% or more spent)
+      else if (progress >= 80 && progress < 100) {
+        reminders.push({
+          id: `warning-${budget._id}`,
+          budgetId: budget._id,
+          budgetName: `${
+            budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)
+          } Budget`,
+          type: "warning",
+          title: "Budget Warning",
+          message: `You've used ${progress.toFixed(1)}% of your ${
+            budget.frequency
+          } budget. Only ₹${remaining.toFixed(2)} remaining.`,
+          progress,
+          remaining,
+          isOverBudget: false,
+        });
+      }
+      // Check for approaching limit (60% or more spent)
+      else if (progress >= 60 && progress < 80) {
+        reminders.push({
+          id: `info-${budget._id}`,
+          budgetId: budget._id,
+          budgetName: `${
+            budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)
+          } Budget`,
+          type: "warning",
+          title: "Budget Update",
+          message: `You've used ${progress.toFixed(1)}% of your ${
+            budget.frequency
+          } budget. ₹${remaining.toFixed(2)} remaining.`,
+          progress,
+          remaining,
+          isOverBudget: false,
+        });
+      }
+    });
+
+    return reminders;
+  } catch (error) {
+    console.error("Error checking budget reminders:", error);
+    return [];
+  }
+};
+
+export const shouldShowReminder = (reminder: BudgetReminder): boolean => {
+  // Show reminders for over-budget or high usage (80%+)
+  return reminder.isOverBudget || reminder.progress >= 80;
+};
+
+export const getReminderPriority = (reminder: BudgetReminder): number => {
+  // Higher priority for over-budget alerts
+  if (reminder.isOverBudget) return 3;
+  if (reminder.progress >= 90) return 2;
+  if (reminder.progress >= 80) return 1;
+  return 0;
 };

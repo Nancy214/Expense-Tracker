@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createExpense, getExpenses } from "@/services/expense.service";
+import { createExpense } from "@/services/expense.service";
 import { ExpenseType, RecurringFrequency } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -30,8 +30,10 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { BudgetFrequency } from "@/types/budget";
 import { createBudget } from "@/services/budget.service";
-
-const cardHeaderClass = "pt-2";
+import { BudgetReminder } from "@/types/budget";
+import { checkBudgetReminders } from "@/services/budget.service";
+import { Notification } from "@/app-components/notification";
+import { getBudgetProgress } from "@/services/budget.service";
 
 const EXPENSE_CATEGORIES: string[] = [
   "Food & Dining",
@@ -50,25 +52,7 @@ const HomePage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchCurrencyOptions();
-  }, []);
-
-  const fetchCurrencyOptions = async () => {
-    try {
-      const response = await getCurrencyOptions();
-      const data = response.map((currency: any) => ({
-        code: currency.code,
-        name: currency.name,
-      }));
-      setCurrencyOptions(data);
-    } catch (error) {
-      console.error("Error fetching currency options:", error);
-    }
-  };
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
   const [currencyOptions, setCurrencyOptions] = useState<
     { code: string; name: string }[]
   >([]);
@@ -88,10 +72,49 @@ const HomePage = () => {
     fromRate: 1,
     toRate: 1,
   });
-  const [budgetFormData, setBudgetFormData] = useState({
-    amount: "",
-    frequency: "monthly" as BudgetFrequency,
-  });
+  const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
+  const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(
+    new Set()
+  );
+  const [budgetProgress, setBudgetProgress] = useState<any>(null);
+
+  useEffect(() => {
+    fetchCurrencyOptions();
+    fetchBudgetReminders();
+  }, []);
+
+  const fetchCurrencyOptions = async () => {
+    try {
+      const response = await getCurrencyOptions();
+      const data = response.map((currency: any) => ({
+        code: currency.code,
+        name: currency.name,
+      }));
+      setCurrencyOptions(data);
+    } catch (error) {
+      console.error("Error fetching currency options:", error);
+    }
+  };
+
+  const fetchBudgetReminders = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const reminders = await checkBudgetReminders();
+      setBudgetReminders(reminders);
+    } catch (error) {
+      console.error("Error fetching budget reminders:", error);
+    }
+  };
+
+  const dismissReminder = (reminderId: string) => {
+    setDismissedReminders((prev) => new Set([...prev, reminderId]));
+  };
+
+  const activeReminders = budgetReminders.filter(
+    (reminder) => !dismissedReminders.has(reminder.id)
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -169,13 +192,6 @@ const HomePage = () => {
     setShowExchangeRate(false);
   };
 
-  const resetBudgetForm = (): void => {
-    setBudgetFormData({
-      amount: "",
-      frequency: "monthly",
-    });
-  };
-
   const addTransaction = async (): Promise<void> => {
     if (
       !formData.title ||
@@ -213,48 +229,14 @@ const HomePage = () => {
       });
       resetForm();
       setIsDialogOpen(false);
+      // Refresh budget reminders after adding expense
+      fetchBudgetReminders();
       // Navigate to transactions page to see the new expense
       navigate("/transactions");
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to save expense. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const addBudget = async (): Promise<void> => {
-    if (!budgetFormData.amount || parseFloat(budgetFormData.amount) <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount greater than 0",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const budgetData = {
-        amount: parseFloat(budgetFormData.amount),
-        frequency: budgetFormData.frequency,
-      };
-
-      await createBudget(budgetData);
-      toast({
-        title: "Success",
-        description: "Budget created successfully!",
-      });
-
-      setIsBudgetDialogOpen(false);
-      resetBudgetForm();
-      // Navigate to budget page to see the new budget
-      navigate("/budget");
-    } catch (error: any) {
-      console.error("Error saving budget:", error);
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to save budget",
         variant: "destructive",
       });
     }
@@ -271,6 +253,23 @@ const HomePage = () => {
           <p className="text-gray-600 mt-1">Welcome to your expense tracker</p>
         </div>
       </div>
+
+      {/* Budget Reminders */}
+      {activeReminders.length > 0 && (
+        <div className="mb-6 space-y-3">
+          <h3 className="text-lg font-semibold text-gray-900">Budget Alerts</h3>
+          {activeReminders.map((reminder) => (
+            <Notification
+              key={reminder.id}
+              type={reminder.type}
+              title={reminder.title}
+              message={reminder.message}
+              onClose={() => dismissReminder(reminder.id)}
+              className="animate-in slide-in-from-top-2 duration-300"
+            />
+          ))}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -324,7 +323,7 @@ const HomePage = () => {
             <h3 className="text-lg font-semibold mb-2">Add Budgets</h3>
             <p className="text-gray-600 mb-4 flex-grow">Create a new budget</p>
             <Button
-              onClick={() => setIsBudgetDialogOpen(true)}
+              onClick={() => navigate("/budget")}
               className="w-full mt-auto"
             >
               Add Budget
@@ -581,67 +580,7 @@ const HomePage = () => {
         </div>
       </GeneralDialog>
 
-      {/* Add Budget Dialog */}
-      <GeneralDialog
-        open={isBudgetDialogOpen}
-        onOpenChange={setIsBudgetDialogOpen}
-        title="Create New Budget"
-        size="lg"
-        footerActions={
-          <>
-            <Button onClick={addBudget}>Create Budget</Button>
-            <Button onClick={resetBudgetForm} variant="outline" type="button">
-              Reset
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-gray-500">
-            Set a new budget amount and frequency
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="budget-amount">Budget Amount</Label>
-              <Input
-                id="budget-amount"
-                type="number"
-                placeholder="Enter amount"
-                value={budgetFormData.amount}
-                onChange={(e) =>
-                  setBudgetFormData({
-                    ...budgetFormData,
-                    amount: e.target.value,
-                  })
-                }
-                min="0"
-                step="0.01"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="budget-frequency">Budget Frequency</Label>
-              <Select
-                value={budgetFormData.frequency}
-                onValueChange={(value: BudgetFrequency) =>
-                  setBudgetFormData({ ...budgetFormData, frequency: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="yearly">Yearly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </GeneralDialog>
+      {/* Add Budget Dialog - Removed as budgets are now managed on the BudgetPage */}
     </div>
   );
 };

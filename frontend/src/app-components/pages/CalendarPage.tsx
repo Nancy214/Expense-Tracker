@@ -98,40 +98,6 @@ const CalendarPage: React.FC = () => {
     return colors[category] || "#6b7280";
   }
 
-  const handleDateClick = (arg: any) => {
-    //console.log("Date clicked:", arg.dateStr);
-    // You can add logic here to open a form to add expense on that date
-  };
-
-  const handleEventClick = (arg: any) => {
-    const event = arg.event;
-    const expense = event.extendedProps;
-    const currency = expense.currency || "INR";
-    const currencySymbols: { [key: string]: string } = {
-      INR: "₹",
-      USD: "$",
-      EUR: "€",
-      GBP: "£",
-      JPY: "¥",
-      CAD: "C$",
-      AUD: "A$",
-      CHF: "CHF",
-      CNY: "¥",
-      KRW: "₩",
-    };
-    const symbol = currencySymbols[currency] || currency;
-
-    // Show expense details in a modal or toast
-    toast({
-      title: event.title,
-      description: `${expense.description || "No description"}\nCategory: ${
-        expense.category
-      }\nAmount: ${symbol}${expense.amount.toFixed(2)} ${currency}${
-        expense.isRecurring ? `\nRecurring: ${expense.recurringFrequency}` : ""
-      }`,
-    });
-  };
-
   // Custom event renderer with tooltip
   const renderEventContent = (eventInfo: any) => {
     const expense = eventInfo.event.extendedProps;
@@ -246,7 +212,7 @@ const CalendarPage: React.FC = () => {
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
               events={calendarEvents}
-              dateClick={handleDateClick}
+              //dateClick={handleDateClick}
               //eventClick={handleEventClick}
               eventContent={renderEventContent}
               height="600px"

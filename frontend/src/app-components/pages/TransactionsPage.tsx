@@ -48,7 +48,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { getCurrencyOptions } from "@/services/auth.service";
 import { getExchangeRate } from "@/services/currency.service";
-import { DateRange } from "react-day-picker";
+import { BudgetReminder } from "@/types/budget";
+import { Notification } from "@/app-components/notification";
+import { checkBudgetReminders } from "@/services/budget.service";
 
 const cardHeaderClass = "pt-2";
 
@@ -83,6 +85,7 @@ const TransactionsPage = () => {
 
   useEffect(() => {
     fetchCurrencyOptions();
+    fetchBudgetReminders();
   }, []);
 
   const fetchCurrencyOptions = async () => {
@@ -95,6 +98,18 @@ const TransactionsPage = () => {
       setCurrencyOptions(data);
     } catch (error) {
       console.error("Error fetching currency options:", error);
+    }
+  };
+
+  const fetchBudgetReminders = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const reminders = await checkBudgetReminders();
+      setBudgetReminders(reminders);
+    } catch (error) {
+      console.error("Error fetching budget reminders:", error);
     }
   };
 
@@ -122,6 +137,8 @@ const TransactionsPage = () => {
     { code: string; name: string }[]
   >([]);
   const [showExchangeRate, setShowExchangeRate] = useState(false);
+  const [selectedDateForFilter, setSelectedDateForFilter] =
+    useState<Date | null>(null);
   const [formData, setFormData] = useState<
     ExpenseType & { fromRate?: number; toRate?: number }
   >({
@@ -137,6 +154,19 @@ const TransactionsPage = () => {
     fromRate: 1,
     toRate: 1,
   });
+  const [budgetProgress, setBudgetProgress] = useState<any>(null);
+  const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
+  const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(
+    new Set()
+  );
+
+  const activeReminders = budgetReminders.filter(
+    (reminder) => !dismissedReminders.has(reminder.id)
+  );
+
+  const dismissReminder = (reminderId: string) => {
+    setDismissedReminders((prev) => new Set([...prev, reminderId]));
+  };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -225,7 +255,6 @@ const TransactionsPage = () => {
   };
 
   const handleDateChange = (date: Date | undefined) => {
-    console.log(typeof date);
     if (date) {
       setFormData((prev) => ({
         ...prev,
@@ -397,6 +426,7 @@ const TransactionsPage = () => {
       );
       resetForm();
       setIsDialogOpen(false);
+      fetchBudgetReminders(); // Refresh reminders after adding/updating
     } catch (error) {
       toast({
         title: "Error",
@@ -423,22 +453,13 @@ const TransactionsPage = () => {
         .includes(searchQuery.toLowerCase()) ||
       transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Date filtering logic
+    // Date filtering logic - only apply if date filter is enabled
     let matchesDate = true;
-    if (isRangeMode) {
-      if (dateRange.from && dateRange.to) {
-        const transactionDate = parse(
-          transaction.date,
-          "dd/MM/yyyy",
-          new Date()
-        );
-        matchesDate =
-          transactionDate >= dateRange.from && transactionDate <= dateRange.to;
-      } else {
-        matchesDate = false; // No date range selected
-      }
-    } else {
-      matchesDate = transaction.date === format(selectedDate, "dd/MM/yyyy");
+    if (selectedDateForFilter) {
+      const transactionDate = parse(transaction.date, "dd/MM/yyyy", new Date());
+      const selectedDateFormatted = format(selectedDateForFilter, "dd/MM/yyyy");
+      const transactionDateFormatted = format(transactionDate, "dd/MM/yyyy");
+      matchesDate = transactionDateFormatted === selectedDateFormatted;
     }
 
     return matchesCategory && matchesType && matchesDate && matchesSearch;
@@ -492,34 +513,25 @@ const TransactionsPage = () => {
     {} as { [key: string]: { income: number; expense: number; net: number } }
   );
 
-  // Get transactions for the selected month
-  const getTransactionsForMonth = (month: Date) => {
-    const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
-    const endDate = new Date(month.getFullYear(), month.getMonth() + 1, 0);
-
-    return transactions.filter((transaction) => {
-      const transactionDate = parse(transaction.date, "dd/MM/yyyy", new Date());
-      return transactionDate >= startDate && transactionDate <= endDate;
-    });
-  };
-
-  // Generate last 12 months for dropdown
-  const generateMonthOptions = () => {
-    const months = [];
-    const currentDate = new Date();
-    for (let i = 0; i < 12; i++) {
-      const month = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() - i,
-        1
-      );
-      months.push(month);
-    }
-    return months;
-  };
-
   return (
     <div className="p-6 space-y-4 mx-auto">
+      {/* Budget Reminders */}
+      {activeReminders.length > 0 && (
+        <div className="mb-6 space-y-3">
+          <h3 className="text-lg font-semibold text-gray-900">Budget Alerts</h3>
+          {activeReminders.map((reminder) => (
+            <Notification
+              key={reminder.id}
+              type={reminder.type}
+              title={reminder.title}
+              message={reminder.message}
+              onClose={() => dismissReminder(reminder.id)}
+              className="animate-in slide-in-from-top-2 duration-300"
+            />
+          ))}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -922,30 +934,17 @@ const TransactionsPage = () => {
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                     <span className="truncate">
-                      {isRangeMode ? (
-                        dateRange.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, "dd/MM/yyyy")} -{" "}
-                              {format(dateRange.to, "dd/MM/yyyy")}
-                            </>
-                          ) : (
-                            format(dateRange.from, "dd/MM/yyyy")
-                          )
-                        ) : (
-                          <span>Pick a date</span>
-                        )
-                      ) : (
-                        format(selectedDate, "dd/MM/yyyy")
-                      )}
+                      {selectedDateForFilter
+                        ? format(selectedDateForFilter, "dd/MM/yyyy")
+                        : "All Dates"}
                     </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
                   <Calendar
                     mode="single"
-                    selected={isRangeMode ? dateRange.from : selectedDate}
-                    onSelect={(date) => date && handleDateSelect(date)}
+                    selected={selectedDateForFilter || undefined}
+                    onSelect={(date) => setSelectedDateForFilter(date || null)}
                     initialFocus
                   />
                 </PopoverContent>
@@ -954,15 +953,14 @@ const TransactionsPage = () => {
 
             {(!selectedCategories.includes("all") ||
               !selectedTypes.includes("all") ||
-              (isRangeMode && dateRange.from && dateRange.to) ||
+              selectedDateForFilter ||
               searchQuery !== "") && (
               <Button
                 variant="ghost"
                 onClick={() => {
                   setSelectedCategories(["all"]);
                   setSelectedTypes(["all"]);
-                  setIsRangeMode(false);
-                  setDateRange({ from: undefined, to: undefined });
+                  setSelectedDateForFilter(null);
                   setSearchQuery("");
                 }}
               >

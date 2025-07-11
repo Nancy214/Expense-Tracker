@@ -6,28 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { data, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   User,
-  Mail,
-  Calendar,
   Settings,
   LogOut,
   Camera,
   Save,
   Edit3,
   Shield,
-  Bell,
-  Palette,
-  Globe,
-  Phone,
-  MapPin,
-  Briefcase,
-  CreditCard,
   TrendingUp,
-  TrendingDown,
-  Users,
-  Clock,
 } from "lucide-react";
 import {
   Select,
@@ -39,7 +27,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { getExpenses } from "@/services/expense.service";
 import { getBudgets } from "@/services/budget.service";
-import { format } from "date-fns";
+
 import { getCurrencyOptions } from "@/services/auth.service";
 import {
   updateProfile,
