@@ -20,11 +20,9 @@ const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    profilePicture: undefined as File | undefined,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
-  const validFileTypes: string[] = ["image/jpeg", "image/png", "image/jpg"];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,22 +55,6 @@ const RegisterPage = () => {
       ...formData,
       [e.target.id]: e.target.value,
     });
-  };
-
-  const handleProfilePictureChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (e.target.files?.[0]) {
-      const file = e.target.files[0];
-      if (validFileTypes.includes(file.type)) {
-        setFormData({
-          ...formData,
-          profilePicture: file,
-        });
-      } else {
-        setError("Please upload a valid image file (JPEG, PNG, or JPG)");
-      }
-    }
   };
 
   return (
@@ -129,14 +111,6 @@ const RegisterPage = () => {
                       required
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="profilePicture">Profile Picture</Label>
-                    <Input
-                      id="profilePicture"
-                      type="file"
-                      onChange={handleProfilePictureChange}
                     />
                   </div>
                   {error && <div className="text-sm text-red-500">{error}</div>}

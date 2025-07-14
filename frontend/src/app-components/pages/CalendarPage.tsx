@@ -85,6 +85,7 @@ const CalendarPage: React.FC = () => {
   // Color coding for different categories
   function getCategoryColor(category: string): string {
     const colors: { [key: string]: string } = {
+      // Expense categories
       "Food & Dining": "#ef4444", // red
       Transportation: "#3b82f6", // blue
       Shopping: "#8b5cf6", // purple
@@ -94,6 +95,16 @@ const CalendarPage: React.FC = () => {
       Travel: "#f97316", // orange
       Education: "#84cc16", // lime
       Other: "#6b7280", // gray
+
+      // Income categories
+      Salary: "#059669", // emerald-600
+      Freelance: "#0891b2", // cyan-600
+      Business: "#7c3aed", // violet-600
+      Investment: "#059669", // emerald-600
+      "Rental Income": "#dc2626", // red-600
+      Gifts: "#ea580c", // orange-600
+      Refunds: "#2563eb", // blue-600
+      "Other Income": "#6b7280", // gray-500
     };
     return colors[category] || "#6b7280";
   }
@@ -178,36 +189,32 @@ const CalendarPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-6xl">
-          <Card>
-            <CardContent className="flex items-center justify-center p-6">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p>Loading calendar...</p>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="flex items-center justify-center min-h-[400px] p-4 md:p-6 lg:p-8">
+        <div className="text-center space-y-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading calendar...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-svh w-full p-6 md:p-10">
-      <div className="w-full max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Expense Calendar</h1>
-          <p className="text-gray-600 mt-1">
-            View your expenses in a calendar format
-          </p>
-        </div>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+          Expense Calendar
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          View your expenses in a calendar format
+        </p>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Calendar View</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Calendar View</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
             <FullCalendar
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
@@ -228,39 +235,39 @@ const CalendarPage: React.FC = () => {
               weekends={true}
               eventDisplay="block"
             />
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Category Legend */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Category Legend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {Object.entries({
-                "Food & Dining": "#ef4444",
-                Transportation: "#3b82f6",
-                Shopping: "#8b5cf6",
-                Entertainment: "#f59e0b",
-                "Bills & Utilities": "#10b981",
-                Healthcare: "#06b6d4",
-                Travel: "#f97316",
-                Education: "#84cc16",
-                Other: "#6b7280",
-              }).map(([category, color]) => (
-                <div key={category} className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: color }}
-                  ></div>
-                  <span className="text-sm">{category}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Category Legend */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Category Legend</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Object.entries({
+              "Food & Dining": "#ef4444",
+              Transportation: "#3b82f6",
+              Shopping: "#8b5cf6",
+              Entertainment: "#f59e0b",
+              "Bills & Utilities": "#10b981",
+              Healthcare: "#06b6d4",
+              Travel: "#f97316",
+              Education: "#84cc16",
+              Other: "#6b7280",
+            }).map(([category, color]) => (
+              <div key={category} className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: color }}
+                ></div>
+                <span className="text-sm">{category}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

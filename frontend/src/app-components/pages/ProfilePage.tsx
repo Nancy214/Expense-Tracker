@@ -267,359 +267,359 @@ const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-svh w-full p-6 md:p-10">
-      <div className="w-full max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Profile & Settings</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your account information and preferences
-          </p>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+          Profile & Settings
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Manage your account information and preferences
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Profile Information */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Personal Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Profile Picture */}
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage
+                    src={
+                      typeof profileData.profilePicture === "string"
+                        ? profileData.profilePicture
+                        : profileData.profilePicture instanceof File
+                        ? URL.createObjectURL(profileData.profilePicture)
+                        : ""
+                    }
+                  />
+                  <AvatarFallback className="text-lg">
+                    {getInitials(profileData.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <Label
+                    htmlFor="profilePicture"
+                    className="flex items-center gap-2 cursor-pointer border border-gray-300 rounded-md px-3 py-2 hover:bg-gray-50 transition-colors"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Change Photo
+                  </Label>
+                  <Input
+                    id="profilePicture"
+                    type="file"
+                    onChange={handleProfilePictureChange}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    value={profileData.name}
+                    onChange={(e) =>
+                      handleProfileDataChange("name", e.target.value)
+                    }
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={profileData.email}
+                    onChange={(e) =>
+                      handleProfileDataChange("email", e.target.value)
+                    }
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={profileData.phoneNumber}
+                    onChange={(e) =>
+                      handleProfileDataChange("phoneNumber", e.target.value)
+                    }
+                    disabled={!isEditing}
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Date of Birth</Label>
+                  <Input
+                    id="dob"
+                    type="date"
+                    value={profileData.dateOfBirth}
+                    onChange={(e) =>
+                      handleProfileDataChange("dateOfBirth", e.target.value)
+                    }
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select
+                    defaultValue="INR"
+                    value={profileData.currency}
+                    onValueChange={(value) =>
+                      handleProfileDataChange("currency", value)
+                    }
+                    disabled={!isEditing}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currencyOptions.map((currency) => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          {currency.name} ({currency.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                {isEditing ? (
+                  <>
+                    <Button onClick={handleSaveProfile} disabled={isLoading}>
+                      <Save className="h-4 w-4 mr-2" />
+                      {isLoading ? "Saving..." : "Save Changes"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                      disabled={isLoading}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={() => setIsEditing(true)}>
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Enhanced Account Statistics */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Account Statistics
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-primary truncate">
+                    {stats.totalExpenses}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Total Expenses
+                  </div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-green-600 truncate">
+                    ${stats.totalAmount.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Total Spent
+                  </div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-blue-600 truncate">
+                    {stats.budgetsCount}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Active Budgets
+                  </div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-base sm:text-lg lg:text-xl font-bold text-purple-600 truncate">
+                    {stats.daysActive}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Days Active
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-sm sm:text-base lg:text-lg font-bold text-orange-600 truncate">
+                    ${stats.averageExpense.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Average Expense
+                  </div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-sm sm:text-base lg:text-lg font-bold text-red-600 truncate">
+                    ${stats.largestExpense.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Largest Expense
+                  </div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="text-sm sm:text-base lg:text-lg font-bold text-cyan-600 truncate">
+                    {stats.recurringExpenses}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Recurring Expenses
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Information */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Profile Picture */}
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage
-                      src={
-                        typeof profileData.profilePicture === "string"
-                          ? profileData.profilePicture
-                          : profileData.profilePicture instanceof File
-                          ? URL.createObjectURL(profileData.profilePicture)
-                          : ""
-                      }
-                    />
-                    <AvatarFallback className="text-lg">
-                      {getInitials(profileData.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <Label
-                      htmlFor="profilePicture"
-                      className="flex items-center gap-2 cursor-pointer border border-gray-300 rounded-md px-3 py-2 hover:bg-gray-50 transition-colors"
-                    >
-                      <Camera className="h-4 w-4" />
-                      Change Photo
-                    </Label>
-                    <Input
-                      id="profilePicture"
-                      type="file"
-                      onChange={handleProfilePictureChange}
-                      className="hidden"
-                    />
-                  </div>
+        {/* Settings Sidebar */}
+        <div className="space-y-6">
+          {/* Enhanced Preferences */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Notifications & Alerts
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Email Notifications</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Receive email updates about your expenses
+                  </p>
                 </div>
+                <Switch
+                  checked={settings.emailNotifications}
+                  onCheckedChange={(checked) =>
+                    handleSettingsChange("emailNotifications", checked)
+                  }
+                />
+              </div>
 
-                {/* Basic Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      value={profileData.name}
-                      onChange={(e) =>
-                        handleProfileDataChange("name", e.target.value)
-                      }
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) =>
-                        handleProfileDataChange("email", e.target.value)
-                      }
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={profileData.phoneNumber}
-                      onChange={(e) =>
-                        handleProfileDataChange("phoneNumber", e.target.value)
-                      }
-                      disabled={!isEditing}
-                      placeholder="+1 (555) 123-4567"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth</Label>
-                    <Input
-                      id="dob"
-                      type="date"
-                      value={profileData.dateOfBirth}
-                      onChange={(e) =>
-                        handleProfileDataChange("dateOfBirth", e.target.value)
-                      }
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="currency">Currency</Label>
-                    <Select
-                      defaultValue="INR"
-                      value={profileData.currency}
-                      onValueChange={(value) =>
-                        handleProfileDataChange("currency", value)
-                      }
-                      disabled={!isEditing}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currencyOptions.map((currency) => (
-                          <SelectItem key={currency.code} value={currency.code}>
-                            {currency.name} ({currency.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Push Notifications</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Get notified about budget alerts
+                  </p>
                 </div>
+                <Switch
+                  checked={settings.pushNotifications}
+                  onCheckedChange={(checked) =>
+                    handleSettingsChange("pushNotifications", checked)
+                  }
+                />
+              </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  {isEditing ? (
-                    <>
-                      <Button onClick={handleSaveProfile} disabled={isLoading}>
-                        <Save className="h-4 w-4 mr-2" />
-                        {isLoading ? "Saving..." : "Save Changes"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsEditing(false)}
-                        disabled={isLoading}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <Button onClick={() => setIsEditing(true)}>
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      Edit Profile
-                    </Button>
-                  )}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Monthly Reports</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Receive monthly expense summaries
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+                <Switch
+                  checked={settings.monthlyReports}
+                  onCheckedChange={(checked) =>
+                    handleSettingsChange("monthlyReports", checked)
+                  }
+                />
+              </div>
 
-            {/* Enhanced Account Statistics */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Account Statistics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-primary">
-                      {stats.totalExpenses}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Total Expenses
-                    </div>
-                  </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">
-                      ${stats.totalAmount.toFixed(2)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Total Spent
-                    </div>
-                  </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {stats.budgetsCount}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Active Budgets
-                    </div>
-                  </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {stats.daysActive}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Days Active
-                    </div>
-                  </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Budget Alerts</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Get notified when approaching budget limits
+                  </p>
                 </div>
+                <Switch
+                  checked={settings.budgetAlerts}
+                  onCheckedChange={(checked) =>
+                    handleSettingsChange("budgetAlerts", checked)
+                  }
+                />
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-xl font-bold text-orange-600">
-                      ${stats.averageExpense.toFixed(2)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Average Expense
-                    </div>
-                  </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-xl font-bold text-red-600">
-                      ${stats.largestExpense.toFixed(2)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Largest Expense
-                    </div>
-                  </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <div className="text-xl font-bold text-cyan-600">
-                      {stats.recurringExpenses}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Recurring Expenses
-                    </div>
-                  </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Expense Reminders</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Remind me to log expenses
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Switch
+                  checked={settings.expenseReminders}
+                  onCheckedChange={(checked) =>
+                    handleSettingsChange("expenseReminders", checked)
+                  }
+                />
+              </div>
 
-          {/* Settings Sidebar */}
-          <div className="space-y-6">
-            {/* Enhanced Preferences */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Notifications & Alerts
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Email Notifications</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Receive email updates about your expenses
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.emailNotifications}
-                    onCheckedChange={(checked) =>
-                      handleSettingsChange("emailNotifications", checked)
-                    }
-                  />
-                </div>
+              <Button
+                onClick={handleSaveSettings}
+                className="w-full"
+                disabled={isLoading}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isLoading ? "Saving..." : "Save Settings"}
+              </Button>
+            </CardContent>
+          </Card>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Push Notifications</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Get notified about budget alerts
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.pushNotifications}
-                    onCheckedChange={(checked) =>
-                      handleSettingsChange("pushNotifications", checked)
-                    }
-                  />
-                </div>
+          {/* Account Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Account Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate("/change-password")}
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Change Password
+              </Button>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Monthly Reports</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Receive monthly expense summaries
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.monthlyReports}
-                    onCheckedChange={(checked) =>
-                      handleSettingsChange("monthlyReports", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Budget Alerts</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Get notified when approaching budget limits
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.budgetAlerts}
-                    onCheckedChange={(checked) =>
-                      handleSettingsChange("budgetAlerts", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Expense Reminders</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Remind me to log expenses
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.expenseReminders}
-                    onCheckedChange={(checked) =>
-                      handleSettingsChange("expenseReminders", checked)
-                    }
-                  />
-                </div>
-
-                <Button
-                  onClick={handleSaveSettings}
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isLoading ? "Saving..." : "Save Settings"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Account Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Account Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => navigate("/change-password")}
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  Change Password
-                </Button>
-
-                <Button
-                  variant="destructive"
-                  className="w-full justify-start"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Log Out
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+              <Button
+                variant="destructive"
+                className="w-full justify-start"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Log Out
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

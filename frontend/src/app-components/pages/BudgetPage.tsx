@@ -7,23 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   BudgetFrequency,
   BudgetResponse,
   BudgetProgress,
 } from "../../types/budget";
 import {
-  createBudget,
-  updateBudget,
   deleteBudget,
   getBudgets,
   getBudgetProgress,
@@ -38,20 +27,11 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { ToastAction } from "@/components/ui/toast";
-import GeneralDialog from "@/app-components/Dialog";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { BudgetReminder } from "@/types/budget";
 import { checkBudgetReminders } from "@/services/budget.service";
 import { Notification } from "@/app-components/notification";
+import AddBudgetDialog from "@/app-components/AddBudgetDialog";
 
 const BudgetPage: React.FC = () => {
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
@@ -61,11 +41,6 @@ const BudgetPage: React.FC = () => {
   const [editingBudget, setEditingBudget] = useState<BudgetResponse | null>(
     null
   );
-  const [formData, setFormData] = useState({
-    amount: "",
-    frequency: "monthly" as BudgetFrequency,
-    startDate: new Date(),
-  });
   const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
   const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(
     new Set()
@@ -124,69 +99,8 @@ const BudgetPage: React.FC = () => {
     (reminder) => !dismissedReminders.has(reminder.id)
   );
 
-  const handleSubmit = async () => {
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount greater than 0",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.startDate) {
-      toast({
-        title: "Missing Start Date",
-        description: "Please select a start date for your budget",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const budgetData = {
-        amount: parseFloat(formData.amount),
-        frequency: formData.frequency,
-        startDate: formData.startDate,
-      };
-
-      if (editingBudget) {
-        await updateBudget(editingBudget._id, budgetData);
-        toast({
-          title: "Success",
-          description: "Budget updated successfully!",
-        });
-      } else {
-        await createBudget(budgetData);
-        toast({
-          title: "Success",
-          description: "Budget created successfully!",
-        });
-      }
-
-      setIsDialogOpen(false);
-      setEditingBudget(null);
-      setFormData({ amount: "", frequency: "monthly", startDate: new Date() });
-      fetchBudgets();
-      fetchBudgetProgress();
-      fetchBudgetReminders();
-    } catch (error: any) {
-      console.error("Error saving budget:", error);
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to save budget",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleEdit = (budget: BudgetResponse) => {
     setEditingBudget(budget);
-    setFormData({
-      amount: budget.amount.toString(),
-      frequency: budget.frequency,
-      startDate: new Date(budget.startDate),
-    });
     setIsDialogOpen(true);
   };
 
@@ -224,12 +138,6 @@ const BudgetPage: React.FC = () => {
         </ToastAction>
       ),
     });
-  };
-
-  const handleCancel = () => {
-    setIsDialogOpen(false);
-    setEditingBudget(null);
-    setFormData({ amount: "", frequency: "monthly", startDate: new Date() });
   };
 
   const formatFrequency = (freq: BudgetFrequency) => {
@@ -276,282 +184,199 @@ const BudgetPage: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-svh w-full p-6 md:p-10">
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Budgets</h1>
-          {budgets.length !== 0 ? (
-            <Button
-              onClick={() => setIsDialogOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Budget
-            </Button>
-          ) : null}
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
+      {/* Budget Reminders */}
+      {activeReminders.length > 0 && (
+        <div className="mb-6 space-y-3">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Budget Alerts
+          </h3>
+          {activeReminders.map((reminder) => (
+            <Notification
+              key={reminder.id}
+              type={reminder.type}
+              title={reminder.title}
+              message={reminder.message}
+              onClose={() => dismissReminder(reminder.id)}
+              className="animate-in slide-in-from-top-2 duration-300"
+            />
+          ))}
         </div>
+      )}
 
-        {/* Budget Reminders */}
-        {activeReminders.length > 0 && (
-          <div className="mb-6 space-y-3">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Budget Alerts
-            </h3>
-            {activeReminders.map((reminder) => (
-              <Notification
-                key={reminder.id}
-                type={reminder.type}
-                title={reminder.title}
-                message={reminder.message}
-                onClose={() => dismissReminder(reminder.id)}
-                className="animate-in slide-in-from-top-2 duration-300"
-              />
-            ))}
-          </div>
-        )}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+            Budgets
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Manage your spending limits and track progress
+          </p>
+        </div>
+        {budgets.length !== 0 ? (
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Budget
+          </Button>
+        ) : null}
+      </div>
 
-        {/* Budget Overview */}
-        {budgetProgress.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Budget Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">
-                    {budgets.length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Active Budgets
-                  </div>
+      {/* Budget Overview */}
+      {budgetProgress.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Budget Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-primary">
+                  {budgets.length}
                 </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
-                    {formatAmount(
-                      budgetProgress.reduce((sum, b) => sum + b.amount, 0)
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Total Budget
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {formatAmount(
-                      budgetProgress.reduce((sum, b) => sum + b.totalSpent, 0)
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Total Spent
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {budgetProgress.filter((b) => b.isOverBudget).length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Over Budget
-                  </div>
+                <div className="text-sm text-muted-foreground">
+                  Active Budgets
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Add/Edit Budget Dialog */}
-        <GeneralDialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          title={editingBudget ? "Edit Budget" : "Create New Budget"}
-          size="lg"
-          footerActions={
-            <>
-              <Button onClick={handleSubmit}>
-                {editingBudget ? "Update Budget" : "Create Budget"}
-              </Button>
-              <Button onClick={handleCancel} variant="outline" type="button">
-                Cancel
-              </Button>
-            </>
-          }
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-gray-500">
-              {editingBudget
-                ? "Update your budget details"
-                : "Set a new budget amount and frequency"}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Budget Amount</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder="Enter amount"
-                  value={formData.amount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, amount: e.target.value })
-                  }
-                  min="0"
-                  step="0.01"
-                  required
-                />
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {formatAmount(
+                    budgetProgress.reduce((sum, b) => sum + b.amount, 0)
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Total Budget
+                </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="frequency">Budget Frequency</Label>
-                <Select
-                  value={formData.frequency}
-                  onValueChange={(value: BudgetFrequency) =>
-                    setFormData({ ...formData, frequency: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="yearly">Yearly</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {formatAmount(
+                    budgetProgress.reduce((sum, b) => sum + b.totalSpent, 0)
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Spent</div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !formData.startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.startDate ? (
-                        format(formData.startDate, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={formData.startDate}
-                      onSelect={(date) =>
-                        date && setFormData({ ...formData, startDate: date })
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {budgetProgress.filter((b) => b.isOverBudget).length}
+                </div>
+                <div className="text-sm text-muted-foreground">Over Budget</div>
               </div>
             </div>
-          </div>
-        </GeneralDialog>
+          </CardContent>
+        </Card>
+      )}
 
-        {budgets.length === 0 ? (
-          <Card>
-            <CardContent className="flex items-center justify-center p-12">
-              <div className="text-center">
-                <p className="text-lg text-gray-600 mb-4">No budgets found</p>
-                <Button onClick={() => setIsDialogOpen(true)}>
-                  Create your first budget
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {budgets.map((budget) => {
-              const progress = budgetProgress.find((p) => p._id === budget._id);
-              return (
-                <Card key={budget._id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-xl">
-                          {formatAmount(budget.amount)}
-                        </CardTitle>
-                        <CardDescription>
-                          {formatFrequency(budget.frequency)} Budget
-                        </CardDescription>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(budget)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(budget)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+      {/* Add/Edit Budget Dialog */}
+      <AddBudgetDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        editingBudget={editingBudget}
+        onSuccess={() => {
+          fetchBudgets();
+          fetchBudgetProgress();
+          fetchBudgetReminders();
+          setEditingBudget(null);
+        }}
+      />
+
+      {budgets.length === 0 ? (
+        <Card>
+          <CardContent className="flex items-center justify-center p-12">
+            <div className="text-center">
+              <p className="text-lg text-gray-600 mb-4">No budgets found</p>
+              <Button onClick={() => setIsDialogOpen(true)}>
+                Create your first budget
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {budgets.map((budget) => {
+            const progress = budgetProgress.find((p) => p._id === budget._id);
+            return (
+              <Card key={budget._id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl">
+                        {formatAmount(budget.amount)}
+                      </CardTitle>
+                      <CardDescription>
+                        {formatFrequency(budget.frequency)} Budget
+                      </CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {progress && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Progress</span>
-                          {getProgressIcon(
-                            progress.progress,
-                            progress.isOverBudget
-                          )}
-                        </div>
-                        <Progress
-                          value={progress.progress}
-                          variant={getProgressColor(
-                            progress.progress,
-                            progress.isOverBudget
-                          )}
-                          className="h-2"
-                        />
-                        <div className="flex justify-between text-xs text-gray-500">
-                          <span>
-                            Spent: {formatAmount(progress.totalSpent)}
-                          </span>
-                          <span>
-                            Remaining: {formatAmount(progress.remaining)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {progress.expensesCount} transactions this period
-                        </div>
-                        {progress.isOverBudget && (
-                          <div className="text-xs text-red-500 font-medium">
-                            Over budget by{" "}
-                            {formatAmount(Math.abs(progress.remaining))}
-                          </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(budget)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(budget)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {progress && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Progress</span>
+                        {getProgressIcon(
+                          progress.progress,
+                          progress.isOverBudget
                         )}
                       </div>
-                    )}
-                    <div className="text-xs text-gray-500">
-                      <p className="mt-1">
-                        Starts from{" "}
-                        {new Date(budget.startDate).toLocaleDateString()}
-                      </p>
+                      <Progress
+                        value={progress.progress}
+                        variant={getProgressColor(
+                          progress.progress,
+                          progress.isOverBudget
+                        )}
+                        className="h-2"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Spent: {formatAmount(progress.totalSpent)}</span>
+                        <span>
+                          Remaining: {formatAmount(progress.remaining)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {progress.expensesCount} transactions this period
+                      </div>
+                      {progress.isOverBudget && (
+                        <div className="text-xs text-red-500 font-medium">
+                          Over budget by{" "}
+                          {formatAmount(Math.abs(progress.remaining))}
+                        </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                  )}
+                  <div className="text-xs text-gray-500">
+                    <p className="mt-1">
+                      Starts from{" "}
+                      {new Date(budget.startDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

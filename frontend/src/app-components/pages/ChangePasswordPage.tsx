@@ -114,8 +114,8 @@ const ChangePasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-svh w-full p-6 md:p-10">
-      <div className="w-full max-w-md mx-auto">
+    <div className="p-4 md:p-6 lg:p-8 max-w-full">
+      <div className="max-w-md mx-auto">
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -125,8 +125,10 @@ const ChangePasswordPage: React.FC = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Profile
           </Button>
-          <h1 className="text-3xl font-bold">Change Password</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+            Change Password
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
             Update your password to keep your account secure
           </p>
         </div>

@@ -64,3 +64,44 @@ export const deleteExpense = async (id: string): Promise<void> => {
     throw error;
   }
 };
+
+export const getMonthlyStats = async () => {
+  try {
+    const response = await expenseApi.get(`/get-expenses`);
+    const expenses = response.data;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Filter expenses for current month
+    const monthlyExpenses = expenses.filter((expense: any) => {
+      const expenseDate = new Date(expense.date);
+      return (
+        expenseDate.getMonth() === currentMonth &&
+        expenseDate.getFullYear() === currentYear
+      );
+    });
+
+    // Calculate totals
+    const totalIncome = monthlyExpenses
+      .filter((expense: any) => expense.type === "income")
+      .reduce((sum: number, expense: any) => sum + expense.amount, 0);
+
+    const totalExpenses = monthlyExpenses
+      .filter((expense: any) => expense.type === "expense")
+      .reduce((sum: number, expense: any) => sum + expense.amount, 0);
+
+    const balance = totalIncome - totalExpenses;
+
+    return {
+      totalIncome,
+      totalExpenses,
+      balance,
+      transactionCount: monthlyExpenses.length,
+    };
+  } catch (error) {
+    console.error("Error fetching monthly stats:", error);
+    throw error;
+  }
+};
