@@ -33,6 +33,9 @@ import {
   PieChart,
   User,
   Settings,
+  Target,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 
 const EXPENSE_CATEGORIES: string[] = [
@@ -57,6 +60,16 @@ const INCOME_CATEGORIES: string[] = [
   "Refunds",
   "Other Income",
 ];
+
+interface FinancialOverviewData {
+  savingsRate: number;
+  expenseRate: number;
+  totalBudgets: number;
+  overBudgetCount: number;
+  warningBudgetCount: number;
+  onTrackBudgetCount: number;
+  averageBudgetProgress: number;
+}
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -83,8 +96,21 @@ const HomePage = () => {
   const [upcomingBillsCount, setUpcomingBillsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // Financial Overview state
+  const [financialData, setFinancialData] = useState<FinancialOverviewData>({
+    savingsRate: 0,
+    expenseRate: 0,
+    totalBudgets: 0,
+    overBudgetCount: 0,
+    warningBudgetCount: 0,
+    onTrackBudgetCount: 0,
+    averageBudgetProgress: 0,
+  });
+  const [financialLoading, setFinancialLoading] = useState(true);
+
   useEffect(() => {
     fetchBudgetReminders();
+    fetchFinancialOverview();
   }, []);
 
   const fetchBudgetReminders = async () => {
@@ -99,6 +125,64 @@ const HomePage = () => {
     }
   };
 
+  const fetchFinancialOverview = async () => {
+    try {
+      setFinancialLoading(true);
+      const [monthlyStats, budgetProgress] = await Promise.all([
+        getMonthlyStats(),
+        getBudgetProgress(),
+      ]);
+
+      // Calculate savings rate
+      const savingsRate =
+        monthlyStats.totalIncome > 0
+          ? (monthlyStats.balance / monthlyStats.totalIncome) * 100
+          : 0;
+
+      // Calculate expense rate (percentage of income spent)
+      const expenseRate =
+        monthlyStats.totalIncome > 0
+          ? (monthlyStats.totalExpenses / monthlyStats.totalIncome) * 100
+          : 0;
+
+      // Analyze budget progress
+      const totalBudgets = budgetProgress.budgets.length;
+      let overBudgetCount = 0;
+      let warningBudgetCount = 0;
+      let onTrackBudgetCount = 0;
+      let totalProgress = 0;
+
+      budgetProgress.budgets.forEach((budget) => {
+        totalProgress += budget.progress;
+
+        if (budget.isOverBudget) {
+          overBudgetCount++;
+        } else if (budget.progress >= 80) {
+          warningBudgetCount++;
+        } else {
+          onTrackBudgetCount++;
+        }
+      });
+
+      const averageBudgetProgress =
+        totalBudgets > 0 ? totalProgress / totalBudgets : 0;
+
+      setFinancialData({
+        savingsRate,
+        expenseRate,
+        totalBudgets,
+        overBudgetCount,
+        warningBudgetCount,
+        onTrackBudgetCount,
+        averageBudgetProgress,
+      });
+    } catch (error) {
+      console.error("Error fetching financial overview:", error);
+    } finally {
+      setFinancialLoading(false);
+    }
+  };
+
   const dismissReminder = (reminderId: string) => {
     setDismissedReminders((prev) => new Set([...prev, reminderId]));
   };
@@ -106,6 +190,35 @@ const HomePage = () => {
   const activeReminders = budgetReminders.filter(
     (reminder) => !dismissedReminders.has(reminder.id)
   );
+
+  // Financial Overview helper functions
+  const getSavingsRateColor = (rate: number) => {
+    if (rate >= 20) return "text-green-600";
+    if (rate >= 10) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getExpenseRateColor = (rate: number) => {
+    if (rate <= 70) return "text-green-600";
+    if (rate <= 90) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getBudgetRateColor = (onTrack: number, total: number) => {
+    if (total === 0) return "text-gray-600";
+    const percentage = (onTrack / total) * 100;
+    if (percentage >= 80) return "text-green-600";
+    if (percentage >= 60) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getBudgetMessage = (onTrack: number, total: number) => {
+    if (total === 0) return "No active budgets";
+    const percentage = (onTrack / total) * 100;
+    if (percentage >= 80) return "You're managing budgets well!";
+    if (percentage >= 60) return "Keep an eye on your budgets";
+    return "Consider reviewing your budgets";
+  };
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-4 max-w-full">
@@ -125,6 +238,101 @@ const HomePage = () => {
           ))}
         </div>
       )}
+
+      {/* Financial Overview */}
+      <div className="mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Financial Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {financialLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <>
+                {/* Savings Rate, Expense Rate, and Budget Tracking in one line */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Savings Rate */}
+                  <div className="text-center p-4 rounded-lg">
+                    <div
+                      className={`text-2xl font-bold ${getSavingsRateColor(
+                        financialData.savingsRate
+                      )}`}
+                    >
+                      {financialData.savingsRate.toFixed(1)}%
+                    </div>
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium">Savings Rate</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {financialData.savingsRate >= 0
+                        ? "You're saving well!"
+                        : "Consider reducing expenses"}
+                    </p>
+                  </div>
+
+                  {/* Expense Rate */}
+                  <div className="text-center p-4 rounded-lg">
+                    <div
+                      className={`text-2xl font-bold ${getExpenseRateColor(
+                        financialData.expenseRate
+                      )}`}
+                    >
+                      {financialData.expenseRate.toFixed(1)}%
+                    </div>
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <TrendingDown className="h-4 w-4 text-red-600" />
+                      <span className="text-sm font-medium">Expense Rate</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {financialData.expenseRate <= 70
+                        ? "Good spending control"
+                        : "Consider budgeting better"}
+                    </p>
+                  </div>
+
+                  {/* Budget Tracking */}
+                  <div className="text-center p-4 rounded-lg">
+                    <div
+                      className={`text-2xl font-bold ${getBudgetRateColor(
+                        financialData.onTrackBudgetCount,
+                        financialData.totalBudgets
+                      )}`}
+                    >
+                      {financialData.onTrackBudgetCount}/
+                      {financialData.totalBudgets}
+                    </div>
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <Target className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium">Budgets</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {getBudgetMessage(
+                        financialData.onTrackBudgetCount,
+                        financialData.totalBudgets
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Warning message for over budget */}
+                {financialData.overBudgetCount > 0 && (
+                  <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-center">
+                    ⚠️ {financialData.overBudgetCount} budget
+                    {financialData.overBudgetCount > 1 ? "s" : ""} over limit
+                  </p>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Add Expense Dialog */}
       <AddExpenseDialog
