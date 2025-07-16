@@ -187,6 +187,29 @@ const CalendarPage: React.FC = () => {
     );
   };
 
+  // Expense and income category color maps
+  const expenseCategories: { [key: string]: string } = {
+    "Food & Dining": "#ef4444",
+    Transportation: "#3b82f6",
+    Shopping: "#8b5cf6",
+    Entertainment: "#f59e0b",
+    "Bills & Utilities": "#10b981",
+    Healthcare: "#06b6d4",
+    Travel: "#f97316",
+    Education: "#84cc16",
+    Other: "#6b7280",
+  };
+  const incomeCategories: { [key: string]: string } = {
+    Salary: "#059669",
+    Freelance: "#0891b2",
+    Business: "#7c3aed",
+    Investment: "#059669",
+    "Rental Income": "#dc2626",
+    Gifts: "#ea580c",
+    Refunds: "#2563eb",
+    "Other Income": "#6b7280",
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px] p-4 md:p-6 lg:p-8">
@@ -245,26 +268,39 @@ const CalendarPage: React.FC = () => {
           <CardTitle>Category Legend</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Object.entries({
-              "Food & Dining": "#ef4444",
-              Transportation: "#3b82f6",
-              Shopping: "#8b5cf6",
-              Entertainment: "#f59e0b",
-              "Bills & Utilities": "#10b981",
-              Healthcare: "#06b6d4",
-              Travel: "#f97316",
-              Education: "#84cc16",
-              Other: "#6b7280",
-            }).map(([category, color]) => (
-              <div key={category} className="flex items-center gap-2">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: color }}
-                ></div>
-                <span className="text-sm">{category}</span>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-semibold mb-2 text-gray-700">
+                Expense Categories
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Object.entries(expenseCategories).map(([category, color]) => (
+                  <div key={category} className="flex items-center gap-2">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: color }}
+                    ></div>
+                    <span className="text-sm">{category}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold mb-2 text-gray-700">
+                Income Categories
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Object.entries(incomeCategories).map(([category, color]) => (
+                  <div key={category} className="flex items-center gap-2">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: color }}
+                    ></div>
+                    <span className="text-sm">{category}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

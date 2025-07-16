@@ -32,9 +32,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { BudgetReminder } from "@/types/budget";
-import { Notification } from "@/app-components/notification";
+import { Notification } from "@/app-components/Notification";
 import { checkBudgetReminders } from "@/services/budget.service";
 import AddExpenseDialog from "@/app-components/AddExpenseDialog";
+import { DateRange } from "react-day-picker";
 
 const cardHeaderClass = "pt-2";
 
@@ -245,6 +246,11 @@ const TransactionsPage = () => {
     setExpenseToDelete(null);
   };
 
+  // Replace selectedDateForFilter with dateRangeForFilter
+  const [dateRangeForFilter, setDateRangeForFilter] = useState<
+    DateRange | undefined
+  >(undefined);
+
   // Filter transactions based on selected date and categories
   const filteredTransactions = transactions.filter((transaction) => {
     const matchesCategory =
@@ -262,13 +268,13 @@ const TransactionsPage = () => {
         .includes(searchQuery.toLowerCase()) ||
       transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Date filtering logic - only apply if date filter is enabled
+    // Date filtering logic - support single date or range
     let matchesDate = true;
-    if (selectedDateForFilter) {
+    if (dateRangeForFilter?.from) {
       const transactionDate = parse(transaction.date, "dd/MM/yyyy", new Date());
-      const selectedDateFormatted = format(selectedDateForFilter, "dd/MM/yyyy");
-      const transactionDateFormatted = format(transactionDate, "dd/MM/yyyy");
-      matchesDate = transactionDateFormatted === selectedDateFormatted;
+      const from = dateRangeForFilter.from;
+      const to = dateRangeForFilter.to || dateRangeForFilter.from;
+      matchesDate = transactionDate >= from && transactionDate <= to;
     }
 
     return matchesCategory && matchesType && matchesDate && matchesSearch;
@@ -322,6 +328,22 @@ const TransactionsPage = () => {
     {} as { [key: string]: { income: number; expense: number; net: number } }
   );
 
+  // Currency symbol map
+  const currencySymbols: { [key: string]: string } = {
+    INR: "₹",
+    EUR: "€",
+    GBP: "£",
+    JPY: "¥",
+    USD: "$",
+    CAD: "C$",
+    AUD: "A$",
+    CHF: "CHF",
+    CNY: "¥",
+    KRW: "₩",
+  };
+  const userCurrency = user?.currency || "INR";
+  const symbol = currencySymbols[userCurrency] || userCurrency;
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
       {/* Budget Reminders */}
@@ -360,11 +382,62 @@ const TransactionsPage = () => {
         </Button>
       </div>
 
+      {/* Transaction Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-4">
+        <Card>
+          <CardContent className="py-4 flex flex-col items-center">
+            <div className="text-lg sm:text-xl font-bold text-green-600">
+              {transactions.filter((t) => t.type === "income").length}
+            </div>
+            <div className="text-xs mt-1">Income Transactions</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {symbol}
+              {transactions
+                .filter((t) => t.type === "income")
+                .reduce((sum, t) => sum + (t.amount || 0), 0)
+                .toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4 flex flex-col items-center">
+            <div className="text-lg sm:text-xl font-bold text-red-600">
+              {transactions.filter((t) => t.type === "expense").length}
+            </div>
+            <div className="text-xs mt-1">Expense Transactions</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {symbol}
+              {transactions
+                .filter((t) => t.type === "expense")
+                .reduce((sum, t) => sum + (t.amount || 0), 0)
+                .toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4 flex flex-col items-center">
+            <div className="text-lg sm:text-xl font-bold">
+              {transactions.length}
+            </div>
+            <div className="text-xs mt-1">Total Transactions</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Avg: {symbol}
+              {transactions.length > 0
+                ? (
+                    transactions.reduce((sum, t) => sum + (t.amount || 0), 0) /
+                    transactions.length
+                  ).toFixed(2)
+                : "0.00"}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Filters */}
       <Card>
         <CardContent className="p-4 md:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="flex-1 max-w-sm">
+          <div className="flex flex-wrap items-center gap-3 md:gap-4 lg:gap-4">
+            <div className="max-w-xs w-full">
               <Input
                 placeholder="Search transactions..."
                 value={searchQuery}
@@ -372,7 +445,6 @@ const TransactionsPage = () => {
                 className="w-full"
               />
             </div>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-[180px] justify-between">
@@ -421,7 +493,6 @@ const TransactionsPage = () => {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-[180px] justify-between">
@@ -463,7 +534,6 @@ const TransactionsPage = () => {
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
             <div className="flex items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
@@ -475,33 +545,40 @@ const TransactionsPage = () => {
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                     <span className="truncate">
-                      {selectedDateForFilter
-                        ? format(selectedDateForFilter, "dd/MM/yyyy")
+                      {dateRangeForFilter?.from && dateRangeForFilter?.to
+                        ? `${format(
+                            dateRangeForFilter.from,
+                            "dd/MM/yyyy"
+                          )} - ${format(dateRangeForFilter.to, "dd/MM/yyyy")}`
+                        : dateRangeForFilter?.from
+                        ? format(dateRangeForFilter.from, "dd/MM/yyyy")
                         : "All Dates"}
                     </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
                   <Calendar
-                    mode="single"
-                    selected={selectedDateForFilter || undefined}
-                    onSelect={(date) => setSelectedDateForFilter(date || null)}
+                    mode="range"
+                    selected={dateRangeForFilter}
+                    onSelect={(range) =>
+                      setDateRangeForFilter(range ?? undefined)
+                    }
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
-
             {(!selectedCategories.includes("all") ||
               !selectedTypes.includes("all") ||
-              selectedDateForFilter ||
+              dateRangeForFilter?.from ||
+              dateRangeForFilter?.to ||
               searchQuery !== "") && (
               <Button
                 variant="ghost"
                 onClick={() => {
                   setSelectedCategories(["all"]);
                   setSelectedTypes(["all"]);
-                  setSelectedDateForFilter(null);
+                  setDateRangeForFilter(undefined);
                   setSearchQuery("");
                 }}
               >

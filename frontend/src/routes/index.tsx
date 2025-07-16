@@ -12,6 +12,7 @@ import ForgotPasswordPage from "@/app-components/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/app-components/pages/ResetPasswordPage";
 import TransactionsPage from "@/app-components/pages/TransactionsPage";
 import BillsPage from "@/app-components/pages/BillsPage";
+import AnalyticsPage from "@/app-components/pages/AnalyticsPage";
 
 interface RouteConfig {
   path: string;
@@ -79,6 +80,11 @@ const routes: RouteConfig[] = [
     path: "/reset-password",
     element: <ResetPasswordPage />,
     requireAuth: false,
+  },
+  {
+    path: "/analytics",
+    element: <AnalyticsPage />,
+    requireAuth: true,
   },
 ];
 

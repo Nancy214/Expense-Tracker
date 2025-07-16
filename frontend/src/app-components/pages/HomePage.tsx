@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { BudgetReminder } from "@/types/budget";
 import { checkBudgetReminders } from "@/services/budget.service";
-import { Notification } from "@/app-components/notification";
+import { Notification } from "@/app-components/Notification";
 import { getBudgetProgress } from "@/services/budget.service";
 import AddExpenseDialog from "@/app-components/AddExpenseDialog";
 import { ExpenseType } from "@/types/expense";
@@ -19,7 +19,7 @@ import AddBillDialog from "@/app-components/AddBillDialog";
 import { BillType } from "@/types/bill";
 import { getMonthlyStats } from "@/services/expense.service";
 import { getBudgets } from "@/services/budget.service";
-import { getUpcomingBills } from "@/services/bill.service";
+import { getUpcomingBills, getOverdueBills } from "@/services/bill.service";
 import {
   TrendingUp,
   DollarSign,
@@ -36,6 +36,7 @@ import {
   Target,
   CheckCircle,
   Clock,
+  Zap,
 } from "lucide-react";
 
 const EXPENSE_CATEGORIES: string[] = [
@@ -108,9 +109,13 @@ const HomePage = () => {
   });
   const [financialLoading, setFinancialLoading] = useState(true);
 
+  const [upcomingBills, setUpcomingBills] = useState<any[]>([]);
+  const [overdueBills, setOverdueBills] = useState<any[]>([]);
+
   useEffect(() => {
     fetchBudgetReminders();
     fetchFinancialOverview();
+    fetchBillsAlerts();
   }, []);
 
   const fetchBudgetReminders = async () => {
@@ -183,6 +188,19 @@ const HomePage = () => {
     }
   };
 
+  const fetchBillsAlerts = async () => {
+    try {
+      const [upcoming, overdue] = await Promise.all([
+        getUpcomingBills(),
+        getOverdueBills(),
+      ]);
+      setUpcomingBills(upcoming);
+      setOverdueBills(overdue);
+    } catch (error) {
+      // Optionally handle error
+    }
+  };
+
   const dismissReminder = (reminderId: string) => {
     setDismissedReminders((prev) => new Set([...prev, reminderId]));
   };
@@ -236,6 +254,69 @@ const HomePage = () => {
               className="animate-in slide-in-from-top-2 duration-300"
             />
           ))}
+        </div>
+      )}
+
+      {/* Bill Alerts */}
+      {(overdueBills.length > 0 || upcomingBills.length > 0) && (
+        <div className="mb-6 space-y-3">
+          {overdueBills.length > 0 && (
+            <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-red-900">
+                    {overdueBills.length} bill
+                    {overdueBills.length > 1 ? "s" : ""} overdue
+                  </h4>
+                  <p className="text-sm text-red-700 mt-1">
+                    You have {overdueBills.length} bill
+                    {overdueBills.length > 1 ? "s" : ""} that{" "}
+                    {overdueBills.length > 1 ? "are" : "is"} past due date.
+                    Please review and take action.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-1"
+                  onClick={() => navigate("/bills")}
+                >
+                  View Bills
+                </Button>
+              </div>
+            </div>
+          )}
+          {upcomingBills.length > 0 && (
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-blue-900">
+                    {upcomingBills.length} upcoming bill
+                    {upcomingBills.length > 1 ? "s" : ""}
+                  </h4>
+                  <p className="text-sm text-blue-700 mt-1">
+                    You have {upcomingBills.length} bill
+                    {upcomingBills.length > 1 ? "s" : ""} due within the next 7
+                    days. Plan your payments accordingly.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-1"
+                  onClick={() => navigate("/bills")}
+                >
+                  View Bills
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -333,6 +414,50 @@ const HomePage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Actions */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-yellow-500" />
+            Quick Actions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Card
+              className="flex-1 flex flex-col items-center justify-center py-6 cursor-pointer transition hover:shadow-lg hover:bg-muted/60"
+              onClick={() => setIsExpenseDialogOpen(true)}
+              tabIndex={0}
+              role="button"
+              aria-label="Add Transaction"
+            >
+              <DollarSign className="h-6 w-6 text-green-600 mb-1" />
+              <span className="text-base">Add Transaction</span>
+            </Card>
+            <Card
+              className="flex-1 flex flex-col items-center justify-center py-6 cursor-pointer transition hover:shadow-lg hover:bg-muted/60"
+              onClick={() => setIsAddBillDialogOpen(true)}
+              tabIndex={0}
+              role="button"
+              aria-label="Add Bill"
+            >
+              <Receipt className="h-6 w-6 text-blue-600 mb-1" />
+              <span className="text-base">Add Bill</span>
+            </Card>
+            <Card
+              className="flex-1 flex flex-col items-center justify-center py-6 cursor-pointer transition hover:shadow-lg hover:bg-muted/60"
+              onClick={() => setIsAddBudgetDialogOpen(true)}
+              tabIndex={0}
+              role="button"
+              aria-label="Set Budget"
+            >
+              <Target className="h-6 w-6 text-purple-600 mb-1" />
+              <span className="text-base">Set Budget</span>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Add Expense Dialog */}
       <AddExpenseDialog

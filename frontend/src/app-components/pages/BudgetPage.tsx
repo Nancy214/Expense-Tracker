@@ -30,7 +30,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { Progress } from "@/components/ui/progress";
 import { BudgetReminder } from "@/types/budget";
 import { checkBudgetReminders } from "@/services/budget.service";
-import { Notification } from "@/app-components/notification";
+import { Notification } from "@/app-components/Notification";
 import AddBudgetDialog from "@/app-components/AddBudgetDialog";
 
 const BudgetPage: React.FC = () => {

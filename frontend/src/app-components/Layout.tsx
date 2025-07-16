@@ -19,6 +19,7 @@ import {
   X,
   LogOut,
   Settings,
+  BarChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -35,6 +36,7 @@ const navLinks = [
   { label: "Budget", path: "/budget", icon: PieChart },
   { label: "Bills", path: "/bills", icon: CreditCard },
   { label: "Calendar", path: "/calendar", icon: Calendar },
+  { label: "Analytics", path: "/analytics", icon: BarChart },
   { label: "Profile", path: "/profile", icon: User },
   { label: "Log out", path: "#logout", icon: LogOut },
 ];

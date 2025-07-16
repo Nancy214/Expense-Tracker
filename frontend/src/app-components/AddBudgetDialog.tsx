@@ -22,6 +22,7 @@ import { createBudget, updateBudget } from "@/services/budget.service";
 import { BudgetFrequency, BudgetResponse } from "@/types/budget";
 import { useToast } from "@/hooks/use-toast";
 import GeneralDialog from "@/app-components/Dialog";
+import { useStats } from "@/context/StatsContext";
 
 interface AddBudgetDialogProps {
   open: boolean;
@@ -45,6 +46,7 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
     startDate: format(new Date(), "dd/MM/yyyy"),
   });
   //const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const { refreshStats } = useStats();
 
   const isEditing = !!editingBudget;
 
@@ -116,7 +118,7 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
           description: "Budget created successfully!",
         });
       }
-
+      await refreshStats();
       resetForm();
       onOpenChange(false);
       onSuccess?.();

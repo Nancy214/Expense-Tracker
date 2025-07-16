@@ -77,68 +77,49 @@ const BillsPage = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-blue-900">
-              Total Bills
-            </CardTitle>
-            <DollarSign className="h-5 w-5 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-900">
+      <div className="flex flex-row gap-4 md:gap-6 mb-4">
+        <Card className="flex-1">
+          <CardContent className="py-4 flex flex-col items-center">
+            <div className="text-lg sm:text-xl font-bold text-blue-600">
               {stats?.totalBills || 0}
             </div>
-            <p className="text-xs text-blue-700 mt-1">
+            <div className="text-xs mt-1">Total Bills</div>
+            <p className="text-xs text-muted-foreground mt-1">
               All bills in your account
             </p>
           </CardContent>
         </Card>
-
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-orange-900">
-              Unpaid Bills
-            </CardTitle>
-            <Clock className="h-5 w-5 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-900">
+        <Card className="flex-1">
+          <CardContent className="py-4 flex flex-col items-center">
+            <div className="text-lg sm:text-xl font-bold text-yellow-600">
               {stats?.unpaidBills || 0}
             </div>
-            <p className="text-xs text-orange-700 mt-1">
+            <div className="text-xs mt-1">Unpaid Bills</div>
+            <p className="text-xs text-muted-foreground mt-1">
               Bills awaiting payment
             </p>
           </CardContent>
         </Card>
-
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-red-50 to-red-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-red-900">
-              Overdue Bills
-            </CardTitle>
-            <AlertTriangle className="h-5 w-5 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-900">
+        <Card className="flex-1">
+          <CardContent className="py-4 flex flex-col items-center">
+            <div className="text-lg sm:text-xl font-bold text-red-600">
               {stats?.overdueBills || 0}
             </div>
-            <p className="text-xs text-red-700 mt-1">Bills past due date</p>
+            <div className="text-xs mt-1">Overdue Bills</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Bills past due date
+            </p>
           </CardContent>
         </Card>
-
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-green-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-green-900">
-              Upcoming Bills
-            </CardTitle>
-            <CheckCircle className="h-5 w-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-900">
+        <Card className="flex-1">
+          <CardContent className="py-4 flex flex-col items-center">
+            <div className="text-lg sm:text-xl font-bold text-green-600">
               {stats?.upcomingBills || 0}
             </div>
-            <p className="text-xs text-green-700 mt-1">Due within 7 days</p>
+            <div className="text-xs mt-1">Upcoming Bills</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Due within 7 days
+            </p>
           </CardContent>
         </Card>
       </div>

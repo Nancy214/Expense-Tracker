@@ -26,6 +26,7 @@ import { getCurrencyOptions } from "@/services/auth.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { useAuth } from "@/context/AuthContext";
 import GeneralDialog from "@/app-components/Dialog";
+import { useStats } from "@/context/StatsContext";
 
 const EXPENSE_CATEGORIES: string[] = [
   "Food & Dining",
@@ -72,6 +73,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { refreshStats } = useStats();
   const [currencyOptions, setCurrencyOptions] = useState<
     { code: string; name: string }[]
   >([]);
@@ -260,6 +262,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
           description: "Transaction added successfully",
         });
       }
+      await refreshStats();
       resetForm();
       onOpenChange(false);
       onSuccess?.();

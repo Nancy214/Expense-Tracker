@@ -26,6 +26,7 @@ import { getCurrencyOptions } from "@/services/auth.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { useAuth } from "@/context/AuthContext";
 import GeneralDialog from "@/app-components/Dialog";
+import { useStats } from "@/context/StatsContext";
 
 const BILL_CATEGORIES: string[] = [
   "Rent/Mortgage",
@@ -75,6 +76,7 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
 }) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { refreshStats } = useStats();
   const [currencyOptions, setCurrencyOptions] = useState<
     { code: string; name: string }[]
   >([]);
@@ -276,6 +278,7 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
           description: "Bill added successfully",
         });
       }
+      await refreshStats();
       resetForm();
       onOpenChange(false);
       onSuccess?.();

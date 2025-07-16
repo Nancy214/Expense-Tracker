@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useStats } from "@/context/StatsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -8,44 +8,10 @@ import {
   Wallet,
   Calendar,
 } from "lucide-react";
-import { getMonthlyStats } from "@/services/expense.service";
-import { getBudgets } from "@/services/budget.service";
-import { getUpcomingBills } from "@/services/bill.service";
 
 export default function StatsCards() {
   const { user } = useAuth();
-  const [monthlyStats, setMonthlyStats] = useState({
-    totalIncome: 0,
-    totalExpenses: 0,
-    balance: 0,
-    transactionCount: 0,
-  });
-  const [activeBudgetsCount, setActiveBudgetsCount] = useState(0);
-  const [upcomingBillsCount, setUpcomingBillsCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      setLoading(true);
-      const [monthlyStatsData, budgetsData, upcomingBillsData] =
-        await Promise.all([
-          getMonthlyStats(),
-          getBudgets(),
-          getUpcomingBills(),
-        ]);
-      setMonthlyStats(monthlyStatsData);
-      setActiveBudgetsCount(budgetsData.length);
-      setUpcomingBillsCount(upcomingBillsData.length);
-    } catch (error) {
-      // Optionally handle error
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { stats, loading, error, refreshStats } = useStats();
 
   const formatAmount = (amount: number) => {
     const currencySymbols: { [key: string]: string } = {
@@ -73,6 +39,24 @@ export default function StatsCards() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[80px]">
+        <div className="text-red-600 text-sm mb-2">{error}</div>
+        <button
+          className="px-3 py-1 bg-blue-600 text-white rounded"
+          onClick={refreshStats}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return null;
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 md:gap-6 pt-8 mb-6 pl-4 pr-4">
       <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-green-100">
@@ -84,7 +68,7 @@ export default function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-lg sm:text-xl xl:text-2xl font-bold text-green-900">
-            {formatAmount(monthlyStats.totalIncome)}
+            {formatAmount(stats?.totalIncome || 0)}
           </div>
           <p className="text-xs text-green-700 mt-1">This month</p>
         </CardContent>
@@ -98,7 +82,7 @@ export default function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-lg sm:text-xl xl:text-2xl font-bold text-red-900">
-            {formatAmount(monthlyStats.totalExpenses)}
+            {formatAmount(stats?.totalExpenses || 0)}
           </div>
           <p className="text-xs text-red-700 mt-1">This month</p>
         </CardContent>
@@ -113,10 +97,12 @@ export default function StatsCards() {
         <CardContent>
           <div
             className={`text-lg sm:text-xl xl:text-2xl font-bold ${
-              monthlyStats.balance >= 0 ? "text-blue-900" : "text-red-900"
+              stats?.balance && stats?.balance >= 0
+                ? "text-blue-900"
+                : "text-red-900"
             }`}
           >
-            {formatAmount(monthlyStats.balance)}
+            {formatAmount(stats?.balance || 0)}
           </div>
           <p className="text-xs text-blue-700 mt-1">This month</p>
         </CardContent>
@@ -130,7 +116,7 @@ export default function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-lg sm:text-xl xl:text-2xl font-bold text-purple-900">
-            {activeBudgetsCount}
+            {stats?.activeBudgetsCount}
           </div>
           <p className="text-xs text-purple-700 mt-1">Currently tracking</p>
         </CardContent>
@@ -144,7 +130,7 @@ export default function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-lg sm:text-xl xl:text-2xl font-bold text-orange-900">
-            {upcomingBillsCount}
+            {stats?.upcomingBillsCount}
           </div>
           <p className="text-xs text-orange-700 mt-1">Due within 7 days</p>
         </CardContent>
