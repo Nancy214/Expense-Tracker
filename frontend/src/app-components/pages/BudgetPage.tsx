@@ -32,6 +32,7 @@ import { BudgetReminder } from "@/types/budget";
 import { checkBudgetReminders } from "@/services/budget.service";
 import { Notification } from "@/app-components/Notification";
 import AddBudgetDialog from "@/app-components/AddBudgetDialog";
+import { useAuth } from "@/context/AuthContext";
 
 const BudgetPage: React.FC = () => {
   const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
@@ -46,6 +47,12 @@ const BudgetPage: React.FC = () => {
     new Set()
   );
   const { toast } = useToast();
+  const { user } = useAuth();
+  const billsAndBudgetsAlertEnabled = !!(
+    user &&
+    (user as any).settings &&
+    (user as any).settings.billsAndBudgetsAlert
+  );
 
   useEffect(() => {
     fetchBudgets();
@@ -186,7 +193,7 @@ const BudgetPage: React.FC = () => {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
       {/* Budget Reminders */}
-      {activeReminders.length > 0 && (
+      {billsAndBudgetsAlertEnabled && activeReminders.length > 0 && (
         <div className="mb-6 space-y-3">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Budget Alerts

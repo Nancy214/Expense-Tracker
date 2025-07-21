@@ -10,6 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import BillDataTable from "../BillDataTable";
 import { AlertTriangle, Clock, CheckCircle, DollarSign } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const BillsPage = () => {
   const { toast } = useToast();
@@ -18,6 +19,12 @@ const BillsPage = () => {
   const [upcomingBills, setUpcomingBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { user } = useAuth();
+  const billsAndBudgetsAlertEnabled = !!(
+    user &&
+    (user as any).settings &&
+    (user as any).settings.billsAndBudgetsAlert
+  );
 
   useEffect(() => {
     fetchBillData();
@@ -125,52 +132,53 @@ const BillsPage = () => {
       </div>
 
       {/* Alerts */}
-      {(overdueBills.length > 0 || upcomingBills.length > 0) && (
-        <div className="space-y-3">
-          {overdueBills.length > 0 && (
-            <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-red-900">
-                    {overdueBills.length} bill
-                    {overdueBills.length > 1 ? "s" : ""} overdue
-                  </h4>
-                  <p className="text-sm text-red-700 mt-1">
-                    You have {overdueBills.length} bill
-                    {overdueBills.length > 1 ? "s" : ""} that{" "}
-                    {overdueBills.length > 1 ? "are" : "is"} past due date.
-                    Please review and take action.
-                  </p>
+      {billsAndBudgetsAlertEnabled &&
+        (overdueBills.length > 0 || upcomingBills.length > 0) && (
+          <div className="space-y-3">
+            {overdueBills.length > 0 && (
+              <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-red-900">
+                      {overdueBills.length} bill
+                      {overdueBills.length > 1 ? "s" : ""} overdue
+                    </h4>
+                    <p className="text-sm text-red-700 mt-1">
+                      You have {overdueBills.length} bill
+                      {overdueBills.length > 1 ? "s" : ""} that{" "}
+                      {overdueBills.length > 1 ? "are" : "is"} past due date.
+                      Please review and take action.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {upcomingBills.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-blue-900">
-                    {upcomingBills.length} upcoming bill
-                    {upcomingBills.length > 1 ? "s" : ""}
-                  </h4>
-                  <p className="text-sm text-blue-700 mt-1">
-                    You have {upcomingBills.length} bill
-                    {upcomingBills.length > 1 ? "s" : ""} due within the next 7
-                    days. Plan your payments accordingly.
-                  </p>
+            {upcomingBills.length > 0 && (
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-900">
+                      {upcomingBills.length} upcoming bill
+                      {upcomingBills.length > 1 ? "s" : ""}
+                    </h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      You have {upcomingBills.length} bill
+                      {upcomingBills.length > 1 ? "s" : ""} due within the next
+                      7 days. Plan your payments accordingly.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
       {/* Bills Table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">

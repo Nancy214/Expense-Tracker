@@ -59,22 +59,11 @@ const settingsSchema = new Schema({
     ref: "User",
     required: true,
   },
-  emailNotifications: {
+  billsAndBudgetsAlert: {
     type: Boolean,
-    required: false,
     default: true,
   },
-
-  pushNotifications: {
-    type: Boolean,
-    default: false,
-  },
-
   monthlyReports: {
-    type: Boolean,
-    default: true,
-  },
-  budgetAlerts: {
     type: Boolean,
     default: true,
   },

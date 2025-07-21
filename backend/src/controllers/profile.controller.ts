@@ -227,24 +227,15 @@ export const updateSettings = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const {
-      emailNotifications,
-      pushNotifications,
-      monthlyReports,
-      budgetAlerts,
-      expenseReminders,
-    } = req.body;
+    const { monthlyReports, expenseReminders, billsAndBudgetsAlert } = req.body;
 
     const settingsData: any = {};
-    if (emailNotifications !== undefined)
-      settingsData.emailNotifications = emailNotifications;
-    if (pushNotifications !== undefined)
-      settingsData.pushNotifications = pushNotifications;
     if (monthlyReports !== undefined)
       settingsData.monthlyReports = monthlyReports;
-    if (budgetAlerts !== undefined) settingsData.budgetAlerts = budgetAlerts;
     if (expenseReminders !== undefined)
       settingsData.expenseReminders = expenseReminders;
+    if (billsAndBudgetsAlert !== undefined)
+      settingsData.billsAndBudgetsAlert = billsAndBudgetsAlert;
 
     // Use findByIdAndUpdate with upsert to create if doesn't exist, update if exists
     const settingsDoc = await Settings.findByIdAndUpdate(
@@ -282,11 +273,9 @@ export const getSettings = async (req: Request, res: Response) => {
       // Return default settings structure without creating in database
       const defaultSettings = {
         userId,
-        emailNotifications: false,
-        pushNotifications: false,
         monthlyReports: false,
-        budgetAlerts: false,
         expenseReminders: false,
+        billsAndBudgetsAlert: false,
       };
       return res.json({ success: true, settings: defaultSettings });
     }

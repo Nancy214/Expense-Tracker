@@ -75,6 +75,11 @@ interface FinancialOverviewData {
 const HomePage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const billsAndBudgetsAlertEnabled = !!(
+    user &&
+    (user as any).settings &&
+    (user as any).settings.billsAndBudgetsAlert
+  );
 
   const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
   const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(
@@ -241,7 +246,7 @@ const HomePage = () => {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-4 max-w-full">
       {/* Budget Reminders */}
-      {activeReminders.length > 0 && (
+      {billsAndBudgetsAlertEnabled && activeReminders.length > 0 && (
         <div className="mb-6 space-y-3">
           <h3 className="text-lg font-semibold text-gray-900">Budget Alerts</h3>
           {activeReminders.map((reminder) => (
@@ -258,67 +263,68 @@ const HomePage = () => {
       )}
 
       {/* Bill Alerts */}
-      {(overdueBills.length > 0 || upcomingBills.length > 0) && (
-        <div className="mb-6 space-y-3">
-          {overdueBills.length > 0 && (
-            <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+      {billsAndBudgetsAlertEnabled &&
+        (overdueBills.length > 0 || upcomingBills.length > 0) && (
+          <div className="mb-6 space-y-3">
+            {overdueBills.length > 0 && (
+              <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-red-900">
+                      {overdueBills.length} bill
+                      {overdueBills.length > 1 ? "s" : ""} overdue
+                    </h4>
+                    <p className="text-sm text-red-700 mt-1">
+                      You have {overdueBills.length} bill
+                      {overdueBills.length > 1 ? "s" : ""} that{" "}
+                      {overdueBills.length > 1 ? "are" : "is"} past due date.
+                      Please review and take action.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="mt-1"
+                    onClick={() => navigate("/bills")}
+                  >
+                    View Bills
+                  </Button>
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-red-900">
-                    {overdueBills.length} bill
-                    {overdueBills.length > 1 ? "s" : ""} overdue
-                  </h4>
-                  <p className="text-sm text-red-700 mt-1">
-                    You have {overdueBills.length} bill
-                    {overdueBills.length > 1 ? "s" : ""} that{" "}
-                    {overdueBills.length > 1 ? "are" : "is"} past due date.
-                    Please review and take action.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="mt-1"
-                  onClick={() => navigate("/bills")}
-                >
-                  View Bills
-                </Button>
               </div>
-            </div>
-          )}
-          {upcomingBills.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+            )}
+            {upcomingBills.length > 0 && (
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-900">
+                      {upcomingBills.length} upcoming bill
+                      {upcomingBills.length > 1 ? "s" : ""}
+                    </h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      You have {upcomingBills.length} bill
+                      {upcomingBills.length > 1 ? "s" : ""} due within the next
+                      7 days. Plan your payments accordingly.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="mt-1"
+                    onClick={() => navigate("/bills")}
+                  >
+                    View Bills
+                  </Button>
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-blue-900">
-                    {upcomingBills.length} upcoming bill
-                    {upcomingBills.length > 1 ? "s" : ""}
-                  </h4>
-                  <p className="text-sm text-blue-700 mt-1">
-                    You have {upcomingBills.length} bill
-                    {upcomingBills.length > 1 ? "s" : ""} due within the next 7
-                    days. Plan your payments accordingly.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="mt-1"
-                  onClick={() => navigate("/bills")}
-                >
-                  View Bills
-                </Button>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
       {/* Financial Overview */}
       <div className="mb-6">

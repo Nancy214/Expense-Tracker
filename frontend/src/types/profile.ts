@@ -8,10 +8,8 @@ export interface ProfileData {
 }
 
 export interface SettingsData {
-  emailNotifications?: boolean;
-  pushNotifications?: boolean;
+  billsAndBudgetsAlert?: boolean;
   monthlyReports?: boolean;
-  budgetAlerts?: boolean;
   expenseReminders?: boolean;
 }
 

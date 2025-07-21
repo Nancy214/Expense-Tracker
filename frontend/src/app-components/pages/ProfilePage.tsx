@@ -78,11 +78,9 @@ const ProfilePage: React.FC = () => {
   const validFileTypes: string[] = ["image/jpeg", "image/png", "image/jpg"];
 
   const [settings, setSettings] = useState({
-    emailNotifications: false,
-    pushNotifications: false,
     monthlyReports: false,
-    budgetAlerts: false,
     expenseReminders: false,
+    billsAndBudgetsAlert: false,
   });
 
   const [photoRemoved, setPhotoRemoved] = useState(false);
@@ -125,11 +123,9 @@ const ProfilePage: React.FC = () => {
   const fetchSettings = async () => {
     const response = await getSettings(user?.id || "");
     setSettings({
-      emailNotifications: response.emailNotifications ?? false,
-      pushNotifications: response.pushNotifications ?? false,
       monthlyReports: response.monthlyReports ?? false,
-      budgetAlerts: response.budgetAlerts ?? false,
       expenseReminders: response.expenseReminders ?? false,
+      billsAndBudgetsAlert: response.billsAndBudgetsAlert ?? false,
     });
   };
 
@@ -283,12 +279,29 @@ const ProfilePage: React.FC = () => {
 
       // Update local state with the response from server, providing defaults for optional properties
       setSettings({
-        emailNotifications: updatedSettings?.emailNotifications ?? false,
-        pushNotifications: updatedSettings?.pushNotifications ?? false,
         monthlyReports: updatedSettings?.monthlyReports ?? false,
-        budgetAlerts: updatedSettings?.budgetAlerts ?? false,
         expenseReminders: updatedSettings?.expenseReminders ?? false,
+        billsAndBudgetsAlert: updatedSettings?.billsAndBudgetsAlert ?? false,
       });
+
+      // Update user context and localStorage with new settings
+      const updatedUser: AuthUser & { settings: any } = {
+        id: String(user?.id ?? ""),
+        email: String(user?.email ?? ""),
+        name: String(user?.name ?? ""),
+        profilePicture: String(user?.profilePicture ?? ""),
+        phoneNumber: String(user?.phoneNumber ?? ""),
+        dateOfBirth: String(user?.dateOfBirth ?? ""),
+        currency: String(user?.currency ?? ""),
+        settings: {
+          ...(user as any)?.settings,
+          monthlyReports: updatedSettings?.monthlyReports ?? false,
+          expenseReminders: updatedSettings?.expenseReminders ?? false,
+          billsAndBudgetsAlert: updatedSettings?.billsAndBudgetsAlert ?? false,
+        },
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      updateUser(updatedUser);
 
       toast({
         title: "Settings saved",
@@ -605,30 +618,15 @@ const ProfilePage: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Email Notifications</Label>
+                  <Label>Bills & Budgets Alert</Label>
                   <p className="text-xs text-muted-foreground">
-                    Receive email updates about your expenses
+                    Get notified about bills and budget limits
                   </p>
                 </div>
                 <Switch
-                  checked={settings.emailNotifications}
+                  checked={settings.billsAndBudgetsAlert}
                   onCheckedChange={(checked) =>
-                    handleSettingsChange("emailNotifications", checked)
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Push Notifications</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Get notified about budget alerts
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.pushNotifications}
-                  onCheckedChange={(checked) =>
-                    handleSettingsChange("pushNotifications", checked)
+                    handleSettingsChange("billsAndBudgetsAlert", checked)
                   }
                 />
               </div>
@@ -644,21 +642,6 @@ const ProfilePage: React.FC = () => {
                   checked={settings.monthlyReports}
                   onCheckedChange={(checked) =>
                     handleSettingsChange("monthlyReports", checked)
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Budget Alerts</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Get notified when approaching budget limits
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.budgetAlerts}
-                  onCheckedChange={(checked) =>
-                    handleSettingsChange("budgetAlerts", checked)
                   }
                 />
               </div>

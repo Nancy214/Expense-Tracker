@@ -18,10 +18,8 @@ export interface UserType {
 
 export interface SettingsType {
   userId: Schema.Types.ObjectId;
-  emailNotifications?: boolean;
-  pushNotifications?: boolean;
+  billsAndBudgetsAlert?: boolean;
   monthlyReports?: boolean;
-  budgetAlerts?: boolean;
   expenseReminders?: boolean;
 }
 
