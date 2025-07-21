@@ -151,11 +151,8 @@ export const getBudget = async (req: AuthRequest, res: Response) => {
 export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    console.log("Budget progress request - User ID:", userId);
-    console.log("Request headers:", req.headers);
 
     if (!userId) {
-      console.log("No user ID found in request");
       return res.status(401).json({ message: "User not authenticated" });
     }
 
@@ -163,8 +160,6 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
     const budgets = await Budget.find({
       userId: new mongoose.Types.ObjectId(userId),
     });
-
-    console.log("Found budgets:", budgets.length);
 
     if (budgets.length === 0) {
       return res.status(200).json({ budgets: [], totalProgress: 0 });
@@ -174,15 +169,6 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
     const expenses = await Expense.find({
       userId: new mongoose.Types.ObjectId(userId),
       type: "expense", // Only consider expenses, not income
-    });
-
-    console.log(`Found ${expenses.length} total expenses for user ${userId}`);
-    expenses.forEach((expense, index) => {
-      console.log(
-        `  Expense ${index + 1}: ${expense.title} - ₹${expense.amount} - ${
-          expense.date
-        } - Type: ${expense.type}`
-      );
     });
 
     const budgetProgress = budgets.map((budget) => {
@@ -221,11 +207,6 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
           budgetAmount = budget.amount;
       }
 
-      console.log(`Budget ${budget._id} (${budget.frequency}):`);
-      console.log(`  Budget start date: ${budgetStartDate.toISOString()}`);
-      console.log(`  Current date: ${now.toISOString()}`);
-      console.log(`  Budget amount: ${budgetAmount}`);
-
       // Filter expenses from the budget start date to now (not just current period)
       const budgetExpenses = expenses.filter((expense) => {
         const expenseDate = new Date(expense.date);
@@ -249,19 +230,9 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
         const isInRange =
           expenseDateStart >= budgetStartDateStart &&
           expenseDateStart <= nowStart;
-        console.log(
-          `  Expense ${expense._id}: ${
-            expense.title
-          } - ${expenseDateStart.toISOString()} - Budget start: ${budgetStartDateStart.toISOString()} - Current: ${nowStart.toISOString()} - ${
-            isInRange ? "IN RANGE" : "OUTSIDE RANGE"
-          }`
-        );
+
         return isInRange;
       });
-
-      console.log(
-        `  Found ${budgetExpenses.length} expenses from budget start date`
-      );
 
       // Calculate total spent from budget start date
       const totalSpent = budgetExpenses.reduce((sum, expense) => {

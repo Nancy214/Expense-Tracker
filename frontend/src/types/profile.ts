@@ -4,7 +4,7 @@ export interface ProfileData {
   phoneNumber?: string;
   dateOfBirth?: string;
   currency?: string;
-  profilePicture?: File;
+  profilePicture?: File | string;
 }
 
 export interface SettingsData {

@@ -61,9 +61,8 @@ export const getProfile = async (): Promise<ProfileResponse> => {
   }
 };
 
-export const updateProfile = async (
-  profileData: ProfileData
-): Promise<ProfileResponse> => {
+export const updateProfile = async (profileData: ProfileData): Promise<any> => {
+  // Use 'any' for now to match backend response structure
   try {
     const formData = new FormData();
 
@@ -87,7 +86,7 @@ export const updateProfile = async (
       },
     });
 
-    return response.data.user;
+    return response.data; // Return the full backend response (with 'user' property)
   } catch (error) {
     console.error("Error updating profile:", error);
     throw error;
@@ -114,4 +113,9 @@ export const getSettings = async (userId: string): Promise<SettingsData> => {
     console.error("Error fetching settings:", error);
     throw error;
   }
+};
+
+// Remove profile picture
+export const removeProfilePicture = async (): Promise<void> => {
+  await profileApi.delete("/picture");
 };

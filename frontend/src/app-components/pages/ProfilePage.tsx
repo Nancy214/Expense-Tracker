@@ -33,11 +33,13 @@ import {
   updateProfile,
   updateSettings,
   getSettings,
+  removeProfilePicture,
 } from "@/services/profile.service";
 import { ProfileData } from "@/types/profile";
+import { User as AuthUser } from "@/types/auth";
 
 const ProfilePage: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -58,10 +60,17 @@ const ProfilePage: React.FC = () => {
     recurringExpenses: 0,
   });
 
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState<{
+    name: string;
+    email: string;
+    profilePicture: File | string;
+    phoneNumber: string;
+    dateOfBirth: string;
+    currency: string;
+  }>({
     name: user?.name || "",
     email: user?.email || "",
-    profilePicture: user?.profilePicture || (undefined as File | undefined),
+    profilePicture: user?.profilePicture || "",
     phoneNumber: user?.phoneNumber || "",
     dateOfBirth: user?.dateOfBirth || "",
     currency: user?.currency || "INR",
@@ -76,6 +85,8 @@ const ProfilePage: React.FC = () => {
     expenseReminders: false,
   });
 
+  const [photoRemoved, setPhotoRemoved] = useState(false);
+
   useEffect(() => {
     fetchAccountStats();
     fetchCurrencyOptions();
@@ -86,6 +97,20 @@ const ProfilePage: React.FC = () => {
       fetchSettings();
     }
   }, [user?.id]);
+
+  // Update profile data when user data changes
+  useEffect(() => {
+    if (user && !isEditing) {
+      setProfileData({
+        name: user.name || "",
+        email: user.email || "",
+        profilePicture: user.profilePicture || "",
+        phoneNumber: user.phoneNumber || "",
+        dateOfBirth: user.dateOfBirth || "",
+        currency: user.currency || "INR",
+      });
+    }
+  }, [user, isEditing]);
 
   const fetchCurrencyOptions = async () => {
     const response = await getCurrencyOptions();
@@ -126,7 +151,7 @@ const ProfilePage: React.FC = () => {
 
   const handleProfileDataChange = (
     field: keyof typeof profileData,
-    value: string | File
+    value: string | File | undefined
   ) => {
     setProfileData({
       ...profileData,
@@ -195,25 +220,36 @@ const ProfilePage: React.FC = () => {
   const handleSaveProfile = async () => {
     setIsLoading(true);
     try {
-      // Call the profile service to update profile data
+      // If photo was removed, call backend to delete it first
+      if (photoRemoved) {
+        await removeProfilePicture();
+      }
       const updatedProfile = await updateProfile(profileData as ProfileData);
-
-      // Update local state with the response from server
       setProfileData({
-        name: updatedProfile.name,
-        email: updatedProfile.email,
-        profilePicture:
-          updatedProfile.profilePicture || (undefined as File | undefined),
-        phoneNumber: updatedProfile.phoneNumber || "",
-        dateOfBirth: updatedProfile.dateOfBirth || "",
-        currency: updatedProfile.currency || "INR",
+        name: updatedProfile.user.name,
+        email: updatedProfile.user.email,
+        profilePicture: updatedProfile.user.profilePicture || "",
+        phoneNumber: updatedProfile.user.phoneNumber || "",
+        dateOfBirth: updatedProfile.user.dateOfBirth || "",
+        currency: updatedProfile.user.currency || "INR",
       });
-
+      const updatedUser: AuthUser = {
+        id: String(user?.id ?? ""),
+        email: String(updatedProfile.user.email ?? ""),
+        name: String(updatedProfile.user.name ?? ""),
+        profilePicture: String(updatedProfile.user.profilePicture ?? ""),
+        phoneNumber: String(updatedProfile.user.phoneNumber ?? ""),
+        dateOfBirth: String(updatedProfile.user.dateOfBirth ?? ""),
+        currency: String(updatedProfile.user.currency ?? ""),
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      updateUser(updatedUser);
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
       setIsEditing(false);
+      setPhotoRemoved(false); // Reset after save
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
@@ -224,6 +260,19 @@ const ProfilePage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancelEdit = () => {
+    setProfileData({
+      name: user?.name || "",
+      email: user?.email || "",
+      profilePicture: user?.profilePicture || "",
+      phoneNumber: user?.phoneNumber || "",
+      dateOfBirth: user?.dateOfBirth || "",
+      currency: user?.currency || "INR",
+    });
+    setPhotoRemoved(false); // Reset flag
+    setIsEditing(false);
   };
 
   const handleSaveSettings = async () => {
@@ -266,6 +315,12 @@ const ProfilePage: React.FC = () => {
       .slice(0, 2);
   };
 
+  // Remove profile picture handler
+  const handleRemovePhoto = () => {
+    setProfileData({ ...profileData, profilePicture: "" });
+    setPhotoRemoved(true);
+  };
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
       <div className="mb-6">
@@ -293,21 +348,37 @@ const ProfilePage: React.FC = () => {
                 <Avatar className="h-20 w-20">
                   <AvatarImage
                     src={
-                      typeof profileData.profilePicture === "string"
-                        ? profileData.profilePicture
+                      photoRemoved
+                        ? getInitials(profileData.name) // Hide avatar if photo is marked for removal
                         : profileData.profilePicture instanceof File
                         ? URL.createObjectURL(profileData.profilePicture)
-                        : ""
+                        : profileData.profilePicture
+                        ? profileData.profilePicture
+                        : user?.profilePicture
+                        ? user.profilePicture
+                        : getInitials(profileData.name)
                     }
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
                   />
                   <AvatarFallback className="text-lg">
                     {getInitials(profileData.name)}
                   </AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="flex items-center">
                   <Label
                     htmlFor="profilePicture"
-                    className="flex items-center gap-2 cursor-pointer border border-gray-300 rounded-md px-3 py-2 hover:bg-gray-50 transition-colors"
+                    className={`flex items-center gap-2 border border-gray-300 rounded-md px-3 py-2 transition-colors ${
+                      isEditing
+                        ? "cursor-pointer hover:bg-gray-50"
+                        : "cursor-not-allowed opacity-50"
+                    }`}
+                    aria-disabled={!isEditing}
+                    tabIndex={isEditing ? 0 : -1}
+                    onClick={(e) => {
+                      if (!isEditing) e.preventDefault();
+                    }}
                   >
                     <Camera className="h-4 w-4" />
                     Change Photo
@@ -317,7 +388,33 @@ const ProfilePage: React.FC = () => {
                     type="file"
                     onChange={handleProfilePictureChange}
                     className="hidden"
+                    disabled={!isEditing}
                   />
+                  {isEditing &&
+                    (profileData.profilePicture || user?.profilePicture) && (
+                      <Label
+                        tabIndex={0}
+                        role="button"
+                        className="flex items-center gap-2 border border-gray-300 rounded-md px-3 py-2 ms-2 transition-colors cursor-pointer hover:bg-gray-50"
+                        onClick={handleRemovePhoto}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h2a2 2 0 012 2v2"
+                          />
+                        </svg>
+                        Remove Photo
+                      </Label>
+                    )}
                 </div>
               </div>
 
@@ -405,7 +502,7 @@ const ProfilePage: React.FC = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => setIsEditing(false)}
+                      onClick={handleCancelEdit}
                       disabled={isLoading}
                     >
                       Cancel

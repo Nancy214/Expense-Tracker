@@ -5,6 +5,7 @@ import {
   //uploadProfilePicture,
   updateSettings,
   getSettings,
+  deleteProfilePicture,
 } from "../controllers/profile.controller";
 import { authenticateToken } from "../middleware/auth.middleware";
 import { upload } from "../config/multer";
@@ -48,6 +49,13 @@ router.get(
   "/settings/:userId",
   authenticateToken as RequestHandler,
   getSettings as RequestHandler
+);
+
+// Delete profile picture
+router.delete(
+  "/picture",
+  authenticateToken as RequestHandler,
+  deleteProfilePicture as RequestHandler
 );
 
 export default router;

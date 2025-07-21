@@ -3,13 +3,43 @@ import { Settings, User } from "../models/user.model";
 //import { uploadToS3 } from "../middleware/upload";
 import { AuthRequest, TokenPayload } from "../types/auth";
 import dotenv from "dotenv";
-import { s3Client } from "../config/s3Client";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { s3Client, isAWSConfigured } from "../config/s3Client";
+import {
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import bcrypt from "bcrypt";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
 const AWS_REGION = process.env.AWS_REGION || "";
+
+// Helper function to delete old profile picture from S3
+const deleteOldProfilePicture = async (oldProfilePictureUrl: string) => {
+  try {
+    if (
+      !oldProfilePictureUrl ||
+      !oldProfilePictureUrl.includes("s3.amazonaws.com")
+    ) {
+      return; // Not an S3 URL, skip deletion
+    }
+
+    // Extract the key from the S3 URL
+    const urlParts = oldProfilePictureUrl.split("/");
+    const key = urlParts.slice(3).join("/"); // Remove https://bucket.s3.region.amazonaws.com/
+
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: AWS_BUCKET_NAME,
+      Key: key,
+    });
+
+    await s3Client.send(deleteCommand);
+  } catch (error) {
+    console.error("Error deleting old profile picture:", error);
+  }
+};
 
 export const getProfile = async (req: Request, res: Response) => {
   try {
@@ -29,13 +59,27 @@ export const getProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Settings not found" });
     }
 
+    // Generate pre-signed URL for profile picture if it exists
+    let profilePictureUrl = "";
+    if (userDoc.profilePicture) {
+      const getCommand = new GetObjectCommand({
+        Bucket: AWS_BUCKET_NAME,
+        Key: userDoc.profilePicture.startsWith("profile-pictures/")
+          ? userDoc.profilePicture
+          : `profile-pictures/${userDoc.profilePicture}`,
+      });
+      profilePictureUrl = await getSignedUrl(s3Client, getCommand, {
+        expiresIn: 300,
+      }); // 5 minutes
+    }
+
     res.json({
       success: true,
       user: {
         _id: userDoc._id,
         name: userDoc.name,
         email: userDoc.email,
-        profilePicture: userDoc.profilePicture,
+        profilePicture: profilePictureUrl,
         phoneNumber: userDoc.phoneNumber,
         dateOfBirth: userDoc.dateOfBirth,
         currency: userDoc.currency,
@@ -60,6 +104,10 @@ export const updateProfile = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
+    // Get current user data to check for existing profile picture
+    const currentUser = await User.findById(userId).select("profilePicture");
+    const oldProfilePictureKey = currentUser?.profilePicture;
+
     const { name, email, phoneNumber, dateOfBirth, currency } = req.body;
 
     // Check if email is being changed and if it's already taken
@@ -78,22 +126,54 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (currency !== undefined) updateData.currency = currency;
 
     if (req.file) {
-      profilePictureName = bcrypt.hashSync(req.file.originalname, 10);
-      const uploadCommand = new PutObjectCommand({
-        Bucket: AWS_BUCKET_NAME,
-        Key: profilePictureName,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-      });
+      // Check if AWS is properly configured
+      if (!isAWSConfigured || !AWS_BUCKET_NAME) {
+        return res.status(500).json({
+          message:
+            "Profile picture upload is not configured. Please contact support.",
+        });
+      } else {
+        try {
+          // Generate a unique filename using bcrypt hash of original filename + timestamp
+          const timestamp = Date.now();
+          const originalName = req.file.originalname;
+          const hashInput = `${originalName}_${timestamp}_${userId}`;
+          profilePictureName = bcrypt.hashSync(hashInput, 10);
 
-      await s3Client.send(uploadCommand);
-      //console.log(response);
+          // Clean the hash to make it a valid filename (remove special characters)
+          profilePictureName = profilePictureName.replace(/[^a-zA-Z0-9]/g, "");
+
+          // Add file extension
+          const fileExtension = originalName.split(".").pop() || "jpg";
+          profilePictureName = `${profilePictureName}.${fileExtension}`;
+
+          const s3Key = `profile-pictures/${profilePictureName}`;
+
+          const uploadCommand = new PutObjectCommand({
+            Bucket: AWS_BUCKET_NAME,
+            Key: s3Key,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+            ACL: "private", // Not public
+          });
+
+          await s3Client.send(uploadCommand);
+
+          // Save only the S3 key to the database
+          updateData.profilePicture = s3Key;
+
+          // Delete old profile picture from S3 if it exists
+          if (oldProfilePictureKey) {
+            await deleteOldProfilePicture(oldProfilePictureKey);
+          }
+        } catch (s3Error) {
+          console.error("S3 upload failed:", s3Error);
+          return res.status(500).json({
+            message: "Failed to upload profile picture. Please try again.",
+          });
+        }
+      }
     }
-
-    /* const settingsDoc = await Settings.findById(userId);
-    if (!settingsDoc) {
-      return res.status(404).json({ message: "Settings not found" });
-    } */
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
@@ -104,6 +184,20 @@ export const updateProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Generate pre-signed URL for profile picture if it exists
+    let profilePictureUrl = "";
+    if (updatedUser.profilePicture) {
+      const getCommand = new GetObjectCommand({
+        Bucket: AWS_BUCKET_NAME,
+        Key: updatedUser.profilePicture.startsWith("profile-pictures/")
+          ? updatedUser.profilePicture
+          : `profile-pictures/${updatedUser.profilePicture}`,
+      });
+      profilePictureUrl = await getSignedUrl(s3Client, getCommand, {
+        expiresIn: 300,
+      }); // 5 minutes
+    }
+
     res.json({
       success: true,
       message: "Profile updated successfully",
@@ -111,13 +205,12 @@ export const updateProfile = async (req: Request, res: Response) => {
         _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
-        profilePicture: profilePictureName,
+        profilePicture: profilePictureUrl,
         phoneNumber: updatedUser.phoneNumber,
         dateOfBirth: updatedUser.dateOfBirth,
         currency: updatedUser.currency,
         budget: updatedUser.budget,
         budgetType: updatedUser.budgetType,
-        //settings: settingsDoc,
       },
     });
   } catch (error) {
@@ -202,5 +295,25 @@ export const getSettings = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching settings:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Delete profile picture controller
+export const deleteProfilePicture = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as TokenPayload;
+    const userId = user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+    const currentUser = await User.findById(userId).select("profilePicture");
+    const oldProfilePictureUrl = currentUser?.profilePicture;
+    if (oldProfilePictureUrl) {
+      await deleteOldProfilePicture(oldProfilePictureUrl);
+    }
+    await User.findByIdAndUpdate(userId, { profilePicture: "" });
+    res.json({ success: true, message: "Profile picture removed" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to remove profile picture" });
   }
 };

@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   loginWithGoogle: (userData: any) => void;
   logout: () => Promise<void>;
+  updateUser: (userData: AuthResponse["user"]) => void;
   //register: (credentials: LoginCredentials) => Promise<void>;
   isLoading: boolean;
 }
@@ -96,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login: handleLogin,
         loginWithGoogle: handleGoogleLogin,
         logout: handleLogout,
+        updateUser: (userData) => setUser(userData),
         //register: handleRegister,
         isLoading,
       }}
