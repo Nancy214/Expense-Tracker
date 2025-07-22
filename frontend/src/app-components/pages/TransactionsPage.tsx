@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,11 @@ import { checkBudgetReminders } from "@/services/budget.service";
 import AddExpenseDialog from "@/app-components/AddExpenseDialog";
 import { DateRange } from "react-day-picker";
 
+type ExpenseTypeWithId = Omit<ExpenseType, "date"> & {
+  date: string | Date;
+  _id?: string;
+};
+
 const cardHeaderClass = "pt-2";
 
 const EXPENSE_CATEGORIES: string[] = [
@@ -73,6 +78,8 @@ const TransactionsPage = () => {
       const expensesWithDates = response.map((expense) => ({
         ...expense,
         date: format(expense.date, "dd/MM/yyyy"),
+        description: expense.description ?? "",
+        currency: expense.currency ?? "INR",
       }));
       setTransactions(expensesWithDates);
     };
@@ -97,15 +104,22 @@ const TransactionsPage = () => {
 
   const fetchExpenses = async () => {
     const response = await getExpenses();
-    // Convert date strings back to Date objects
-    const expensesWithDates = response.map((expense) => ({
-      ...expense,
-      date: format(expense.date, "dd/MM/yyyy"),
-    }));
+    // Convert date strings back to Date objects, preserve _id, ensure description is always a string
+    const expensesWithDates = response.map(
+      (expense: any): ExpenseTypeWithId => {
+        const { description, ...rest } = expense;
+        return {
+          ...rest,
+          date: format(expense.date, "dd/MM/yyyy"),
+          _id: expense._id,
+          description: description !== undefined ? String(description) : "",
+        };
+      }
+    );
     setTransactions(expensesWithDates);
   };
 
-  const [transactions, setTransactions] = useState<ExpenseType[]>([]);
+  const [transactions, setTransactions] = useState<ExpenseTypeWithId[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
@@ -130,9 +144,8 @@ const TransactionsPage = () => {
   const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(
     new Set()
   );
-  const [editingExpense, setEditingExpense] = useState<ExpenseType | null>(
-    null
-  );
+  const [editingExpense, setEditingExpense] =
+    useState<ExpenseTypeWithId | null>(null);
 
   const activeReminders = budgetReminders.filter(
     (reminder) => !dismissedReminders.has(reminder.id)
@@ -203,7 +216,7 @@ const TransactionsPage = () => {
     }
   };
 
-  const handleEdit = async (expense: ExpenseType) => {
+  const handleEdit = async (expense: ExpenseTypeWithId) => {
     setEditingExpense(expense);
     setIsDialogOpen(true);
   };
@@ -220,9 +233,11 @@ const TransactionsPage = () => {
       await deleteExpense(expenseToDelete);
       const updatedExpenses = await getExpenses();
       setTransactions(
-        updatedExpenses.map((expense) => ({
+        updatedExpenses.map((expense: any) => ({
           ...expense,
           date: format(expense.date, "dd/MM/yyyy"),
+          description: expense.description ?? "",
+          currency: expense.currency ?? "INR",
         }))
       );
       toast({
@@ -252,33 +267,41 @@ const TransactionsPage = () => {
   >(undefined);
 
   // Filter transactions based on selected date and categories
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesCategory =
-      selectedCategories.includes("all") ||
-      selectedCategories.includes(transaction.category);
-    const matchesType =
-      selectedTypes.includes("all") || selectedTypes.includes(transaction.type);
+  const filteredTransactions = transactions.filter(
+    (transaction: ExpenseTypeWithId) => {
+      const matchesCategory =
+        selectedCategories.includes("all") ||
+        selectedCategories.includes(transaction.category);
+      const matchesType =
+        selectedTypes.includes("all") ||
+        selectedTypes.includes(transaction.type);
 
-    // Search filtering
-    const matchesSearch =
-      searchQuery === "" ||
-      transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.description
-        ?.toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
+      // Search filtering
+      const matchesSearch =
+        searchQuery === "" ||
+        transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        transaction.description
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Date filtering logic - support single date or range
-    let matchesDate = true;
-    if (dateRangeForFilter?.from) {
-      const transactionDate = parse(transaction.date, "dd/MM/yyyy", new Date());
-      const from = dateRangeForFilter.from;
-      const to = dateRangeForFilter.to || dateRangeForFilter.from;
-      matchesDate = transactionDate >= from && transactionDate <= to;
+      // Date filtering logic - support single date or range
+      let matchesDate = true;
+      if (dateRangeForFilter?.from) {
+        let transactionDate: Date;
+        if (typeof transaction.date === "string") {
+          transactionDate = parse(transaction.date, "dd/MM/yyyy", new Date());
+        } else {
+          transactionDate = transaction.date;
+        }
+        const from = dateRangeForFilter.from;
+        const to = dateRangeForFilter.to || dateRangeForFilter.from;
+        matchesDate = transactionDate >= from && transactionDate <= to;
+      }
+
+      return matchesCategory && matchesType && matchesDate && matchesSearch;
     }
-
-    return matchesCategory && matchesType && matchesDate && matchesSearch;
-  });
+  );
 
   // Calculate total expenses by currency
   const totalExpensesByCurrency = filteredTransactions.reduce(
@@ -593,7 +616,7 @@ const TransactionsPage = () => {
             <>
               <div className="mt-6">
                 <ExpenseDataTable
-                  data={filteredTransactions}
+                  data={filteredTransactions as any}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
@@ -680,7 +703,7 @@ const TransactionsPage = () => {
       <AddExpenseDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        editingExpense={editingExpense}
+        editingExpense={editingExpense as any}
         onSuccess={() => {
           fetchExpenses();
           fetchBudgetReminders();

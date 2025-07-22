@@ -19,7 +19,12 @@ import AddBillDialog from "@/app-components/AddBillDialog";
 import { BillType } from "@/types/bill";
 import { getMonthlyStats } from "@/services/expense.service";
 
-import { getUpcomingBills, getOverdueBills } from "@/services/bill.service";
+import {
+  getUpcomingBills,
+  getOverdueBills,
+  getBills,
+} from "@/services/bill.service";
+import { differenceInCalendarDays, parseISO, isAfter, format } from "date-fns";
 import {
   TrendingUp,
   DollarSign,
@@ -121,15 +126,6 @@ const HomePage = () => {
   const [isAddBudgetDialogOpen, setIsAddBudgetDialogOpen] = useState(false);
   const [isAddBillDialogOpen, setIsAddBillDialogOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<BillType | null>(null);
-  const [monthlyStats, setMonthlyStats] = useState({
-    totalIncome: 0,
-    totalExpenses: 0,
-    balance: 0,
-    transactionCount: 0,
-  });
-  const [activeBudgetsCount, setActiveBudgetsCount] = useState(0);
-  const [upcomingBillsCount, setUpcomingBillsCount] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   // Financial Overview state
   const [financialData, setFinancialData] = useState<FinancialOverviewData>({
@@ -145,11 +141,13 @@ const HomePage = () => {
 
   const [upcomingBills, setUpcomingBills] = useState<any[]>([]);
   const [overdueBills, setOverdueBills] = useState<any[]>([]);
+  const [billReminders, setBillReminders] = useState<any[]>([]);
 
   useEffect(() => {
     fetchBudgetReminders();
     fetchFinancialOverview();
     fetchBillsAlerts();
+    fetchBillReminders();
   }, []);
 
   const fetchBudgetReminders = async () => {
@@ -235,6 +233,24 @@ const HomePage = () => {
     }
   };
 
+  const fetchBillReminders = async () => {
+    try {
+      const bills = await getBills();
+      const today = new Date();
+      const reminders = bills.filter((bill) => {
+        if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays)
+          return false;
+        const dueDate =
+          bill.dueDate instanceof Date ? bill.dueDate : parseISO(bill.dueDate);
+        const daysLeft = differenceInCalendarDays(dueDate, today);
+        return daysLeft >= 0 && daysLeft <= bill.reminderDays;
+      });
+      setBillReminders(reminders);
+    } catch (error) {
+      // Optionally handle error
+    }
+  };
+
   const dismissReminder = (reminderId: string) => {
     setDismissedReminders((prev) => new Set([...prev, reminderId]));
   };
@@ -275,6 +291,35 @@ const HomePage = () => {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-4 max-w-full">
       <ExpenseReminderBanner settings={(user as any)?.settings} />
+      {billReminders.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {billReminders.map((bill) => (
+            <div
+              key={bill._id}
+              className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded flex items-center gap-2"
+            >
+              <Clock className="h-5 w-5 text-yellow-600" />
+              <span>
+                Reminder: <strong>{bill.title}</strong> is due on{" "}
+                {format(
+                  bill.dueDate instanceof Date
+                    ? bill.dueDate
+                    : parseISO(bill.dueDate),
+                  "dd/MM/yyyy"
+                )}{" "}
+                (in{" "}
+                {differenceInCalendarDays(
+                  bill.dueDate instanceof Date
+                    ? bill.dueDate
+                    : parseISO(bill.dueDate),
+                  new Date()
+                )}{" "}
+                days)
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       {/* Budget Reminders */}
       {billsAndBudgetsAlertEnabled && activeReminders.length > 0 && (
         <div className="mb-6 space-y-3">

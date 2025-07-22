@@ -52,6 +52,10 @@ const expenseSchema = new Schema({
     enum: ["daily", "weekly", "monthly", "yearly"],
     required: false,
   },
+  endDate: {
+    type: Date,
+    required: false,
+  },
 });
 
 export const Expense = mongoose.model<ExpenseType>("Expense", expenseSchema);

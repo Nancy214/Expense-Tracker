@@ -20,9 +20,11 @@ import { ArrowUpDown, Edit, Trash2, Repeat } from "lucide-react";
 import { ExpenseType } from "@/types/expense";
 import { Badge } from "@/components/ui/badge";
 
+type ExpenseTypeWithId = ExpenseType & { _id?: string };
+
 interface ExpenseDataTableProps {
-  data: ExpenseType[];
-  onEdit: (expense: ExpenseType) => void;
+  data: ExpenseTypeWithId[];
+  onEdit: (expense: ExpenseTypeWithId) => void;
   onDelete: (expenseId: string) => void;
 }
 
@@ -31,10 +33,10 @@ export function ExpenseDataTable({
   onEdit,
   onDelete,
 }: ExpenseDataTableProps) {
-  const columns: ColumnDef<ExpenseType>[] = [
+  const columns: ColumnDef<ExpenseTypeWithId>[] = [
     {
       accessorKey: "date",
-      header: ({ column }: { column: Column<ExpenseType> }) => {
+      header: ({ column }: { column: Column<ExpenseTypeWithId> }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting()}>
             Date
@@ -43,10 +45,24 @@ export function ExpenseDataTable({
         );
       },
       size: 100,
+      cell: ({ row }: { row: Row<ExpenseTypeWithId> }) => {
+        const date = row.getValue("date");
+        if (!date || (typeof date !== "string" && !(date instanceof Date)))
+          return "-";
+        return (
+          <span>
+            {typeof date === "string"
+              ? date
+              : date instanceof Date
+              ? date.toLocaleDateString("en-GB")
+              : "-"}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "title",
-      header: ({ column }: { column: Column<ExpenseType> }) => {
+      header: ({ column }: { column: Column<ExpenseTypeWithId> }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting()}>
             Title
@@ -58,7 +74,7 @@ export function ExpenseDataTable({
     },
     {
       accessorKey: "category",
-      header: ({ column }: { column: Column<ExpenseType> }) => {
+      header: ({ column }: { column: Column<ExpenseTypeWithId> }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting()}>
             Category
@@ -70,7 +86,7 @@ export function ExpenseDataTable({
     },
     {
       accessorKey: "type",
-      header: ({ column }: { column: Column<ExpenseType> }) => {
+      header: ({ column }: { column: Column<ExpenseTypeWithId> }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting()}>
             Type
@@ -78,7 +94,7 @@ export function ExpenseDataTable({
           </Button>
         );
       },
-      cell: ({ row }: { row: Row<ExpenseType> }) => {
+      cell: ({ row }: { row: Row<ExpenseTypeWithId> }) => {
         const type = row.getValue("type") as string;
         return (
           <Badge
@@ -97,7 +113,7 @@ export function ExpenseDataTable({
     },
     {
       accessorKey: "description",
-      header: ({ column }: { column: Column<ExpenseType> }) => {
+      header: ({ column }: { column: Column<ExpenseTypeWithId> }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting()}>
             Description
@@ -109,7 +125,7 @@ export function ExpenseDataTable({
     },
     {
       accessorKey: "amount",
-      header: ({ column }: { column: Column<ExpenseType> }) => {
+      header: ({ column }: { column: Column<ExpenseTypeWithId> }) => {
         return (
           <div className="text-right">
             <Button variant="ghost" onClick={() => column.toggleSorting()}>
@@ -119,7 +135,7 @@ export function ExpenseDataTable({
           </div>
         );
       },
-      cell: ({ row }: { row: Row<ExpenseType> }) => {
+      cell: ({ row }: { row: Row<ExpenseTypeWithId> }) => {
         const amount = parseFloat(row.getValue("amount"));
         const currency = row.original.currency || "INR";
         const type = row.original.type || "expense";
@@ -168,7 +184,7 @@ export function ExpenseDataTable({
     {
       accessorKey: "isRecurring",
       header: "Recurring",
-      cell: ({ row }: { row: Row<ExpenseType> }) => {
+      cell: ({ row }: { row: Row<ExpenseTypeWithId> }) => {
         const expense = row.original;
         if (expense.isRecurring && expense.recurringFrequency) {
           return (
@@ -187,7 +203,7 @@ export function ExpenseDataTable({
     {
       id: "actions",
       header: "Actions",
-      cell: ({ row }: { row: Row<ExpenseType> }) => {
+      cell: ({ row }: { row: Row<ExpenseTypeWithId> }) => {
         const expense = row.original;
         return (
           <div className="flex gap-2">

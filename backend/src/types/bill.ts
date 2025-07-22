@@ -10,7 +10,7 @@ export type PaymentMethod =
   | "debit-card"
   | "cash";
 
-interface BillType {
+export interface BillType {
   title: string;
   amount: number;
   category: string;

@@ -16,7 +16,6 @@ import {
   Edit3,
   Shield,
   TrendingUp,
-  AlertTriangle,
 } from "lucide-react";
 import {
   Select,
@@ -39,25 +38,6 @@ import {
 import { ProfileData } from "@/types/profile";
 import { User as AuthUser } from "@/types/auth";
 import "react-clock/dist/Clock.css";
-
-// Helper to convert 24h to 12h format
-function to12Hour(time: string) {
-  if (!time) return "";
-  const [h, m] = time.split(":");
-  let hour = Number(h);
-  const ampm = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12;
-  if (hour === 0) hour = 12;
-  return `${hour.toString().padStart(2, "0")}:${m} ${ampm}`;
-}
-
-// Helper to convert 12h to 24h
-function to24Hour(h: string, m: string, period: string) {
-  let hour = Number(h);
-  if (period === "PM" && hour !== 12) hour += 12;
-  if (period === "AM" && hour === 12) hour = 0;
-  return `${hour.toString().padStart(2, "0")}:${m}`;
-}
 
 const ProfilePage: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
@@ -372,37 +352,6 @@ const ProfilePage: React.FC = () => {
     setProfileData({ ...profileData, profilePicture: "" });
     setPhotoRemoved(true);
   };
-
-  // Add a Reminder component at the top of the page (UI only)
-  function ExpenseReminderBanner() {
-    const now = new Date();
-    const [show, setShow] = useState(false);
-    useEffect(() => {
-      if (settings.expenseReminders && expenseReminderTime) {
-        const [h, m] = expenseReminderTime.split(":");
-        if (
-          now.getHours() === Number(h) &&
-          Math.abs(now.getMinutes() - Number(m)) < 5 // show within 5 min window
-        ) {
-          setShow(true);
-        } else {
-          setShow(false);
-        }
-      } else {
-        setShow(false);
-      }
-    }, [settings.expenseReminders, expenseReminderTime]);
-    if (!show) return null;
-    return (
-      <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 flex items-center gap-2">
-        <AlertTriangle className="h-5 w-5 text-yellow-600" />
-        <span>
-          Don't forget to log your expenses for today! (Reminder set for{" "}
-          {to12Hour(settings.expenseReminderTime)})
-        </span>
-      </div>
-    );
-  }
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">

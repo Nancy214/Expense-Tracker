@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ExpenseType, ExpenseResponseType } from "@/types/expense";
-import { parse } from "date-fns";
+import { parse, isValid } from "date-fns";
 
 const API_URL = "http://localhost:8000/api/expenses";
 
@@ -33,7 +33,6 @@ export const createExpense = async (
   expense: ExpenseType
 ): Promise<ExpenseResponseType> => {
   try {
-    expense.date = parse(expense.date, "dd/MM/yyyy", new Date()).toISOString();
     const response = await expenseApi.post(`/add-expenses`, expense);
     return response.data;
   } catch (error) {
@@ -47,7 +46,22 @@ export const updateExpense = async (
   expense: ExpenseType
 ): Promise<ExpenseResponseType> => {
   try {
-    expense.date = parse(expense.date, "dd/MM/yyyy", new Date()).toISOString();
+    const parsedDate = parse(expense.date as any, "dd/MM/yyyy", new Date());
+    if (!isValid(parsedDate)) {
+      throw new Error("Invalid date format for expense.date");
+    }
+    (expense as any).date = parsedDate.toISOString();
+    if (expense.endDate && typeof expense.endDate === "string") {
+      const parsedEndDate = parse(
+        expense.endDate as any,
+        "dd/MM/yyyy",
+        new Date()
+      );
+      if (!isValid(parsedEndDate)) {
+        throw new Error("Invalid date format for expense.endDate");
+      }
+      (expense as any).endDate = parsedEndDate.toISOString();
+    }
     const response = await expenseApi.put(`/${id}`, expense);
     return response.data;
   } catch (error) {

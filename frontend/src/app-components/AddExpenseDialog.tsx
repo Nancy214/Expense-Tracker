@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format, parse } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -64,6 +64,11 @@ interface AddExpenseDialogProps {
   triggerButton?: React.ReactNode;
 }
 
+type LocalExpenseType = Omit<ExpenseType, "date" | "endDate"> & {
+  date: string;
+  endDate?: string;
+};
+
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   open,
   onOpenChange,
@@ -79,7 +84,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
   >([]);
   const [showExchangeRate, setShowExchangeRate] = useState(false);
   const [formData, setFormData] = useState<
-    ExpenseType & { fromRate?: number; toRate?: number }
+    LocalExpenseType & { fromRate?: number; toRate?: number }
   >({
     title: "",
     category: "",
@@ -92,6 +97,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     recurringFrequency: undefined,
     fromRate: 1,
     toRate: 1,
+    endDate: undefined,
   });
 
   const isEditing = !!editingExpense;
@@ -107,13 +113,21 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         category: editingExpense.category,
         description: editingExpense.description || "",
         amount: editingExpense.amount,
-        date: editingExpense.date,
+        date:
+          typeof editingExpense.date === "string"
+            ? editingExpense.date
+            : format(editingExpense.date, "dd/MM/yyyy"),
         currency: editingExpense.currency,
         type: editingExpense.type,
         isRecurring: editingExpense.isRecurring,
         recurringFrequency: editingExpense.recurringFrequency,
         fromRate: editingExpense.fromRate,
         toRate: editingExpense.toRate,
+        endDate: editingExpense.endDate
+          ? typeof editingExpense.endDate === "string"
+            ? editingExpense.endDate
+            : format(editingExpense.endDate, "dd/MM/yyyy")
+          : undefined,
       });
       setShowExchangeRate(editingExpense.currency !== user?.currency);
     } else {
@@ -215,6 +229,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
       recurringFrequency: undefined,
       fromRate: 1,
       toRate: 1,
+      endDate: undefined,
     });
     setShowExchangeRate(false);
   };
@@ -234,29 +249,58 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
       return;
     }
 
+    // Defensive date validation
+    const parsedDate = parse(formData.date, "dd/MM/yyyy", new Date());
+    if (!isValid(parsedDate)) {
+      toast({
+        title: "Invalid Date",
+        description: "Please select a valid date.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (formData.endDate) {
+      const parsedEndDate = parse(formData.endDate, "dd/MM/yyyy", new Date());
+      if (!isValid(parsedEndDate)) {
+        toast({
+          title: "Invalid End Date",
+          description: "Please select a valid end date.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const newExpense = {
       title: formData.title,
       category: formData.category,
       description: formData.description,
       amount: formData.amount,
-      date: formData.date,
+      date: new Date(
+        formData.date.split("/").reverse().join("-")
+      ).toISOString(),
       currency: formData.currency,
       type: formData.type,
       isRecurring: formData.isRecurring,
       recurringFrequency: formData.recurringFrequency,
       fromRate: formData.fromRate,
       toRate: formData.toRate,
+      endDate: formData.endDate
+        ? new Date(
+            formData.endDate.split("/").reverse().join("-")
+          ).toISOString()
+        : undefined,
     };
 
     try {
-      if (isEditing && editingExpense?._id) {
-        await updateExpense(editingExpense._id, newExpense);
+      if (isEditing && editingExpense && (editingExpense as any)._id) {
+        await updateExpense((editingExpense as any)._id, newExpense as any);
         toast({
           title: "Success",
           description: "Transaction updated successfully",
         });
       } else {
-        await createExpense(newExpense);
+        await createExpense(newExpense as any);
         toast({
           title: "Success",
           description: "Transaction added successfully",
@@ -477,7 +521,11 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
               <Calendar
                 className="pointer-events-auto"
                 mode="single"
-                selected={parse(formData.date, "dd/MM/yyyy", new Date())}
+                selected={
+                  formData.date
+                    ? parse(formData.date, "dd/MM/yyyy", new Date())
+                    : undefined
+                }
                 onSelect={handleDateChange}
                 initialFocus
               />
@@ -524,6 +572,50 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 <SelectItem value="yearly">Yearly</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        )}
+        {formData.isRecurring && (
+          <div className="space-y-2">
+            <label className="block text-sm mb-1">End Date</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-[180px] justify-start text-left font-normal",
+                    !formData.endDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.endDate ? (
+                    format(
+                      parse(formData.endDate, "dd/MM/yyyy", new Date()),
+                      "dd/MM/yyyy"
+                    )
+                  ) : (
+                    <span>Pick an end date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  className="pointer-events-auto"
+                  mode="single"
+                  selected={
+                    formData.endDate
+                      ? parse(formData.endDate, "dd/MM/yyyy", new Date())
+                      : undefined
+                  }
+                  onSelect={(date) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      endDate: date ? format(date, "dd/MM/yyyy") : undefined,
+                    }))
+                  }
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         )}
       </div>

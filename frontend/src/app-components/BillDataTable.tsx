@@ -31,7 +31,15 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
-import { format, parse, isAfter, isBefore, startOfDay } from "date-fns";
+import {
+  format,
+  parse,
+  isAfter,
+  isBefore,
+  startOfDay,
+  differenceInCalendarDays,
+  parseISO,
+} from "date-fns";
 import { BillResponseType, BillStatus } from "@/types/bill";
 import {
   getBills,
@@ -196,6 +204,16 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
     return <div className="text-center py-4">Loading bills...</div>;
   }
 
+  const today = new Date();
+  const billReminders = bills.filter((bill) => {
+    if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays)
+      return false;
+    const dueDate =
+      bill.dueDate instanceof Date ? bill.dueDate : parseISO(bill.dueDate);
+    const daysLeft = differenceInCalendarDays(dueDate, today);
+    return daysLeft >= 0 && daysLeft <= bill.reminderDays;
+  });
+
   return (
     <div className="space-y-6 p-6">
       {/* Header with Add Button */}
@@ -210,6 +228,36 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
           Add New Bill
         </Button>
       </div>
+
+      {billReminders.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {billReminders.map((bill) => (
+            <div
+              key={bill._id}
+              className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded flex items-center gap-2"
+            >
+              <Clock className="h-5 w-5 text-yellow-600" />
+              <span>
+                Reminder: <strong>{bill.title}</strong> is due on{" "}
+                {format(
+                  bill.dueDate instanceof Date
+                    ? bill.dueDate
+                    : parseISO(bill.dueDate),
+                  "dd/MM/yyyy"
+                )}{" "}
+                (in{" "}
+                {differenceInCalendarDays(
+                  bill.dueDate instanceof Date
+                    ? bill.dueDate
+                    : parseISO(bill.dueDate),
+                  today
+                )}{" "}
+                days)
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-gray-50 rounded-lg p-4 space-y-4">

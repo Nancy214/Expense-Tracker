@@ -54,6 +54,22 @@ mongoose
     process.exit(1);
   });
 
+// Helper to get today's date in YYYY-MM-DD
+function getToday() {
+  const now = new Date();
+  return now.toISOString().slice(0, 10);
+}
+
+// Helper to get next date for a given frequency
+function getNextDate(date: Date, frequency: string) {
+  const d = new Date(date);
+  if (frequency === "daily") d.setDate(d.getDate() + 1);
+  else if (frequency === "weekly") d.setDate(d.getDate() + 7);
+  else if (frequency === "monthly") d.setMonth(d.getMonth() + 1);
+  else if (frequency === "yearly") d.setFullYear(d.getFullYear() + 1);
+  return d;
+}
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
