@@ -113,9 +113,18 @@ export const login = (req: Request, res: Response, next: any) => {
         });
       }
 
-      // Save refresh token
-      //user.refreshToken = refreshToken;
-      //user.save();
+      // Always fetch or create settings
+      const Settings = require("../models/user.model").Settings;
+      let settingsDoc = await Settings.findById(user._id);
+      if (!settingsDoc) {
+        settingsDoc = await Settings.create({
+          userId: user._id,
+          monthlyReports: false,
+          expenseReminders: false,
+          billsAndBudgetsAlert: false,
+          expenseReminderTime: "18:00",
+        });
+      }
 
       res.status(200).json({
         accessToken,
@@ -126,6 +135,7 @@ export const login = (req: Request, res: Response, next: any) => {
           name: user.name || "",
           profilePicture: profilePictureUrl,
           currency: user.currency,
+          settings: settingsDoc,
         },
       });
     }
@@ -135,6 +145,19 @@ export const login = (req: Request, res: Response, next: any) => {
 export const googleAuthCallback = async (req: Request, res: Response) => {
   const user = req.user as any;
   // Redirect to frontend with tokens as URL parameters
+
+  const Settings = require("../models/user.model").Settings;
+  let settingsDoc = await Settings.findById(user._id);
+  if (!settingsDoc) {
+    settingsDoc = await Settings.create({
+      userId: user._id,
+      monthlyReports: false,
+      expenseReminders: false,
+      billsAndBudgetsAlert: false,
+      expenseReminderTime: "18:00",
+    });
+  }
+
   const tokens = encodeURIComponent(
     JSON.stringify({
       accessToken: user?.accessToken,
@@ -144,6 +167,7 @@ export const googleAuthCallback = async (req: Request, res: Response) => {
         email: user.email,
         name: user.name || "",
         profilePicture: user.profilePicture || "",
+        settings: settingsDoc,
       },
     })
   );

@@ -8,9 +8,10 @@ export interface ProfileData {
 }
 
 export interface SettingsData {
-  billsAndBudgetsAlert?: boolean;
   monthlyReports?: boolean;
   expenseReminders?: boolean;
+  billsAndBudgetsAlert?: boolean;
+  expenseReminderTime?: string;
 }
 
 export interface ProfileResponse {

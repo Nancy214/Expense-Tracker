@@ -71,6 +71,10 @@ const settingsSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  expenseReminderTime: {
+    type: String,
+    default: "18:00",
+  },
 });
 
 export const User = mongoose.model<UserLocalType | UserGoogleType>(

@@ -16,6 +16,7 @@ import {
   Edit3,
   Shield,
   TrendingUp,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Select,
@@ -37,6 +38,26 @@ import {
 } from "@/services/profile.service";
 import { ProfileData } from "@/types/profile";
 import { User as AuthUser } from "@/types/auth";
+import "react-clock/dist/Clock.css";
+
+// Helper to convert 24h to 12h format
+function to12Hour(time: string) {
+  if (!time) return "";
+  const [h, m] = time.split(":");
+  let hour = Number(h);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  return `${hour.toString().padStart(2, "0")}:${m} ${ampm}`;
+}
+
+// Helper to convert 12h to 24h
+function to24Hour(h: string, m: string, period: string) {
+  let hour = Number(h);
+  if (period === "PM" && hour !== 12) hour += 12;
+  if (period === "AM" && hour === 12) hour = 0;
+  return `${hour.toString().padStart(2, "0")}:${m}`;
+}
 
 const ProfilePage: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
@@ -81,9 +102,13 @@ const ProfilePage: React.FC = () => {
     monthlyReports: false,
     expenseReminders: false,
     billsAndBudgetsAlert: false,
+    expenseReminderTime: "18:00",
   });
 
   const [photoRemoved, setPhotoRemoved] = useState(false);
+  const [expenseReminderTime, setExpenseReminderTime] = useState<string>(
+    settings.expenseReminderTime || "18:00"
+  );
 
   useEffect(() => {
     fetchAccountStats();
@@ -110,6 +135,13 @@ const ProfilePage: React.FC = () => {
     }
   }, [user, isEditing]);
 
+  // When settings are loaded, parse the 24h time to 12h fields
+  useEffect(() => {
+    if (settings.expenseReminderTime) {
+      setExpenseReminderTime(settings.expenseReminderTime);
+    }
+  }, [settings.expenseReminderTime]);
+
   const fetchCurrencyOptions = async () => {
     const response = await getCurrencyOptions();
     const data = response.map((currency: any) => ({
@@ -126,7 +158,9 @@ const ProfilePage: React.FC = () => {
       monthlyReports: response.monthlyReports ?? false,
       expenseReminders: response.expenseReminders ?? false,
       billsAndBudgetsAlert: response.billsAndBudgetsAlert ?? false,
+      expenseReminderTime: response.expenseReminderTime || "18:00",
     });
+    setExpenseReminderTime(response.expenseReminderTime || "18:00");
   };
 
   const handleProfilePictureChange = (
@@ -163,6 +197,9 @@ const ProfilePage: React.FC = () => {
       ...settings,
       [field]: value,
     });
+    if (field === "expenseReminders" && value === false) {
+      setExpenseReminderTime("18:00");
+    }
   };
 
   const fetchAccountStats = async () => {
@@ -271,18 +308,21 @@ const ProfilePage: React.FC = () => {
     setIsEditing(false);
   };
 
+  // When saving, convert to 24h
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
-      // Call the profile service to update settings
-      const updatedSettings = await updateSettings(settings);
-
-      // Update local state with the response from server, providing defaults for optional properties
+      const updatedSettings = await updateSettings({
+        ...settings,
+        expenseReminderTime: expenseReminderTime,
+      });
       setSettings({
         monthlyReports: updatedSettings?.monthlyReports ?? false,
         expenseReminders: updatedSettings?.expenseReminders ?? false,
         billsAndBudgetsAlert: updatedSettings?.billsAndBudgetsAlert ?? false,
+        expenseReminderTime: updatedSettings?.expenseReminderTime || "18:00",
       });
+      setExpenseReminderTime(updatedSettings?.expenseReminderTime || "18:00");
 
       // Update user context and localStorage with new settings
       const updatedUser: AuthUser & { settings: any } = {
@@ -295,9 +335,8 @@ const ProfilePage: React.FC = () => {
         currency: String(user?.currency ?? ""),
         settings: {
           ...(user as any)?.settings,
-          monthlyReports: updatedSettings?.monthlyReports ?? false,
-          expenseReminders: updatedSettings?.expenseReminders ?? false,
-          billsAndBudgetsAlert: updatedSettings?.billsAndBudgetsAlert ?? false,
+          ...updatedSettings,
+          expenseReminderTime: updatedSettings?.expenseReminderTime || "18:00",
         },
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -333,6 +372,37 @@ const ProfilePage: React.FC = () => {
     setProfileData({ ...profileData, profilePicture: "" });
     setPhotoRemoved(true);
   };
+
+  // Add a Reminder component at the top of the page (UI only)
+  function ExpenseReminderBanner() {
+    const now = new Date();
+    const [show, setShow] = useState(false);
+    useEffect(() => {
+      if (settings.expenseReminders && expenseReminderTime) {
+        const [h, m] = expenseReminderTime.split(":");
+        if (
+          now.getHours() === Number(h) &&
+          Math.abs(now.getMinutes() - Number(m)) < 5 // show within 5 min window
+        ) {
+          setShow(true);
+        } else {
+          setShow(false);
+        }
+      } else {
+        setShow(false);
+      }
+    }, [settings.expenseReminders, expenseReminderTime]);
+    if (!show) return null;
+    return (
+      <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 flex items-center gap-2">
+        <AlertTriangle className="h-5 w-5 text-yellow-600" />
+        <span>
+          Don't forget to log your expenses for today! (Reminder set for{" "}
+          {to12Hour(settings.expenseReminderTime)})
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
@@ -660,6 +730,38 @@ const ProfilePage: React.FC = () => {
                   }
                 />
               </div>
+              {settings.expenseReminders && (
+                <div className="flex flex-col gap-1 mt-2">
+                  <Label
+                    htmlFor="expenseReminderTime"
+                    className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Reminder Time
+                  </Label>
+                  <Input
+                    id="expenseReminderTime"
+                    type="time"
+                    step="60"
+                    value={expenseReminderTime}
+                    onChange={(e) => {
+                      setExpenseReminderTime(e.target.value);
+                      setSettings((prev) => ({
+                        monthlyReports: prev.monthlyReports ?? false,
+                        expenseReminders: prev.expenseReminders ?? false,
+                        billsAndBudgetsAlert:
+                          prev.billsAndBudgetsAlert ?? false,
+                        expenseReminderTime: e.target.value,
+                      }));
+                    }}
+                    className="w-32 mb-1"
+                    style={{ maxWidth: 160 }}
+                    autoComplete="off"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    You’ll get a reminder at this time every day.
+                  </span>
+                </div>
+              )}
 
               <Button
                 onClick={handleSaveSettings}

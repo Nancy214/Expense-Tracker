@@ -198,20 +198,16 @@ export const updateProfile = async (req: Request, res: Response) => {
       }); // 5 minutes
     }
 
+    const settingsDoc = await Settings.findById(updatedUser._id);
+    const userWithSettings = {
+      ...updatedUser.toObject(),
+      settings: settingsDoc || {},
+    };
+
     res.json({
       success: true,
       message: "Profile updated successfully",
-      user: {
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        profilePicture: profilePictureUrl,
-        phoneNumber: updatedUser.phoneNumber,
-        dateOfBirth: updatedUser.dateOfBirth,
-        currency: updatedUser.currency,
-        budget: updatedUser.budget,
-        budgetType: updatedUser.budgetType,
-      },
+      user: userWithSettings,
     });
   } catch (error) {
     console.error("Error updating profile:", error);
@@ -227,7 +223,12 @@ export const updateSettings = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const { monthlyReports, expenseReminders, billsAndBudgetsAlert } = req.body;
+    const {
+      monthlyReports,
+      expenseReminders,
+      billsAndBudgetsAlert,
+      expenseReminderTime,
+    } = req.body;
 
     const settingsData: any = {};
     if (monthlyReports !== undefined)
@@ -236,6 +237,8 @@ export const updateSettings = async (req: Request, res: Response) => {
       settingsData.expenseReminders = expenseReminders;
     if (billsAndBudgetsAlert !== undefined)
       settingsData.billsAndBudgetsAlert = billsAndBudgetsAlert;
+    if (expenseReminderTime !== undefined)
+      settingsData.expenseReminderTime = expenseReminderTime;
 
     // Use findByIdAndUpdate with upsert to create if doesn't exist, update if exists
     const settingsDoc = await Settings.findByIdAndUpdate(
@@ -276,6 +279,7 @@ export const getSettings = async (req: Request, res: Response) => {
         monthlyReports: false,
         expenseReminders: false,
         billsAndBudgetsAlert: false,
+        expenseReminderTime: "18:00",
       };
       return res.json({ success: true, settings: defaultSettings });
     }

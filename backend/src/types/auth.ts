@@ -14,13 +14,15 @@ export interface UserType {
   currency?: string;
   budget?: boolean;
   budgetType?: string;
+  settings?: SettingsType;
 }
 
 export interface SettingsType {
   userId: Schema.Types.ObjectId;
-  billsAndBudgetsAlert?: boolean;
   monthlyReports?: boolean;
   expenseReminders?: boolean;
+  billsAndBudgetsAlert?: boolean;
+  expenseReminderTime?: string;
 }
 
 export type UserLocalType = Omit<UserType, "googleId">;
