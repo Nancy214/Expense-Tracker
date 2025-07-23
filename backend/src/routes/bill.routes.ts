@@ -1,5 +1,7 @@
 import { RequestHandler, Router } from "express";
 import { authenticateToken } from "../middleware/auth.middleware";
+import { upload } from "../config/multer";
+import { uploadBillReceipt } from "../controllers/bill.controller";
 import {
   getBills,
   getBillById,
@@ -57,6 +59,14 @@ router.get(
   "/status/:status",
   authenticateToken as RequestHandler,
   getBillsByStatus as RequestHandler
+);
+
+// Bill receipt upload
+router.post(
+  "/upload-receipt",
+  authenticateToken as RequestHandler,
+  upload.single("file"),
+  uploadBillReceipt as RequestHandler
 );
 
 // Special queries

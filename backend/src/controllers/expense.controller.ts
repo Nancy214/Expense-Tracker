@@ -16,6 +16,7 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import bcrypt from "bcrypt";
 import path from "path";
+import sharp from "sharp";
 
 export const getExpenses = async (req: AuthRequest, res: Response) => {
   try {
@@ -204,11 +205,23 @@ export const uploadReceipt = async (req: AuthRequest, res: Response) => {
     const ext = path.extname(originalName) || ".jpg";
     fileName = `${fileName}${ext}`;
     const s3Key = `receipts/${fileName}`;
+
+    let fileBuffer = req.file.buffer;
+    let contentType = req.file.mimetype;
+    // If image, process with sharp
+    if (contentType.startsWith("image/")) {
+      fileBuffer = await sharp(req.file.buffer)
+        .resize({ width: 1200, height: 1200, fit: "inside" })
+        .jpeg({ quality: 90 })
+        .toBuffer();
+      contentType = "image/jpeg";
+    }
+
     const uploadCommand = new PutObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: s3Key,
-      Body: req.file.buffer,
-      ContentType: req.file.mimetype,
+      Body: fileBuffer,
+      ContentType: contentType,
       ACL: "private",
     });
     await s3Client.send(uploadCommand);

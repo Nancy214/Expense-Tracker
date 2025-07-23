@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import { Bill } from "../models/bill.model";
 import BillType, { BillStatus } from "../types/bill";
 import { addMonths, addQuarters, addYears, isAfter } from "date-fns";
+import { s3Client, isAWSConfigured } from "../config/s3Client";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import bcrypt from "bcrypt";
+import path from "path";
+import sharp from "sharp";
 
 // Get all bills for a user
 export const getBills = async (req: Request, res: Response) => {
@@ -354,6 +359,50 @@ export const getBillStats = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching bill stats:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Upload Bill Receipt with sharp image processing
+export const uploadBillReceipt = async (req: any, res: any) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    if (!isAWSConfigured) {
+      return res.status(500).json({ message: "S3 not configured" });
+    }
+    const userId = req.user?.id;
+    const timestamp = Date.now();
+    const originalName = req.file.originalname;
+    const hashInput = `${originalName}_${timestamp}_${userId}`;
+    let fileName = bcrypt.hashSync(hashInput, 10).replace(/[^a-zA-Z0-9]/g, "");
+    const ext = path.extname(originalName) || ".jpg";
+    fileName = `${fileName}${ext}`;
+    const s3Key = `bill-receipts/${fileName}`;
+
+    let fileBuffer = req.file.buffer;
+    let contentType = req.file.mimetype;
+    // If image, process with sharp
+    if (contentType.startsWith("image/")) {
+      fileBuffer = await sharp(req.file.buffer)
+        .resize({ width: 1200, height: 1200, fit: "inside" })
+        .jpeg({ quality: 90 })
+        .toBuffer();
+      contentType = "image/jpeg";
+    }
+
+    const uploadCommand = new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: s3Key,
+      Body: fileBuffer,
+      ContentType: contentType,
+      ACL: "private",
+    });
+    await s3Client.send(uploadCommand);
+    res.json({ key: s3Key });
+  } catch (error) {
+    console.error("Error uploading bill receipt:", error);
+    res.status(500).json({ message: "Failed to upload bill receipt" });
   }
 };
 
