@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+
 import { BillStats } from "@/types/bill";
 import {
   getBillStats,
@@ -10,7 +10,7 @@ import {
 } from "@/services/bill.service";
 import { useToast } from "@/hooks/use-toast";
 import BillDataTable from "../BillDataTable";
-import { AlertTriangle, Clock, CheckCircle, DollarSign } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 const BillsPage = () => {
@@ -21,11 +21,7 @@ const BillsPage = () => {
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user } = useAuth();
-  const billsAndBudgetsAlertEnabled = !!(
-    user &&
-    (user as any).settings &&
-    (user as any).settings.billsAndBudgetsAlert
-  );
+
   const [allBills, setAllBills] = useState<any[]>([]);
 
   useEffect(() => {
@@ -60,11 +56,6 @@ const BillsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleRefresh = () => {
-    setRefreshTrigger((prev) => prev + 1);
-    fetchBillData();
   };
 
   if (loading) {

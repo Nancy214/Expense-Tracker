@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format, parse, isValid } from "date-fns";
+import { format, parse } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -20,7 +20,7 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createBill, updateBill } from "@/services/bill.service";
-import { BillType, BillFrequency, PaymentMethod } from "@/types/bill";
+import { BillType, BillFrequency } from "@/types/bill";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrencyOptions } from "@/services/auth.service";
 import { getExchangeRate } from "@/services/currency.service";
@@ -41,15 +41,6 @@ const BILL_CATEGORIES: string[] = [
   "Loan Payment",
   "Property Tax",
   "Other Bills",
-];
-
-const PAYMENT_METHODS: PaymentMethod[] = [
-  "manual",
-  "auto-pay",
-  "bank-transfer",
-  "credit-card",
-  "debit-card",
-  "cash",
 ];
 
 const BILL_FREQUENCIES: BillFrequency[] = [
@@ -179,16 +170,6 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
     setFormData((prev) => ({
       ...prev,
       toRate: response.rate,
-    }));
-  };
-
-  const handleExchangeRateChange = (
-    field: "fromRate" | "toRate",
-    value: string
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: parseFloat(value) || 0,
     }));
   };
 

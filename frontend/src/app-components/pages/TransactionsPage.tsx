@@ -43,8 +43,6 @@ type ExpenseTypeWithId = Omit<ExpenseType, "date"> & {
   _id?: string;
 };
 
-const cardHeaderClass = "pt-2";
-
 const EXPENSE_CATEGORIES: string[] = [
   "Food & Dining",
   "Transportation",
@@ -122,15 +120,7 @@ const TransactionsPage = () => {
   };
 
   const [transactions, setTransactions] = useState<ExpenseTypeWithId[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: undefined,
-    to: undefined,
-  });
-  const [isRangeMode, setIsRangeMode] = useState(false);
+
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
     "all",
   ]);
@@ -139,9 +129,7 @@ const TransactionsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
-  const [selectedDateForFilter, setSelectedDateForFilter] =
-    useState<Date | null>(null);
-  const [budgetProgress, setBudgetProgress] = useState<any>(null);
+
   const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
   const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(
     new Set()
@@ -209,36 +197,6 @@ const TransactionsPage = () => {
       newTypes = selectedTypes.filter((t) => t !== type);
     }
     setSelectedTypes(newTypes.length ? newTypes : ["all"]);
-  };
-
-  const handleDateSelect = (date: Date) => {
-    if (!isRangeMode) {
-      // Single date mode - switch to range mode with this date as start
-      setDateRange({ from: date, to: undefined });
-      setIsRangeMode(true);
-    } else {
-      // Range mode - handle second date selection
-      if (!dateRange.from) {
-        // First date in range
-        setDateRange({ from: date, to: undefined });
-      } else if (dateRange.from && !dateRange.to) {
-        // Second date in range
-        if (date.getTime() === dateRange.from.getTime()) {
-          // Same date clicked - switch back to single date mode
-          setSelectedDate(date);
-          setIsRangeMode(false);
-          setDateRange({ from: undefined, to: undefined });
-        } else {
-          // Different date - complete the range
-          const from = date < dateRange.from ? date : dateRange.from;
-          const to = date < dateRange.from ? dateRange.from : date;
-          setDateRange({ from, to });
-        }
-      } else {
-        // Range already complete - start new range
-        setDateRange({ from: date, to: undefined });
-      }
-    }
   };
 
   const handleEdit = async (expense: ExpenseTypeWithId) => {
@@ -355,10 +313,6 @@ const TransactionsPage = () => {
       ((t.isRecurring && !t.templateId) ||
         (!t.isRecurring && !!t.templateId)) &&
       !isAfter(getTransactionDate(t), today)
-  );
-  // In nonRecurringTransactions, show only non-recurring, non-template, non-instance transactions
-  const nonRecurringTransactions = transactions.filter(
-    (t) => !t.isRecurring && !t.templateId
   );
 
   // Calculate total expenses by currency
