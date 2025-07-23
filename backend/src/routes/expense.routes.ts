@@ -6,7 +6,10 @@ import {
   updateExpense,
   deleteExpense,
   triggerRecurringExpensesJob,
+  getReceiptUrl,
 } from "../controllers/expense.controller";
+import { upload } from "../config/multer";
+import { uploadReceipt } from "../controllers/expense.controller";
 
 const router = Router();
 
@@ -24,6 +27,17 @@ router.post(
   "/trigger-recurring",
   authenticateToken as RequestHandler,
   triggerRecurringExpensesJob as RequestHandler
+);
+router.post(
+  "/upload-receipt",
+  authenticateToken as RequestHandler,
+  upload.single("file"),
+  uploadReceipt as RequestHandler
+);
+router.get(
+  "/receipts/:key",
+  authenticateToken as RequestHandler,
+  getReceiptUrl as RequestHandler
 );
 router.put(
   "/:id",

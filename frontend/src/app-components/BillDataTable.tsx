@@ -397,73 +397,64 @@ const BillDataTable: React.FC<BillDataTableProps> = ({
                     {getStatusBadge(bill.billStatus, new Date(bill.dueDate))}
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const billForEdit: BillType = {
+                            _id: bill._id,
+                            title: bill.title,
+                            category: bill.category,
+                            amount: bill.amount,
+                            currency: bill.currency,
+                            fromRate: bill.fromRate,
+                            toRate: bill.toRate,
+                            dueDate: format(
+                              new Date(bill.dueDate),
+                              "dd/MM/yyyy"
+                            ),
+                            billStatus: bill.billStatus,
+                            billFrequency: bill.billFrequency,
+                            isRecurring: bill.isRecurring,
+                            reminderDays: bill.reminderDays,
+                            receipts: bill.receipts || [],
+                          };
+                          setEditingBill(billForEdit);
+                          setShowAddDialog(true);
+                        }}
+                        title="Edit"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(bill._id)}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      {bill.billStatus !== "paid" ? (
                         <Button
-                          variant="ghost"
-                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusUpdate(bill._id, "paid")}
+                          title="Mark as Paid"
                         >
-                          <MoreHorizontal className="h-4 w-4" />
+                          <CheckCircle className="h-4 w-4" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            // Convert BillResponseType to BillType
-                            const billForEdit: BillType = {
-                              _id: bill._id,
-                              title: bill.title,
-                              category: bill.category,
-                              amount: bill.amount,
-                              currency: bill.currency,
-                              fromRate: bill.fromRate,
-                              toRate: bill.toRate,
-                              dueDate: format(
-                                new Date(bill.dueDate),
-                                "dd/MM/yyyy"
-                              ),
-                              billStatus: bill.billStatus,
-                              billFrequency: bill.billFrequency,
-                              isRecurring: bill.isRecurring,
-                              reminderDays: bill.reminderDays,
-                            };
-                            setEditingBill(billForEdit);
-                            setShowAddDialog(true);
-                          }}
-                          className="cursor-pointer"
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusUpdate(bill._id, "unpaid")}
+                          title="Mark as Unpaid"
                         >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        {bill.billStatus !== "paid" && (
-                          <DropdownMenuItem
-                            onClick={() => handleStatusUpdate(bill._id, "paid")}
-                            className="cursor-pointer"
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Mark as Paid
-                          </DropdownMenuItem>
-                        )}
-                        {bill.billStatus === "paid" && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleStatusUpdate(bill._id, "unpaid")
-                            }
-                            className="cursor-pointer"
-                          >
-                            <Clock className="mr-2 h-4 w-4" />
-                            Mark as Unpaid
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(bill._id)}
-                          className="text-red-600 cursor-pointer"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <Clock className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -473,15 +464,21 @@ const BillDataTable: React.FC<BillDataTableProps> = ({
       </div>
 
       {/* Add/Edit Dialog */}
-      <AddBillDialog
-        open={showAddDialog}
-        onOpenChange={setShowAddDialog}
-        editingBill={editingBill}
-        onSuccess={() => {
-          fetchBills();
-          setEditingBill(null);
-        }}
-      />
+      {showAddDialog && (
+        <AddBillDialog
+          open={showAddDialog}
+          onOpenChange={(open) => {
+            setShowAddDialog(open);
+            if (!open) setEditingBill(null);
+          }}
+          editingBill={editingBill}
+          onSuccess={() => {
+            fetchBills();
+            setShowAddDialog(false);
+            setEditingBill(null);
+          }}
+        />
+      )}
     </div>
   );
 };

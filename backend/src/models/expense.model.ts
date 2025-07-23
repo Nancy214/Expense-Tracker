@@ -56,6 +56,15 @@ const expenseSchema = new Schema({
     type: Date,
     required: false,
   },
+  templateId: {
+    type: Schema.Types.ObjectId,
+    ref: "Expense",
+    default: null,
+  },
+  receipts: {
+    type: [String],
+    default: [],
+  },
 });
 
 export const Expense = mongoose.model<ExpenseType>("Expense", expenseSchema);

@@ -25,6 +25,7 @@ export interface BillType {
   nextDueDate?: string;
   lastPaidDate?: string;
   reminderDays?: number;
+  receipts?: string[];
 }
 
 export interface BillResponseType {
@@ -44,6 +45,7 @@ export interface BillResponseType {
   nextDueDate?: Date;
   lastPaidDate?: Date;
   reminderDays?: number;
+  receipts?: string[];
   createdAt: Date;
   updatedAt: Date;
 }

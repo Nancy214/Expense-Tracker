@@ -304,15 +304,13 @@ const TransactionsPage = () => {
   };
 
   // Filter for recurring transactions
-  // In recurringTransactions, show only the template (isRecurring: true, no templateId) and all generated instances (isRecurring: false, templateId set)
+  // In recurringTransactions, show only the template (isRecurring: true, no templateId)
   const today = new Date();
   // Use allTransactions for recurring tab, transactions for all tab
   const recurringSource = allTransactions || transactions;
   const recurringTransactions = recurringSource.filter(
     (t) =>
-      ((t.isRecurring && !t.templateId) ||
-        (!t.isRecurring && !!t.templateId)) &&
-      !isAfter(getTransactionDate(t), today)
+      t.isRecurring && !t.templateId && !isAfter(getTransactionDate(t), today)
   );
 
   // Calculate total expenses by currency
@@ -412,7 +410,10 @@ const TransactionsPage = () => {
           </p>
         </div>
         <Button
-          onClick={() => setIsDialogOpen(true)}
+          onClick={() => {
+            setEditingExpense(null);
+            setIsDialogOpen(true);
+          }}
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
@@ -649,6 +650,7 @@ const TransactionsPage = () => {
                     data={filteredTransactions as any}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    showRecurringIcon={true}
                   />
                 </div>
                 <div className="mt-4 flex justify-between p-4 bg-muted/50 rounded-lg">
@@ -733,6 +735,8 @@ const TransactionsPage = () => {
                   data={recurringTransactions as any}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  showRecurringIcon={false}
+                  showRecurringBadge={true}
                 />
               </div>
               <div className="mt-4 flex justify-between p-4 bg-muted/50 rounded-lg">

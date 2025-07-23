@@ -62,6 +62,10 @@ const billSchema = new Schema(
       type: Number,
       default: 3, // Default reminder 3 days before due date
     },
+    receipts: {
+      type: [String],
+      default: [],
+    },
     templateId: {
       type: Schema.Types.ObjectId,
       ref: "Bill",

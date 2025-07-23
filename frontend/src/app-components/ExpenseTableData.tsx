@@ -26,12 +26,16 @@ interface ExpenseDataTableProps {
   data: ExpenseTypeWithId[];
   onEdit: (expense: ExpenseTypeWithId) => void;
   onDelete: (expenseId: string) => void;
+  showRecurringIcon?: boolean;
+  showRecurringBadge?: boolean;
 }
 
 export function ExpenseDataTable({
   data,
   onEdit,
   onDelete,
+  showRecurringIcon = false,
+  showRecurringBadge = false,
 }: ExpenseDataTableProps) {
   const columns: ColumnDef<ExpenseTypeWithId>[] = [
     {
@@ -71,6 +75,36 @@ export function ExpenseDataTable({
         );
       },
       size: 200,
+      cell: ({ row }: { row: Row<ExpenseTypeWithId> }) => {
+        const expense = row.original;
+        // Debug log to inspect the data
+        console.log("Expense row:", expense);
+        // Show icon for recurring templates and all instances
+        const isRecurringInstance =
+          (!expense.isRecurring && !!expense.templateId) ||
+          (expense.isRecurring && !expense.templateId);
+        return (
+          <span className="flex items-center gap-2">
+            {expense.title}
+            {showRecurringIcon && isRecurringInstance && (
+              <>
+                <Repeat className="h-4 w-4 text-blue-500" />
+                <span className="sr-only">Recurring</span>
+              </>
+            )}
+            {showRecurringBadge && expense.recurringFrequency && (
+              <Badge
+                variant="secondary"
+                className="flex items-center gap-1 text-xs"
+              >
+                <Repeat className="h-3 w-3 text-blue-500" />
+                {expense.recurringFrequency.charAt(0).toUpperCase() +
+                  expense.recurringFrequency.slice(1)}
+              </Badge>
+            )}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "category",
@@ -110,18 +144,6 @@ export function ExpenseDataTable({
         );
       },
       size: 100,
-    },
-    {
-      accessorKey: "description",
-      header: ({ column }: { column: Column<ExpenseTypeWithId> }) => {
-        return (
-          <Button variant="ghost" onClick={() => column.toggleSorting()}>
-            Description
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
-      size: 250,
     },
     {
       accessorKey: "amount",
@@ -164,59 +186,6 @@ export function ExpenseDataTable({
         );
       },
       size: 100,
-    },
-    /* {
-      accessorKey: "currency",
-      header: ({ column }: { column: Column<ExpenseType> }) => {
-        return (
-          <Button variant="ghost" onClick={() => column.toggleSorting()}>
-            Currency
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
-      cell: ({ row }: { row: Row<ExpenseType> }) => {
-        const currency = row.getValue("currency") as string;
-        return <div className="font-medium">{currency || "INR"}</div>;
-      },
-      size: 80,
-    }, */
-    {
-      accessorKey: "isRecurring",
-      header: "Recurring",
-      cell: ({ row }: { row: Row<ExpenseTypeWithId> }) => {
-        const expense = row.original;
-        if (
-          expense.isRecurring &&
-          !expense.templateId &&
-          expense.recurringFrequency
-        ) {
-          return (
-            <div className="flex items-center gap-1">
-              <Repeat className="h-3 w-3 text-blue-500" />
-              <Badge variant="secondary" className="text-xs">
-                {expense.recurringFrequency.charAt(0).toUpperCase() +
-                  expense.recurringFrequency.slice(1)}
-              </Badge>
-            </div>
-          );
-        }
-        if (!expense.isRecurring && expense.templateId) {
-          return (
-            <div className="flex items-center gap-1">
-              <Repeat className="h-3 w-3 text-gray-400" />
-              <Badge
-                variant="secondary"
-                className="text-xs bg-gray-100 text-gray-800"
-              >
-                Instance
-              </Badge>
-            </div>
-          );
-        }
-        return <span className="text-gray-400">-</span>;
-      },
-      size: 120,
     },
     {
       id: "actions",

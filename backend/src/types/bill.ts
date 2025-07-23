@@ -27,6 +27,7 @@ export interface BillType {
   nextDueDate?: Date;
   lastPaidDate?: Date;
   reminderDays?: number; // Days before due date to send reminder
+  receipts?: string[];
   templateId?: Schema.Types.ObjectId;
 }
 

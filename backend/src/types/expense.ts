@@ -17,5 +17,7 @@ export interface ExpenseType {
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;
   endDate?: Date;
+  templateId?: Schema.Types.ObjectId;
+  receipts?: string[];
 }
 export default ExpenseType;

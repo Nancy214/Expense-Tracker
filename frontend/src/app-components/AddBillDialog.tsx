@@ -27,6 +27,8 @@ import { getExchangeRate } from "@/services/currency.service";
 import { useAuth } from "@/context/AuthContext";
 import GeneralDialog from "@/app-components/Dialog";
 import { useStats } from "@/context/StatsContext";
+import { uploadReceipt } from "@/services/expense.service";
+import axios from "axios";
 
 const BILL_CATEGORIES: string[] = [
   "Rent/Mortgage",
@@ -87,8 +89,147 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
     isRecurring: true,
     reminderDays: 3,
   });
+  const [receipts, setReceipts] = useState<(File | string)[]>(
+    editingBill?.receipts || []
+  );
+  // Drag and drop logic for receipts
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const handleDragStart = (idx: number) => setDraggedIdx(idx);
+  const handleDragOver = (idx: number) => {
+    if (draggedIdx === null || draggedIdx === idx) return;
+    setReceipts((prev) => {
+      const updated = [...prev];
+      const [dragged] = updated.splice(draggedIdx, 1);
+      updated.splice(idx, 0, dragged);
+      return updated;
+    });
+    setDraggedIdx(idx);
+  };
+  const handleDragEnd = () => setDraggedIdx(null);
+  // Cache for pre-signed receipt URLs
+  const [receiptUrlCache, setReceiptUrlCache] = useState<{
+    [key: string]: string;
+  }>({});
+  // Helper to get pre-signed S3 URL for a receipt key
+  const getReceiptUrl = async (key: string): Promise<string> => {
+    if (receiptUrlCache[key]) return receiptUrlCache[key];
+    const token = localStorage.getItem("accessToken");
+    const res = await axios.get(
+      `http://localhost:8000/api/expenses/receipts/${encodeURIComponent(key)}`,
+      token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+    );
+    setReceiptUrlCache((prev) => ({ ...prev, [key]: res.data.url }));
+    return res.data.url;
+  };
+  // When editingBill changes, update receipts state
+  useEffect(() => {
+    if (editingBill && editingBill.receipts) {
+      setReceipts(editingBill.receipts);
+    } else if (!editingBill) {
+      setReceipts([]);
+    }
+  }, [editingBill]);
+
+  // Reset form to empty when opening for a new bill (not editing)
+  useEffect(() => {
+    if (open && !editingBill) {
+      resetForm();
+      setReceipts([]);
+    }
+  }, [open, editingBill]);
+
+  // When dialog is closed and not editing, reset form
+  useEffect(() => {
+    if (!open && !editingBill) {
+      resetForm();
+      setReceipts([]);
+    }
+  }, [open, editingBill]);
+
+  // File input: append new files to receipts state, not replace
+  const handleReceiptsInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const validFiles = Array.from(e.target.files).filter(
+        (file) =>
+          file.type.startsWith("image/") || file.type === "application/pdf"
+      );
+      if (validFiles.length !== e.target.files.length) {
+        toast({
+          title: "Invalid File Type",
+          description: "Only images or PDF files are allowed as receipts.",
+          variant: "destructive",
+        });
+      }
+      setReceipts((prev) => [...prev, ...validFiles]);
+    }
+  };
+
+  // ReceiptPreviewLink component for async URL fetch and preview
+  function ReceiptPreviewLink({
+    fileKey,
+    name,
+    isImage,
+    isPdf,
+    getReceiptUrl,
+  }: {
+    fileKey: string;
+    name: string;
+    isImage: boolean;
+    isPdf: boolean;
+    getReceiptUrl: (key: string) => Promise<string>;
+  }) {
+    const [url, setUrl] = useState<string>("");
+    useEffect(() => {
+      getReceiptUrl(fileKey).then(setUrl);
+    }, [fileKey]);
+    if (!url) return <span className="text-gray-400">Loading...</span>;
+    if (isImage) {
+      return (
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          <img
+            src={url}
+            alt={name}
+            className="w-10 h-10 object-cover rounded border"
+          />
+        </a>
+      );
+    }
+    if (isPdf) {
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center text-blue-600 underline break-all max-w-xs"
+          style={{ wordBreak: "break-all" }}
+        >
+          <span className="mr-1">📄</span>
+          <span
+            className="break-all max-w-xs"
+            style={{ wordBreak: "break-all" }}
+          >
+            {name}
+          </span>
+        </a>
+      );
+    }
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 underline break-all max-w-xs"
+        style={{ wordBreak: "break-all" }}
+      >
+        <span className="break-all max-w-xs" style={{ wordBreak: "break-all" }}>
+          {name}
+        </span>
+      </a>
+    );
+  }
 
   const isEditing = !!editingBill;
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchCurrencyOptions();
@@ -215,7 +356,24 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
       });
       return;
     }
-
+    setIsSaving(true);
+    // Upload receipts if any
+    let receiptKeys: string[] = [];
+    if (receipts.length > 0) {
+      try {
+        const fileReceipts = receipts.filter(
+          (r): r is File => r instanceof File
+        );
+        receiptKeys = await Promise.all(fileReceipts.map(uploadReceipt));
+      } catch (err) {
+        toast({
+          title: "Receipt Upload Failed",
+          description: "One or more receipts could not be uploaded.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     const newBill = {
       title: formData.title,
       category: formData.category,
@@ -230,6 +388,7 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
       billFrequency: formData.billFrequency,
       isRecurring: formData.isRecurring,
       reminderDays: formData.reminderDays,
+      receipts: receiptKeys,
     };
 
     try {
@@ -248,9 +407,11 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
       }
       await refreshStats();
       resetForm();
+      setIsSaving(false);
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
+      setIsSaving(false);
       toast({
         title: "Error",
         description: "Failed to save bill. Please try again.",
@@ -273,10 +434,24 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
       triggerButton={triggerButton}
       footerActions={
         <>
-          <Button onClick={handleSubmit}>
-            {isEditing ? "Update Bill" : "Add Bill"}
+          <Button onClick={handleSubmit} disabled={isSaving}>
+            {isSaving ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                Saving...
+              </span>
+            ) : isEditing ? (
+              "Update Bill"
+            ) : (
+              "Add Bill"
+            )}
           </Button>
-          <Button onClick={handleCancel} variant="outline" type="button">
+          <Button
+            onClick={handleCancel}
+            variant="outline"
+            type="button"
+            disabled={isSaving}
+          >
             Cancel
           </Button>
         </>
@@ -438,6 +613,90 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
             max="30"
             className="h-10"
           />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm mb-1">
+            Receipts (Images or PDFs)
+          </label>
+          <Input
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            onChange={handleReceiptsInput}
+          />
+          <div className="text-xs text-muted-foreground mt-1 mb-2">
+            You can upload images or PDF files as receipts.
+          </div>
+          {receipts.length > 0 && (
+            <div className="space-y-1 mt-2">
+              {receipts.map((file, idx) => {
+                let isImage = false;
+                let isPdf = false;
+                let name = "";
+                if (typeof file === "string") {
+                  name = file.split("/").pop() || file;
+                  isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+                  isPdf = /\.pdf$/i.test(name);
+                } else {
+                  name = file.name;
+                  isImage = file.type.startsWith("image/");
+                  isPdf = file.type === "application/pdf";
+                }
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-center gap-2 rounded ${
+                      draggedIdx === idx ? "bg-blue-50" : ""
+                    }`}
+                    draggable
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      handleDragOver(idx);
+                    }}
+                    onDragEnd={handleDragEnd}
+                    onDrop={handleDragEnd}
+                    style={{ cursor: "grab" }}
+                  >
+                    {typeof file === "string" ? (
+                      <ReceiptPreviewLink
+                        key={file}
+                        fileKey={file}
+                        name={name}
+                        isImage={isImage}
+                        isPdf={isPdf}
+                        getReceiptUrl={getReceiptUrl}
+                      />
+                    ) : isImage ? (
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={name}
+                        className="w-10 h-10 object-cover rounded border"
+                      />
+                    ) : isPdf ? (
+                      <span className="flex items-center">
+                        <span className="mr-1">📄</span>
+                        {name}
+                      </span>
+                    ) : (
+                      <span>{name}</span>
+                    )}
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        setReceipts((prev) => prev.filter((_, i) => i !== idx));
+                      }}
+                      aria-label="Remove receipt"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </GeneralDialog>

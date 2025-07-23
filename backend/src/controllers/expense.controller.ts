@@ -10,6 +10,12 @@ import {
   isAfter,
   isValid,
 } from "date-fns";
+import { s3Client, isAWSConfigured } from "../config/s3Client";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import bcrypt from "bcrypt";
+import path from "path";
 
 export const getExpenses = async (req: AuthRequest, res: Response) => {
   try {
@@ -179,5 +185,51 @@ export const triggerRecurringExpensesJob = async (
     res.json({ success: true, createdCount });
   } catch (error) {
     res.status(500).json({ message: error });
+  }
+};
+
+export const uploadReceipt = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    if (!isAWSConfigured) {
+      return res.status(500).json({ message: "S3 not configured" });
+    }
+    const userId = req.user?.id;
+    const timestamp = Date.now();
+    const originalName = req.file.originalname;
+    const hashInput = `${originalName}_${timestamp}_${userId}`;
+    let fileName = bcrypt.hashSync(hashInput, 10).replace(/[^a-zA-Z0-9]/g, "");
+    const ext = path.extname(originalName) || ".jpg";
+    fileName = `${fileName}${ext}`;
+    const s3Key = `receipts/${fileName}`;
+    const uploadCommand = new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: s3Key,
+      Body: req.file.buffer,
+      ContentType: req.file.mimetype,
+      ACL: "private",
+    });
+    await s3Client.send(uploadCommand);
+    res.json({ key: s3Key });
+  } catch (error) {
+    console.error("Error uploading receipt:", error);
+    res.status(500).json({ message: "Failed to upload receipt" });
+  }
+};
+
+export const getReceiptUrl = async (req: AuthRequest, res: Response) => {
+  try {
+    const key = decodeURIComponent(req.params.key);
+    if (!key) return res.status(400).json({ message: "Missing key" });
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+    });
+    const url = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+    res.json({ url });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to generate receipt URL" });
   }
 };

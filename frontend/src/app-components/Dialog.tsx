@@ -49,7 +49,10 @@ const GeneralDialog: React.FC<GeneralDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {triggerButton && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
-      <DialogContent className={`${getSizeClasses()} ${className}`}>
+      <DialogContent
+        className={`${getSizeClasses()} ${className}`}
+        forceMount={true}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
