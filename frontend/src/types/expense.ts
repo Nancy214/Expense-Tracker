@@ -16,6 +16,7 @@ export interface ExpenseType {
   recurringEndDate?: Date;
   endDate?: Date;
   userId?: string;
+  templateId?: string;
 }
 
 export interface ExpenseResponseType {
@@ -32,4 +33,5 @@ export interface ExpenseResponseType {
   isRecurring?: boolean;
   recurringFrequency?: RecurringFrequency;
   recurringEndDate?: Date;
+  templateId?: string;
 }

@@ -5,6 +5,7 @@ import {
   createExpense,
   updateExpense,
   deleteExpense,
+  triggerRecurringExpensesJob,
 } from "../controllers/expense.controller";
 
 const router = Router();
@@ -18,6 +19,11 @@ router.post(
   "/add-expenses",
   authenticateToken as RequestHandler,
   createExpense as RequestHandler
+);
+router.post(
+  "/trigger-recurring",
+  authenticateToken as RequestHandler,
+  triggerRecurringExpensesJob as RequestHandler
 );
 router.put(
   "/:id",

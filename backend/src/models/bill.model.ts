@@ -34,10 +34,6 @@ const billSchema = new Schema(
     },
 
     // Bill-specific fields
-    billProvider: {
-      type: String,
-      required: true,
-    },
     dueDate: {
       type: Date,
       required: true,
@@ -46,18 +42,6 @@ const billSchema = new Schema(
       type: String,
       enum: ["unpaid", "paid", "overdue", "pending"],
       default: "unpaid",
-    },
-    paymentMethod: {
-      type: String,
-      enum: [
-        "manual",
-        "auto-pay",
-        "bank-transfer",
-        "credit-card",
-        "debit-card",
-        "cash",
-      ],
-      default: "manual",
     },
     billFrequency: {
       type: String,
@@ -78,9 +62,10 @@ const billSchema = new Schema(
       type: Number,
       default: 3, // Default reminder 3 days before due date
     },
-    autoPayEnabled: {
-      type: Boolean,
-      default: false,
+    templateId: {
+      type: Schema.Types.ObjectId,
+      ref: "Bill",
+      default: null,
     },
   },
   {

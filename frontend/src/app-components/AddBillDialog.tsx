@@ -90,14 +90,11 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
     toRate: 1,
 
     // Bill-specific fields
-    billProvider: "",
     dueDate: format(new Date(), "dd/MM/yyyy"),
     billStatus: "unpaid",
-    paymentMethod: "manual",
     billFrequency: "monthly",
     isRecurring: true,
     reminderDays: 3,
-    autoPayEnabled: false,
   });
 
   const isEditing = !!editingBill;
@@ -117,14 +114,11 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
         toRate: editingBill.toRate,
 
         // Bill-specific fields
-        billProvider: editingBill.billProvider,
         dueDate: editingBill.dueDate,
         billStatus: editingBill.billStatus,
-        paymentMethod: editingBill.paymentMethod,
         billFrequency: editingBill.billFrequency,
         isRecurring: editingBill.isRecurring,
         reminderDays: editingBill.reminderDays || 3,
-        autoPayEnabled: editingBill.autoPayEnabled || false,
       });
       setShowExchangeRate(editingBill.currency !== user?.currency);
     } else {
@@ -217,14 +211,11 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
       toRate: 1,
 
       // Bill-specific fields
-      billProvider: "",
       dueDate: format(new Date(), "dd/MM/yyyy"),
       billStatus: "unpaid",
-      paymentMethod: "manual",
       billFrequency: "monthly",
       isRecurring: true,
       reminderDays: 3,
-      autoPayEnabled: false,
     });
     setShowExchangeRate(false);
   };
@@ -234,8 +225,7 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
       !formData.title ||
       !formData.category ||
       formData.amount <= 0 ||
-      !formData.dueDate ||
-      !formData.billProvider
+      !formData.dueDate
     ) {
       toast({
         title: "Missing Fields",
@@ -254,14 +244,11 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
       toRate: formData.toRate,
 
       // Bill-specific fields
-      billProvider: formData.billProvider,
       dueDate: formData.dueDate,
       billStatus: formData.billStatus,
-      paymentMethod: formData.paymentMethod,
       billFrequency: formData.billFrequency,
       isRecurring: formData.isRecurring,
       reminderDays: formData.reminderDays,
-      autoPayEnabled: formData.autoPayEnabled,
     };
 
     try {
@@ -314,315 +301,162 @@ const AddBillDialog: React.FC<AddBillDialogProps> = ({
         </>
       }
     >
-      <div className="space-y-6 max-h-[65vh] overflow-y-auto px-1">
-        <div className="text-sm text-muted-foreground border-b pb-3">
+      <div className="space-y-2">
+        <p className="text-sm text-gray-500">
           <span className="text-red-500">*</span> Required fields
+        </p>
+        <div>
+          <label className="block text-sm mb-1">
+            Title <span className="text-red-500">*</span>
+          </label>
+          <Input
+            placeholder="Bill Title"
+            name="title"
+            value={formData.title}
+            onChange={handleInputChange}
+            required
+          />
         </div>
-
-        {/* Basic Information */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-900">
-            Basic Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Bill Title <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder="e.g., Electricity Bill"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                required
-                className="h-10"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Bill Provider <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder="e.g., Electricity Company"
-                name="billProvider"
-                value={formData.billProvider}
-                onChange={handleInputChange}
-                required
-                className="h-10"
-              />
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm mb-1">
+              Amount <span className="text-red-500">*</span>
+            </label>
+            <Input
+              placeholder="0.00"
+              name="amount"
+              value={formData.amount}
+              onChange={handleInputChange}
+              required
+              className="h-10"
+            />
           </div>
-        </div>
-
-        {/* Amount and Currency */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-900">Amount Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-medium">
-                <div className="flex items-center gap-2">
-                  <span>
-                    Amount <span className="text-red-500">*</span>
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    ₹{" "}
-                    {formData.toRate && formData.amount
-                      ? (formData.amount / formData.toRate).toFixed(2)
-                      : "0.00"}
-                  </span>
-                </div>
-              </label>
-              <Input
-                placeholder="0.00"
-                name="amount"
-                value={formData.amount}
-                onChange={handleInputChange}
-                required
-                className="h-10"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Currency</label>
-              <Select
-                value={formData.currency}
-                onValueChange={handleCurrencyChange}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Currency">
-                    {formData.currency}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {currencyOptions.map((currency) => (
-                    <SelectItem key={currency.code} value={currency.code}>
-                      {currency.name} ({currency.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Exchange Rate */}
-          {showExchangeRate && (
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="space-y-2">
-                <label className="text-xs text-muted-foreground">
-                  {user?.currency || "INR"}
-                </label>
-                <Input
-                  placeholder="Exchange rate"
-                  value={formData.fromRate || 1}
-                  onChange={(e) =>
-                    handleExchangeRateChange("fromRate", e.target.value)
-                  }
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  disabled
-                  className="h-9"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs text-muted-foreground">
+          <div className="space-y-2">
+            <label className="block text-sm mb-1">Currency</label>
+            <Select
+              value={formData.currency}
+              onValueChange={handleCurrencyChange}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Currency">
                   {formData.currency}
-                </label>
-                <Input
-                  placeholder="Exchange rate"
-                  value={formData.toRate || 1}
-                  onChange={(e) =>
-                    handleExchangeRateChange("toRate", e.target.value)
-                  }
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="h-9"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Category and Due Date */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-900">Schedule</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Category <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={formData.category}
-                onValueChange={handleCategoryChange}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BILL_CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Due Date <span className="text-red-500">*</span>
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full h-10 justify-start text-left font-normal",
-                      !formData.dueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.dueDate ? (
-                      format(
-                        parse(formData.dueDate, "dd/MM/yyyy", new Date()),
-                        "dd/MM/yyyy"
-                      )
-                    ) : (
-                      <span>Pick a due date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    className="pointer-events-auto"
-                    mode="single"
-                    selected={parse(formData.dueDate, "dd/MM/yyyy", new Date())}
-                    onSelect={handleDateChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {currencyOptions.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    {currency.name} ({currency.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-
-        {/* Payment Settings */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-900">
-            Payment Settings
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Payment Method</label>
-              <Select
-                value={formData.paymentMethod}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    paymentMethod: value as PaymentMethod,
-                  }))
-                }
+        <div>
+          <label className="block text-sm mb-1">
+            Category <span className="text-red-500">*</span>
+          </label>
+          <Select
+            value={formData.category}
+            onValueChange={handleCategoryChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {BILL_CATEGORIES.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm mb-1">
+            Due Date <span className="text-red-500">*</span>
+          </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[180px] justify-start text-left font-normal",
+                  !formData.dueDate && "text-muted-foreground"
+                )}
               >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((method) => (
-                    <SelectItem key={method} value={method}>
-                      {method.charAt(0).toUpperCase() +
-                        method.slice(1).replace("-", " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Bill Frequency</label>
-              <Select
-                value={formData.billFrequency}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    billFrequency: value as BillFrequency,
-                  }))
-                }
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BILL_FREQUENCIES.map((frequency) => (
-                    <SelectItem key={frequency} value={frequency}>
-                      {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {formData.dueDate ? (
+                  format(
+                    parse(formData.dueDate, "dd/MM/yyyy", new Date()),
+                    "dd/MM/yyyy"
+                  )
+                ) : (
+                  <span>Pick a due date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                className="pointer-events-auto"
+                mode="single"
+                selected={parse(formData.dueDate, "dd/MM/yyyy", new Date())}
+                onSelect={handleDateChange}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Bill Frequency</label>
+          <Select
+            value={formData.billFrequency}
+            onValueChange={(value) =>
+              setFormData((prev) => ({
+                ...prev,
+                billFrequency: value as BillFrequency,
+              }))
+            }
+          >
+            <SelectTrigger className="h-10">
+              <SelectValue placeholder="Select frequency" />
+            </SelectTrigger>
+            <SelectContent>
+              {BILL_FREQUENCIES.map((frequency) => (
+                <SelectItem key={frequency} value={frequency}>
+                  {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Recurring Bill</label>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={formData.isRecurring || false}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  isRecurring: checked,
+                }))
+              }
+            />
+            <Label htmlFor="recurring">Enable recurring bill</Label>
           </div>
         </div>
-
-        {/* Preferences */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-gray-900">Preferences</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center space-x-3">
-              <Switch
-                checked={formData.isRecurring}
-                onCheckedChange={(checked) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    isRecurring: checked,
-                  }))
-                }
-              />
-              <div className="space-y-1">
-                <Label htmlFor="recurring" className="text-sm font-medium">
-                  Recurring Bill
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  This bill repeats automatically
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <Switch
-                checked={formData.autoPayEnabled || false}
-                onCheckedChange={(checked) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    autoPayEnabled: checked,
-                  }))
-                }
-              />
-              <div className="space-y-1">
-                <Label htmlFor="autopay" className="text-sm font-medium">
-                  Auto Pay
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Enable automatic payments
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Reminder Days</label>
-              <Input
-                placeholder="3"
-                name="reminderDays"
-                value={formData.reminderDays}
-                onChange={handleInputChange}
-                type="number"
-                min="0"
-                max="30"
-                className="h-10"
-              />
-            </div>
-          </div>
+        <div>
+          <label className="block text-sm mb-1">Reminder Days</label>
+          <Input
+            placeholder="3"
+            name="reminderDays"
+            value={formData.reminderDays}
+            onChange={handleInputChange}
+            type="number"
+            min="0"
+            max="30"
+            className="h-10"
+          />
         </div>
       </div>
     </GeneralDialog>

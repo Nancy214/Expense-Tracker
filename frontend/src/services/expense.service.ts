@@ -19,9 +19,14 @@ expenseApi.interceptors.request.use((config) => {
   return config;
 });
 
-export const getExpenses = async (): Promise<ExpenseResponseType[]> => {
+export const getExpenses = async (
+  page = 1,
+  limit = 10
+): Promise<{ expenses: any[]; total: number; page: number; limit: number }> => {
   try {
-    const response = await expenseApi.get(`/get-expenses`);
+    const response = await expenseApi.get(
+      `/get-expenses?page=${page}&limit=${limit}`
+    );
     return response.data;
   } catch (error) {
     console.error("Error fetching expenses:", error);
@@ -81,8 +86,9 @@ export const deleteExpense = async (id: string): Promise<void> => {
 
 export const getMonthlyStats = async () => {
   try {
-    const response = await expenseApi.get(`/get-expenses`);
-    const expenses = response.data;
+    // Fetch up to 1000 expenses for stats (adjust as needed)
+    const response = await getExpenses(1, 1000);
+    const expenses = response.expenses;
 
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -116,6 +122,16 @@ export const getMonthlyStats = async () => {
     };
   } catch (error) {
     console.error("Error fetching monthly stats:", error);
+    throw error;
+  }
+};
+
+// Add a function to trigger the recurring expenses job manually
+export const triggerRecurringExpensesJob = async (): Promise<void> => {
+  try {
+    await expenseApi.post("/trigger-recurring");
+  } catch (error) {
+    console.error("Error triggering recurring expenses job:", error);
     throw error;
   }
 };

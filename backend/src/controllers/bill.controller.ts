@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Bill } from "../models/bill.model";
 import BillType, { BillStatus } from "../types/bill";
+import { addMonths, addQuarters, addYears, isAfter } from "date-fns";
 
 // Get all bills for a user
 export const getBills = async (req: Request, res: Response) => {
@@ -56,6 +57,45 @@ export const createBill = async (req: Request, res: Response) => {
     const bill = new Bill(billData);
     await bill.save();
 
+    // Recurring instance generation
+    if (bill.isRecurring && bill.billFrequency !== "one-time") {
+      const start = new Date(bill.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let current = new Date(start);
+      let end = today;
+      while (!isAfter(current, end)) {
+        const dateStr = current.toISOString().slice(0, 10);
+        // Skip the template's original due date
+        if (dateStr !== start.toISOString().slice(0, 10)) {
+          const exists = await Bill.findOne({
+            templateId: bill._id,
+            dueDate: current,
+            userId: bill.userId,
+          });
+          if (!exists) {
+            await Bill.create({
+              ...bill.toObject(),
+              _id: undefined,
+              dueDate: current,
+              templateId: bill._id,
+              isRecurring: false,
+              userId: bill.userId,
+            });
+          }
+        }
+        if (bill.billFrequency === "monthly") {
+          current = addMonths(current, 1);
+        } else if (bill.billFrequency === "quarterly") {
+          current = addQuarters(current, 1);
+        } else if (bill.billFrequency === "yearly") {
+          current = addYears(current, 1);
+        } else {
+          break;
+        }
+      }
+    }
+
     res.status(201).json(bill);
   } catch (error) {
     console.error("Error creating bill:", error);
@@ -80,6 +120,45 @@ export const updateBill = async (req: Request, res: Response) => {
 
     if (!bill) {
       return res.status(404).json({ message: "Bill not found" });
+    }
+
+    // Recurring instance generation
+    if (bill && bill.isRecurring && bill.billFrequency !== "one-time") {
+      const start = new Date(bill.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let current = new Date(start);
+      let end = today;
+      while (!isAfter(current, end)) {
+        const dateStr = current.toISOString().slice(0, 10);
+        // Skip the template's original due date
+        if (dateStr !== start.toISOString().slice(0, 10)) {
+          const exists = await Bill.findOne({
+            templateId: bill._id,
+            dueDate: current,
+            userId: bill.userId,
+          });
+          if (!exists) {
+            await Bill.create({
+              ...bill.toObject(),
+              _id: undefined,
+              dueDate: current,
+              templateId: bill._id,
+              isRecurring: false,
+              userId: bill.userId,
+            });
+          }
+        }
+        if (bill.billFrequency === "monthly") {
+          current = addMonths(current, 1);
+        } else if (bill.billFrequency === "quarterly") {
+          current = addQuarters(current, 1);
+        } else if (bill.billFrequency === "yearly") {
+          current = addYears(current, 1);
+        } else {
+          break;
+        }
+      }
     }
 
     res.json(bill);

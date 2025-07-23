@@ -11,6 +11,8 @@ import profileRoutes from "./routes/profile.routes";
 import billRoutes from "./routes/bill.routes";
 import axios from "axios";
 import currencyRoutes from "./routes/currency.routes";
+import cron from "node-cron";
+import { Expense } from "./models/expense.model";
 
 dotenv.config();
 
@@ -59,6 +61,29 @@ function getToday() {
   const now = new Date();
   return now.toISOString().slice(0, 10);
 }
+
+cron.schedule("0 0 * * *", async () => {
+  // Recurring Expenses only
+  const recurringExpenses = await Expense.find({ isRecurring: true });
+  const today = getToday();
+  for (const template of recurringExpenses) {
+    // Check if an instance for today exists
+    const exists = await Expense.findOne({
+      templateId: template._id,
+      date: today,
+    });
+    if (!exists) {
+      await Expense.create({
+        ...template.toObject(),
+        _id: undefined,
+        date: today,
+        templateId: template._id,
+        isRecurring: false,
+      });
+    }
+  }
+  console.log("Recurring expenses processed for", today);
+});
 
 // Helper to get next date for a given frequency
 function getNextDate(date: Date, frequency: string) {

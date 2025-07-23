@@ -12,7 +12,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { format, parse } from "date-fns";
+import { format, parse, isAfter } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -36,6 +36,7 @@ import { Notification } from "@/app-components/Notification";
 import { checkBudgetReminders } from "@/services/budget.service";
 import AddExpenseDialog from "@/app-components/AddExpenseDialog";
 import { DateRange } from "react-day-picker";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ExpenseTypeWithId = Omit<ExpenseType, "date"> & {
   date: string | Date;
@@ -71,20 +72,25 @@ const TransactionsPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(10);
+
   useEffect(() => {
     const fetchExpenses = async () => {
-      const response = await getExpenses();
-      // Convert date strings back to Date objects
-      const expensesWithDates = response.map((expense) => ({
+      const response = await getExpenses(page, limit);
+      const expensesWithDates = response.expenses.map((expense: any) => ({
         ...expense,
         date: format(expense.date, "dd/MM/yyyy"),
         description: expense.description ?? "",
         currency: expense.currency ?? "INR",
       }));
       setTransactions(expensesWithDates);
+      setTotal(response.total);
+      setLimit(response.limit);
     };
     fetchExpenses();
-  }, []);
+  }, [page, limit]);
 
   useEffect(() => {
     fetchBudgetReminders();
@@ -103,20 +109,16 @@ const TransactionsPage = () => {
   };
 
   const fetchExpenses = async () => {
-    const response = await getExpenses();
-    // Convert date strings back to Date objects, preserve _id, ensure description is always a string
-    const expensesWithDates = response.map(
-      (expense: any): ExpenseTypeWithId => {
-        const { description, ...rest } = expense;
-        return {
-          ...rest,
-          date: format(expense.date, "dd/MM/yyyy"),
-          _id: expense._id,
-          description: description !== undefined ? String(description) : "",
-        };
-      }
-    );
+    const response = await getExpenses(page, limit);
+    const expensesWithDates = response.expenses.map((expense: any) => ({
+      ...expense,
+      date: format(expense.date, "dd/MM/yyyy"),
+      description: expense.description ?? "",
+      currency: expense.currency ?? "INR",
+    }));
     setTransactions(expensesWithDates);
+    setTotal(response.total);
+    setLimit(response.limit);
   };
 
   const [transactions, setTransactions] = useState<ExpenseTypeWithId[]>([]);
@@ -146,6 +148,29 @@ const TransactionsPage = () => {
   );
   const [editingExpense, setEditingExpense] =
     useState<ExpenseTypeWithId | null>(null);
+  const [activeTab, setActiveTab] = useState<"all" | "recurring">("all");
+  // Add a state to track if all transactions are loaded for recurring tab
+  const [allTransactions, setAllTransactions] = useState<
+    ExpenseTypeWithId[] | null
+  >(null);
+
+  useEffect(() => {
+    if (activeTab === "recurring") {
+      // Fetch all transactions for recurring tab
+      (async () => {
+        const response = await getExpenses(1, 10000); // Large limit to get all
+        const expensesWithDates = response.expenses.map((expense: any) => ({
+          ...expense,
+          date: format(expense.date, "dd/MM/yyyy"),
+          description: expense.description ?? "",
+          currency: expense.currency ?? "INR",
+        }));
+        setAllTransactions(expensesWithDates);
+      })();
+    } else {
+      setAllTransactions(null);
+    }
+  }, [activeTab]);
 
   const activeReminders = budgetReminders.filter(
     (reminder) => !dismissedReminders.has(reminder.id)
@@ -231,15 +256,17 @@ const TransactionsPage = () => {
 
     try {
       await deleteExpense(expenseToDelete);
-      const updatedExpenses = await getExpenses();
+      const response = await getExpenses(page, limit);
       setTransactions(
-        updatedExpenses.map((expense: any) => ({
+        response.expenses.map((expense: any) => ({
           ...expense,
           date: format(expense.date, "dd/MM/yyyy"),
           description: expense.description ?? "",
           currency: expense.currency ?? "INR",
         }))
       );
+      setTotal(response.total);
+      setLimit(response.limit);
       toast({
         title: "Success",
         description: "Expense deleted successfully",
@@ -301,6 +328,37 @@ const TransactionsPage = () => {
 
       return matchesCategory && matchesType && matchesDate && matchesSearch;
     }
+  );
+
+  // Helper to get a Date object from transaction.date
+  const getTransactionDate = (t: ExpenseTypeWithId) => {
+    if (typeof t.date === "string") {
+      // Try dd/MM/yyyy first, fallback to ISO
+      const parsed = parse(t.date, "dd/MM/yyyy", new Date());
+      if (isNaN(parsed.getTime())) {
+        const iso = new Date(t.date);
+        return isNaN(iso.getTime()) ? new Date() : iso;
+      }
+      return parsed;
+    }
+    if (t.date instanceof Date) return t.date;
+    return new Date();
+  };
+
+  // Filter for recurring transactions
+  // In recurringTransactions, show only the template (isRecurring: true, no templateId) and all generated instances (isRecurring: false, templateId set)
+  const today = new Date();
+  // Use allTransactions for recurring tab, transactions for all tab
+  const recurringSource = allTransactions || transactions;
+  const recurringTransactions = recurringSource.filter(
+    (t) =>
+      ((t.isRecurring && !t.templateId) ||
+        (!t.isRecurring && !!t.templateId)) &&
+      !isAfter(getTransactionDate(t), today)
+  );
+  // In nonRecurringTransactions, show only non-recurring, non-template, non-instance transactions
+  const nonRecurringTransactions = transactions.filter(
+    (t) => !t.isRecurring && !t.templateId
   );
 
   // Calculate total expenses by currency
@@ -370,21 +428,24 @@ const TransactionsPage = () => {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
       {/* Budget Reminders */}
-      {activeReminders.length > 0 && (
-        <div className="mb-6 space-y-3">
-          <h3 className="text-lg font-semibold text-gray-900">Budget Alerts</h3>
-          {activeReminders.map((reminder) => (
-            <Notification
-              key={reminder.id}
-              type={reminder.type}
-              title={reminder.title}
-              message={reminder.message}
-              onClose={() => dismissReminder(reminder.id)}
-              className="animate-in slide-in-from-top-2 duration-300"
-            />
-          ))}
-        </div>
-      )}
+      {(user as any)?.settings?.billsAndBudgetsAlert !== false &&
+        activeReminders.length > 0 && (
+          <div className="mb-6 space-y-3">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Budget Alerts
+            </h3>
+            {activeReminders.map((reminder) => (
+              <Notification
+                key={reminder.id}
+                type={reminder.type}
+                title={reminder.title}
+                message={reminder.message}
+                onClose={() => dismissReminder(reminder.id)}
+                className="animate-in slide-in-from-top-2 duration-300"
+              />
+            ))}
+          </div>
+        )}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -610,13 +671,112 @@ const TransactionsPage = () => {
             )}
           </div>
 
-          {filteredTransactions.length === 0 ? (
-            <p className="text-gray-500">No expenses found.</p>
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) =>
+              setActiveTab(value as "all" | "recurring")
+            }
+            className="mb-4 mt-4"
+          >
+            <TabsList>
+              <TabsTrigger value="all">All Transactions</TabsTrigger>
+              <TabsTrigger value="recurring">
+                Recurring Transactions
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {activeTab === "all" ? (
+            filteredTransactions.length === 0 ? (
+              <p className="text-gray-500">No expenses found.</p>
+            ) : (
+              <>
+                <div className="mt-6">
+                  <ExpenseDataTable
+                    data={filteredTransactions as any}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                </div>
+                <div className="mt-4 flex justify-between p-4 bg-muted/50 rounded-lg">
+                  <span className="font-medium">Transaction Summary</span>
+                  <div className="text-right space-y-1">
+                    {Object.entries(totalExpensesByCurrency).map(
+                      ([currency, totals], index) => {
+                        const currencySymbols: { [key: string]: string } = {
+                          INR: "₹",
+                          EUR: "€",
+                          GBP: "£",
+                          JPY: "¥",
+                          USD: "$",
+                          CAD: "C$",
+                          AUD: "A$",
+                          CHF: "CHF",
+                          CNY: "¥",
+                          KRW: "₩",
+                        };
+                        const symbol = currencySymbols[currency] || currency;
+                        return (
+                          <div key={currency} className="space-y-1">
+                            <div className="text-sm">
+                              <span className="text-green-600 font-medium">
+                                {symbol}
+                                {totals.income.toFixed(2)} Income
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-red-600 font-medium">
+                                {symbol}
+                                {totals.expense.toFixed(2)} Expense
+                              </span>
+                            </div>
+                            <div className="text-sm border-t pt-1">
+                              <span
+                                className={`font-bold ${
+                                  totals.net >= 0
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {symbol}
+                                {totals.net.toFixed(2)} Net
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span>
+                    Page {page} of {Math.ceil(total / limit) || 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      setPage((p) => (p * limit < total ? p + 1 : p))
+                    }
+                    disabled={page * limit >= total}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </>
+            )
+          ) : recurringTransactions.length === 0 ? (
+            <p className="text-gray-500">No recurring transactions found.</p>
           ) : (
             <>
               <div className="mt-6">
                 <ExpenseDataTable
-                  data={filteredTransactions as any}
+                  data={recurringTransactions as any}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />

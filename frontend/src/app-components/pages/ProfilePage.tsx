@@ -184,11 +184,11 @@ const ProfilePage: React.FC = () => {
 
   const fetchAccountStats = async () => {
     try {
-      const [expenses, budgets] = await Promise.all([
-        getExpenses(),
+      const [expenseResponse, budgets] = await Promise.all([
+        getExpenses(1, 1000),
         getBudgets(),
       ]);
-
+      const expenses = expenseResponse.expenses;
       const totalAmount = expenses.reduce(
         (sum, expense) => sum + expense.amount,
         0

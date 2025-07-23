@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format, parse, isValid } from "date-fns";
+import { format, parse, isValid, parseISO } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -113,10 +113,23 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         category: editingExpense.category,
         description: editingExpense.description || "",
         amount: editingExpense.amount,
-        date:
-          typeof editingExpense.date === "string"
-            ? editingExpense.date
-            : format(editingExpense.date, "dd/MM/yyyy"),
+        date: (() => {
+          if (!editingExpense.date) return format(new Date(), "dd/MM/yyyy");
+          if (typeof editingExpense.date === "string") {
+            const iso = parseISO(editingExpense.date);
+            if (isValid(iso)) return format(iso, "dd/MM/yyyy");
+            const parsed = parse(editingExpense.date, "dd/MM/yyyy", new Date());
+            if (isValid(parsed)) return format(parsed, "dd/MM/yyyy");
+            return format(new Date(), "dd/MM/yyyy");
+          }
+          if (
+            editingExpense.date instanceof Date &&
+            isValid(editingExpense.date)
+          ) {
+            return format(editingExpense.date, "dd/MM/yyyy");
+          }
+          return format(new Date(), "dd/MM/yyyy");
+        })(),
         currency: editingExpense.currency,
         type: editingExpense.type,
         isRecurring: editingExpense.isRecurring,
@@ -124,9 +137,26 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         fromRate: editingExpense.fromRate,
         toRate: editingExpense.toRate,
         endDate: editingExpense.endDate
-          ? typeof editingExpense.endDate === "string"
-            ? editingExpense.endDate
-            : format(editingExpense.endDate, "dd/MM/yyyy")
+          ? (() => {
+              if (typeof editingExpense.endDate === "string") {
+                const iso = parseISO(editingExpense.endDate);
+                if (isValid(iso)) return format(iso, "dd/MM/yyyy");
+                const parsed = parse(
+                  editingExpense.endDate,
+                  "dd/MM/yyyy",
+                  new Date()
+                );
+                if (isValid(parsed)) return format(parsed, "dd/MM/yyyy");
+                return undefined;
+              }
+              if (
+                editingExpense.endDate instanceof Date &&
+                isValid(editingExpense.endDate)
+              ) {
+                return format(editingExpense.endDate, "dd/MM/yyyy");
+              }
+              return undefined;
+            })()
           : undefined,
       });
       setShowExchangeRate(editingExpense.currency !== user?.currency);
@@ -276,20 +306,14 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
       category: formData.category,
       description: formData.description,
       amount: formData.amount,
-      date: new Date(
-        formData.date.split("/").reverse().join("-")
-      ).toISOString(),
+      date: formData.date, // keep as dd/MM/yyyy string for updateExpense
       currency: formData.currency,
       type: formData.type,
       isRecurring: formData.isRecurring,
       recurringFrequency: formData.recurringFrequency,
       fromRate: formData.fromRate,
       toRate: formData.toRate,
-      endDate: formData.endDate
-        ? new Date(
-            formData.endDate.split("/").reverse().join("-")
-          ).toISOString()
-        : undefined,
+      endDate: formData.endDate,
     };
 
     try {
@@ -300,7 +324,18 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
           description: "Transaction updated successfully",
         });
       } else {
-        await createExpense(newExpense as any);
+        // For create, convert to ISO string
+        await createExpense({
+          ...newExpense,
+          date: new Date(
+            formData.date.split("/").reverse().join("-")
+          ).toISOString(),
+          endDate: formData.endDate
+            ? new Date(
+                formData.endDate.split("/").reverse().join("-")
+              ).toISOString()
+            : undefined,
+        } as any);
         toast({
           title: "Success",
           description: "Transaction added successfully",

@@ -6,6 +6,7 @@ import {
   getBillStats,
   getOverdueBills,
   getUpcomingBills,
+  getBills,
 } from "@/services/bill.service";
 import { useToast } from "@/hooks/use-toast";
 import BillDataTable from "../BillDataTable";
@@ -25,10 +26,18 @@ const BillsPage = () => {
     (user as any).settings &&
     (user as any).settings.billsAndBudgetsAlert
   );
+  const [allBills, setAllBills] = useState<any[]>([]);
 
   useEffect(() => {
     fetchBillData();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const bills = await getBills();
+      setAllBills(bills);
+    })();
+  }, [refreshTrigger]);
 
   const fetchBillData = async () => {
     try {
@@ -91,9 +100,6 @@ const BillsPage = () => {
               {stats?.totalBills || 0}
             </div>
             <div className="text-xs mt-1">Total Bills</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              All bills in your account
-            </p>
           </CardContent>
         </Card>
         <Card className="flex-1">
@@ -102,9 +108,6 @@ const BillsPage = () => {
               {stats?.unpaidBills || 0}
             </div>
             <div className="text-xs mt-1">Unpaid Bills</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Bills awaiting payment
-            </p>
           </CardContent>
         </Card>
         <Card className="flex-1">
@@ -113,9 +116,6 @@ const BillsPage = () => {
               {stats?.overdueBills || 0}
             </div>
             <div className="text-xs mt-1">Overdue Bills</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Bills past due date
-            </p>
           </CardContent>
         </Card>
         <Card className="flex-1">
@@ -124,15 +124,12 @@ const BillsPage = () => {
               {stats?.upcomingBills || 0}
             </div>
             <div className="text-xs mt-1">Upcoming Bills</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Due within 7 days
-            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Alerts */}
-      {billsAndBudgetsAlertEnabled &&
+      {(user as any)?.settings?.billsAndBudgetsAlert !== false &&
         (overdueBills.length > 0 || upcomingBills.length > 0) && (
           <div className="space-y-3">
             {overdueBills.length > 0 && (
@@ -182,7 +179,7 @@ const BillsPage = () => {
 
       {/* Bills Table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <BillDataTable refreshTrigger={refreshTrigger} />
+        <BillDataTable bills={allBills} refreshTrigger={refreshTrigger} />
       </div>
     </div>
   );

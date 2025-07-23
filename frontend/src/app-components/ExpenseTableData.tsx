@@ -186,12 +186,30 @@ export function ExpenseDataTable({
       header: "Recurring",
       cell: ({ row }: { row: Row<ExpenseTypeWithId> }) => {
         const expense = row.original;
-        if (expense.isRecurring && expense.recurringFrequency) {
+        if (
+          expense.isRecurring &&
+          !expense.templateId &&
+          expense.recurringFrequency
+        ) {
           return (
             <div className="flex items-center gap-1">
               <Repeat className="h-3 w-3 text-blue-500" />
               <Badge variant="secondary" className="text-xs">
-                {expense.recurringFrequency}
+                {expense.recurringFrequency.charAt(0).toUpperCase() +
+                  expense.recurringFrequency.slice(1)}
+              </Badge>
+            </div>
+          );
+        }
+        if (!expense.isRecurring && expense.templateId) {
+          return (
+            <div className="flex items-center gap-1">
+              <Repeat className="h-3 w-3 text-gray-400" />
+              <Badge
+                variant="secondary"
+                className="text-xs bg-gray-100 text-gray-800"
+              >
+                Instance
               </Badge>
             </div>
           );

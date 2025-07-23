@@ -53,12 +53,16 @@ import { BillType } from "@/types/bill";
 
 interface BillDataTableProps {
   refreshTrigger?: number;
+  bills?: BillResponseType[];
 }
 
-const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
+const BillDataTable: React.FC<BillDataTableProps> = ({
+  refreshTrigger,
+  bills: billsProp,
+}) => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [bills, setBills] = useState<BillResponseType[]>([]);
+  const [bills, setBills] = useState<BillResponseType[]>(billsProp || []);
   const [filteredBills, setFilteredBills] = useState<BillResponseType[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingBill, setEditingBill] = useState<BillType | null>(null);
@@ -70,8 +74,13 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   useEffect(() => {
+    if (billsProp) {
+      setBills(billsProp);
+      setLoading(false);
+      return;
+    }
     fetchBills();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, billsProp]);
 
   useEffect(() => {
     applyFilters();
@@ -101,7 +110,6 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
       filtered = filtered.filter(
         (bill) =>
           bill.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          bill.billProvider.toLowerCase().includes(searchTerm.toLowerCase()) ||
           bill.category.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -229,35 +237,36 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
         </Button>
       </div>
 
-      {billReminders.length > 0 && (
-        <div className="mb-4 space-y-2">
-          {billReminders.map((bill) => (
-            <div
-              key={bill._id}
-              className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded flex items-center gap-2"
-            >
-              <Clock className="h-5 w-5 text-yellow-600" />
-              <span>
-                Reminder: <strong>{bill.title}</strong> is due on{" "}
-                {format(
-                  bill.dueDate instanceof Date
-                    ? bill.dueDate
-                    : parseISO(bill.dueDate),
-                  "dd/MM/yyyy"
-                )}{" "}
-                (in{" "}
-                {differenceInCalendarDays(
-                  bill.dueDate instanceof Date
-                    ? bill.dueDate
-                    : parseISO(bill.dueDate),
-                  today
-                )}{" "}
-                days)
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      {(user as any)?.settings?.billsAndBudgetsAlert !== false &&
+        billReminders.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {billReminders.map((bill) => (
+              <div
+                key={bill._id}
+                className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded flex items-center gap-2"
+              >
+                <Clock className="h-5 w-5 text-yellow-600" />
+                <span>
+                  Reminder: <strong>{bill.title}</strong> is due on{" "}
+                  {format(
+                    bill.dueDate instanceof Date
+                      ? bill.dueDate
+                      : parseISO(bill.dueDate),
+                    "dd/MM/yyyy"
+                  )}{" "}
+                  (in{" "}
+                  {differenceInCalendarDays(
+                    bill.dueDate instanceof Date
+                      ? bill.dueDate
+                      : parseISO(bill.dueDate),
+                    today
+                  )}{" "}
+                  days)
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
       {/* Filters */}
       <div className="bg-gray-50 rounded-lg p-4 space-y-4">
@@ -267,7 +276,7 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
               Search
             </label>
             <Input
-              placeholder="Search bills by title, provider, or category..."
+              placeholder="Search bills by title or category..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="h-10"
@@ -328,9 +337,6 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
                 Title
               </TableHead>
               <TableHead className="font-semibold text-gray-900">
-                Provider
-              </TableHead>
-              <TableHead className="font-semibold text-gray-900">
                 Category
               </TableHead>
               <TableHead className="font-semibold text-gray-900">
@@ -342,9 +348,6 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
               <TableHead className="font-semibold text-gray-900">
                 Status
               </TableHead>
-              <TableHead className="font-semibold text-gray-900">
-                Payment Method
-              </TableHead>
               <TableHead className="font-semibold text-gray-900 w-[80px]">
                 Actions
               </TableHead>
@@ -353,7 +356,7 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={6} className="text-center py-12">
                   <div className="space-y-2">
                     <div className="text-gray-400 text-lg">No bills found</div>
                     <p className="text-sm text-muted-foreground">
@@ -371,9 +374,6 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
                 <TableRow key={bill._id} className="hover:bg-gray-50">
                   <TableCell className="font-medium text-gray-900">
                     {bill.title}
-                  </TableCell>
-                  <TableCell className="text-gray-700">
-                    {bill.billProvider}
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="text-xs">
@@ -397,11 +397,6 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
                     {getStatusBadge(bill.billStatus, new Date(bill.dueDate))}
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-gray-700 capitalize">
-                      {bill.paymentMethod.replace("-", " ")}
-                    </span>
-                  </TableCell>
-                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -423,17 +418,14 @@ const BillDataTable: React.FC<BillDataTableProps> = ({ refreshTrigger }) => {
                               currency: bill.currency,
                               fromRate: bill.fromRate,
                               toRate: bill.toRate,
-                              billProvider: bill.billProvider,
                               dueDate: format(
                                 new Date(bill.dueDate),
                                 "dd/MM/yyyy"
                               ),
                               billStatus: bill.billStatus,
-                              paymentMethod: bill.paymentMethod,
                               billFrequency: bill.billFrequency,
                               isRecurring: bill.isRecurring,
                               reminderDays: bill.reminderDays,
-                              autoPayEnabled: bill.autoPayEnabled,
                             };
                             setEditingBill(billForEdit);
                             setShowAddDialog(true);

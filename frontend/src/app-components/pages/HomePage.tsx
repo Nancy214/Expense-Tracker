@@ -17,7 +17,8 @@ import { ExpenseType } from "@/types/expense";
 import AddBudgetDialog from "@/app-components/AddBudgetDialog";
 import AddBillDialog from "@/app-components/AddBillDialog";
 import { BillType } from "@/types/bill";
-import { getMonthlyStats } from "@/services/expense.service";
+import { getExpenses } from "@/services/expense.service";
+import { isSameMonth, isSameYear } from "date-fns";
 
 import {
   getUpcomingBills,
@@ -142,12 +143,14 @@ const HomePage = () => {
   const [upcomingBills, setUpcomingBills] = useState<any[]>([]);
   const [overdueBills, setOverdueBills] = useState<any[]>([]);
   const [billReminders, setBillReminders] = useState<any[]>([]);
+  const [monthlyExpenses, setMonthlyExpenses] = useState<any[]>([]);
 
   useEffect(() => {
     fetchBudgetReminders();
     fetchFinancialOverview();
     fetchBillsAlerts();
     fetchBillReminders();
+    fetchCurrentMonthExpenses();
   }, []);
 
   const fetchBudgetReminders = async () => {
@@ -165,33 +168,28 @@ const HomePage = () => {
   const fetchFinancialOverview = async () => {
     try {
       setFinancialLoading(true);
-      const [monthlyStats, budgetProgress] = await Promise.all([
-        getMonthlyStats(),
-        getBudgetProgress(),
-      ]);
-
+      const budgetProgress = await getBudgetProgress();
+      // Use monthlyExpenses for all calculations
+      const totalIncome = monthlyExpenses
+        .filter((e) => e.type === "income")
+        .reduce((sum, e) => sum + e.amount, 0);
+      const totalExpenses = monthlyExpenses
+        .filter((e) => e.type === "expense")
+        .reduce((sum, e) => sum + e.amount, 0);
+      const balance = totalIncome - totalExpenses;
       // Calculate savings rate
-      const savingsRate =
-        monthlyStats.totalIncome > 0
-          ? (monthlyStats.balance / monthlyStats.totalIncome) * 100
-          : 0;
-
-      // Calculate expense rate (percentage of income spent)
+      const savingsRate = totalIncome > 0 ? (balance / totalIncome) * 100 : 0;
+      // Calculate expense rate
       const expenseRate =
-        monthlyStats.totalIncome > 0
-          ? (monthlyStats.totalExpenses / monthlyStats.totalIncome) * 100
-          : 0;
-
+        totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : 0;
       // Analyze budget progress
       const totalBudgets = budgetProgress.budgets.length;
       let overBudgetCount = 0;
       let warningBudgetCount = 0;
       let onTrackBudgetCount = 0;
       let totalProgress = 0;
-
       budgetProgress.budgets.forEach((budget) => {
         totalProgress += budget.progress;
-
         if (budget.isOverBudget) {
           overBudgetCount++;
         } else if (budget.progress >= 80) {
@@ -200,10 +198,8 @@ const HomePage = () => {
           onTrackBudgetCount++;
         }
       });
-
       const averageBudgetProgress =
         totalBudgets > 0 ? totalProgress / totalBudgets : 0;
-
       setFinancialData({
         savingsRate,
         expenseRate,
@@ -246,6 +242,21 @@ const HomePage = () => {
         return daysLeft >= 0 && daysLeft <= bill.reminderDays;
       });
       setBillReminders(reminders);
+    } catch (error) {
+      // Optionally handle error
+    }
+  };
+
+  const fetchCurrentMonthExpenses = async () => {
+    try {
+      // Fetch up to 1000 expenses for the current month
+      const response = await getExpenses(1, 1000);
+      const now = new Date();
+      const currentMonthExpenses = response.expenses.filter((expense: any) => {
+        const expenseDate = new Date(expense.date);
+        return isSameMonth(expenseDate, now) && isSameYear(expenseDate, now);
+      });
+      setMonthlyExpenses(currentMonthExpenses);
     } catch (error) {
       // Optionally handle error
     }

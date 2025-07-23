@@ -20,16 +20,14 @@ export interface BillType {
   userId: Schema.Types.ObjectId;
 
   // Bill-specific fields
-  billProvider: string;
   dueDate: Date;
   billStatus: BillStatus;
-  paymentMethod: PaymentMethod;
   billFrequency: BillFrequency;
   isRecurring: boolean;
   nextDueDate?: Date;
   lastPaidDate?: Date;
   reminderDays?: number; // Days before due date to send reminder
-  autoPayEnabled?: boolean;
+  templateId?: Schema.Types.ObjectId;
 }
 
 export default BillType;

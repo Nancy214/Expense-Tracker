@@ -18,16 +18,13 @@ export interface BillType {
   toRate?: number;
 
   // Bill-specific fields
-  billProvider: string;
   dueDate: string; // Format: dd/MM/yyyy
   billStatus: BillStatus;
-  paymentMethod: PaymentMethod;
   billFrequency: BillFrequency;
   isRecurring: boolean;
   nextDueDate?: string;
   lastPaidDate?: string;
   reminderDays?: number;
-  autoPayEnabled?: boolean;
 }
 
 export interface BillResponseType {
@@ -40,16 +37,13 @@ export interface BillResponseType {
   toRate?: number;
 
   // Bill-specific fields
-  billProvider: string;
   dueDate: Date;
   billStatus: BillStatus;
-  paymentMethod: PaymentMethod;
   billFrequency: BillFrequency;
   isRecurring: boolean;
   nextDueDate?: Date;
   lastPaidDate?: Date;
   reminderDays?: number;
-  autoPayEnabled?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
