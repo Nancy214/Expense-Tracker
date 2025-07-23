@@ -45,7 +45,8 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(false);
   const [error, setError] = useState("");
   const [currencyOptions, setCurrencyOptions] = useState<
     { code: string; name: string }[]
@@ -231,7 +232,7 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleSaveProfile = async () => {
-    setIsLoading(true);
+    setIsProfileLoading(true);
     try {
       // If photo was removed, call backend to delete it first
       if (photoRemoved) {
@@ -246,17 +247,8 @@ const ProfilePage: React.FC = () => {
         dateOfBirth: updatedProfile.user.dateOfBirth || "",
         currency: updatedProfile.user.currency || "INR",
       });
-      const updatedUser: AuthUser = {
-        id: String(user?.id ?? ""),
-        email: String(updatedProfile.user.email ?? ""),
-        name: String(updatedProfile.user.name ?? ""),
-        profilePicture: String(updatedProfile.user.profilePicture ?? ""),
-        phoneNumber: String(updatedProfile.user.phoneNumber ?? ""),
-        dateOfBirth: String(updatedProfile.user.dateOfBirth ?? ""),
-        currency: String(updatedProfile.user.currency ?? ""),
-      };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      updateUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedProfile.user));
+      updateUser(updatedProfile.user);
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
@@ -271,7 +263,7 @@ const ProfilePage: React.FC = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsProfileLoading(false);
     }
   };
 
@@ -290,7 +282,7 @@ const ProfilePage: React.FC = () => {
 
   // When saving, convert to 24h
   const handleSaveSettings = async () => {
-    setIsLoading(true);
+    setIsSettingsLoading(true);
     try {
       const updatedSettings = await updateSettings({
         ...settings,
@@ -334,7 +326,7 @@ const ProfilePage: React.FC = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSettingsLoading(false);
     }
   };
 
@@ -528,14 +520,17 @@ const ProfilePage: React.FC = () => {
               <div className="flex gap-2">
                 {isEditing ? (
                   <>
-                    <Button onClick={handleSaveProfile} disabled={isLoading}>
+                    <Button
+                      onClick={handleSaveProfile}
+                      disabled={isProfileLoading}
+                    >
                       <Save className="h-4 w-4 mr-2" />
-                      {isLoading ? "Saving..." : "Save Changes"}
+                      {isProfileLoading ? "Saving..." : "Save Changes"}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={handleCancelEdit}
-                      disabled={isLoading}
+                      disabled={isProfileLoading}
                     >
                       Cancel
                     </Button>
@@ -715,10 +710,10 @@ const ProfilePage: React.FC = () => {
               <Button
                 onClick={handleSaveSettings}
                 className="w-full"
-                disabled={isLoading}
+                disabled={isSettingsLoading}
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isLoading ? "Saving..." : "Save Settings"}
+                {isSettingsLoading ? "Saving..." : "Save Settings"}
               </Button>
             </CardContent>
           </Card>

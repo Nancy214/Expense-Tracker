@@ -11,6 +11,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import bcrypt from "bcrypt";
+import sharp from "sharp";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
@@ -149,12 +150,19 @@ export const updateProfile = async (req: Request, res: Response) => {
 
           const s3Key = `profile-pictures/${profilePictureName}`;
 
+          // Use sharp to resize and remove metadata
+          const resizedBuffer = await sharp(req.file.buffer)
+            .resize(512, 512, { fit: "cover" })
+            .toFormat(fileExtension === "png" ? "png" : "jpeg")
+            .jpeg({ quality: 90 })
+            .toBuffer();
+
           const uploadCommand = new PutObjectCommand({
             Bucket: AWS_BUCKET_NAME,
             Key: s3Key,
-            Body: req.file.buffer,
+            Body: resizedBuffer,
             ContentType: req.file.mimetype,
-            ACL: "private", // Not public
+            //ACL: "private", // Not public
           });
 
           await s3Client.send(uploadCommand);
@@ -201,6 +209,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     const settingsDoc = await Settings.findById(updatedUser._id);
     const userWithSettings = {
       ...updatedUser.toObject(),
+      profilePicture: profilePictureUrl,
       settings: settingsDoc || {},
     };
 
