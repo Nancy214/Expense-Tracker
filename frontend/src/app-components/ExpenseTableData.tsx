@@ -78,7 +78,7 @@ export function ExpenseDataTable({
       cell: ({ row }: { row: Row<ExpenseTypeWithId> }) => {
         const expense = row.original;
         // Debug log to inspect the data
-        console.log("Expense row:", expense);
+
         // Show icon for recurring templates and all instances
         const isRecurringInstance =
           (!expense.isRecurring && !!expense.templateId) ||

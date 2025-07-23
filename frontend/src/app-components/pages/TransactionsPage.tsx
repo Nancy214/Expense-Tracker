@@ -11,6 +11,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { format, parse, isAfter } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -37,6 +38,7 @@ import { checkBudgetReminders } from "@/services/budget.service";
 import AddExpenseDialog from "@/app-components/AddExpenseDialog";
 import { DateRange } from "react-day-picker";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import * as XLSX from "xlsx";
 
 type ExpenseTypeWithId = Omit<ExpenseType, "date"> & {
   date: string | Date;
@@ -65,6 +67,87 @@ const INCOME_CATEGORIES: string[] = [
   "Refunds",
   "Other Income",
 ];
+
+// Utility to convert array of objects to CSV, excluding _id, userId, templateId
+function arrayToCSV(data: any[]) {
+  if (!data.length) return "";
+  const replacer = (key: string, value: any) =>
+    value === null || value === undefined ? "" : value;
+  const exclude = ["_id", "userId", "templateId"];
+  // Dynamically determine if fromRate/toRate should be included for each row
+  // We'll build a superset of all keys that should be included
+  let headerSet = new Set<string>();
+  data.forEach((row) => {
+    Object.keys(row).forEach((key) => {
+      if (!exclude.includes(key)) {
+        if (key === "fromRate" || key === "toRate") {
+          // Only include if currency has changed
+          if (row.fromRate !== 1 || row.toRate !== 1) {
+            headerSet.add(key);
+          }
+        } else {
+          headerSet.add(key);
+        }
+      }
+    });
+  });
+  const header = Array.from(headerSet);
+  const csv = [
+    header.join(","),
+    ...data.map((row) =>
+      header
+        .map((fieldName) => {
+          if (
+            (fieldName === "fromRate" || fieldName === "toRate") &&
+            row.fromRate === 1 &&
+            row.toRate === 1
+          ) {
+            return "";
+          }
+          return JSON.stringify(row[fieldName], replacer);
+        })
+        .join(",")
+    ),
+  ].join("\r\n");
+  return csv;
+}
+
+function downloadCSV(data: any[], filename = "expenses.csv") {
+  const csv = arrayToCSV(data);
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+// Utility to export to Excel using xlsx
+function downloadExcel(data: any[], filename = "expenses.xlsx") {
+  if (!data.length) return;
+  const exclude = ["_id", "userId", "templateId"];
+  // Remove excluded fields and fromRate/toRate if not needed
+  const processed = data.map((row) => {
+    const copy = { ...row };
+    exclude.forEach((key) => delete copy[key]);
+    if (copy.fromRate === 1 && copy.toRate === 1) {
+      delete copy.fromRate;
+      delete copy.toRate;
+    }
+    // Convert receipts array to comma-separated string if present
+    if (Array.isArray(copy.receipts)) {
+      copy.receipts = copy.receipts.join(", ");
+    }
+    return copy;
+  });
+  const ws = XLSX.utils.json_to_sheet(processed);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Expenses");
+  XLSX.writeFile(wb, filename);
+}
 
 const TransactionsPage = () => {
   const { toast } = useToast();
@@ -645,6 +728,34 @@ const TransactionsPage = () => {
               <p className="text-gray-500">No expenses found.</p>
             ) : (
               <>
+                <div className="flex justify-end mb-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="flex items-center gap-2"
+                      >
+                        Export <ChevronDownIcon className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() =>
+                          downloadCSV(filteredTransactions, "expenses.csv")
+                        }
+                      >
+                        Export as CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          downloadExcel(filteredTransactions, "expenses.xlsx")
+                        }
+                      >
+                        Export as Excel
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
                 <div className="mt-6">
                   <ExpenseDataTable
                     data={filteredTransactions as any}

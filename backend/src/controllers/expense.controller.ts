@@ -208,6 +208,15 @@ export const uploadReceipt = async (req: AuthRequest, res: Response) => {
 
     let fileBuffer = req.file.buffer;
     let contentType = req.file.mimetype;
+    // Restrict PDF size (e.g., 5MB)
+    if (
+      contentType === "application/pdf" &&
+      fileBuffer.length > 5 * 1024 * 1024
+    ) {
+      return res
+        .status(400)
+        .json({ message: "PDF file size exceeds 5MB limit" });
+    }
     // If image, process with sharp
     if (contentType.startsWith("image/")) {
       fileBuffer = await sharp(req.file.buffer)
