@@ -7,6 +7,7 @@ import {
   deleteExpense,
   triggerRecurringExpensesJob,
   getReceiptUrl,
+  deleteRecurringExpense,
 } from "../controllers/expense.controller";
 import { upload } from "../config/multer";
 import { uploadReceipt } from "../controllers/expense.controller";
@@ -48,6 +49,11 @@ router.delete(
   "/:id",
   authenticateToken as RequestHandler,
   deleteExpense as RequestHandler
+);
+router.delete(
+  "/recurring/:id",
+  authenticateToken as RequestHandler,
+  deleteRecurringExpense as RequestHandler
 );
 
 export default router;

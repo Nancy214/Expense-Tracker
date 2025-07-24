@@ -7,6 +7,7 @@ import {
 const router = Router();
 
 router.post("/init", initCurrencies);
+
 router.get("/exchange-rate", getExchangeRate as RequestHandler);
 
 export default router;

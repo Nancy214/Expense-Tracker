@@ -50,6 +50,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import AddBillDialog from "./AddBillDialog";
 import { BillType } from "@/types/bill";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface BillDataTableProps {
   refreshTrigger?: number;
@@ -67,6 +74,7 @@ const BillDataTable: React.FC<BillDataTableProps> = ({
   const [loading, setLoading] = useState(true);
   const [editingBill, setEditingBill] = useState<BillType | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [billToDelete, setBillToDelete] = useState<string | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -127,23 +135,32 @@ const BillDataTable: React.FC<BillDataTableProps> = ({
     setFilteredBills(filtered);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this bill?")) {
-      try {
-        await deleteBill(id);
-        toast({
-          title: "Success",
-          description: "Bill deleted successfully",
-        });
-        fetchBills();
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete bill",
-          variant: "destructive",
-        });
-      }
+  const handleDelete = (id: string) => {
+    setBillToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!billToDelete) return;
+    try {
+      await deleteBill(billToDelete);
+      toast({
+        title: "Success",
+        description: "Bill deleted successfully",
+      });
+      fetchBills();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete bill",
+        variant: "destructive",
+      });
+    } finally {
+      setBillToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setBillToDelete(null);
   };
 
   const handleStatusUpdate = async (id: string, newStatus: BillStatus) => {
@@ -479,6 +496,32 @@ const BillDataTable: React.FC<BillDataTableProps> = ({
           }}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={!!billToDelete}
+        onOpenChange={(open) => !open && setBillToDelete(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <div className="mt-2">
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete this bill? This action cannot be
+              undone.
+            </p>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button onClick={confirmDelete} variant="destructive">
+              Delete
+            </Button>
+            <Button onClick={cancelDelete} variant="outline">
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

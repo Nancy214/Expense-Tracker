@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,22 @@ import { ProfileData } from "@/types/profile";
 import { User as AuthUser } from "@/types/auth";
 import "react-clock/dist/Clock.css";
 
+// List of country options (shortened for brevity, you can expand as needed)
+const countryOptions = [
+  "India",
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Australia",
+  "Germany",
+  "France",
+  "Japan",
+  "China",
+  "Brazil",
+  "South Africa",
+  // ... add more countries as needed
+];
+
 const ProfilePage: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
   const { toast } = useToast();
@@ -69,6 +85,7 @@ const ProfilePage: React.FC = () => {
     phoneNumber: string;
     dateOfBirth: string;
     currency: string;
+    country: string;
   }>({
     name: user?.name || "",
     email: user?.email || "",
@@ -76,6 +93,7 @@ const ProfilePage: React.FC = () => {
     phoneNumber: user?.phoneNumber || "",
     dateOfBirth: user?.dateOfBirth || "",
     currency: user?.currency || "INR",
+    country: user?.country || "",
   });
   const validFileTypes: string[] = ["image/jpeg", "image/png", "image/jpg"];
 
@@ -89,6 +107,14 @@ const ProfilePage: React.FC = () => {
   const [photoRemoved, setPhotoRemoved] = useState(false);
   const [expenseReminderTime, setExpenseReminderTime] = useState<string>(
     settings.expenseReminderTime || "18:00"
+  );
+  const [countrySearch, setCountrySearch] = useState("");
+  const filteredCountryOptions = useMemo(
+    () =>
+      countryOptions.filter((country) =>
+        country.toLowerCase().includes(countrySearch.toLowerCase())
+      ),
+    [countrySearch]
   );
 
   useEffect(() => {
@@ -112,6 +138,7 @@ const ProfilePage: React.FC = () => {
         phoneNumber: user.phoneNumber || "",
         dateOfBirth: user.dateOfBirth || "",
         currency: user.currency || "INR",
+        country: user.country || "",
       });
     }
   }, [user, isEditing]);
@@ -233,6 +260,15 @@ const ProfilePage: React.FC = () => {
 
   const handleSaveProfile = async () => {
     setIsProfileLoading(true);
+    if (!profileData.country) {
+      toast({
+        title: "Country is required",
+        description: "Please select your country.",
+        variant: "destructive",
+      });
+      setIsProfileLoading(false);
+      return;
+    }
     try {
       // If photo was removed, call backend to delete it first
       if (photoRemoved) {
@@ -246,6 +282,7 @@ const ProfilePage: React.FC = () => {
         phoneNumber: updatedProfile.user.phoneNumber || "",
         dateOfBirth: updatedProfile.user.dateOfBirth || "",
         currency: updatedProfile.user.currency || "INR",
+        country: updatedProfile.user.country || "",
       });
       localStorage.setItem("user", JSON.stringify(updatedProfile.user));
       updateUser(updatedProfile.user);
@@ -275,6 +312,7 @@ const ProfilePage: React.FC = () => {
       phoneNumber: user?.phoneNumber || "",
       dateOfBirth: user?.dateOfBirth || "",
       currency: user?.currency || "INR",
+      country: user?.country || "",
     });
     setPhotoRemoved(false); // Reset flag
     setIsEditing(false);
@@ -305,6 +343,7 @@ const ProfilePage: React.FC = () => {
         phoneNumber: String(user?.phoneNumber ?? ""),
         dateOfBirth: String(user?.dateOfBirth ?? ""),
         currency: String(user?.currency ?? ""),
+        country: String(user?.country ?? ""),
         settings: {
           ...(user as any)?.settings,
           ...updatedSettings,
@@ -511,6 +550,42 @@ const ProfilePage: React.FC = () => {
                           {currency.name} ({currency.code})
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country *</Label>
+                  <Select
+                    value={profileData.country}
+                    onValueChange={(value) =>
+                      handleProfileDataChange("country", value)
+                    }
+                    disabled={!isEditing}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="px-2 py-2">
+                        <Input
+                          placeholder="Search country..."
+                          value={countrySearch}
+                          onChange={(e) => setCountrySearch(e.target.value)}
+                          disabled={!isEditing}
+                          className="mb-2"
+                        />
+                      </div>
+                      {filteredCountryOptions.length === 0 ? (
+                        <div className="px-2 py-2 text-sm text-gray-500">
+                          No countries found
+                        </div>
+                      ) : (
+                        filteredCountryOptions.map((country) => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

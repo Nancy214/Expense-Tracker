@@ -66,6 +66,7 @@ cron.schedule("0 0 * * *", async () => {
   // Recurring Expenses only
   const recurringExpenses = await Expense.find({ isRecurring: true });
   const today = getToday();
+
   for (const template of recurringExpenses) {
     // Check if an instance for today exists
     const exists = await Expense.findOne({

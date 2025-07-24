@@ -16,8 +16,10 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
+type CalendarExpense = ExpenseType & { _id: string };
+
 const CalendarPage: React.FC = () => {
-  const [expenses, setExpenses] = useState<ExpenseType[]>([]);
+  const [expenses, setExpenses] = useState<CalendarExpense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -28,9 +30,9 @@ const CalendarPage: React.FC = () => {
   const fetchExpenses = async () => {
     try {
       setIsLoading(true);
-      const expensesData = await getExpenses();
+      const expensesData = await getExpenses(1, 1000);
       // Convert Date objects to formatted strings to match ExpenseType
-      const formattedExpenses = expensesData.map((expense) => ({
+      const formattedExpenses = expensesData.expenses.map((expense) => ({
         ...expense,
         date: format(expense.date, "dd/MM/yyyy"),
       }));
@@ -64,10 +66,19 @@ const CalendarPage: React.FC = () => {
     };
     const symbol = currencySymbols[currency] || currency;
 
+    // Ensure date is a string before split
+    let dateStr = "";
+    if (typeof expense.date === "string") {
+      dateStr = expense.date;
+    } else if (expense.date instanceof Date) {
+      // Convert Date to dd/MM/yyyy string
+      dateStr = format(expense.date, "dd/MM/yyyy");
+    }
+
     return {
       id: expense._id,
       title: `${expense.title} - ${symbol}${expense.amount}`,
-      date: new Date(expense.date.split("/").reverse().join("-")).toISOString(), // Convert dd/MM/yyyy to ISO format
+      date: new Date(dateStr.split("/").reverse().join("-")).toISOString(), // Convert dd/MM/yyyy to ISO format
       backgroundColor: getCategoryColor(expense.category),
       borderColor: getCategoryColor(expense.category),
       textColor: "#ffffff",

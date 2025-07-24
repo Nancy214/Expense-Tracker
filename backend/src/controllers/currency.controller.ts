@@ -6,7 +6,6 @@ export const initCurrencies = async (req: Request, res: Response) => {
   try {
     const response = await axios.get(`https://api.fxratesapi.com/currencies`);
     const data: any = response.data;
-    console.log(typeof data);
     const currencies = Object.entries(data).map(([code, name]) => ({
       code,
       name: data[code].name,

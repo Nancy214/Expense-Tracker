@@ -15,6 +15,7 @@ export interface UserType {
   budget?: boolean;
   budgetType?: string;
   settings?: SettingsType;
+  country: string;
 }
 
 export interface SettingsType {

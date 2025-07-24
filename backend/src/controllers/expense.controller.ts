@@ -52,11 +52,18 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
       let current = new Date(start);
       while (!isAfter(current, end)) {
         const dateStr = current.toISOString().slice(0, 10);
-        // Skip the template's original date
-        if (dateStr !== start.toISOString().slice(0, 10)) {
+        const templateDateStr = start.toISOString().slice(0, 10);
+        const todayStr = today.toISOString().slice(0, 10);
+        // Helper: get start and end of day in local time
+        const startOfDay = new Date(current);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(current);
+        endOfDay.setHours(23, 59, 59, 999);
+        // Create instance for all dates except the template's date
+        if (dateStr !== templateDateStr) {
           const exists = await Expense.findOne({
             templateId: expense._id,
-            date: dateStr,
+            date: { $gte: startOfDay, $lte: endOfDay },
             userId: expense.userId,
           });
           if (!exists) {
@@ -70,6 +77,28 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
             });
           }
         }
+        // Special case: if current date is today, create instance for today (even if it's the template's date)
+        if (dateStr === todayStr) {
+          const exists = await Expense.findOne({
+            templateId: expense._id,
+            date: { $gte: startOfDay, $lte: endOfDay },
+            userId: expense.userId,
+          });
+          if (!exists) {
+            try {
+              await Expense.create({
+                ...expense.toObject(),
+                _id: undefined,
+                date: dateStr,
+                templateId: expense._id,
+                isRecurring: false,
+                userId: expense.userId,
+              });
+            } catch (err) {
+              throw err;
+            }
+          }
+        }
         if (expense.recurringFrequency === "daily") {
           current = addDays(current, 1);
         } else if (expense.recurringFrequency === "weekly") {
@@ -80,6 +109,33 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
           current = addYears(current, 1);
         } else {
           break;
+        }
+      }
+      // After the loop, always check and create today's instance if it doesn't exist
+      const todayStart = new Date(today);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(today);
+      todayEnd.setHours(23, 59, 59, 999);
+      const todayStr = today.toISOString().slice(0, 10);
+      if (isTodayARecurrence(start, today, expense.recurringFrequency)) {
+        const existsToday = await Expense.findOne({
+          templateId: expense._id,
+          date: { $gte: todayStart, $lte: todayEnd },
+          userId: expense.userId,
+        });
+        if (!existsToday) {
+          try {
+            await Expense.create({
+              ...expense.toObject(),
+              _id: undefined,
+              date: todayStr,
+              templateId: expense._id,
+              isRecurring: false,
+              userId: expense.userId,
+            });
+          } catch (err) {
+            throw err;
+          }
         }
       }
     }
@@ -107,11 +163,36 @@ export const updateExpense = async (req: AuthRequest, res: Response) => {
       let current = new Date(start);
       while (!isAfter(current, end)) {
         const dateStr = current.toISOString().slice(0, 10);
-        // Skip the template's original date
-        if (dateStr !== start.toISOString().slice(0, 10)) {
+        const templateDateStr = start.toISOString().slice(0, 10);
+        const todayStr = today.toISOString().slice(0, 10);
+        // Helper: get start and end of day in local time
+        const startOfDay = new Date(current);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(current);
+        endOfDay.setHours(23, 59, 59, 999);
+        // Create instance for all dates except the template's date
+        if (dateStr !== templateDateStr) {
           const exists = await Expense.findOne({
             templateId: expense._id,
-            date: dateStr,
+            date: { $gte: startOfDay, $lte: endOfDay },
+            userId: expense.userId,
+          });
+          if (!exists) {
+            await Expense.create({
+              ...expense.toObject(),
+              _id: undefined,
+              date: dateStr,
+              templateId: expense._id,
+              isRecurring: false,
+              userId: expense.userId,
+            });
+          }
+        }
+        // Special case: if current date is today, create instance for today (even if it's the template's date)
+        if (dateStr === todayStr) {
+          const exists = await Expense.findOne({
+            templateId: expense._id,
+            date: { $gte: startOfDay, $lte: endOfDay },
             userId: expense.userId,
           });
           if (!exists) {
@@ -135,6 +216,33 @@ export const updateExpense = async (req: AuthRequest, res: Response) => {
           current = addYears(current, 1);
         } else {
           break;
+        }
+      }
+      // After the loop, always check and create today's instance if it doesn't exist
+      const todayStart = new Date(today);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(today);
+      todayEnd.setHours(23, 59, 59, 999);
+      const todayStr = today.toISOString().slice(0, 10);
+      if (isTodayARecurrence(start, today, expense.recurringFrequency)) {
+        const existsToday = await Expense.findOne({
+          templateId: expense._id,
+          date: { $gte: todayStart, $lte: todayEnd },
+          userId: expense.userId,
+        });
+        if (!existsToday) {
+          try {
+            await Expense.create({
+              ...expense.toObject(),
+              _id: undefined,
+              date: todayStr,
+              templateId: expense._id,
+              isRecurring: false,
+              userId: expense.userId,
+            });
+          } catch (err) {
+            throw err;
+          }
         }
       }
     }
@@ -236,7 +344,6 @@ export const uploadReceipt = async (req: AuthRequest, res: Response) => {
     await s3Client.send(uploadCommand);
     res.json({ key: s3Key });
   } catch (error) {
-    console.error("Error uploading receipt:", error);
     res.status(500).json({ message: "Failed to upload receipt" });
   }
 };
@@ -255,3 +362,57 @@ export const getReceiptUrl = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: "Failed to generate receipt URL" });
   }
 };
+
+// Delete a recurring template and all its instances
+export const deleteRecurringExpense = async (req: Request, res: Response) => {
+  try {
+    const templateId = req.params.id;
+    // Delete the template
+    await Expense.findByIdAndDelete(templateId);
+    // Delete all instances
+    await Expense.deleteMany({ templateId });
+    res.json({
+      message: "Recurring transaction and all its instances deleted",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error });
+  }
+};
+
+// Helper: check if today is a valid recurrence date for the given frequency and start date
+function isTodayARecurrence(
+  start: Date,
+  today: Date,
+  frequency: string
+): boolean {
+  const startDate = new Date(start);
+  const todayDate = new Date(today);
+  startDate.setHours(0, 0, 0, 0);
+  todayDate.setHours(0, 0, 0, 0);
+  if (todayDate < startDate) return false;
+  if (frequency === "daily") {
+    return true;
+  }
+  if (frequency === "weekly") {
+    const diffMs: number = todayDate.getTime() - startDate.getTime();
+    const diffDays: number = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    return diffDays % 7 === 0;
+  }
+  if (frequency === "monthly") {
+    return (
+      startDate.getDate() === todayDate.getDate() &&
+      todayDate.getMonth() -
+        startDate.getMonth() +
+        12 * (todayDate.getFullYear() - startDate.getFullYear()) >=
+        0
+    );
+  }
+  if (frequency === "yearly") {
+    return (
+      startDate.getDate() === todayDate.getDate() &&
+      startDate.getMonth() === todayDate.getMonth() &&
+      todayDate.getFullYear() >= startDate.getFullYear()
+    );
+  }
+  return false;
+}

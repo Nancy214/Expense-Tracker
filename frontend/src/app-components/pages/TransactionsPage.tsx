@@ -22,7 +22,11 @@ import {
 } from "@/components/ui/popover";
 import { CalendarIcon, ChevronDownIcon, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getExpenses, deleteExpense } from "@/services/expense.service";
+import {
+  getExpenses,
+  deleteExpense,
+  deleteRecurringExpense,
+} from "@/services/expense.service";
 import { ExpenseType } from "@/types/expense";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -290,6 +294,37 @@ const TransactionsPage = () => {
   const handleDelete = async (expenseId: string) => {
     setExpenseToDelete(expenseId);
     setIsDeleteDialogOpen(true);
+  };
+
+  // Handler for deleting a recurring template and all its instances
+  const handleDeleteRecurring = async (templateId: string) => {
+    try {
+      await deleteRecurringExpense(templateId);
+      toast({
+        title: "Deleted",
+        description: "Recurring transaction and all its instances deleted.",
+        variant: "destructive",
+      });
+      // Refresh both all and recurring transactions
+      fetchExpenses();
+      if (activeTab === "recurring") {
+        // Immediately re-fetch all transactions for recurring tab
+        const response = await getExpenses(1, 10000);
+        const expensesWithDates = response.expenses.map((expense: any) => ({
+          ...expense,
+          date: format(expense.date, "dd/MM/yyyy"),
+          description: expense.description ?? "",
+          currency: expense.currency ?? "INR",
+        }));
+        setAllTransactions(expensesWithDates);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete recurring transaction.",
+        variant: "destructive",
+      });
+    }
   };
 
   const confirmDelete = async () => {
@@ -845,9 +880,10 @@ const TransactionsPage = () => {
                 <ExpenseDataTable
                   data={recurringTransactions as any}
                   onEdit={handleEdit}
-                  onDelete={handleDelete}
+                  onDelete={handleDeleteRecurring}
                   showRecurringIcon={false}
                   showRecurringBadge={true}
+                  isRecurringTab={true}
                 />
               </div>
               <div className="mt-4 flex justify-between p-4 bg-muted/50 rounded-lg">

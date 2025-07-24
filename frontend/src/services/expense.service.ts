@@ -144,3 +144,12 @@ export const uploadReceipt = async (file: File): Promise<string> => {
   });
   return response.data.key;
 };
+
+export const deleteRecurringExpense = async (id: string): Promise<void> => {
+  try {
+    await expenseApi.delete(`/recurring/${id}`);
+  } catch (error) {
+    console.error("Error deleting recurring expense:", error);
+    throw error;
+  }
+};

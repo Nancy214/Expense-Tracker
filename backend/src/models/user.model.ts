@@ -41,6 +41,10 @@ const userSchema = new Schema({
     required: false,
     default: "INR",
   },
+  country: {
+    type: String,
+    required: true,
+  },
   budget: {
     type: Boolean,
     required: false,

@@ -20,6 +20,7 @@ export interface User {
   phoneNumber?: string;
   dateOfBirth?: string;
   currency?: string;
+  country: string;
 }
 
 export interface AuthResponse {

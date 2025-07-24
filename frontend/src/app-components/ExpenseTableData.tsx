@@ -19,6 +19,16 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Edit, Trash2, Repeat } from "lucide-react";
 import { ExpenseType } from "@/types/expense";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Pencil, Trash } from "lucide-react";
 
 type ExpenseTypeWithId = ExpenseType & { _id?: string };
 
@@ -28,6 +38,7 @@ interface ExpenseDataTableProps {
   onDelete: (expenseId: string) => void;
   showRecurringIcon?: boolean;
   showRecurringBadge?: boolean;
+  isRecurringTab?: boolean;
 }
 
 export function ExpenseDataTable({
@@ -36,7 +47,13 @@ export function ExpenseDataTable({
   onDelete,
   showRecurringIcon = false,
   showRecurringBadge = false,
+  isRecurringTab = false,
 }: ExpenseDataTableProps) {
+  // State for delete confirmation dialog for recurring delete
+  const [recurringToDelete, setRecurringToDelete] =
+    useState<ExpenseTypeWithId | null>(null);
+  const { toast } = useToast();
+
   const columns: ColumnDef<ExpenseTypeWithId>[] = [
     {
       accessorKey: "date",
@@ -194,15 +211,38 @@ export function ExpenseDataTable({
         const expense = row.original;
         return (
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onEdit(expense)}>
-              <Edit className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onEdit(expense)}
+              aria-label="Edit"
+            >
+              <Pencil className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onDelete(expense._id || "")}
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (
+                  isRecurringTab &&
+                  expense.isRecurring &&
+                  !expense.templateId
+                ) {
+                  // Show warning toast and open confirmation dialog
+                  toast({
+                    title: "Warning",
+                    description:
+                      "Deleting this recurring transaction will delete all its instances.",
+                    variant: "destructive",
+                  });
+                  setRecurringToDelete(expense);
+                } else {
+                  onDelete(expense._id!);
+                }
+              }}
+              aria-label="Delete"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash className="h-4 w-4" />
             </Button>
           </div>
         );
@@ -219,52 +259,97 @@ export function ExpenseDataTable({
     columnResizeMode: "onChange",
   });
 
+  // Confirmation dialog for deleting recurring template and all instances
   return (
-    <div className="rounded-md border w-full overflow-hidden">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead
-                    key={header.id}
-                    style={{
-                      width: header.getSize(),
-                    }}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
+    <>
+      <div className="rounded-md border w-full overflow-hidden">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead
+                      key={header.id}
+                      style={{
+                        width: header.getSize(),
+                      }}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No expenses found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No expenses found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {/* Confirmation dialog for recurring delete */}
+      <Dialog
+        open={!!recurringToDelete}
+        onOpenChange={(open) => !open && setRecurringToDelete(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Recurring Transaction</DialogTitle>
+          </DialogHeader>
+          <div className="mt-2">
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete this recurring transaction and all
+              its instances? This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (recurringToDelete) {
+                  await onDelete(recurringToDelete._id!);
+                  setRecurringToDelete(null);
+                }
+              }}
+            >
+              Delete All
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setRecurringToDelete(null)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
