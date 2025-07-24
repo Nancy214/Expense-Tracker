@@ -43,6 +43,13 @@ import AddExpenseDialog from "@/app-components/AddExpenseDialog";
 import { DateRange } from "react-day-picker";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
+import { generateMonthlyStatementPDF } from "@/lib/pdfMonthlyStatement";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ExpenseTypeWithId = Omit<ExpenseType, "date"> & {
   date: string | Date;
@@ -160,22 +167,66 @@ const TransactionsPage = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(10);
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   useEffect(() => {
     const fetchExpenses = async () => {
-      const response = await getExpenses(page, limit);
-      const expensesWithDates = response.expenses.map((expense: any) => ({
-        ...expense,
-        date: format(expense.date, "dd/MM/yyyy"),
-        description: expense.description ?? "",
-        currency: expense.currency ?? "INR",
-      }));
-      setTransactions(expensesWithDates);
-      setTotal(response.total);
-      setLimit(response.limit);
+      // Only do the special logic on initial load
+      if (!initialLoaded) {
+        // Fetch the latest 100 expenses to check for this month
+        const response = await getExpenses(1, 100);
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const expensesWithDates = response.expenses.map((expense: any) => ({
+          ...expense,
+          date: format(expense.date, "dd/MM/yyyy"),
+          description: expense.description ?? "",
+          currency: expense.currency ?? "INR",
+        }));
+        // Find all expenses in this month
+        const thisMonthExpenses = expensesWithDates.filter((t) => {
+          let dateObj: Date;
+          if (typeof t.date === "string") {
+            dateObj = parse(t.date, "dd/MM/yyyy", new Date());
+            if (isNaN(dateObj.getTime())) {
+              dateObj = new Date(t.date);
+            }
+          } else {
+            dateObj = t.date;
+          }
+          return (
+            dateObj.getMonth() === currentMonth &&
+            dateObj.getFullYear() === currentYear
+          );
+        });
+        if (thisMonthExpenses.length > 0 && thisMonthExpenses.length <= 20) {
+          setTransactions(thisMonthExpenses);
+          setTotal(thisMonthExpenses.length);
+          setLimit(thisMonthExpenses.length);
+        } else {
+          // Show latest 20 expenses
+          setTransactions(expensesWithDates.slice(0, 20));
+          setTotal(response.total);
+          setLimit(20);
+        }
+        setInitialLoaded(true);
+      } else {
+        // Normal pagination after initial load
+        const response = await getExpenses(page, limit);
+        const expensesWithDates = response.expenses.map((expense: any) => ({
+          ...expense,
+          date: format(expense.date, "dd/MM/yyyy"),
+          description: expense.description ?? "",
+          currency: expense.currency ?? "INR",
+        }));
+        setTransactions(expensesWithDates);
+        setTotal(response.total);
+        setLimit(response.limit);
+      }
     };
     fetchExpenses();
-  }, [page, limit]);
+  }, [page, limit, initialLoaded]);
 
   useEffect(() => {
     fetchBudgetReminders();
@@ -332,6 +383,7 @@ const TransactionsPage = () => {
 
     try {
       await deleteExpense(expenseToDelete);
+      // Refresh paginated transactions
       const response = await getExpenses(page, limit);
       setTransactions(
         response.expenses.map((expense: any) => ({
@@ -343,6 +395,36 @@ const TransactionsPage = () => {
       );
       setTotal(response.total);
       setLimit(response.limit);
+      // Refresh allExpenses and availableMonths
+      const allResp = await getExpenses(1, 100000);
+      setAllExpenses(allResp.expenses);
+      // Extract unique months
+      const monthSet = new Set<string>();
+      allResp.expenses.forEach((t: any) => {
+        let dateObj: Date;
+        if (typeof t.date === "string") {
+          dateObj = parse(t.date, "dd/MM/yyyy", new Date());
+          if (isNaN(dateObj.getTime())) {
+            dateObj = new Date(t.date);
+          }
+        } else {
+          dateObj = t.date;
+        }
+        const year = dateObj.getFullYear();
+        const month = dateObj.getMonth();
+        monthSet.add(`${year}-${month}`);
+      });
+      const monthsArr = Array.from(monthSet).map((str) => {
+        const [year, month] = str.split("-").map(Number);
+        const date = new Date(year, month, 1);
+        return {
+          label: `${date.toLocaleString("default", { month: "long" })} ${year}`,
+          value: { year, month },
+          sortKey: year * 12 + month,
+        };
+      });
+      monthsArr.sort((a, b) => b.sortKey - a.sortKey);
+      setAvailableMonths(monthsArr);
       toast({
         title: "Success",
         description: "Expense deleted successfully",
@@ -494,6 +576,127 @@ const TransactionsPage = () => {
   };
   const userCurrency = user?.currency || "INR";
   const symbol = currencySymbols[userCurrency] || userCurrency;
+
+  // State for all expenses and available months
+  const [allExpenses, setAllExpenses] = useState<any[]>([]);
+  const [availableMonths, setAvailableMonths] = useState<
+    { label: string; value: { year: number; month: number } }[]
+  >([]);
+  const [loadingMonths, setLoadingMonths] = useState(false);
+
+  // Fetch all expenses on mount to determine available months
+  useEffect(() => {
+    const fetchAllExpenses = async () => {
+      setLoadingMonths(true);
+      try {
+        const response = await getExpenses(1, 100000);
+        setAllExpenses(response.expenses);
+        // Extract unique months
+        const monthSet = new Set<string>();
+        response.expenses.forEach((t: any) => {
+          let dateObj: Date;
+          if (typeof t.date === "string") {
+            dateObj = parse(t.date, "dd/MM/yyyy", new Date());
+            if (isNaN(dateObj.getTime())) {
+              dateObj = new Date(t.date);
+            }
+          } else {
+            dateObj = t.date;
+          }
+          const year = dateObj.getFullYear();
+          const month = dateObj.getMonth();
+          monthSet.add(`${year}-${month}`);
+        });
+        // Sort months descending (latest first)
+        const monthsArr = Array.from(monthSet).map((str) => {
+          const [year, month] = str.split("-").map(Number);
+          const date = new Date(year, month, 1);
+          return {
+            label: `${date.toLocaleString("default", {
+              month: "long",
+            })} ${year}`,
+            value: { year, month },
+            sortKey: year * 12 + month,
+          };
+        });
+        monthsArr.sort((a, b) => b.sortKey - a.sortKey);
+        setAvailableMonths(monthsArr);
+      } catch (err) {
+        setAllExpenses([]);
+        setAvailableMonths([]);
+      } finally {
+        setLoadingMonths(false);
+      }
+    };
+    fetchAllExpenses();
+  }, []);
+
+  // Download statement for a specific month
+  const downloadMonthlyStatementForMonth = ({
+    year,
+    month,
+  }: {
+    year: number;
+    month: number;
+  }) => {
+    const now = new Date(year, month, 1);
+    const monthName = now.toLocaleString("default", { month: "long" });
+    const currentYear = year;
+    // Filter for the selected month
+    const monthlyTransactions = allExpenses.filter((t) => {
+      let dateObj: Date;
+      if (typeof t.date === "string") {
+        dateObj = parse(t.date, "dd/MM/yyyy", new Date());
+        if (isNaN(dateObj.getTime())) {
+          dateObj = new Date(t.date);
+        }
+      } else {
+        dateObj = t.date;
+      }
+      return dateObj.getMonth() === month && dateObj.getFullYear() === year;
+    });
+    const totalIncome = monthlyTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    const totalExpenses = monthlyTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    const netBalance = totalIncome - totalExpenses;
+    const savingsRate = totalIncome > 0 ? (netBalance / totalIncome) * 100 : 0;
+    const totalTransactions = monthlyTransactions.length;
+    const avgTransaction =
+      totalTransactions > 0
+        ? monthlyTransactions.reduce((sum, t) => sum + (t.amount || 0), 0) /
+          totalTransactions
+        : 0;
+    const expenseByCategory: { [cat: string]: number } = {};
+    monthlyTransactions.forEach((t) => {
+      if (t.type === "expense") {
+        expenseByCategory[t.category] =
+          (expenseByCategory[t.category] || 0) + t.amount;
+      }
+    });
+    const totalExpenseForBreakdown = Object.values(expenseByCategory).reduce(
+      (a, b) => a + b,
+      0
+    );
+    generateMonthlyStatementPDF({
+      allExpenses,
+      filteredTransactions,
+      userCurrency,
+      now,
+      monthName,
+      currentYear,
+      totalIncome,
+      totalExpenses,
+      netBalance,
+      savingsRate,
+      totalTransactions,
+      avgTransaction,
+      expenseByCategory,
+      totalExpenseForBreakdown,
+    });
+  };
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
@@ -744,53 +947,128 @@ const TransactionsPage = () => {
             )}
           </div>
 
-          <Tabs
-            value={activeTab}
-            onValueChange={(value) =>
-              setActiveTab(value as "all" | "recurring")
-            }
-            className="mb-4 mt-4"
-          >
-            <TabsList>
-              <TabsTrigger value="all">All Transactions</TabsTrigger>
-              <TabsTrigger value="recurring">
-                Recurring Transactions
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          {activeTab === "all" ? (
-            filteredTransactions.length === 0 ? (
-              <p className="text-gray-500">No expenses found.</p>
-            ) : (
-              <>
-                <div className="flex justify-end mb-2">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 mt-4 gap-2">
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) =>
+                setActiveTab(value as "all" | "recurring")
+              }
+              className=""
+            >
+              <TabsList>
+                <TabsTrigger value="all">All Transactions</TabsTrigger>
+                <TabsTrigger value="recurring">
+                  Recurring Transactions
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="flex gap-2 mt-2 md:mt-0">
+              <TooltipProvider>
+                {!!loadingMonths ||
+                availableMonths.length === 0 ||
+                !!(
+                  user && (user as any)?.settings?.monthlyReports === false
+                ) ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="flex items-center gap-2"
+                              disabled
+                            >
+                              Monthly Statement{" "}
+                              <ChevronDownIcon className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {availableMonths.length === 0 && (
+                              <DropdownMenuItem disabled>
+                                No months available
+                              </DropdownMenuItem>
+                            )}
+                            {availableMonths.map((m) => (
+                              <DropdownMenuItem
+                                key={m.label}
+                                onClick={() =>
+                                  downloadMonthlyStatementForMonth(m.value)
+                                }
+                              >
+                                {m.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" align="center">
+                      Enable monthly reports in your profile page to use this
+                      feature.
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
                         className="flex items-center gap-2"
                       >
-                        Export <ChevronDownIcon className="h-4 w-4" />
+                        Monthly Statement{" "}
+                        <ChevronDownIcon className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() =>
-                          downloadCSV(filteredTransactions, "expenses.csv")
-                        }
-                      >
-                        Export as CSV
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          downloadExcel(filteredTransactions, "expenses.xlsx")
-                        }
-                      >
-                        Export as Excel
-                      </DropdownMenuItem>
+                      {availableMonths.length === 0 && (
+                        <DropdownMenuItem disabled>
+                          No months available
+                        </DropdownMenuItem>
+                      )}
+                      {availableMonths.map((m) => (
+                        <DropdownMenuItem
+                          key={m.label}
+                          onClick={() =>
+                            downloadMonthlyStatementForMonth(m.value)
+                          }
+                        >
+                          {m.label}
+                        </DropdownMenuItem>
+                      ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
+                )}
+              </TooltipProvider>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    Export <ChevronDownIcon className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() =>
+                      downloadCSV(filteredTransactions, "expenses.csv")
+                    }
+                  >
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      downloadExcel(filteredTransactions, "expenses.xlsx")
+                    }
+                  >
+                    Export as Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          {activeTab === "all" ? (
+            filteredTransactions.length === 0 ? (
+              <p className="text-gray-500">No expenses found.</p>
+            ) : (
+              <>
                 <div className="mt-6">
                   <ExpenseDataTable
                     data={filteredTransactions as any}
@@ -849,27 +1127,29 @@ const TransactionsPage = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex justify-between items-center mt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    Previous
-                  </Button>
-                  <span>
-                    Page {page} of {Math.ceil(total / limit) || 1}
-                  </span>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      setPage((p) => (p * limit < total ? p + 1 : p))
-                    }
-                    disabled={page * limit >= total}
-                  >
-                    Next
-                  </Button>
-                </div>
+                {filteredTransactions.length > limit && (
+                  <div className="flex justify-between items-center mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span>
+                      Page {page} of {Math.ceil(total / limit) || 1}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setPage((p) => (p * limit < total ? p + 1 : p))
+                      }
+                      disabled={page * limit >= total}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
               </>
             )
           ) : recurringTransactions.length === 0 ? (
