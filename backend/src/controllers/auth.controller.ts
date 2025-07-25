@@ -3,20 +3,14 @@ import jwt from "jsonwebtoken";
 import passport from "passport";
 import axios from "axios";
 import { User } from "../models/user.model";
-import {
-  AuthResponse,
-  UserGoogleType,
-  UserLocalType,
-  UserType,
-  TokenPayload,
-} from "../types/auth";
+import { AuthResponse, UserGoogleType, UserLocalType, UserType, TokenPayload } from "../types/auth";
 import bcrypt from "bcrypt";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import { s3Client } from "../config/s3Client";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sgMail from "@sendgrid/mail";
-import Currency from "../models/currency.model";
+import Currency from "../models/countries.model";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
@@ -24,276 +18,266 @@ const AWS_REGION = process.env.AWS_REGION || "";
 
 // Generate tokens
 export const generateTokens = (user: any) => {
-  const accessToken = jwt.sign(
-    { id: user._id },
-    process.env.JWT_SECRET || "your-secret-key",
-    { expiresIn: "15m" }
-  );
+    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET || "your-secret-key", { expiresIn: "15m" });
 
-  const refreshToken = jwt.sign(
-    { id: user._id },
-    process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key",
-    { expiresIn: "7d" }
-  );
+    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key", {
+        expiresIn: "7d",
+    });
 
-  return { accessToken, refreshToken };
+    return { accessToken, refreshToken };
 };
 
 export const register = async (req: Request, res: Response) => {
-  try {
-    const { email, password, name } = req.body;
-    let profilePictureName = "";
+    try {
+        const { email, password, name } = req.body;
+        let profilePictureName = "";
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      console.log("User already exists");
-      return res.status(400).json({ message: "User already exists" });
+        // Check if user exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            console.log("User already exists");
+            return res.status(400).json({ message: "User already exists" });
+        }
+        if (req.file) {
+            profilePictureName = bcrypt.hashSync(req.file.originalname, 10);
+            const uploadCommand = new PutObjectCommand({
+                Bucket: AWS_BUCKET_NAME,
+                Key: profilePictureName,
+                Body: req.file.buffer,
+                ContentType: req.file.mimetype,
+            });
+
+            await s3Client.send(uploadCommand);
+            //console.log(response);
+        }
+        //console.log(profilePictureUrl);
+
+        const user = new User({
+            email,
+            password: bcrypt.hashSync(password, 10),
+            name,
+            profilePicture: profilePictureName,
+        });
+        //console.log(user);
+
+        await user.save();
+
+        // Generate tokens
+        //const { accessToken, refreshToken } = generateTokens(user);
+
+        // Save refresh token
+        //user.refreshToken = refreshToken;
+        //await user.save();
+
+        res.status(200).json({ message: "User registered successfully" });
+    } catch (error) {
+        res.status(500).json({ message: error });
     }
-    if (req.file) {
-      profilePictureName = bcrypt.hashSync(req.file.originalname, 10);
-      const uploadCommand = new PutObjectCommand({
-        Bucket: AWS_BUCKET_NAME,
-        Key: profilePictureName,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-      });
-
-      await s3Client.send(uploadCommand);
-      //console.log(response);
-    }
-    //console.log(profilePictureUrl);
-
-    const user = new User({
-      email,
-      password: bcrypt.hashSync(password, 10),
-      name,
-      profilePicture: profilePictureName,
-    });
-    //console.log(user);
-
-    await user.save();
-
-    // Generate tokens
-    //const { accessToken, refreshToken } = generateTokens(user);
-
-    // Save refresh token
-    //user.refreshToken = refreshToken;
-    //await user.save();
-
-    res.status(200).json({ message: "User registered successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error });
-  }
 };
 
 export const login = (req: Request, res: Response, next: any) => {
-  passport.authenticate(
-    "local",
-    { session: false },
-    async (err: Error, user: UserLocalType | UserGoogleType, info: Error) => {
-      if (err) {
-        return next(err);
-      }
-      if (!user) {
-        return res.status(401).json({ message: info.message });
-      }
+    passport.authenticate(
+        "local",
+        { session: false },
+        async (err: Error, user: UserLocalType | UserGoogleType, info: Error) => {
+            if (err) {
+                return next(err);
+            }
+            if (!user) {
+                return res.status(401).json({ message: info.message });
+            }
 
-      // Generate tokens
-      const { accessToken, refreshToken } = generateTokens(user);
+            // Generate tokens
+            const { accessToken, refreshToken } = generateTokens(user);
 
-      let profilePictureUrl = "";
-      if (user.profilePicture) {
-        const getCommand = new GetObjectCommand({
-          Bucket: AWS_BUCKET_NAME,
-          Key: user.profilePicture,
-        });
-        profilePictureUrl = await getSignedUrl(s3Client, getCommand, {
-          expiresIn: 30,
-        });
-      }
+            let profilePictureUrl = "";
+            if (user.profilePicture) {
+                const getCommand = new GetObjectCommand({
+                    Bucket: AWS_BUCKET_NAME,
+                    Key: user.profilePicture,
+                });
+                profilePictureUrl = await getSignedUrl(s3Client, getCommand, {
+                    expiresIn: 30,
+                });
+            }
 
-      // Always fetch or create settings
-      const Settings = require("../models/user.model").Settings;
-      let settingsDoc = await Settings.findById(user._id);
-      if (!settingsDoc) {
-        settingsDoc = await Settings.create({
-          userId: user._id,
-          monthlyReports: false,
-          expenseReminders: false,
-          billsAndBudgetsAlert: false,
-          expenseReminderTime: "18:00",
-        });
-      }
+            // Always fetch or create settings
+            const Settings = require("../models/user.model").Settings;
+            let settingsDoc = await Settings.findById(user._id);
+            if (!settingsDoc) {
+                settingsDoc = await Settings.create({
+                    userId: user._id,
+                    monthlyReports: false,
+                    expenseReminders: false,
+                    billsAndBudgetsAlert: false,
+                    expenseReminderTime: "18:00",
+                });
+            }
 
-      res.status(200).json({
-        accessToken,
-        refreshToken,
-        user: {
-          id: user._id,
-          email: user.email,
-          name: user.name || "",
-          profilePicture: profilePictureUrl,
-          currency: user.currency,
-          settings: settingsDoc,
-        },
-      });
-    }
-  )(req, res, next);
+            res.status(200).json({
+                accessToken,
+                refreshToken,
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    name: user.name || "",
+                    profilePicture: profilePictureUrl,
+                    currency: user.currency,
+                    settings: settingsDoc,
+                },
+            });
+        }
+    )(req, res, next);
 };
 
 export const googleAuthCallback = async (req: Request, res: Response) => {
-  const user = req.user as any;
-  // Redirect to frontend with tokens as URL parameters
+    const user = req.user as any;
+    // Redirect to frontend with tokens as URL parameters
 
-  const Settings = require("../models/user.model").Settings;
-  let settingsDoc = await Settings.findById(user._id);
-  if (!settingsDoc) {
-    settingsDoc = await Settings.create({
-      userId: user._id,
-      monthlyReports: false,
-      expenseReminders: false,
-      billsAndBudgetsAlert: false,
-      expenseReminderTime: "18:00",
-    });
-  }
+    const Settings = require("../models/user.model").Settings;
+    let settingsDoc = await Settings.findById(user._id);
+    if (!settingsDoc) {
+        settingsDoc = await Settings.create({
+            userId: user._id,
+            monthlyReports: false,
+            expenseReminders: false,
+            billsAndBudgetsAlert: false,
+            expenseReminderTime: "18:00",
+        });
+    }
 
-  const tokens = encodeURIComponent(
-    JSON.stringify({
-      accessToken: user?.accessToken,
-      refreshToken: user?.refreshToken,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name || "",
-        profilePicture: user.profilePicture || "",
-        settings: settingsDoc,
-      },
-    })
-  );
-  res.redirect(`http://localhost:3000/auth/google/callback?tokens=${tokens}`);
+    const tokens = encodeURIComponent(
+        JSON.stringify({
+            accessToken: user?.accessToken,
+            refreshToken: user?.refreshToken,
+            user: {
+                id: user._id,
+                email: user.email,
+                name: user.name || "",
+                profilePicture: user.profilePicture || "",
+                settings: settingsDoc,
+            },
+        })
+    );
+    res.redirect(`http://localhost:3000/auth/google/callback?tokens=${tokens}`);
 };
 
 export const refreshToken = async (req: Request, res: Response) => {
-  try {
-    const { refreshToken } = req.body;
+    try {
+        const { refreshToken } = req.body;
 
-    if (!refreshToken) {
-      return res.status(401).json({ message: "Refresh token required" });
+        if (!refreshToken) {
+            return res.status(401).json({ message: "Refresh token required" });
+        }
+
+        // Verify refresh token
+        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key") as {
+            id: string;
+        };
+
+        // Find user
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            return res.status(401).json({ message: "Invalid refresh token" });
+        }
+
+        // Generate new tokens
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokens(user);
+
+        // Update refresh token
+        //user.refreshToken = newRefreshToken;
+        //await user.save();
+
+        res.json({
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+        });
+    } catch (error) {
+        res.status(401).json({ message: "Invalid refresh token" });
     }
-
-    // Verify refresh token
-    const decoded = jwt.verify(
-      refreshToken,
-      process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key"
-    ) as { id: string };
-
-    // Find user
-    const user = await User.findById(decoded.id);
-    if (!user) {
-      return res.status(401).json({ message: "Invalid refresh token" });
-    }
-
-    // Generate new tokens
-    const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
-      generateTokens(user);
-
-    // Update refresh token
-    //user.refreshToken = newRefreshToken;
-    //await user.save();
-
-    res.json({
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
-    });
-  } catch (error) {
-    res.status(401).json({ message: "Invalid refresh token" });
-  }
 };
 
 export const logout = async (req: Request, res: Response) => {
-  try {
-    // Clear any auth cookies
-    res.clearCookie("connect.sid"); // Clear session cookie
-    res.clearCookie("accessToken"); // Clear JWT token if using cookies
+    try {
+        // Clear any auth cookies
+        res.clearCookie("connect.sid"); // Clear session cookie
+        res.clearCookie("accessToken"); // Clear JWT token if using cookies
 
-    // Only try session operations if session exists
-    if (req.session) {
-      // Try to destroy session first
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Error destroying session:", err);
+        // Only try session operations if session exists
+        if (req.session) {
+            // Try to destroy session first
+            req.session.destroy((err) => {
+                if (err) {
+                    console.error("Error destroying session:", err);
+                }
+            });
         }
-      });
-    }
 
-    // Try Passport logout if available and session exists
-    if (req.logout && req.session) {
-      req.logout((err) => {
-        if (err) {
-          console.error("Error during Passport logout:", err);
+        // Try Passport logout if available and session exists
+        if (req.logout && req.session) {
+            req.logout((err) => {
+                if (err) {
+                    console.error("Error during Passport logout:", err);
+                }
+            });
         }
-      });
-    }
 
-    // Send success response
-    res.status(200).json({
-      success: true,
-      message: "Successfully logged out",
-    });
-  } catch (error) {
-    console.error("Logout error:", error);
-    // Even if there's an error, we still want to send a success response
-    // since the client will clear tokens anyway
-    res.status(200).json({
-      success: true,
-      message: "Successfully logged out",
-    });
-  }
+        // Send success response
+        res.status(200).json({
+            success: true,
+            message: "Successfully logged out",
+        });
+    } catch (error) {
+        console.error("Logout error:", error);
+        // Even if there's an error, we still want to send a success response
+        // since the client will clear tokens anyway
+        res.status(200).json({
+            success: true,
+            message: "Successfully logged out",
+        });
+    }
 };
 
 export const forgotPassword = async (req: Request, res: Response) => {
-  const { email } = req.body;
+    const { email } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ message: "Email is required" });
-  }
-
-  try {
-    // Check if user exists in our database
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({
-        message: "No account found with this email address.",
-      });
+    if (!email) {
+        return res.status(400).json({ message: "Email is required" });
     }
 
-    // Generate a stateless reset token with user info embedded
-    const resetToken = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,
-        type: "password_reset",
-        timestamp: Date.now(),
-      },
-      process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "10m" }
-    );
+    try {
+        // Check if user exists in our database
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({
+                message: "No account found with this email address.",
+            });
+        }
 
-    // Create the reset URL
-    const resetUrl = `${
-      process.env.FRONTEND_URL || "http://localhost:3000"
-    }/reset-password?token=${resetToken}`;
+        // Generate a stateless reset token with user info embedded
+        const resetToken = jwt.sign(
+            {
+                id: user._id,
+                email: user.email,
+                type: "password_reset",
+                timestamp: Date.now(),
+            },
+            process.env.JWT_SECRET || "your-secret-key",
+            { expiresIn: "10m" }
+        );
 
-    // Send email using SendGrid
-    // const sgMail = require("@sendgrid/mail");
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+        // Create the reset URL
+        const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
 
-    const msg = {
-      to: email,
-      from: "nancypro2000@gmail.com", //process.env.SENDGRID_FROM_EMAIL || "noreply@yourapp.com",
-      subject: "Password Reset Request",
-      html: `
+        // Send email using SendGrid
+        // const sgMail = require("@sendgrid/mail");
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+
+        const msg = {
+            to: email,
+            from: "nancypro2000@gmail.com", //process.env.SENDGRID_FROM_EMAIL || "noreply@yourapp.com",
+            subject: "Password Reset Request",
+            html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Password Reset Request</h2>
           <p>Hello ${user.name || "there"},</p>
@@ -314,175 +298,156 @@ export const forgotPassword = async (req: Request, res: Response) => {
           </p>
         </div>
       `,
-    };
+        };
 
-    await sgMail.send(msg);
+        await sgMail.send(msg);
 
-    res.status(200).json({
-      message:
-        "Password reset email sent successfully. Please check your email.",
-    });
-  } catch (error: any) {
-    console.error("Error sending reset email:", error);
+        res.status(200).json({
+            message: "Password reset email sent successfully. Please check your email.",
+        });
+    } catch (error: any) {
+        console.error("Error sending reset email:", error);
 
-    res.status(500).json({
-      message: "Failed to send reset email. Please try again later.",
-    });
-  }
+        res.status(500).json({
+            message: "Failed to send reset email. Please try again later.",
+        });
+    }
 };
 
 export const resetPassword = async (req: Request, res: Response) => {
-  const { token, newPassword } = req.body;
-  //console.log(token, newPassword);
+    const { token, newPassword } = req.body;
+    //console.log(token, newPassword);
 
-  if (!token || !newPassword) {
-    return res.status(400).json({
-      message: "Token and new password are required",
-    });
-  }
-
-  try {
-    // Verify the reset token
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "your-secret-key"
-    ) as {
-      id: string;
-      email: string;
-      type: string;
-      timestamp: number;
-    };
-    //console.log(decoded);
-    // Verify it's a password reset token
-    if (decoded.type !== "password_reset") {
-      return res.status(400).json({
-        message: "Invalid token type",
-      });
+    if (!token || !newPassword) {
+        return res.status(400).json({
+            message: "Token and new password are required",
+        });
     }
 
-    // Check if token is not too old (additional security)
-    const tokenAge = Date.now() - decoded.timestamp;
-    const maxAge = 600000; // 10 minutes in milliseconds (matching JWT expiration)
-    if (tokenAge > maxAge) {
-      return res.status(400).json({
-        message: "Reset token has expired",
-      });
+    try {
+        // Verify the reset token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as {
+            id: string;
+            email: string;
+            type: string;
+            timestamp: number;
+        };
+        //console.log(decoded);
+        // Verify it's a password reset token
+        if (decoded.type !== "password_reset") {
+            return res.status(400).json({
+                message: "Invalid token type",
+            });
+        }
+
+        // Check if token is not too old (additional security)
+        const tokenAge = Date.now() - decoded.timestamp;
+        const maxAge = 600000; // 10 minutes in milliseconds (matching JWT expiration)
+        if (tokenAge > maxAge) {
+            return res.status(400).json({
+                message: "Reset token has expired",
+            });
+        }
+
+        // Find user by ID and email
+        const user = await User.findOne({
+            _id: decoded.id,
+            email: decoded.email,
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                message: "User not found",
+            });
+        }
+
+        // Hash the new password
+        const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+        // Update user's password using findOneAndUpdate to avoid validation issues
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: decoded.id },
+            { password: hashedPassword },
+            { new: true, runValidators: false }
+        );
+
+        if (!updatedUser) {
+            return res.status(500).json({
+                message: "Failed to update password",
+            });
+        }
+
+        res.status(200).json({
+            message: "Password reset successfully",
+        });
+    } catch (error: any) {
+        console.error("Password reset error:", error);
+
+        res.status(500).json({
+            message: "Failed to reset password. Please try again.",
+        });
     }
-
-    // Find user by ID and email
-    const user = await User.findOne({
-      _id: decoded.id,
-      email: decoded.email,
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        message: "User not found",
-      });
-    }
-
-    // Hash the new password
-    const hashedPassword = bcrypt.hashSync(newPassword, 10);
-
-    // Update user's password using findOneAndUpdate to avoid validation issues
-    const updatedUser = await User.findOneAndUpdate(
-      { _id: decoded.id },
-      { password: hashedPassword },
-      { new: true, runValidators: false }
-    );
-
-    if (!updatedUser) {
-      return res.status(500).json({
-        message: "Failed to update password",
-      });
-    }
-
-    res.status(200).json({
-      message: "Password reset successfully",
-    });
-  } catch (error: any) {
-    console.error("Password reset error:", error);
-
-    res.status(500).json({
-      message: "Failed to reset password. Please try again.",
-    });
-  }
-};
-
-export const getCurrencyOptions = async (req: Request, res: Response) => {
-  try {
-    const currencies = await Currency.find();
-    res
-      .status(200)
-      .json(currencies.sort((a, b) => a.name.localeCompare(b.name)));
-  } catch (error) {
-    console.error("Error fetching currency options:", error);
-    res.status(500).json({ message: "Failed to fetch currency options" });
-  }
 };
 
 export const changePassword = async (req: Request, res: Response) => {
-  try {
-    const user = req.user as TokenPayload;
-    const userId = user?.id;
+    try {
+        const user = req.user as TokenPayload;
+        const userId = user?.id;
 
-    if (!userId) {
-      return res.status(401).json({ message: "User not authenticated" });
+        if (!userId) {
+            return res.status(401).json({ message: "User not authenticated" });
+        }
+
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                message: "Current password and new password are required",
+            });
+        }
+
+        // Find user and verify current password
+        const userDoc = await User.findById(userId);
+        if (!userDoc) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Verify current password
+        const isCurrentPasswordValid = bcrypt.compareSync(currentPassword, userDoc.password);
+        if (!isCurrentPasswordValid) {
+            return res.status(400).json({ message: "Current password is incorrect" });
+        }
+
+        // Check if new password is different from current password
+        const isNewPasswordSame = bcrypt.compareSync(newPassword, userDoc.password);
+        if (isNewPasswordSame) {
+            return res.status(400).json({
+                message: "New password must be different from current password",
+            });
+        }
+
+        // Hash the new password
+        const hashedNewPassword = bcrypt.hashSync(newPassword, 10);
+
+        // Update user's password
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { password: hashedNewPassword },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(500).json({ message: "Failed to update password" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Password changed successfully",
+        });
+    } catch (error: any) {
+        console.error("Change password error:", error);
+        res.status(500).json({
+            message: "Failed to change password. Please try again.",
+        });
     }
-
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        message: "Current password and new password are required",
-      });
-    }
-
-    // Find user and verify current password
-    const userDoc = await User.findById(userId);
-    if (!userDoc) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Verify current password
-    const isCurrentPasswordValid = bcrypt.compareSync(
-      currentPassword,
-      userDoc.password
-    );
-    if (!isCurrentPasswordValid) {
-      return res.status(400).json({ message: "Current password is incorrect" });
-    }
-
-    // Check if new password is different from current password
-    const isNewPasswordSame = bcrypt.compareSync(newPassword, userDoc.password);
-    if (isNewPasswordSame) {
-      return res.status(400).json({
-        message: "New password must be different from current password",
-      });
-    }
-
-    // Hash the new password
-    const hashedNewPassword = bcrypt.hashSync(newPassword, 10);
-
-    // Update user's password
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { password: hashedNewPassword },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedUser) {
-      return res.status(500).json({ message: "Failed to update password" });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Password changed successfully",
-    });
-  } catch (error: any) {
-    console.error("Change password error:", error);
-    res.status(500).json({
-      message: "Failed to change password. Please try again.",
-    });
-  }
 };
