@@ -9,6 +9,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import bcrypt from "bcrypt";
 import sharp from "sharp";
 import CountryTimezoneCurrency from "../models/countries.model";
+import crypto from "crypto";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
@@ -132,7 +133,7 @@ export const updateProfile = async (req: Request, res: Response) => {
                     const timestamp = Date.now();
                     const originalName = req.file.originalname;
                     const hashInput = `${originalName}_${timestamp}_${userId}`;
-                    profilePictureName = bcrypt.hashSync(hashInput, 10);
+                    profilePictureName = crypto.createHash("sha256").update(hashInput).digest("hex");
 
                     // Clean the hash to make it a valid filename (remove special characters)
                     profilePictureName = profilePictureName.replace(/[^a-zA-Z0-9]/g, "");

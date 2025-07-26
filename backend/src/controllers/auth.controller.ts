@@ -11,6 +11,7 @@ import { s3Client } from "../config/s3Client";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sgMail from "@sendgrid/mail";
 import Currency from "../models/countries.model";
+import crypto from "crypto";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
@@ -39,7 +40,7 @@ export const register = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "User already exists" });
         }
         if (req.file) {
-            profilePictureName = bcrypt.hashSync(req.file.originalname, 10);
+            profilePictureName = crypto.createHash("sha256").update(req.file.originalname).digest("hex");
             const uploadCommand = new PutObjectCommand({
                 Bucket: AWS_BUCKET_NAME,
                 Key: profilePictureName,
