@@ -40,6 +40,7 @@
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.477.0",
     "react": "^19.0.0",
+    "react-calendar-heatmap": "^1.10.0",
     "react-clock": "^6.0.0",
     "react-day-picker": "^9.7.0",
     "react-dom": "^19.0.0",

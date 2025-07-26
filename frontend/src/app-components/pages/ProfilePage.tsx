@@ -139,7 +139,7 @@ const ProfilePage: React.FC = () => {
         setTimezones(timezonesOptions);
 
         const currenciesOptions = response.map((item) => item.currency);
-        console.log(currenciesOptions);
+        //console.log(currenciesOptions);
         setCurrencies(currenciesOptions);
     };
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getExpenses } from "@/services/expense.service";
-import { ExpenseType, ExpenseResponseType } from "@/types/expense";
+import { ExpenseType } from "@/types/expense";
 import {
     PieChart,
     Pie,
@@ -17,7 +17,7 @@ import {
     Line,
     CartesianGrid,
 } from "recharts";
-import { format, parse, isValid, isAfter, isBefore, addMonths, startOfMonth, endOfMonth, addDays } from "date-fns";
+import { format, parse, isValid, isAfter, isBefore, addMonths, addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMemo } from "react";
@@ -26,11 +26,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// --- New Analytics: Savings Rate, Recurring vs One-time, Forecast, Anomaly, Insights, Heatmap ---
-import { Fragment } from "react";
-// For heatmap, you may want to use a library like react-calendar-heatmap or build a simple grid
-// import CalendarHeatmap from 'react-calendar-heatmap'; // (if installed)
+// @ts-ignore
+// eslint-disable-next-line
+import CalendarHeatmap from "react-calendar-heatmap";
+import "react-calendar-heatmap/dist/styles.css";
+//import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useRef } from "react";
 
 const COLORS = [
     "#ef4444",
@@ -74,18 +75,6 @@ function getAllExpenseCategories(expenses: ExpenseType[]): string[] {
         if (e.type === "expense") set.add(e.category);
     });
     return Array.from(set);
-}
-
-// Helper to get all months between two dates (inclusive), formatted as yyyy-MM
-function getMonthRange(from: Date, to: Date): string[] {
-    const months: string[] = [];
-    let current = startOfMonth(from);
-    const last = startOfMonth(to);
-    while (current <= last) {
-        months.push(format(current, "yyyy-MM"));
-        current = addMonths(current, 1);
-    }
-    return months;
 }
 
 // Helper to get all days between two dates (inclusive), formatted as yyyy-MM-dd
@@ -204,27 +193,111 @@ const AnalyticsPage = () => {
     const [pieDateRange, setPieDateRange] = useState<DateRange | undefined>(undefined);
     const [combinedDateRange, setCombinedDateRange] = useState<DateRange | undefined>(undefined);
 
-    // --- New Analytics State ---
-    // Savings Rate Over Time
-    const [savingsRateData, setSavingsRateData] = useState<
-        { month: string; rate: number; income: number; expense: number }[]
-    >([]);
-    // Recurring vs One-time
-    const [recurringVsOneTime, setRecurringVsOneTime] = useState<{
-        recurring: number;
-        oneTime: number;
-    }>({ recurring: 0, oneTime: 0 });
-    // Expense Forecasting
-    const [forecast, setForecast] = useState<{
-        nextMonth: string;
-        predicted: number;
-    } | null>(null);
-    // Anomaly Detection
-    const [anomalies, setAnomalies] = useState<string[]>([]); // months with anomaly
-    // Custom Insights
-    const [insights, setInsights] = useState<string[]>([]);
-    // Heatmap Data
-    const [heatmapData, setHeatmapData] = useState<{ date: string; value: number }[]>([]);
+    // --- New Analytics Derived Data ---
+    const savingsRateData = useMemo(() => {
+        if (expenses.length === 0) return [];
+        const monthly: { [month: string]: { income: number; expense: number } } = {};
+        expenses.forEach((e) => {
+            const month = getMonthString(e.date);
+            if (!month) return;
+            if (!monthly[month]) monthly[month] = { income: 0, expense: 0 };
+            if (e.type === "income") monthly[month].income += e.amount;
+            else if (e.type === "expense") monthly[month].expense += e.amount;
+        });
+        return Object.entries(monthly).map(([month, vals]) => ({
+            month,
+            rate: vals.income > 0 ? ((vals.income - vals.expense) / vals.income) * 100 : 0,
+            income: vals.income,
+            expense: vals.expense,
+        }));
+    }, [expenses]);
+
+    const recurringVsOneTime = useMemo(() => {
+        let recurring = 0,
+            oneTime = 0;
+        expenses.forEach((e) => {
+            if (e.type === "expense") {
+                if ((e as any).isRecurring) recurring += e.amount;
+                else oneTime += e.amount;
+            }
+        });
+        return { recurring, oneTime };
+    }, [expenses]);
+
+    const forecast = useMemo(() => {
+        const months = savingsRateData.map((d) => d.month);
+        const expensesArr = savingsRateData.map((d) => d.expense);
+        if (months.length > 1) {
+            // Linear regression: y = a + bx
+            const n = months.length;
+            const x = months.map((_, i) => i + 1);
+            const y = expensesArr;
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
+            const sumX2 = x.reduce((acc, xi) => acc + xi * xi, 0);
+            const b = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const a = (sumY - b * sumX) / n;
+            const nextX = n + 1;
+            const predicted = a + b * nextX;
+            // Next month string
+            const lastMonth = months[months.length - 1];
+            const [yStr, mStr] = lastMonth.split("-");
+            const nextMonthDate = addMonths(new Date(Number(yStr), Number(mStr) - 1, 1), 1);
+            const nextMonth = format(nextMonthDate, "yyyy-MM");
+            return { nextMonth, predicted };
+        }
+        return null;
+    }, [savingsRateData]);
+
+    const anomalies = useMemo(() => {
+        const expensesArr = savingsRateData.map((d) => d.expense);
+        if (expensesArr.length === 0) return [];
+        const mean = expensesArr.reduce((a, b) => a + b, 0) / expensesArr.length;
+        const std = Math.sqrt(expensesArr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / expensesArr.length);
+        return savingsRateData.filter((d) => Math.abs(d.expense - mean) > 1.5 * std).map((d) => d.month);
+    }, [savingsRateData]);
+
+    const insights = useMemo(() => {
+        const arr: string[] = [];
+        if (savingsRateData.length > 1) {
+            const last = savingsRateData[savingsRateData.length - 1];
+            const prev = savingsRateData[savingsRateData.length - 2];
+            if (last.expense > prev.expense) {
+                arr.push(`You spent ${(last.expense - prev.expense).toFixed(2)} more this month than last month.`);
+            } else if (last.expense < prev.expense) {
+                arr.push(`You spent ${(prev.expense - last.expense).toFixed(2)} less this month than last month.`);
+            }
+            if (last.income > prev.income) {
+                arr.push(`Your income increased by ${(last.income - prev.income).toFixed(2)} compared to last month.`);
+            } else if (last.income < prev.income) {
+                arr.push(`Your income decreased by ${(prev.income - last.income).toFixed(2)} compared to last month.`);
+            }
+            if (last.rate > prev.rate) {
+                arr.push(`Your savings rate improved by ${(last.rate - prev.rate).toFixed(2)}%.`);
+            } else if (last.rate < prev.rate) {
+                arr.push(`Your savings rate dropped by ${(prev.rate - last.rate).toFixed(2)}%.`);
+            }
+        }
+        return arr;
+    }, [savingsRateData]);
+
+    const heatmapData = useMemo(() => {
+        const dailyMap: { [date: string]: number } = {};
+        expenses.forEach((e) => {
+            let d: Date;
+            if (typeof e.date === "string") {
+                d = parse(e.date, "dd/MM/yyyy", new Date());
+                if (!isValid(d)) d = new Date(e.date);
+            } else {
+                d = e.date;
+            }
+            if (!isValid(d)) return;
+            const dayStr = format(d, "yyyy-MM-dd");
+            dailyMap[dayStr] = (dailyMap[dayStr] || 0) + (e.type === "expense" ? e.amount : 0);
+        });
+        return Object.entries(dailyMap).map(([date, value]) => ({ date, value }));
+    }, [expenses]);
 
     // Pie chart: filter expenses by pieDateRange
     const filteredPieExpenses = expenses.filter((e) => {
@@ -260,118 +333,10 @@ const AnalyticsPage = () => {
 
     useEffect(() => {
         fetchExpenses();
-        // --- Calculate new analytics after expenses are loaded ---
-        if (expenses.length > 0) {
-            // 1. Savings Rate Over Time
-            const monthly: { [month: string]: { income: number; expense: number } } = {};
-            expenses.forEach((e) => {
-                const month = getMonthString(e.date);
-                if (!month) return;
-                if (!monthly[month]) monthly[month] = { income: 0, expense: 0 };
-                if (e.type === "income") monthly[month].income += e.amount;
-                else if (e.type === "expense") monthly[month].expense += e.amount;
-            });
-            const savingsArr = Object.entries(monthly).map(([month, vals]) => ({
-                month,
-                rate: vals.income > 0 ? ((vals.income - vals.expense) / vals.income) * 100 : 0,
-                income: vals.income,
-                expense: vals.expense,
-            }));
-            setSavingsRateData(savingsArr);
-
-            // 2. Recurring vs One-time
-            let recurring = 0,
-                oneTime = 0;
-            expenses.forEach((e) => {
-                if (e.type === "expense") {
-                    if ((e as any).isRecurring) recurring += e.amount;
-                    else oneTime += e.amount;
-                }
-            });
-            setRecurringVsOneTime({ recurring, oneTime });
-
-            // 3. Expense Forecasting (simple linear regression)
-            const months = savingsArr.map((d) => d.month);
-            const expensesArr = savingsArr.map((d) => d.expense);
-            if (months.length > 1) {
-                // Linear regression: y = a + bx
-                const n = months.length;
-                const x = months.map((_, i) => i + 1);
-                const y = expensesArr;
-                const sumX = x.reduce((a, b) => a + b, 0);
-                const sumY = y.reduce((a, b) => a + b, 0);
-                const sumXY = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
-                const sumX2 = x.reduce((acc, xi) => acc + xi * xi, 0);
-                const b = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-                const a = (sumY - b * sumX) / n;
-                const nextX = n + 1;
-                const predicted = a + b * nextX;
-                // Next month string
-                const lastMonth = months[months.length - 1];
-                const [yStr, mStr] = lastMonth.split("-");
-                const nextMonthDate = addMonths(new Date(Number(yStr), Number(mStr) - 1, 1), 1);
-                const nextMonth = format(nextMonthDate, "yyyy-MM");
-                setForecast({ nextMonth, predicted });
-            }
-
-            // 4. Anomaly Detection (z-score > 1.5)
-            const mean = expensesArr.reduce((a, b) => a + b, 0) / expensesArr.length;
-            const std = Math.sqrt(expensesArr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / expensesArr.length);
-            const anomalyMonths = savingsArr.filter((d) => Math.abs(d.expense - mean) > 1.5 * std).map((d) => d.month);
-            setAnomalies(anomalyMonths);
-
-            // 5. Custom Insights
-            const insightsArr: string[] = [];
-            if (savingsArr.length > 1) {
-                const last = savingsArr[savingsArr.length - 1];
-                const prev = savingsArr[savingsArr.length - 2];
-                if (last.expense > prev.expense) {
-                    insightsArr.push(
-                        `You spent ${(last.expense - prev.expense).toFixed(2)} more this month than last month.`
-                    );
-                } else if (last.expense < prev.expense) {
-                    insightsArr.push(
-                        `You spent ${(prev.expense - last.expense).toFixed(2)} less this month than last month.`
-                    );
-                }
-                if (last.income > prev.income) {
-                    insightsArr.push(
-                        `Your income increased by ${(last.income - prev.income).toFixed(2)} compared to last month.`
-                    );
-                } else if (last.income < prev.income) {
-                    insightsArr.push(
-                        `Your income decreased by ${(prev.income - last.income).toFixed(2)} compared to last month.`
-                    );
-                }
-                if (last.rate > prev.rate) {
-                    insightsArr.push(`Your savings rate improved by ${(last.rate - prev.rate).toFixed(2)}%.`);
-                } else if (last.rate < prev.rate) {
-                    insightsArr.push(`Your savings rate dropped by ${(prev.rate - last.rate).toFixed(2)}%.`);
-                }
-            }
-            setInsights(insightsArr);
-
-            // 6. Heatmap Calendar (daily spend)
-            const dailyMap: { [date: string]: number } = {};
-            expenses.forEach((e) => {
-                let d: Date;
-                if (typeof e.date === "string") {
-                    d = parse(e.date, "dd/MM/yyyy", new Date());
-                    if (!isValid(d)) d = new Date(e.date);
-                } else {
-                    d = e.date;
-                }
-                if (!isValid(d)) return;
-                const dayStr = format(d, "yyyy-MM-dd");
-                dailyMap[dayStr] = (dailyMap[dayStr] || 0) + (e.type === "expense" ? e.amount : 0);
-            });
-            setHeatmapData(Object.entries(dailyMap).map(([date, value]) => ({ date, value })));
-        }
     }, []);
 
     const fetchExpenses = async () => {
         setLoading(true);
-        console.log("Fetching expenses");
         // getExpenses returns { expenses, total, page, limit }
         const response = await getExpenses(1, 1000);
         // Convert to ExpenseType[] with date as Date
@@ -458,6 +423,38 @@ const AnalyticsPage = () => {
     // Insights
     const bestMonth = barData.sort((a, b) => b.income - a.income)[0];
     const worstMonth = barData.sort((a, b) => b.expense - a.expense)[0];
+
+    // Ensure heatmapData is sorted by date ascending for CalendarHeatmap
+    const sortedHeatmapData = useMemo(() => {
+        return [...heatmapData].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, [heatmapData]);
+    // Get the date of the user's first expense for heatmap start
+    const minExpenseDate = useMemo(() => {
+        if (expenses.length === 0) return new Date();
+        return new Date(
+            Math.min(
+                ...expenses.map((e) => {
+                    if (typeof e.date === "string") {
+                        const d = parse(e.date, "dd/MM/yyyy", new Date());
+                        return isValid(d) ? d.getTime() : new Date(e.date).getTime();
+                    } else {
+                        return e.date.getTime();
+                    }
+                })
+            )
+        );
+    }, [expenses]);
+    const today = new Date();
+    const startDate = minExpenseDate;
+    const endDate = today;
+
+    // Tooltip state for custom heatmap tooltip
+    const [heatmapTooltip, setHeatmapTooltip] = useState<{
+        visible: boolean;
+        x: number;
+        y: number;
+        content: string;
+    }>({ visible: false, x: 0, y: 0, content: "" });
 
     return (
         <div className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto">
@@ -654,7 +651,7 @@ const AnalyticsPage = () => {
                                 </div>
                             </div>
                             <p className="text-sm text-muted-foreground mb-4 mt-2">
-                                Track your running balance, total monthly spending, and income in one view.
+                                Track your total monthly spending and income in one view.
                             </p>
                             <div className="mb-4">
                                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as "line" | "bar")}>
@@ -888,39 +885,39 @@ const AnalyticsPage = () => {
                                     </ResponsiveContainer>
                                 </div>
                             )}
+                            {(() => {
+                                const total = recurringVsOneTime.recurring + recurringVsOneTime.oneTime;
+                                const recurringPct = total > 0 ? (recurringVsOneTime.recurring / total) * 100 : 0;
+                                const oneTimePct = total > 0 ? (recurringVsOneTime.oneTime / total) * 100 : 0;
+
+                                let insight = "";
+                                if (recurringPct > 60) {
+                                    insight =
+                                        "A large portion of your expenses are recurring. Consider reviewing your subscriptions and fixed costs.";
+                                } else if (oneTimePct > 60) {
+                                    insight =
+                                        "Most of your expenses are one-time. Review discretionary spending for potential savings.";
+                                } else if (recurringPct > 0 && oneTimePct > 0) {
+                                    insight = "You have a balanced mix of recurring and one-time expenses.";
+                                } else {
+                                    insight = "No significant recurring or one-time expenses found.";
+                                }
+
+                                return (
+                                    <div className="mt-4 text-muted-foreground text-center">
+                                        <div>
+                                            <strong>Recurring:</strong> {recurringPct.toFixed(2)}% &nbsp;|&nbsp;
+                                            <strong>One-time:</strong> {oneTimePct.toFixed(2)}%
+                                        </div>
+                                        <div className="mt-2">{insight}</div>
+                                    </div>
+                                );
+                            })()}
                         </CardContent>
                     </Card>
-                    {(() => {
-                        const total = recurringVsOneTime.recurring + recurringVsOneTime.oneTime;
-                        const recurringPct = total > 0 ? (recurringVsOneTime.recurring / total) * 100 : 0;
-                        const oneTimePct = total > 0 ? (recurringVsOneTime.oneTime / total) * 100 : 0;
-
-                        let insight = "";
-                        if (recurringPct > 60) {
-                            insight =
-                                "A large portion of your expenses are recurring. Consider reviewing your subscriptions and fixed costs.";
-                        } else if (oneTimePct > 60) {
-                            insight =
-                                "Most of your expenses are one-time. Review discretionary spending for potential savings.";
-                        } else if (recurringPct > 0 && oneTimePct > 0) {
-                            insight = "You have a balanced mix of recurring and one-time expenses.";
-                        } else {
-                            insight = "No significant recurring or one-time expenses found.";
-                        }
-
-                        return (
-                            <div className="mt-4 text-muted-foreground text-center">
-                                <div>
-                                    <strong>Recurring:</strong> {recurringPct.toFixed(2)}% &nbsp;|&nbsp;
-                                    <strong>One-time:</strong> {oneTimePct.toFixed(2)}%
-                                </div>
-                                <div className="mt-2">{insight}</div>
-                            </div>
-                        );
-                    })()}
 
                     {/* Expense Forecasting */}
-                    <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition">
+                    {/*   <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition">
                         <CardHeader>
                             <CardTitle className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-0">
                                 Expense Forecasting
@@ -930,16 +927,16 @@ const AnalyticsPage = () => {
                             </p>
                         </CardHeader>
                         <CardContent>
-                            {/* TODO: Add forecast value and optionally a chart with forecasted point */}
+                             TODO: Add forecast value and optionally a chart with forecasted point 
                             <div className="text-muted-foreground">
                                 [Forecast:{" "}
                                 {forecast ? `${forecast.nextMonth}: ${forecast.predicted.toFixed(2)}` : "N/A"}]
                             </div>
                         </CardContent>
-                    </Card>
+                    </Card> */}
 
                     {/* Anomaly Detection */}
-                    <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition">
+                    {/* <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition">
                         <CardHeader>
                             <CardTitle className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-0">
                                 Anomaly Detection
@@ -949,12 +946,12 @@ const AnalyticsPage = () => {
                             </p>
                         </CardHeader>
                         <CardContent>
-                            {/* TODO: List anomaly months and show on chart */}
+                            TODO: List anomaly months and show on chart 
                             <div className="text-muted-foreground">
                                 {anomalies.length > 0 ? `Anomalies: ${anomalies.join(", ")}` : "No anomalies detected."}
                             </div>
                         </CardContent>
-                    </Card>
+                    </Card> */}
 
                     {/* Custom Insights */}
                     <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition">
@@ -988,8 +985,7 @@ const AnalyticsPage = () => {
                             </p>
                         </CardHeader>
                         <CardContent>
-                            {/* TODO: Add heatmap calendar visualization */}
-                            <div className="text-muted-foreground">[Heatmap Calendar Here]</div>
+                            <div className="w-full flex flex-col items-center"></div>
                         </CardContent>
                     </Card>
                 </section>
