@@ -8,7 +8,7 @@ import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle } from "luc
 import { ToastAction } from "@/components/ui/toast";
 import { Progress } from "@/components/ui/progress";
 import { BudgetReminder } from "@/types/budget";
-import AddBudgetDialog from "@/app-components/AddBudgetDialog";
+import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { useAuth } from "@/context/AuthContext";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils";
 

@@ -8,7 +8,7 @@ import { getExpenses } from "@/services/expense.service";
 import { ExpenseType } from "@/types/expense";
 import { BudgetReminder } from "@/types/budget";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
-import AddExpenseDialog from "@/app-components/AddExpenseDialog";
+import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 

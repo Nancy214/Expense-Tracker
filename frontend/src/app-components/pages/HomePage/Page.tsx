@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { BudgetReminder } from "@/types/budget";
 import { getBudgetProgress } from "@/services/budget.service";
-import AddExpenseDialog from "@/app-components/AddExpenseDialog";
-import AddBudgetDialog from "@/app-components/AddBudgetDialog";
+import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
+import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import AddBillDialog from "@/app-components/AddBillDialog";
 import { getExpenses } from "@/services/expense.service";
 import { isSameMonth, isSameYear } from "date-fns";

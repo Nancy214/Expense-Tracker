@@ -4,7 +4,7 @@ import LoginPage from "@/app-components/pages/LoginPage";
 import RegisterPage from "@/app-components/pages/RegisterPage";
 import HomePage from "@/app-components/pages/HomePage/Page";
 import BudgetPage from "@/app-components/pages/BudgetPage/Page";
-import CalendarPage from "@/app-components/pages/CalendarPage";
+import CalendarPage from "@/app-components/pages/CalendarPage/Page";
 import ProfilePage from "@/app-components/pages/ProfilePage";
 import ChangePasswordPage from "@/app-components/pages/ChangePasswordPage";
 import GoogleCallback from "@/app-components/pages/GoogleCallback";
