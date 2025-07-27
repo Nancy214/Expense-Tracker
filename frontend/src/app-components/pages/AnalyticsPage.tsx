@@ -24,7 +24,7 @@ import { useMemo } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, X, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 // @ts-ignore
 // eslint-disable-next-line
@@ -32,6 +32,7 @@ import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 //import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useRef } from "react";
+import { getBudgets } from "@/services/budget.service";
 
 const COLORS = [
     "#ef4444",
@@ -193,6 +194,17 @@ const AnalyticsPage = () => {
     const [pieDateRange, setPieDateRange] = useState<DateRange | undefined>(undefined);
     const [combinedDateRange, setCombinedDateRange] = useState<DateRange | undefined>(undefined);
 
+    // Account Statistics State
+    const [stats, setStats] = useState({
+        totalExpenses: 0,
+        totalAmount: 0,
+        budgetsCount: 0,
+        daysActive: 0,
+        averageExpense: 0,
+        largestExpense: 0,
+        recurringExpenses: 0,
+    });
+
     // --- New Analytics Derived Data ---
     const savingsRateData = useMemo(() => {
         if (expenses.length === 0) return [];
@@ -333,6 +345,7 @@ const AnalyticsPage = () => {
 
     useEffect(() => {
         fetchExpenses();
+        fetchAccountStats();
     }, []);
 
     const fetchExpenses = async () => {
@@ -356,6 +369,28 @@ const AnalyticsPage = () => {
 
         setExpenses(mapped);
         setLoading(false);
+    };
+
+    const fetchAccountStats = async () => {
+        try {
+            const [expenseResponse, budgets] = await Promise.all([getExpenses(), getBudgets()]);
+            const expenses = expenseResponse.expenses;
+            const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            const recurringExpenses = expenses.filter((expense) => expense.isRecurring).length;
+            const largestExpense = expenses.length > 0 ? Math.max(...expenses.map((e) => e.amount)) : 0;
+
+            setStats({
+                totalExpenses: expenses.length,
+                totalAmount,
+                budgetsCount: budgets.length,
+                daysActive: 30,
+                averageExpense: expenses.length > 0 ? totalAmount / expenses.length : 0,
+                largestExpense,
+                recurringExpenses,
+            });
+        } catch (error) {
+            console.error("Error fetching stats:", error);
+        }
     };
 
     // PIE CHART DATA
@@ -464,6 +499,66 @@ const AnalyticsPage = () => {
             <p className="text-lg text-gray-500 dark:text-gray-300 mb-8">
                 Visualize your financial health and trends at a glance.
             </p>
+
+            {/* Enhanced Account Statistics */}
+            <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition mb-8">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-100">
+                        <TrendingUp className="h-5 w-5" />
+                        Account Overview
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                            <div className="text-base sm:text-lg lg:text-xl font-bold text-primary truncate">
+                                {stats.totalExpenses}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Total Expenses</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                            <div className="text-base sm:text-lg lg:text-xl font-bold text-green-600 truncate">
+                                ${stats.totalAmount.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Total Spent</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                            <div className="text-base sm:text-lg lg:text-xl font-bold text-blue-600 truncate">
+                                {stats.budgetsCount}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Active Budgets</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                            <div className="text-base sm:text-lg lg:text-xl font-bold text-purple-600 truncate">
+                                {stats.daysActive}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Days Active</div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                            <div className="text-sm sm:text-base lg:text-lg font-bold text-orange-600 truncate">
+                                ${stats.averageExpense.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Average Expense</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                            <div className="text-sm sm:text-base lg:text-lg font-bold text-red-600 truncate">
+                                ${stats.largestExpense.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Largest Expense</div>
+                        </div>
+                        <div className="text-center p-3 bg-muted/50 rounded-lg">
+                            <div className="text-sm sm:text-base lg:text-lg font-bold text-cyan-600 truncate">
+                                {stats.recurringExpenses}
+                            </div>
+                            <div className="text-xs text-muted-foreground">Recurring Expenses</div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             <div className="space-y-3">
                 {/* Pie Chart Section */}
                 <section className="bg-white dark:bg-slate-900/80 rounded-2xl shadow-lg p-6 transition hover:shadow-2xl">
