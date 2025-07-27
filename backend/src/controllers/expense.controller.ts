@@ -15,14 +15,8 @@ import crypto from "crypto";
 export const getExpenses = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.id;
-        const page = parseInt((req.query.page as string) || "1", 10);
-        const limit = parseInt((req.query.limit as string) || "10", 10);
-        const skip = (page - 1) * limit;
-        const [expenses, total] = await Promise.all([
-            Expense.find({ userId }).sort({ date: -1 }).skip(skip).limit(limit),
-            Expense.countDocuments({ userId }),
-        ]);
-        res.json({ expenses, total, page, limit });
+        const expenses = await Expense.find({ userId }).sort({ date: -1 });
+        res.json({ expenses });
     } catch (error) {
         res.status(500).json({ message: error });
     }

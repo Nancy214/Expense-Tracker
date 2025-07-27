@@ -187,7 +187,7 @@ const ProfilePage: React.FC = () => {
 
     const fetchAccountStats = async () => {
         try {
-            const [expenseResponse, budgets] = await Promise.all([getExpenses(1, 1000), getBudgets()]);
+            const [expenseResponse, budgets] = await Promise.all([getExpenses(), getBudgets()]);
             const expenses = expenseResponse.expenses;
             const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
             const recurringExpenses = expenses.filter((expense) => expense.isRecurring).length;

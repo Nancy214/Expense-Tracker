@@ -338,7 +338,7 @@ const AnalyticsPage = () => {
     const fetchExpenses = async () => {
         setLoading(true);
         // getExpenses returns { expenses, total, page, limit }
-        const response = await getExpenses(1, 1000);
+        const response = await getExpenses();
         // Convert to ExpenseType[] with date as Date
         const mapped: ExpenseType[] = response.expenses.map((e: any) => {
             let d: Date;

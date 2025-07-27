@@ -1,4 +1,4 @@
-import { useState } from "react";
+/* import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getExpenses } from "@/services/expense.service";
 import { format } from "date-fns";
@@ -31,3 +31,4 @@ export function useAllExpenses() {
 
     return query;
 }
+ */
