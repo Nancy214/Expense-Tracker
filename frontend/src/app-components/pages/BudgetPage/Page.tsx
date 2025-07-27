@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BudgetFrequency, BudgetResponse, BudgetProgress } from "../../types/budget";
-import { deleteBudget, getBudgets, getBudgetProgress } from "../../services/budget.service";
+import { BudgetFrequency, BudgetResponse, BudgetProgress } from "@/types/budget";
+import { deleteBudget, getBudgets, getBudgetProgress } from "@/services/budget.service";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { ToastAction } from "@/components/ui/toast";

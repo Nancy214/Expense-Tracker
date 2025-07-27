@@ -10,7 +10,7 @@ import { BudgetReminder } from "@/types/budget";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
 import AddExpenseDialog from "@/app-components/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
-import { FiltersSection } from "@/app-components/pages/TransactionsPage/filters";
+import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 
 type ExpenseTypeWithId = ExpenseType & { _id?: string };
 

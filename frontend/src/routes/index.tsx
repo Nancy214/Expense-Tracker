@@ -2,15 +2,15 @@ import { Navigate, useLocation, Route, Routes } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import LoginPage from "@/app-components/pages/LoginPage";
 import RegisterPage from "@/app-components/pages/RegisterPage";
-import HomePage from "@/app-components/pages/HomePage/page";
-import BudgetPage from "@/app-components/pages/BudgetPage";
+import HomePage from "@/app-components/pages/HomePage/Page";
+import BudgetPage from "@/app-components/pages/BudgetPage/Page";
 import CalendarPage from "@/app-components/pages/CalendarPage";
 import ProfilePage from "@/app-components/pages/ProfilePage";
 import ChangePasswordPage from "@/app-components/pages/ChangePasswordPage";
 import GoogleCallback from "@/app-components/pages/GoogleCallback";
 import ForgotPasswordPage from "@/app-components/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/app-components/pages/ResetPasswordPage";
-import TransactionsPage from "@/app-components/pages/TransactionsPage/page";
+import TransactionsPage from "@/app-components/pages/TransactionsPage/Page";
 import BillsPage from "@/app-components/pages/BillsPage";
 import AnalyticsPage from "@/app-components/pages/AnalyticsPage";
 
