@@ -18,12 +18,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
-import { ExpenseType } from "@/types/expense";
+import { TransactionWithId } from "@/types/transaction";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { downloadCSV, downloadExcel } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
-
-// Import the type from ExpenseTableData to avoid duplication
-type ExpenseTypeWithId = ExpenseType & { _id?: string };
 
 const EXPENSE_CATEGORIES: string[] = [
     "Food & Dining",
@@ -49,11 +46,11 @@ const INCOME_CATEGORIES: string[] = [
 ];
 
 interface FiltersSectionProps {
-    filteredTransactions: ExpenseTypeWithId[];
-    handleEdit: (expense: ExpenseTypeWithId) => void;
-    handleDelete: (expenseId: string) => void;
+    filteredTransactions: TransactionWithId[];
+    handleEdit: (expense: TransactionWithId) => void;
+    handleDelete: (id: string) => void;
     handleDeleteRecurring: (templateId: string) => void;
-    recurringTransactions: ExpenseTypeWithId[];
+    recurringTransactions: TransactionWithId[];
     totalExpensesByCurrency: { [key: string]: { income: number; expense: number; net: number } };
     onRefresh?: () => void;
     setAllExpenses?: (expenses: any[]) => void;
@@ -64,6 +61,8 @@ interface FiltersSectionProps {
     downloadMonthlyStatementForMonth?: (month: { year: number; month: number }) => void;
     user?: any;
     refreshAllTransactions?: () => void;
+    activeTab?: "all" | "recurring" | "bills";
+    setActiveTab?: (tab: "all" | "recurring" | "bills") => void;
 }
 
 export function FiltersSection({
@@ -81,17 +80,27 @@ export function FiltersSection({
     downloadMonthlyStatementForMonth,
     user,
     refreshAllTransactions,
+    activeTab = "all",
+    setActiveTab,
 }: FiltersSectionProps) {
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
     const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
+    const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["unpaid", "overdue", "pending"]);
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
     // Filter transactions based on selected filters
-    const localFilteredTransactions = filteredTransactions.filter((transaction: ExpenseTypeWithId) => {
+    const localFilteredTransactions = filteredTransactions.filter((transaction: TransactionWithId) => {
         const matchesCategory = selectedCategories.includes("all") || selectedCategories.includes(transaction.category);
         const matchesType = selectedTypes.includes("all") || selectedTypes.includes(transaction.type);
+
+        // Status filtering - only apply to bills
+        // By default, hide paid bills unless "paid" or "all" is explicitly selected
+        const matchesStatus =
+            transaction.category === "Bill"
+                ? selectedStatuses.includes("all") || selectedStatuses.includes(transaction.billStatus || "unpaid")
+                : true;
 
         // Search filtering
         const matchesSearch =
@@ -116,7 +125,7 @@ export function FiltersSection({
             matchesDate = transactionDate >= from && transactionDate <= to;
         }
 
-        return matchesCategory && matchesType && matchesDate && matchesSearch;
+        return matchesCategory && matchesType && matchesStatus && matchesDate && matchesSearch;
     });
 
     const handleCategoryFilterChange = (category: string, checked: boolean) => {
@@ -145,6 +154,18 @@ export function FiltersSection({
             newTypes = selectedTypes.filter((t) => t !== type);
         }
         setSelectedTypes(newTypes.length ? newTypes : ["all"]);
+    };
+
+    const handleStatusFilterChange = (status: string, checked: boolean) => {
+        let newStatuses: string[];
+        if (status === "all") {
+            newStatuses = ["all"];
+        } else if (checked) {
+            newStatuses = [...selectedStatuses.filter((s) => s !== "all"), status];
+        } else {
+            newStatuses = selectedStatuses.filter((s) => s !== status);
+        }
+        setSelectedStatuses(newStatuses.length ? newStatuses : ["all"]);
     };
 
     return (
@@ -234,6 +255,61 @@ export function FiltersSection({
                             </DropdownMenuCheckboxItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+                    {/* Status filter - only show for bills tab */}
+                    {activeTab === "bills" && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-[180px] justify-between">
+                                    <span className="truncate">
+                                        {selectedStatuses.includes("all")
+                                            ? "All Statuses"
+                                            : selectedStatuses.length === 3 &&
+                                              selectedStatuses.includes("unpaid") &&
+                                              selectedStatuses.includes("overdue") &&
+                                              selectedStatuses.includes("pending")
+                                            ? "Active Bills"
+                                            : `${selectedStatuses.length} selected`}
+                                    </span>
+                                    <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[180px]">
+                                <DropdownMenuLabel>Bill Status</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuCheckboxItem
+                                    checked={selectedStatuses.includes("all")}
+                                    onCheckedChange={(checked) => handleStatusFilterChange("all", checked)}
+                                >
+                                    All Statuses
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuCheckboxItem
+                                    checked={selectedStatuses.includes("unpaid")}
+                                    onCheckedChange={(checked) => handleStatusFilterChange("unpaid", checked)}
+                                >
+                                    Unpaid
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={selectedStatuses.includes("overdue")}
+                                    onCheckedChange={(checked) => handleStatusFilterChange("overdue", checked)}
+                                >
+                                    Overdue
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={selectedStatuses.includes("pending")}
+                                    onCheckedChange={(checked) => handleStatusFilterChange("pending", checked)}
+                                >
+                                    Pending
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={selectedStatuses.includes("paid")}
+                                    onCheckedChange={(checked) => handleStatusFilterChange("paid", checked)}
+                                >
+                                    Paid
+                                </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                     <div className="flex items-center gap-2">
                         <Popover>
                             <PopoverTrigger asChild>
@@ -266,6 +342,12 @@ export function FiltersSection({
                     </div>
                     {(!selectedCategories.includes("all") ||
                         !selectedTypes.includes("all") ||
+                        !(
+                            selectedStatuses.includes("unpaid") &&
+                            selectedStatuses.includes("overdue") &&
+                            selectedStatuses.includes("pending") &&
+                            selectedStatuses.length === 3
+                        ) ||
                         dateRangeForFilter?.from ||
                         dateRangeForFilter?.to ||
                         searchQuery !== "") && (
@@ -274,6 +356,7 @@ export function FiltersSection({
                             onClick={() => {
                                 setSelectedCategories(["all"]);
                                 setSelectedTypes(["all"]);
+                                setSelectedStatuses(["unpaid", "overdue", "pending"]);
                                 setDateRangeForFilter(undefined);
                                 setSearchQuery("");
                             }}
@@ -382,6 +465,8 @@ export function FiltersSection({
                         recurringTransactions={recurringTransactions}
                         totalExpensesByCurrency={totalExpensesByCurrency}
                         refreshAllTransactions={refreshAllTransactions}
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
                     />
                 </div>
             </CardContent>

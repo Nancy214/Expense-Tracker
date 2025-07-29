@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getExpenses } from "@/services/expense.service";
-import { ExpenseType } from "@/types/expense";
+import { getExpenses } from "@/services/transaction.service";
+import { Transaction } from "@/types/transaction";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -11,7 +11,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
-type CalendarExpense = ExpenseType & { _id: string };
+type CalendarExpense = Transaction & { _id: string };
 
 const CalendarPage: React.FC = () => {
     const [expenses, setExpenses] = useState<CalendarExpense[]>([]);
@@ -26,7 +26,7 @@ const CalendarPage: React.FC = () => {
         try {
             setIsLoading(true);
             const expensesData = await getExpenses();
-            // Convert Date objects to formatted strings to match ExpenseType
+            // Convert Date objects to formatted strings to match Transaction
             const formattedExpenses = expensesData.expenses.map((expense) => ({
                 ...expense,
                 date: format(expense.date, "dd/MM/yyyy"),

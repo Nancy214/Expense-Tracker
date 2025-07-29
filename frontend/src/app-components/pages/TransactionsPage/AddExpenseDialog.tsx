@@ -4,21 +4,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, parse, isValid, parseISO } from "date-fns";
+import { format, parse, isValid, parseISO, addMonths, addQuarters, addYears } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createExpense, updateExpense, uploadReceipt } from "@/services/expense.service";
+import { createExpense, updateExpense, uploadReceipt } from "@/services/transaction.service";
 import axios from "axios";
-import { ExpenseType, RecurringFrequency } from "@/types/expense";
+import {
+    Transaction,
+    TransactionFormData,
+    RecurringFrequency,
+    BillStatus,
+    BillFrequency,
+    PaymentMethod,
+} from "@/types/transaction";
 import { useToast } from "@/hooks/use-toast";
 import { getCountryTimezoneCurrency } from "@/services/profile.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { useAuth } from "@/context/AuthContext";
-import GeneralDialog from "@/app-components/Dialog";
 import { useStats } from "@/context/StatsContext";
 import { CountryTimezoneCurrency } from "@/services/profile.service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+    showErrorToast,
+    showSuccessToast,
+    showValidationError,
+    showUpdateSuccess,
+    showCreateSuccess,
+    showSaveError,
+} from "@/utils/toastUtils";
 
 const EXPENSE_CATEGORIES: string[] = [
     "Food & Dining",
@@ -26,15 +41,24 @@ const EXPENSE_CATEGORIES: string[] = [
     "Shopping",
     "Entertainment",
     "Bill",
-    "Rent",
-    "Loan",
-    "Insurance",
-    "Tax",
-    "Utility",
     "Healthcare",
     "Travel",
     "Education",
     "Other",
+];
+
+const BILL_CATEGORIES: string[] = [
+    "Rent/Mortgage",
+    "Electricity",
+    "Water",
+    "Gas",
+    "Internet",
+    "Phone",
+    "Insurance",
+    "Subscriptions",
+    "Credit Card",
+    "Loan Payment",
+    "Property Tax",
 ];
 
 const INCOME_CATEGORIES: string[] = [
@@ -48,18 +72,172 @@ const INCOME_CATEGORIES: string[] = [
     "Other Income",
 ];
 
+const BILL_FREQUENCIES: BillFrequency[] = ["monthly", "quarterly", "yearly", "one-time"];
+
+const PAYMENT_METHODS: PaymentMethod[] = ["manual", "auto-pay", "bank-transfer", "credit-card", "debit-card", "cash"];
+
 interface AddExpenseDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    editingExpense?: ExpenseType | null;
+    editingExpense?: Transaction | null;
     onSuccess?: () => void;
     triggerButton?: React.ReactNode;
+    preselectedCategory?: string;
 }
 
-type LocalExpenseType = Omit<ExpenseType, "date" | "endDate"> & {
-    date: string;
-    endDate?: string;
+// Utility functions to reduce code duplication
+const parseDateToFormat = (date: string | Date | undefined, formatString: string = "dd/MM/yyyy"): string => {
+    if (!date) return format(new Date(), formatString);
+
+    if (typeof date === "string") {
+        const iso = parseISO(date);
+        if (isValid(iso)) return format(iso, formatString);
+        const parsed = parse(date, formatString, new Date());
+        if (isValid(parsed)) return format(parsed, formatString);
+        return format(new Date(), formatString);
+    }
+
+    if (date instanceof Date && isValid(date)) {
+        return format(date, formatString);
+    }
+
+    return format(new Date(), formatString);
 };
+
+const validateDate = (dateString: string, fieldName: string): boolean => {
+    const parsedDate = parse(dateString, "dd/MM/yyyy", new Date());
+    return isValid(parsedDate);
+};
+
+// Helper function to calculate next due date based on frequency
+const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): Date => {
+    const nextDate = new Date(currentDueDate);
+
+    switch (frequency) {
+        case "monthly":
+            return addMonths(nextDate, 1);
+        case "quarterly":
+            return addQuarters(nextDate, 1);
+        case "yearly":
+            return addYears(nextDate, 1);
+        case "one-time":
+        default:
+            return nextDate;
+    }
+};
+
+// Helper function to check if a bill is overdue
+const isBillOverdue = (dueDate: string, status: BillStatus): boolean => {
+    if (status === "paid") return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const billDueDate = parse(dueDate, "dd/MM/yyyy", new Date());
+    billDueDate.setHours(0, 0, 0, 0);
+    return billDueDate < today;
+};
+
+// Form field components to reduce repetition
+const FormField = ({
+    label,
+    required = false,
+    children,
+    className = "",
+}: {
+    label: string;
+    required?: boolean;
+    children: React.ReactNode;
+    className?: string;
+}) => (
+    <div className={className}>
+        <label className="block text-sm mb-1">
+            {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        {children}
+    </div>
+);
+
+const InputField = ({
+    name,
+    value,
+    onChange,
+    placeholder,
+    required = false,
+    className = "",
+    type = "text",
+    ...props
+}: {
+    name: string;
+    value: string | number;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder: string;
+    required?: boolean;
+    className?: string;
+    type?: string;
+    [key: string]: any;
+}) => (
+    <Input
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        className={className}
+        type={type}
+        {...props}
+    />
+);
+
+const SelectField = ({
+    value,
+    onValueChange,
+    placeholder,
+    children,
+    className = "",
+}: {
+    value: string;
+    onValueChange: (value: string) => void;
+    placeholder: string;
+    children: React.ReactNode;
+    className?: string;
+}) => (
+    <Select value={value} onValueChange={onValueChange}>
+        <SelectTrigger className={className}>
+            <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>{children}</SelectContent>
+    </Select>
+);
+
+const DateField = ({
+    value,
+    onSelect,
+    placeholder,
+}: {
+    value: string | undefined;
+    onSelect: (date: Date | undefined) => void;
+    placeholder: string;
+}) => (
+    <Popover>
+        <PopoverTrigger asChild>
+            <Button
+                variant={"outline"}
+                className={cn("w-[180px] justify-start text-left font-normal", !value && "text-muted-foreground")}
+            >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {value ? format(parse(value, "dd/MM/yyyy", new Date()), "dd/MM/yyyy") : <span>{placeholder}</span>}
+            </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+                className="pointer-events-auto"
+                mode="single"
+                selected={value ? parse(value, "dd/MM/yyyy", new Date()) : undefined}
+                onSelect={onSelect}
+                initialFocus
+            />
+        </PopoverContent>
+    </Popover>
+);
 
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     open,
@@ -67,13 +245,28 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     editingExpense,
     onSuccess,
     triggerButton,
+    preselectedCategory,
 }) => {
     const { toast } = useToast();
     const { user } = useAuth();
     const { refreshStats } = useStats();
     const [currencyOptions, setCurrencyOptions] = useState<CountryTimezoneCurrency["currency"][]>([]);
     const [showExchangeRate, setShowExchangeRate] = useState(false);
-    const [formData, setFormData] = useState<LocalExpenseType & { fromRate?: number; toRate?: number }>({
+    const [formData, setFormData] = useState<
+        TransactionFormData & {
+            fromRate?: number;
+            toRate?: number;
+            billCategory?: string;
+            reminderDays?: number;
+            dueDate?: string;
+            // Bill-specific fields
+            billStatus?: BillStatus;
+            billFrequency?: BillFrequency;
+            nextDueDate?: string;
+            lastPaidDate?: string;
+            paymentMethod?: PaymentMethod;
+        }
+    >({
         title: "",
         category: "",
         description: "",
@@ -86,6 +279,15 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         fromRate: 1,
         toRate: 1,
         endDate: undefined,
+        billCategory: "",
+        reminderDays: 3,
+        dueDate: format(new Date(), "dd/MM/yyyy"),
+        // Bill-specific fields
+        billStatus: "unpaid",
+        billFrequency: "monthly",
+        nextDueDate: undefined,
+        lastPaidDate: undefined,
+        paymentMethod: "manual",
     });
     const [receipts, setReceipts] = useState<(File | string)[]>(editingExpense?.receipts || []);
 
@@ -134,64 +336,47 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 category: editingExpense.category,
                 description: editingExpense.description || "",
                 amount: editingExpense.amount,
-                date: (() => {
-                    if (!editingExpense.date) return format(new Date(), "dd/MM/yyyy");
-                    if (typeof editingExpense.date === "string") {
-                        const iso = parseISO(editingExpense.date);
-                        if (isValid(iso)) return format(iso, "dd/MM/yyyy");
-                        const parsed = parse(editingExpense.date, "dd/MM/yyyy", new Date());
-                        if (isValid(parsed)) return format(parsed, "dd/MM/yyyy");
-                        return format(new Date(), "dd/MM/yyyy");
-                    }
-                    if (editingExpense.date instanceof Date && isValid(editingExpense.date)) {
-                        return format(editingExpense.date, "dd/MM/yyyy");
-                    }
-                    return format(new Date(), "dd/MM/yyyy");
-                })(),
+                date: parseDateToFormat(editingExpense.date),
                 currency: editingExpense.currency,
                 type: editingExpense.type,
                 isRecurring: editingExpense.isRecurring,
                 recurringFrequency: editingExpense.recurringFrequency,
                 fromRate: editingExpense.fromRate,
                 toRate: editingExpense.toRate,
-                endDate: editingExpense.endDate
-                    ? (() => {
-                          if (typeof editingExpense.endDate === "string") {
-                              const iso = parseISO(editingExpense.endDate);
-                              if (isValid(iso)) return format(iso, "dd/MM/yyyy");
-                              const parsed = parse(editingExpense.endDate, "dd/MM/yyyy", new Date());
-                              if (isValid(parsed)) return format(parsed, "dd/MM/yyyy");
-                              return undefined;
-                          }
-                          if (editingExpense.endDate instanceof Date && isValid(editingExpense.endDate)) {
-                              return format(editingExpense.endDate, "dd/MM/yyyy");
-                          }
-                          return undefined;
-                      })()
+                endDate: editingExpense.endDate ? parseDateToFormat(editingExpense.endDate) : undefined,
+                billCategory: editingExpense.billCategory || "",
+                reminderDays: editingExpense.reminderDays || 3,
+                dueDate: editingExpense.dueDate
+                    ? parseDateToFormat(editingExpense.dueDate)
+                    : format(new Date(), "dd/MM/yyyy"),
+                // Bill-specific fields - set defaults if not present
+                billStatus: (editingExpense as any).billStatus || "unpaid",
+                billFrequency: (editingExpense as any).billFrequency || "monthly",
+                nextDueDate: (editingExpense as any).nextDueDate
+                    ? parseDateToFormat((editingExpense as any).nextDueDate)
                     : undefined,
+                lastPaidDate: (editingExpense as any).lastPaidDate
+                    ? parseDateToFormat((editingExpense as any).lastPaidDate)
+                    : undefined,
+                paymentMethod: (editingExpense as any).paymentMethod || "manual",
             });
             setShowExchangeRate(editingExpense.currency !== user?.currency);
         } else {
-            resetForm();
+            resetForm(preselectedCategory);
         }
-    }, [editingExpense, user?.currency]);
+    }, [editingExpense, user?.currency, preselectedCategory]);
 
-    // When editingExpense changes, update receipts state (ensure always in sync)
+    // Handle editingExpense changes and form reset when opening for new transactions
     useEffect(() => {
-        if (editingExpense && editingExpense.receipts) {
-            setReceipts(editingExpense.receipts);
-        } else if (!editingExpense) {
+        if (editingExpense) {
+            // Update receipts state when editing an existing expense
+            setReceipts(editingExpense.receipts || []);
+        } else if (open) {
+            // Reset form and receipts when opening for a new transaction (not editing)
+            resetForm(preselectedCategory);
             setReceipts([]);
         }
-    }, [editingExpense]);
-
-    // Reset form to empty when opening for a new transaction (not editing)
-    useEffect(() => {
-        if (open && !editingExpense) {
-            resetForm();
-            setReceipts([]);
-        }
-    }, [open, editingExpense]);
+    }, [editingExpense, open, preselectedCategory]);
 
     const fetchCurrencyOptions = async () => {
         try {
@@ -203,75 +388,165 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: name === "amount" ? parseFloat(value) || 0 : value,
-        }));
-    };
+    // Unified change handler for all form fields
+    const handleChange = async (
+        field: string,
+        value: string | number | boolean | Date | undefined,
+        fieldType: "input" | "select" | "switch" | "date" | "exchangeRate" = "input"
+    ) => {
+        switch (fieldType) {
+            case "input":
+                setFormData((prev) => ({
+                    ...prev,
+                    [field]: field === "amount" ? parseFloat(value as string) || 0 : value,
+                }));
+                break;
 
-    const handleCategoryChange = (value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            category: value,
-        }));
-    };
+            case "select":
+                if (field === "type") {
+                    setFormData((prev) => ({
+                        ...prev,
+                        type: value as "income" | "expense",
+                        category: "", // Reset category when switching types
+                    }));
+                } else if (field === "currency") {
+                    setFormData((prev) => ({
+                        ...prev,
+                        currency: value as string,
+                    }));
 
-    const handleTypeChange = (value: "income" | "expense") => {
-        setFormData((prev) => ({
-            ...prev,
-            type: value,
-            // Reset category when switching types since categories are different
-            category: "",
-        }));
-    };
+                    // Show exchange rate fields only when currency is changed from profile currency
+                    if (value !== user?.currency) {
+                        setShowExchangeRate(true);
+                    } else if (value === user?.currency) {
+                        setShowExchangeRate(false);
+                    }
 
-    const handleCurrencyChange = async (value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            currency: value,
-        }));
+                    // Fetch exchange rate
+                    try {
+                        const response = await getExchangeRate(
+                            user?.currency || "INR",
+                            value as string,
+                            formData.date.split("/").reverse().join("-")
+                        );
+                        setFormData((prev) => ({
+                            ...prev,
+                            toRate: response.rate,
+                        }));
+                    } catch (error) {
+                        console.error("Error fetching exchange rate:", error);
+                    }
+                } else if (field === "category") {
+                    setFormData((prev) => ({
+                        ...prev,
+                        category: value as string,
+                        billCategory: value === "Bill" ? prev.billCategory : "", // Reset billCategory if not Bill
+                    }));
+                } else if (field === "recurringFrequency") {
+                    setFormData((prev) => ({
+                        ...prev,
+                        recurringFrequency: value as RecurringFrequency,
+                    }));
+                } else if (field === "billCategory") {
+                    setFormData((prev) => ({
+                        ...prev,
+                        billCategory: value as string,
+                    }));
+                } else if (field === "billStatus") {
+                    const newStatus = value as BillStatus;
+                    setFormData((prev) => {
+                        const updates: any = {
+                            billStatus: newStatus,
+                        };
 
-        // Show exchange rate fields only when currency is changed from profile currency
-        if (value !== user?.currency) {
-            setShowExchangeRate(true);
-        } else if (value === user?.currency) {
-            setShowExchangeRate(false);
+                        // If marking as paid, update lastPaidDate and calculate nextDueDate
+                        if (newStatus === "paid") {
+                            updates.lastPaidDate = format(new Date(), "dd/MM/yyyy");
+
+                            // Calculate next due date for recurring bills
+                            if (prev.billFrequency && prev.billFrequency !== "one-time" && prev.dueDate) {
+                                const currentDueDate = parse(prev.dueDate, "dd/MM/yyyy", new Date());
+                                const nextDueDate = calculateNextDueDate(currentDueDate, prev.billFrequency);
+                                updates.nextDueDate = format(nextDueDate, "dd/MM/yyyy");
+                            }
+                        }
+
+                        // If marking as unpaid/pending, clear lastPaidDate
+                        if (newStatus === "unpaid" || newStatus === "pending") {
+                            updates.lastPaidDate = undefined;
+                        }
+
+                        return {
+                            ...prev,
+                            ...updates,
+                        };
+                    });
+                } else if (field === "billFrequency") {
+                    setFormData((prev) => ({
+                        ...prev,
+                        billFrequency: value as BillFrequency,
+                    }));
+                } else if (field === "paymentMethod") {
+                    setFormData((prev) => ({
+                        ...prev,
+                        paymentMethod: value as PaymentMethod,
+                    }));
+                }
+                break;
+
+            case "switch":
+                if (field === "isRecurring") {
+                    setFormData((prev) => ({
+                        ...prev,
+                        isRecurring: value as boolean,
+                        recurringFrequency: value ? prev.recurringFrequency || "monthly" : undefined,
+                    }));
+                }
+                break;
+
+            case "date":
+                if (value) {
+                    setFormData((prev) => {
+                        const updates: any = {
+                            [field]: format(value as Date, "dd/MM/yyyy"),
+                        };
+
+                        // If updating due date for a bill, check if it's overdue
+                        if (field === "dueDate" && prev.category === "Bill" && prev.billStatus) {
+                            const newDueDate = format(value as Date, "dd/MM/yyyy");
+                            const overdue = isBillOverdue(newDueDate, prev.billStatus);
+                            if (overdue && prev.billStatus !== "paid") {
+                                updates.billStatus = "overdue";
+                            }
+                        }
+
+                        return {
+                            ...prev,
+                            ...updates,
+                        };
+                    });
+                }
+                break;
+
+            case "exchangeRate":
+                setFormData((prev) => ({
+                    ...prev,
+                    [field]: parseFloat(value as string) || 0,
+                }));
+                break;
+
+            default:
+                setFormData((prev) => ({
+                    ...prev,
+                    [field]: value,
+                }));
         }
-
-        const response = await getExchangeRate(
-            user?.currency || "INR",
-            value,
-            formData.date.split("/").reverse().join("-")
-        );
-
-        setFormData((prev) => ({
-            ...prev,
-            toRate: response.rate,
-        }));
     };
 
-    const handleExchangeRateChange = (field: "fromRate" | "toRate", value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            [field]: parseFloat(value) || 0,
-        }));
-    };
-
-    const handleDateChange = (date: Date | undefined) => {
-        if (date) {
-            setFormData((prev) => ({
-                ...prev,
-                date: format(date, "dd/MM/yyyy"),
-            }));
-        }
-    };
-
-    const resetForm = (): void => {
+    const resetForm = (preselectedCategory?: string): void => {
         setFormData({
             title: "",
-            category: "",
+            category: preselectedCategory || "",
             description: "",
             amount: 0,
             date: format(new Date(), "dd/MM/yyyy"),
@@ -282,40 +557,80 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             fromRate: 1,
             toRate: 1,
             endDate: undefined,
+            billCategory: "",
+            reminderDays: 3,
+            dueDate: format(new Date(), "dd/MM/yyyy"),
+            // Bill-specific fields
+            billStatus: "unpaid",
+            billFrequency: "monthly",
+            nextDueDate: undefined,
+            lastPaidDate: undefined,
+            paymentMethod: "manual",
         });
         setShowExchangeRate(false);
     };
 
-    const handleSubmit = async (): Promise<void> => {
-        if (!formData.title || !formData.category || formData.amount <= 0 || !formData.date) {
-            toast({
-                title: "Missing Fields",
-                description: "Please fill in all required fields with valid values.",
-                variant: "destructive",
-            });
-            return;
+    const validateForm = (): { isValid: boolean; errors: string[] } => {
+        const errors: string[] = [];
+
+        if (!formData.title) errors.push("Title is required");
+        if (!formData.category) errors.push("Category is required");
+        if (formData.amount <= 0) errors.push("Amount must be greater than 0");
+        if (!formData.date) errors.push("Date is required");
+
+        // Validate bill category when category is "Bill"
+        if (formData.category === "Bill" && !formData.billCategory) {
+            errors.push("Bill category is required when category is Bill");
         }
 
-        // Defensive date validation
-        const parsedDate = parse(formData.date, "dd/MM/yyyy", new Date());
-        if (!isValid(parsedDate)) {
-            toast({
-                title: "Invalid Date",
-                description: "Please select a valid date.",
-                variant: "destructive",
-            });
-            return;
-        }
-        if (formData.endDate) {
-            const parsedEndDate = parse(formData.endDate, "dd/MM/yyyy", new Date());
-            if (!isValid(parsedEndDate)) {
-                toast({
-                    title: "Invalid End Date",
-                    description: "Please select a valid end date.",
-                    variant: "destructive",
-                });
-                return;
+        // Validate bill-specific fields when category is "Bill"
+        if (formData.category === "Bill") {
+            if (!formData.reminderDays || formData.reminderDays < 0) {
+                errors.push("Reminder days must be a positive number");
             }
+            if (!formData.dueDate) {
+                errors.push("Due date is required when category is Bill");
+            }
+            if (!formData.billFrequency) {
+                errors.push("Bill frequency is required when category is Bill");
+            }
+
+            // Validate that lastPaidDate is not in the future
+            if (formData.lastPaidDate) {
+                const lastPaidDate = parse(formData.lastPaidDate, "dd/MM/yyyy", new Date());
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (lastPaidDate > today) {
+                    errors.push("Last paid date cannot be in the future");
+                }
+            }
+
+            // Validate that nextDueDate is after dueDate for recurring bills
+            if (formData.nextDueDate && formData.dueDate && formData.billFrequency !== "one-time") {
+                const dueDate = parse(formData.dueDate, "dd/MM/yyyy", new Date());
+                const nextDueDate = parse(formData.nextDueDate, "dd/MM/yyyy", new Date());
+                if (nextDueDate <= dueDate) {
+                    errors.push("Next due date must be after the current due date");
+                }
+            }
+        }
+
+        if (!validateDate(formData.date, "date")) {
+            errors.push("Please select a valid date");
+        }
+
+        if (formData.endDate && !validateDate(formData.endDate, "endDate")) {
+            errors.push("Please select a valid end date");
+        }
+
+        return { isValid: errors.length === 0, errors };
+    };
+
+    const handleSubmit = async (): Promise<void> => {
+        const validation = validateForm();
+        if (!validation.isValid) {
+            showValidationError(toast, validation.errors);
+            return;
         }
 
         // Upload receipts if any
@@ -325,11 +640,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 const fileReceipts = receipts.filter((r): r is File => r instanceof File);
                 receiptKeys = await Promise.all(fileReceipts.map(uploadReceipt));
             } catch (err) {
-                toast({
-                    title: "Receipt Upload Failed",
-                    description: "One or more receipts could not be uploaded.",
-                    variant: "destructive",
-                });
+                showErrorToast(toast, "Receipt Upload Failed", "One or more receipts could not be uploaded.");
                 return;
             }
         }
@@ -348,15 +659,36 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             toRate: formData.toRate,
             endDate: formData.endDate,
             receipts: receiptKeys,
+            billCategory: formData.billCategory,
+            reminderDays: formData.reminderDays,
+            dueDate: formData.dueDate,
+            // Bill-specific fields
+            billStatus: formData.billStatus,
+            billFrequency: formData.billFrequency,
+            nextDueDate: formData.nextDueDate,
+            lastPaidDate: formData.lastPaidDate,
+            paymentMethod: formData.paymentMethod,
         };
 
         try {
             if (isEditing && editingExpense && (editingExpense as any)._id) {
-                await updateExpense((editingExpense as any)._id, newExpense as any);
-                toast({
-                    title: "Success",
-                    description: "Transaction updated successfully",
-                });
+                await updateExpense((editingExpense as any)._id, {
+                    ...newExpense,
+                    date: new Date(formData.date.split("/").reverse().join("-")).toISOString(),
+                    endDate: formData.endDate
+                        ? new Date(formData.endDate.split("/").reverse().join("-")).toISOString()
+                        : undefined,
+                    dueDate: formData.dueDate
+                        ? new Date(formData.dueDate.split("/").reverse().join("-")).toISOString()
+                        : undefined,
+                    nextDueDate: formData.nextDueDate
+                        ? new Date(formData.nextDueDate.split("/").reverse().join("-")).toISOString()
+                        : undefined,
+                    lastPaidDate: formData.lastPaidDate
+                        ? new Date(formData.lastPaidDate.split("/").reverse().join("-")).toISOString()
+                        : undefined,
+                } as any);
+                showUpdateSuccess(toast, "Transaction");
             } else {
                 // For create, convert to ISO string
                 await createExpense({
@@ -365,22 +697,24 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     endDate: formData.endDate
                         ? new Date(formData.endDate.split("/").reverse().join("-")).toISOString()
                         : undefined,
+                    dueDate: formData.dueDate
+                        ? new Date(formData.dueDate.split("/").reverse().join("-")).toISOString()
+                        : undefined,
+                    nextDueDate: formData.nextDueDate
+                        ? new Date(formData.nextDueDate.split("/").reverse().join("-")).toISOString()
+                        : undefined,
+                    lastPaidDate: formData.lastPaidDate
+                        ? new Date(formData.lastPaidDate.split("/").reverse().join("-")).toISOString()
+                        : undefined,
                 } as any);
-                toast({
-                    title: "Success",
-                    description: "Transaction added successfully",
-                });
+                showCreateSuccess(toast, "Transaction");
             }
             await refreshStats();
             resetForm();
             onOpenChange(false);
             onSuccess?.();
         } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to save transaction. Please try again.",
-                variant: "destructive",
-            });
+            showSaveError(toast, "Transaction");
         }
     };
 
@@ -398,80 +732,50 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     }, [open, editingExpense]);
 
     return (
-        <GeneralDialog
-            open={open}
-            onOpenChange={onOpenChange}
-            title={isEditing ? "Edit Transaction" : "Add Transaction"}
-            size="lg"
-            triggerButton={triggerButton}
-            footerActions={
-                <>
-                    <Button onClick={handleSubmit}>{isEditing ? "Update Transaction" : "Add Transaction"}</Button>
-                    <Button onClick={handleCancel} variant="outline" type="button">
-                        Cancel
-                    </Button>
-                </>
-            }
-        >
-            <div className="space-y-2">
-                <p className="text-sm text-gray-500">
-                    <span className="text-red-500">*</span> Required fields
-                </p>
-                <div>
-                    <label className="block text-sm mb-1">
-                        Title <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                        placeholder="Transaction Title"
-                        name="title"
-                        value={formData.title}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <label className="block text-sm mb-1">
-                            Type <span className="text-red-500">*</span>
-                        </label>
-                        <Select value={formData.type} onValueChange={handleTypeChange}>
-                            <SelectTrigger className="h-10">
-                                <SelectValue placeholder="Select type" />
-                            </SelectTrigger>
-                            <SelectContent>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            {triggerButton && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
+            <DialogContent className="max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>{isEditing ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-2">
+                    <p className="text-sm text-gray-500">
+                        <span className="text-red-500">*</span> Required fields
+                    </p>
+                    <FormField label="Title" required>
+                        <InputField
+                            name="title"
+                            value={formData.title}
+                            onChange={(e) => handleChange("title", e.target.value, "input")}
+                            placeholder="Transaction Title"
+                        />
+                    </FormField>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Type" required>
+                            <SelectField
+                                value={formData.type}
+                                onValueChange={(value) => handleChange("type", value, "select")}
+                                placeholder="Select type"
+                            >
                                 <SelectItem value="expense">Expense</SelectItem>
                                 <SelectItem value="income">Income</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="block text-sm mb-1">
-                            <div className="flex items-center gap-2">
-                                <span>
-                                    Amount <span className="text-red-500">*</span>
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                    ₹{" "}
-                                    {formData.toRate && formData.amount
-                                        ? (formData.amount / formData.toRate).toFixed(2)
-                                        : "0.00"}
-                                </span>
-                            </div>
-                        </label>
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="Amount"
-                                name="amount"
-                                value={formData.amount}
-                                onChange={handleInputChange}
-                                required
-                                className="flex-1 h-10"
-                            />
-                            <Select value={formData.currency} onValueChange={handleCurrencyChange}>
-                                <SelectTrigger className="w-32 h-10">
-                                    <SelectValue placeholder="Currency">{formData.currency}</SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
+                            </SelectField>
+                        </FormField>
+                        <FormField label="Amount" required>
+                            <div className="flex gap-2">
+                                <InputField
+                                    name="amount"
+                                    value={formData.amount}
+                                    onChange={(e) => handleChange("amount", e.target.value, "input")}
+                                    placeholder="0.00"
+                                    className="flex-1 h-10"
+                                />
+                                <SelectField
+                                    value={formData.currency}
+                                    onValueChange={(value) => handleChange("currency", value, "select")}
+                                    placeholder="Currency"
+                                    className="w-24 h-10"
+                                >
                                     {currencyOptions && currencyOptions.length > 0 ? (
                                         currencyOptions
                                             .filter((currency) => currency.code !== "")
@@ -493,287 +797,319 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     ) : (
                                         <SelectItem value="INR">INR</SelectItem>
                                     )}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                </div>
-                {showExchangeRate && (
-                    <div>
-                        <label className="block text-sm mb-1">Exchange Rate</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            <div>
-                                <label className="block text-xs text-gray-500 mb-1">{user?.currency || "INR"}</label>
-                                <Input
-                                    placeholder="Exchange rate"
-                                    value={formData.fromRate || 1}
-                                    onChange={(e) => handleExchangeRateChange("fromRate", e.target.value)}
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    disabled
-                                />
+                                </SelectField>
                             </div>
-                            <div>
-                                <label className="block text-xs text-gray-500 mb-1">{formData.currency}</label>
-                                <Input
-                                    placeholder="Exchange rate"
-                                    value={formData.toRate || 1}
-                                    onChange={(e) => handleExchangeRateChange("toRate", e.target.value)}
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                />
+                        </FormField>
+                    </div>
+                    {showExchangeRate && (
+                        <FormField label="Exchange Rate">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <Label htmlFor="fromRate" className="block text-xs text-gray-500 mb-1">
+                                        {user?.currency || "INR"}
+                                    </Label>
+                                    <InputField
+                                        name="fromRate"
+                                        value={formData.fromRate || 1}
+                                        onChange={(e) => handleChange("fromRate", e.target.value, "exchangeRate")}
+                                        placeholder="Exchange rate"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        disabled
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="toRate" className="block text-xs text-gray-500 mb-1">
+                                        {formData.currency}
+                                    </Label>
+                                    <InputField
+                                        name="toRate"
+                                        value={formData.toRate || 1}
+                                        onChange={(e) => handleChange("toRate", e.target.value, "exchangeRate")}
+                                        placeholder="Exchange rate"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                    />
+                                </div>
                             </div>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                            You're entering money in {formData.currency}. What exchange rate do you wish to use for this
-                            transaction
-                        </p>
-                    </div>
-                )}
-                <div>
-                    <label className="block text-sm mb-1">
-                        Category <span className="text-red-500">*</span>
-                    </label>
-                    <Select value={formData.category} onValueChange={handleCategoryChange}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {formData.type === "expense"
-                                ? EXPENSE_CATEGORIES.map((category) => (
-                                      <SelectItem key={category} value={category}>
-                                          {category}
-                                      </SelectItem>
-                                  ))
-                                : INCOME_CATEGORIES.map((category) => (
-                                      <SelectItem key={category} value={category}>
-                                          {category}
-                                      </SelectItem>
-                                  ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div>
-                    <label className="block text-sm mb-1">Description</label>
-                    <Input
-                        placeholder="Description (Optional)"
-                        name="description"
-                        value={formData.description}
-                        onChange={handleInputChange}
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm mb-1">
-                        Date <span className="text-red-500">*</span>
-                    </label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-[180px] justify-start text-left font-normal",
-                                    !formData.date && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {formData.date ? (
-                                    format(parse(formData.date, "dd/MM/yyyy", new Date()), "dd/MM/yyyy")
-                                ) : (
-                                    <span>Pick a date</span>
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                className="pointer-events-auto"
-                                mode="single"
-                                selected={formData.date ? parse(formData.date, "dd/MM/yyyy", new Date()) : undefined}
-                                onSelect={handleDateChange}
-                                initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                <div>
-                    <label className="block text-sm mb-1">Recurring Transaction</label>
-                    <div className="flex items-center space-x-2">
-                        <Switch
-                            checked={formData.isRecurring || false}
-                            onCheckedChange={(checked) =>
-                                setFormData((prev) => ({
-                                    ...prev,
-                                    isRecurring: checked,
-                                    recurringFrequency: checked ? prev.recurringFrequency || "monthly" : undefined,
-                                }))
-                            }
-                        />
-                        <Label htmlFor="recurring">Enable recurring transaction</Label>
-                    </div>
-                </div>
-                {formData.isRecurring && (
-                    <div>
-                        <label className="block text-sm mb-1">Frequency</label>
-                        <Select
-                            value={formData.recurringFrequency || "monthly"}
-                            onValueChange={(value) =>
-                                setFormData((prev) => ({
-                                    ...prev,
-                                    recurringFrequency: value as RecurringFrequency,
-                                }))
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select frequency" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="daily">Daily</SelectItem>
-                                <SelectItem value="weekly">Weekly</SelectItem>
-                                <SelectItem value="monthly">Monthly</SelectItem>
-                                <SelectItem value="yearly">Yearly</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-                {formData.isRecurring && (
-                    <div className="space-y-2">
-                        <label className="block text-sm mb-1">End Date</label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-[180px] justify-start text-left font-normal",
-                                        !formData.endDate && "text-muted-foreground"
-                                    )}
+                            <p className="text-xs text-gray-500 mt-1">
+                                You're entering money in {formData.currency}. What exchange rate do you wish to use for
+                                this transaction
+                            </p>
+                        </FormField>
+                    )}
+                    {formData.category === "Bill" ? (
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField label="Category" required>
+                                <SelectField
+                                    value={formData.category}
+                                    onValueChange={(value) => handleChange("category", value, "select")}
+                                    placeholder="Select a category"
                                 >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {formData.endDate ? (
-                                        format(parse(formData.endDate, "dd/MM/yyyy", new Date()), "dd/MM/yyyy")
-                                    ) : (
-                                        <span>Pick an end date</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    className="pointer-events-auto"
-                                    mode="single"
-                                    selected={
-                                        formData.endDate ? parse(formData.endDate, "dd/MM/yyyy", new Date()) : undefined
+                                    {formData.type === "expense"
+                                        ? EXPENSE_CATEGORIES.map((category) => (
+                                              <SelectItem key={category} value={category}>
+                                                  {category}
+                                              </SelectItem>
+                                          ))
+                                        : INCOME_CATEGORIES.map((category) => (
+                                              <SelectItem key={category} value={category}>
+                                                  {category}
+                                              </SelectItem>
+                                          ))}
+                                </SelectField>
+                            </FormField>
+                            <FormField label="Bill Category" required>
+                                <SelectField
+                                    value={formData.billCategory || ""}
+                                    onValueChange={(value) => handleChange("billCategory", value, "select")}
+                                    placeholder="Select a bill category"
+                                >
+                                    {BILL_CATEGORIES.map((category) => (
+                                        <SelectItem key={category} value={category}>
+                                            {category}
+                                        </SelectItem>
+                                    ))}
+                                </SelectField>
+                            </FormField>
+                        </div>
+                    ) : (
+                        <FormField label="Category" required>
+                            <SelectField
+                                value={formData.category}
+                                onValueChange={(value) => handleChange("category", value, "select")}
+                                placeholder="Select a category"
+                            >
+                                {formData.type === "expense"
+                                    ? EXPENSE_CATEGORIES.map((category) => (
+                                          <SelectItem key={category} value={category}>
+                                              {category}
+                                          </SelectItem>
+                                      ))
+                                    : INCOME_CATEGORIES.map((category) => (
+                                          <SelectItem key={category} value={category}>
+                                              {category}
+                                          </SelectItem>
+                                      ))}
+                            </SelectField>
+                        </FormField>
+                    )}
+                    {formData.category === "Bill" && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField label="Reminder Days">
+                                <InputField
+                                    name="reminderDays"
+                                    value={formData.reminderDays || 3}
+                                    onChange={(e) =>
+                                        handleChange("reminderDays", parseInt(e.target.value, 10) || 0, "input")
                                     }
-                                    onSelect={(date) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            endDate: date ? format(date, "dd/MM/yyyy") : undefined,
-                                        }))
-                                    }
-                                    initialFocus
+                                    placeholder="3"
+                                    type="number"
+                                    min="0"
+                                    max="30"
+                                    className="h-10"
                                 />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                )}
-                <div className="mb-4">
-                    <label className="block text-sm mb-1">Receipts (Images or PDFs)</label>
-                    <Input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        multiple
-                        onChange={(e) => {
-                            if (e.target.files) {
-                                const validFiles = Array.from(e.target.files).filter(
-                                    (file) => file.type.startsWith("image/") || file.type === "application/pdf"
-                                );
-                                if (validFiles.length !== e.target.files.length) {
-                                    toast({
-                                        title: "Invalid File Type",
-                                        description: "Only images or PDF files are allowed as receipts.",
-                                        variant: "destructive",
-                                    });
-                                }
-                                setReceipts(validFiles);
-                            }
-                        }}
-                    />
-                    <div className="text-xs text-muted-foreground mt-1 mb-2">
-                        You can upload images or PDF files as receipts.
-                    </div>
-                    {/* Show uploaded receipts as links with delete option */}
-                    {receipts.length > 0 && (
-                        <div className="space-y-1 mt-2">
-                            {receipts.map((file, idx) => {
-                                let isImage = false;
-                                let isPdf = false;
-                                let name = "";
-                                if (typeof file === "string") {
-                                    name = file.split("/").pop() || file;
-                                    isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
-                                    isPdf = /\.pdf$/i.test(name);
-                                } else {
-                                    name = file.name;
-                                    isImage = file.type.startsWith("image/");
-                                    isPdf = file.type === "application/pdf";
-                                }
-                                return (
-                                    <div
-                                        key={idx}
-                                        className={`flex items-center gap-2 rounded ${
-                                            draggedIdx === idx ? "bg-blue-50" : ""
-                                        }`}
-                                        draggable
-                                        onDragStart={() => handleDragStart(idx)}
-                                        onDragOver={(e) => {
-                                            e.preventDefault();
-                                            handleDragOver(idx);
-                                        }}
-                                        onDragEnd={handleDragEnd}
-                                        onDrop={handleDragEnd}
-                                        style={{ cursor: "grab" }}
-                                    >
-                                        {typeof file === "string" ? (
-                                            <ReceiptPreviewLink
-                                                key={file}
-                                                fileKey={file}
-                                                name={name}
-                                                isImage={isImage}
-                                                isPdf={isPdf}
-                                                getReceiptUrl={getReceiptUrl}
-                                            />
-                                        ) : isImage ? (
-                                            <img
-                                                src={URL.createObjectURL(file)}
-                                                alt={name}
-                                                className="w-10 h-10 object-cover rounded border"
-                                            />
-                                        ) : isPdf ? (
-                                            <span className="flex items-center">
-                                                <span className="mr-1">📄</span>
-                                                {name}
-                                            </span>
-                                        ) : (
-                                            <span>{name}</span>
-                                        )}
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            onClick={() => {
-                                                setReceipts((prev) => prev.filter((_, i) => i !== idx));
-                                            }}
-                                            aria-label="Remove receipt"
-                                        >
-                                            ✕
-                                        </Button>
-                                    </div>
-                                );
-                            })}
+                            </FormField>
+                            <FormField label="Due Date">
+                                <DateField
+                                    value={formData.dueDate || ""}
+                                    onSelect={(date) => handleChange("dueDate", date, "date")}
+                                    placeholder="Pick a due date"
+                                />
+                            </FormField>
                         </div>
                     )}
+                    {formData.category === "Bill" && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField label="Bill Frequency" required>
+                                <SelectField
+                                    value={formData.billFrequency || "monthly"}
+                                    onValueChange={(value) => handleChange("billFrequency", value, "select")}
+                                    placeholder="Select bill frequency"
+                                >
+                                    {BILL_FREQUENCIES.map((frequency) => (
+                                        <SelectItem key={frequency} value={frequency}>
+                                            {frequency.charAt(0).toUpperCase() + frequency.slice(1)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectField>
+                            </FormField>
+                            <FormField label="Payment Method">
+                                <SelectField
+                                    value={formData.paymentMethod || "manual"}
+                                    onValueChange={(value) => handleChange("paymentMethod", value, "select")}
+                                    placeholder="Select payment method"
+                                >
+                                    {PAYMENT_METHODS.map((method) => (
+                                        <SelectItem key={method} value={method}>
+                                            {method
+                                                .split("-")
+                                                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                                .join(" ")}
+                                        </SelectItem>
+                                    ))}
+                                </SelectField>
+                            </FormField>
+                        </div>
+                    )}
+                    <FormField label="Description">
+                        <InputField
+                            name="description"
+                            value={formData.description || ""}
+                            onChange={(e) => handleChange("description", e.target.value, "input")}
+                            placeholder="Description (Optional)"
+                        />
+                    </FormField>
+                    <FormField label="Date" required>
+                        <DateField
+                            value={formData.date}
+                            onSelect={(date) => handleChange("date", date, "date")}
+                            placeholder="Pick a date"
+                        />
+                    </FormField>
+                    {/* Recurring Transaction - only show if not Bill */}
+                    {formData.category !== "Bill" && (
+                        <FormField label="Recurring Transaction">
+                            <div className="flex items-center space-x-2">
+                                <Switch
+                                    checked={formData.isRecurring || false}
+                                    onCheckedChange={(checked) => handleChange("isRecurring", checked, "switch")}
+                                />
+                                <Label htmlFor="recurring">Enable recurring transaction</Label>
+                            </div>
+                        </FormField>
+                    )}
+                    {/* Recurring Frequency and End Date - only show if not Bill and isRecurring */}
+                    {formData.category !== "Bill" && formData.isRecurring && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField label="Frequency">
+                                <SelectField
+                                    value={formData.recurringFrequency || "monthly"}
+                                    onValueChange={(value) => handleChange("recurringFrequency", value, "select")}
+                                    placeholder="Select frequency"
+                                >
+                                    <SelectItem value="daily">Daily</SelectItem>
+                                    <SelectItem value="weekly">Weekly</SelectItem>
+                                    <SelectItem value="monthly">Monthly</SelectItem>
+                                    <SelectItem value="yearly">Yearly</SelectItem>
+                                </SelectField>
+                            </FormField>
+                            <FormField label="End Date">
+                                <DateField
+                                    value={formData.endDate || ""}
+                                    onSelect={(date) => handleChange("endDate", date, "date")}
+                                    placeholder="Pick an end date"
+                                />
+                            </FormField>
+                        </div>
+                    )}
+                    <FormField label="Receipts (Images or PDFs)" className="mb-4">
+                        <Input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            multiple
+                            onChange={(e) => {
+                                if (e.target.files) {
+                                    const validFiles = Array.from(e.target.files).filter(
+                                        (file) => file.type.startsWith("image/") || file.type === "application/pdf"
+                                    );
+                                    if (validFiles.length !== e.target.files.length) {
+                                        showErrorToast(
+                                            toast,
+                                            "Invalid File Type",
+                                            "Only images or PDF files are allowed as receipts."
+                                        );
+                                    }
+                                    setReceipts(validFiles);
+                                }
+                            }}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1 mb-2">
+                            You can upload images or PDF files as receipts.
+                        </p>
+                        {/* Show uploaded receipts as links with delete option */}
+                        {receipts.length > 0 && (
+                            <div className="space-y-1 mt-2">
+                                {receipts.map((file, idx) => {
+                                    let isImage = false;
+                                    let isPdf = false;
+                                    let name = "";
+                                    if (typeof file === "string") {
+                                        name = file.split("/").pop() || file;
+                                        isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+                                        isPdf = /\.pdf$/i.test(name);
+                                    } else {
+                                        name = file.name;
+                                        isImage = file.type.startsWith("image/");
+                                        isPdf = file.type === "application/pdf";
+                                    }
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`flex items-center gap-2 rounded ${
+                                                draggedIdx === idx ? "bg-blue-50" : ""
+                                            }`}
+                                            draggable
+                                            onDragStart={() => handleDragStart(idx)}
+                                            onDragOver={(e) => {
+                                                e.preventDefault();
+                                                handleDragOver(idx);
+                                            }}
+                                            onDragEnd={handleDragEnd}
+                                            onDrop={handleDragEnd}
+                                            style={{ cursor: "grab" }}
+                                        >
+                                            {typeof file === "string" ? (
+                                                <ReceiptPreviewLink
+                                                    key={file}
+                                                    fileKey={file}
+                                                    name={name}
+                                                    isImage={isImage}
+                                                    isPdf={isPdf}
+                                                    getReceiptUrl={getReceiptUrl}
+                                                />
+                                            ) : isImage ? (
+                                                <img
+                                                    src={URL.createObjectURL(file)}
+                                                    alt={name}
+                                                    className="w-10 h-10 object-cover rounded border"
+                                                />
+                                            ) : isPdf ? (
+                                                <span className="flex items-center">
+                                                    <span className="mr-1">📄</span>
+                                                    {name}
+                                                </span>
+                                            ) : (
+                                                <span>{name}</span>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    setReceipts((prev) => prev.filter((_, i) => i !== idx));
+                                                }}
+                                                aria-label="Remove receipt"
+                                            >
+                                                ✕
+                                            </Button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </FormField>
                 </div>
-            </div>
-        </GeneralDialog>
+                <DialogFooter className="mt-4">
+                    <Button onClick={handleSubmit}>{isEditing ? "Update Transaction" : "Add Transaction"}</Button>
+                    <Button onClick={handleCancel} variant="outline" type="button">
+                        Cancel
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };
 

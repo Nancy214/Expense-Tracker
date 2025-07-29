@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getExpenses } from "@/services/expense.service";
-import { ExpenseType } from "@/types/expense";
+import { getExpenses } from "@/services/transaction.service";
+import { Transaction } from "@/types/transaction";
 import {
     PieChart,
     Pie,
@@ -70,7 +70,7 @@ function getMonthString(date: string | Date): string | null {
 }
 
 // Helper to get all unique expense categories
-function getAllExpenseCategories(expenses: ExpenseType[]): string[] {
+function getAllExpenseCategories(expenses: Transaction[]): string[] {
     const set = new Set<string>();
     expenses.forEach((e) => {
         if (e.type === "expense") set.add(e.category);
@@ -91,7 +91,7 @@ function getDayRange(from: Date, to: Date): string[] {
 
 // PIE CHART DATA AGGREGATION
 // If no date range, aggregate by month; if range, aggregate by day
-const getPieChartData = (expenses: ExpenseType[], pieType: "expense" | "income", dateRange?: DateRange) => {
+const getPieChartData = (expenses: Transaction[], pieType: "expense" | "income", dateRange?: DateRange) => {
     if (!dateRange?.from && !dateRange?.to) {
         // Monthly aggregation by category
         const byCategory: { [key: string]: number } = {};
@@ -121,7 +121,7 @@ const getPieChartData = (expenses: ExpenseType[], pieType: "expense" | "income",
 
 // COMBINED CHART DATA AGGREGATION
 // If no date range, aggregate by month; if range, aggregate by day
-function getCombinedChartData(expenses: ExpenseType[], dateRange?: DateRange) {
+function getCombinedChartData(expenses: Transaction[], dateRange?: DateRange) {
     if (!dateRange?.from && !dateRange?.to) {
         // Monthly aggregation
         const monthlyData: { [key: string]: { income: number; expense: number } } = {};
@@ -185,7 +185,7 @@ function getCombinedChartData(expenses: ExpenseType[], dateRange?: DateRange) {
 }
 
 const AnalyticsPage = () => {
-    const [expenses, setExpenses] = useState<ExpenseType[]>([]);
+    const [expenses, setExpenses] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [pieType, setPieType] = useState<"expense" | "income">("expense");
     const [chartType, setChartType] = useState<"line" | "bar">("line");
@@ -352,8 +352,8 @@ const AnalyticsPage = () => {
         setLoading(true);
         // getExpenses returns { expenses, total, page, limit }
         const response = await getExpenses();
-        // Convert to ExpenseType[] with date as Date
-        const mapped: ExpenseType[] = response.expenses.map((e: any) => {
+        // Convert to Transaction[] with date as Date
+        const mapped: Transaction[] = response.expenses.map((e: any) => {
             let d: Date;
             if (typeof e.date === "string") {
                 d = parse(e.date, "dd/MM/yyyy", new Date());

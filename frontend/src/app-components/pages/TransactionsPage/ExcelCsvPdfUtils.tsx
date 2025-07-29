@@ -200,6 +200,57 @@ export function generateMonthlyStatementPDF({
             ];
         });
 
+    // Bills table
+    const billsRows = monthlyTransactions
+        .filter((t) => t.category === "Bill")
+        .map((t) => {
+            let dateObj: Date;
+            if (typeof t.date === "string") {
+                dateObj = parse(t.date, "dd/MM/yyyy", new Date());
+                if (isNaN(dateObj.getTime())) {
+                    dateObj = new Date(t.date);
+                }
+            } else {
+                dateObj = t.date;
+            }
+
+            let dueDateStr = "";
+            if (t.dueDate) {
+                let dueDateObj: Date;
+                if (typeof t.dueDate === "string") {
+                    dueDateObj = parse(t.dueDate, "dd/MM/yyyy", new Date());
+                    if (isNaN(dueDateObj.getTime())) {
+                        dueDateObj = new Date(t.dueDate);
+                    }
+                } else {
+                    dueDateObj = t.dueDate;
+                }
+                dueDateStr = format(dueDateObj, "dd/MM/yyyy");
+            }
+
+            // Get status with proper formatting
+            let status = t.billStatus || "unpaid";
+            if (status === "paid") {
+                status = "Paid";
+            } else if (status === "unpaid") {
+                status = "Unpaid";
+            } else if (status === "pending") {
+                status = "Pending";
+            } else if (status === "overdue") {
+                status = "Overdue";
+            }
+
+            return [
+                format(dateObj, "dd/MM/yyyy"),
+                t.title || "",
+                t.amount !== undefined ? t.amount.toFixed(2) : "",
+                t.billCategory || "-",
+                status,
+                dueDateStr,
+                t.billFrequency ? t.billFrequency.charAt(0).toUpperCase() + t.billFrequency.slice(1) : "-",
+            ];
+        });
+
     // PDF generation
     const doc = new jsPDF();
     let y = 18;
@@ -310,6 +361,41 @@ export function generateMonthlyStatementPDF({
             },
             headStyles: {
                 fillColor: [41, 128, 185],
+                textColor: 255,
+                fontStyle: "bold",
+                halign: "left",
+                fontSize: 10,
+                cellPadding: 3,
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245],
+            },
+            margin: { left: 14, right: 14 },
+            theme: "grid",
+        });
+    }
+
+    // Bills table
+    if (billsRows.length > 0) {
+        y = (doc as any).lastAutoTable.finalY + 12;
+        doc.setFontSize(14);
+        doc.setTextColor(40);
+        doc.text("Bills", 14, y);
+        y += 5;
+        autoTable(doc, {
+            startY: y,
+            head: [["Date", "Title", "Amount", "Category", "Status", "Due Date", "Frequency"]],
+            body: billsRows,
+            styles: {
+                fontSize: 9,
+                cellPadding: 2,
+                halign: "left",
+                valign: "middle",
+                overflow: "linebreak",
+                textColor: [40, 40, 40],
+            },
+            headStyles: {
+                fillColor: [231, 76, 60], // Red color for bills
                 textColor: 255,
                 fontStyle: "bold",
                 halign: "left",

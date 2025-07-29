@@ -11,7 +11,7 @@ const navLinks = [
     { label: "Dashboard", path: "/", icon: Home },
     { label: "Transactions", path: "/transactions", icon: Receipt },
     { label: "Budget", path: "/budget", icon: PieChart },
-    { label: "Bills", path: "/bills", icon: CreditCard },
+    /* { label: "Bills", path: "/bills", icon: CreditCard }, */
     { label: "Calendar", path: "/calendar", icon: Calendar },
     { label: "Analytics", path: "/analytics", icon: BarChart },
     { label: "Profile", path: "/profile", icon: User },

@@ -4,26 +4,34 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { format, parse, isAfter } from "date-fns";
 import { Plus } from "lucide-react";
-import { getExpenses } from "@/services/expense.service";
-import { ExpenseType } from "@/types/expense";
+import { getExpenses } from "@/services/transaction.service";
+import { TransactionWithId } from "@/types/transaction";
 import { BudgetReminder } from "@/types/budget";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
+import { fetchBillsAlerts, fetchBillReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
-
-type ExpenseTypeWithId = ExpenseType & { _id?: string };
+import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from "react-router-dom";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
+    const { toast } = useToast();
+    const [searchParams] = useSearchParams();
 
-    const [transactions, setTransactions] = useState<ExpenseTypeWithId[]>([]);
+    const [transactions, setTransactions] = useState<TransactionWithId[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingExpense, setEditingExpense] = useState<ExpenseTypeWithId | null>(null);
+    const [editingExpense, setEditingExpense] = useState<TransactionWithId | null>(null);
     const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     // Add a state to track if all transactions are loaded for recurring tab
-    const [allTransactions, setAllTransactions] = useState<ExpenseTypeWithId[] | null>(null);
+    const [allTransactions, setAllTransactions] = useState<TransactionWithId[] | null>(null);
+    const [activeTab, setActiveTab] = useState<"all" | "recurring" | "bills">("all");
+    const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
+    const [upcomingBills, setUpcomingBills] = useState<any[]>([]);
+    const [overdueBills, setOverdueBills] = useState<any[]>([]);
+    const [billReminders, setBillReminders] = useState<any[]>([]);
 
     useEffect(() => {
         fetchExpenses();
@@ -32,6 +40,27 @@ const TransactionsPage = () => {
     useEffect(() => {
         fetchBudgetReminders(setBudgetReminders);
     }, []);
+
+    // Fetch bill alerts and reminders
+    useEffect(() => {
+        fetchBillsAlerts(setUpcomingBills, setOverdueBills);
+        fetchBillReminders(setBillReminders);
+    }, []);
+
+    // Handle URL parameter for tab
+    useEffect(() => {
+        const tabParam = searchParams.get("tab");
+        if (tabParam === "bills") {
+            setActiveTab("bills");
+        }
+    }, [searchParams]);
+
+    // Clear preselected category when dialog closes
+    useEffect(() => {
+        if (!isDialogOpen) {
+            setPreselectedCategory(undefined);
+        }
+    }, [isDialogOpen]);
 
     const fetchExpenses = async () => {
         try {
@@ -90,13 +119,13 @@ const TransactionsPage = () => {
     };
 
     // Filter transactions based on selected date and categories
-    const filteredTransactions = transactions.filter((transaction: ExpenseTypeWithId) => {
+    const filteredTransactions = transactions.filter(() => {
         // This filtering logic will now be handled in the FiltersSection component
         return true; // Return all transactions for now, filtering will be done in datatable
     });
 
     // Helper to get a Date object from transaction.date
-    const getTransactionDate = (t: ExpenseTypeWithId) => {
+    const getTransactionDate = (t: TransactionWithId) => {
         if (typeof t.date === "string") {
             // Try dd/MM/yyyy first, fallback to ISO
             const parsed = parse(t.date, "dd/MM/yyyy", new Date());
@@ -290,22 +319,57 @@ const TransactionsPage = () => {
             {/* Budget Reminders */}
             <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} />
 
+            {/* Bill Alerts */}
+            <BillAlertsUI
+                billsAndBudgetsAlertEnabled={
+                    !!(user && (user as any).settings && (user as any).settings.billsAndBudgetsAlert)
+                }
+                overdueBills={overdueBills}
+                upcomingBills={upcomingBills}
+                onViewBills={() => {}} // Empty function since we're already on transactions page
+                showViewBillsButton={false} // Hide button on transactions page
+            />
+
+            {/* Bill Reminders */}
+            <BillRemindersUI
+                billsAndBudgetsAlertEnabled={
+                    !!(user && (user as any).settings && (user as any).settings.billsAndBudgetsAlert)
+                }
+                billReminders={billReminders}
+                onViewBills={() => {}} // Empty function since we're already on transactions page
+                showViewBillsButton={false} // Hide button on transactions page
+            />
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Transactions</h1>
                     <p className="text-gray-600 dark:text-gray-400">Manage and track your income and expenses</p>
                 </div>
-                <Button
-                    onClick={() => {
-                        setEditingExpense(null);
-                        setIsDialogOpen(true);
-                    }}
-                    className="flex items-center gap-2"
-                >
-                    <Plus className="h-4 w-4" />
-                    Add Transaction
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        onClick={() => {
+                            setEditingExpense(null);
+                            setPreselectedCategory(undefined);
+                            setIsDialogOpen(true);
+                        }}
+                        className="flex items-center gap-2"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Add Transaction
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setEditingExpense(null);
+                            setIsDialogOpen(true);
+                            setPreselectedCategory("Bill");
+                        }}
+                        className="flex items-center gap-2"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Add Bill
+                    </Button>
+                </div>
             </div>
 
             {/* Transaction Stats Cards */}
@@ -376,12 +440,15 @@ const TransactionsPage = () => {
                 setAvailableMonths={setAvailableMonths}
                 parse={parse}
                 refreshAllTransactions={refreshAllTransactions}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
             />
             {/* Add Expense Dialog */}
             <AddExpenseDialog
                 open={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
                 editingExpense={editingExpense as any}
+                preselectedCategory={preselectedCategory}
                 onSuccess={() => {
                     fetchExpenses();
                     fetchBudgetReminders(setBudgetReminders);

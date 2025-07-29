@@ -17,7 +17,7 @@ import { getExchangeRate } from "@/services/currency.service";
 import { useAuth } from "@/context/AuthContext";
 import GeneralDialog from "@/app-components/Dialog";
 import { useStats } from "@/context/StatsContext";
-import { uploadReceipt } from "@/services/expense.service";
+import { uploadReceipt } from "@/services/transaction.service";
 import axios from "axios";
 
 const BILL_CATEGORIES: string[] = [

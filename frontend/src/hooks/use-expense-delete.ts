@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { deleteExpense, deleteRecurringExpense } from "@/services/expense.service";
-import { ExpenseType } from "@/types/expense";
-
-type ExpenseTypeWithId = ExpenseType & { _id?: string };
+import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.service";
+import { Transaction, TransactionWithId } from "@/types/transaction";
 
 interface UseExpenseDeleteProps {
     onRefresh?: () => void;
@@ -12,7 +10,7 @@ interface UseExpenseDeleteProps {
 
 export function useExpenseDelete({ onRefresh, onRecurringDelete }: UseExpenseDeleteProps = {}) {
     const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
-    const [recurringToDelete, setRecurringToDelete] = useState<ExpenseTypeWithId | null>(null);
+    const [recurringToDelete, setRecurringToDelete] = useState<TransactionWithId | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
 
@@ -75,7 +73,7 @@ export function useExpenseDelete({ onRefresh, onRecurringDelete }: UseExpenseDel
         setExpenseToDelete(null);
     };
 
-    const setRecurringForDelete = (expense: ExpenseTypeWithId | null) => {
+    const setRecurringForDelete = (expense: TransactionWithId | null) => {
         setRecurringToDelete(expense);
     };
 

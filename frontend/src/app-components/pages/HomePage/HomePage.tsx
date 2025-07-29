@@ -6,14 +6,12 @@ import { BudgetReminder } from "@/types/budget";
 import { getBudgetProgress } from "@/services/budget.service";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
-import AddBillDialog from "@/app-components/AddBillDialog";
-import { getExpenses } from "@/services/expense.service";
+import { getExpenses } from "@/services/transaction.service";
 import { isSameMonth, isSameYear } from "date-fns";
 import { ExpenseReminderBanner } from "@/utils/ExpenseReminderBanner";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
-import { fetchBillsAlerts, fetchBillReminders, BillAlertsUI } from "@/utils/billUtils.tsx";
-import { differenceInCalendarDays, parseISO, format } from "date-fns";
-import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Clock, Zap } from "lucide-react";
+import { fetchBillsAlerts, fetchBillReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
+import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
 
 interface FinancialOverviewData {
     savingsRate: number;
@@ -38,7 +36,7 @@ const HomePage = () => {
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
     const [isAddBudgetDialogOpen, setIsAddBudgetDialogOpen] = useState(false);
-    const [isAddBillDialogOpen, setIsAddBillDialogOpen] = useState(false);
+    const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
 
     // Financial Overview state
     const [financialData, setFinancialData] = useState<FinancialOverviewData>({
@@ -64,6 +62,13 @@ const HomePage = () => {
         fetchBillReminders(setBillReminders);
         fetchCurrentMonthExpenses();
     }, []);
+
+    // Clear preselected category when dialog closes
+    useEffect(() => {
+        if (!isExpenseDialogOpen) {
+            setPreselectedCategory(undefined);
+        }
+    }, [isExpenseDialogOpen]);
 
     const fetchFinancialOverview = async () => {
         try {
@@ -167,31 +172,6 @@ const HomePage = () => {
     return (
         <div className="p-4 md:p-6 lg:p-8 space-y-4 max-w-full">
             <ExpenseReminderBanner settings={(user as any)?.settings} />
-            {billReminders.length > 0 && (
-                <div className="mb-4 space-y-2">
-                    {billReminders.map((bill) => (
-                        <div
-                            key={bill._id}
-                            className="bg-yellow-50 border-l-4 border-yellow-500 p-3 rounded flex items-center gap-2"
-                        >
-                            <Clock className="h-5 w-5 text-yellow-600" />
-                            <span>
-                                Reminder: <strong>{bill.title}</strong> is due on{" "}
-                                {format(
-                                    bill.dueDate instanceof Date ? bill.dueDate : parseISO(bill.dueDate),
-                                    "dd/MM/yyyy"
-                                )}{" "}
-                                (in{" "}
-                                {differenceInCalendarDays(
-                                    bill.dueDate instanceof Date ? bill.dueDate : parseISO(bill.dueDate),
-                                    new Date()
-                                )}{" "}
-                                days)
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
             {/* Budget Reminders */}
             <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} />
 
@@ -200,7 +180,14 @@ const HomePage = () => {
                 billsAndBudgetsAlertEnabled={billsAndBudgetsAlertEnabled}
                 overdueBills={overdueBills}
                 upcomingBills={upcomingBills}
-                onViewBills={() => navigate("/bills")}
+                onViewBills={() => navigate("/transactions?tab=bills")}
+            />
+
+            {/* Bill Reminders */}
+            <BillRemindersUI
+                billsAndBudgetsAlertEnabled={billsAndBudgetsAlertEnabled}
+                billReminders={billReminders}
+                onViewBills={() => navigate("/transactions?tab=bills")}
             />
 
             {/* Financial Overview */}
@@ -309,7 +296,10 @@ const HomePage = () => {
                     <div className="flex flex-col sm:flex-row gap-4">
                         <Card
                             className="flex-1 flex flex-col items-center justify-center py-6 cursor-pointer transition hover:shadow-lg hover:bg-muted/60"
-                            onClick={() => setIsExpenseDialogOpen(true)}
+                            onClick={() => {
+                                setPreselectedCategory(undefined);
+                                setIsExpenseDialogOpen(true);
+                            }}
                             tabIndex={0}
                             role="button"
                             aria-label="Add Transaction"
@@ -319,7 +309,10 @@ const HomePage = () => {
                         </Card>
                         <Card
                             className="flex-1 flex flex-col items-center justify-center py-6 cursor-pointer transition hover:shadow-lg hover:bg-muted/60"
-                            onClick={() => setIsAddBillDialogOpen(true)}
+                            onClick={() => {
+                                setPreselectedCategory("Bill");
+                                setIsExpenseDialogOpen(true);
+                            }}
                             tabIndex={0}
                             role="button"
                             aria-label="Add Bill"
@@ -345,6 +338,7 @@ const HomePage = () => {
             <AddExpenseDialog
                 open={isExpenseDialogOpen}
                 onOpenChange={setIsExpenseDialogOpen}
+                preselectedCategory={preselectedCategory}
                 onSuccess={() => {
                     fetchBudgetReminders(setBudgetReminders);
                     navigate("/transactions");
@@ -359,17 +353,6 @@ const HomePage = () => {
                     fetchBudgetReminders(setBudgetReminders);
                     setIsAddBudgetDialogOpen(false);
                     navigate("/budget");
-                }}
-            />
-
-            {/* Add Bill Dialog */}
-            <AddBillDialog
-                open={isAddBillDialogOpen}
-                onOpenChange={setIsAddBillDialogOpen}
-                onSuccess={() => {
-                    fetchBudgetReminders(setBudgetReminders);
-                    setIsAddBillDialogOpen(false);
-                    navigate("/bills");
                 }}
             />
         </div>

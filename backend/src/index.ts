@@ -5,14 +5,14 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
 import passport from "./config/passport";
 import session from "express-session";
-import expenseRoutes from "./routes/expense.routes";
+import expenseRoutes from "./routes/transaction.routes";
 import budgetRoutes from "./routes/budget.routes";
 import profileRoutes from "./routes/profile.routes";
 import billRoutes from "./routes/bill.routes";
 import axios from "axios";
 import currencyRoutes from "./routes/currency.routes";
 import cron from "node-cron";
-import { Expense } from "./models/expense.model";
+import { TransactionModel } from "./models/transaction.model";
 
 dotenv.config();
 
@@ -64,17 +64,17 @@ function getToday() {
 
 cron.schedule("0 0 * * *", async () => {
     // Recurring Expenses only
-    const recurringExpenses = await Expense.find({ isRecurring: true });
+    const recurringExpenses = await TransactionModel.find({ isRecurring: true });
     const today = getToday();
 
     for (const template of recurringExpenses) {
         // Check if an instance for today exists
-        const exists = await Expense.findOne({
+        const exists = await TransactionModel.findOne({
             templateId: template._id,
             date: today,
         });
         if (!exists) {
-            await Expense.create({
+            await TransactionModel.create({
                 ...template.toObject(),
                 _id: undefined,
                 date: today,

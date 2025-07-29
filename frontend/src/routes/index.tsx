@@ -2,15 +2,15 @@ import { Navigate, useLocation, Route, Routes } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import LoginPage from "@/app-components/pages/AuthPages/LoginPage";
 import RegisterPage from "@/app-components/pages/AuthPages/RegisterPage";
-import HomePage from "@/app-components/pages/HomePage/Page";
-import BudgetPage from "@/app-components/pages/BudgetPage/Page";
-import CalendarPage from "@/app-components/pages/CalendarPage/Page";
-import ProfilePage from "@/app-components/pages/ProfilePage";
+import HomePage from "@/app-components/pages/HomePage/HomePage";
+import BudgetPage from "@/app-components/pages/BudgetPage/BudgetPage";
+import CalendarPage from "@/app-components/pages/CalendarPage/CalendarPage";
+import ProfilePage from "@/app-components/pages/ProfilePage/ProfilePage";
 import ChangePasswordPage from "@/app-components/pages/AuthPages/ChangePasswordPage";
 import GoogleCallback from "@/app-components/pages/AuthPages/GoogleCallback";
 import ForgotPasswordPage from "@/app-components/pages/AuthPages/ForgotPasswordPage";
 import ResetPasswordPage from "@/app-components/pages/AuthPages/ResetPasswordPage";
-import TransactionsPage from "@/app-components/pages/TransactionsPage/Page";
+import TransactionsPage from "@/app-components/pages/TransactionsPage/TransactionsPage";
 import BillsPage from "@/app-components/pages/BillsPage";
 import AnalyticsPage from "@/app-components/pages/AnalyticsPage";
 
@@ -31,11 +31,11 @@ const routes: RouteConfig[] = [
         element: <TransactionsPage />,
         requireAuth: true,
     },
-    {
+    /* {
         path: "/bills",
         element: <BillsPage />,
         requireAuth: true,
-    },
+    }, */
     {
         path: "/budget",
         element: <BudgetPage />,
