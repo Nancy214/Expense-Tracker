@@ -16,6 +16,7 @@ type CalendarExpense = Transaction & { _id: string };
 const CalendarPage: React.FC = () => {
     const [expenses, setExpenses] = useState<CalendarExpense[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
     const { toast } = useToast();
 
     useEffect(() => {
@@ -87,6 +88,19 @@ const CalendarPage: React.FC = () => {
             },
         };
     });
+
+    // Handle calendar view changes to update visible categories
+    const handleDatesSet = (dateInfo: any) => {
+        const visibleEvents = calendarEvents.filter((event) => {
+            const eventDate = new Date(event.date);
+            const startDate = new Date(dateInfo.start);
+            const endDate = new Date(dateInfo.end);
+            return eventDate >= startDate && eventDate < endDate;
+        });
+
+        const categories = new Set(visibleEvents.map((event) => event.extendedProps.category));
+        setVisibleCategories(categories);
+    };
 
     // Color coding for different categories
     function getCategoryColor(category: string): string {
@@ -183,27 +197,36 @@ const CalendarPage: React.FC = () => {
         );
     };
 
-    // Expense and income category color maps
-    const expenseCategories: { [key: string]: string } = {
-        "Food & Dining": "#ef4444",
-        Transportation: "#3b82f6",
-        Shopping: "#8b5cf6",
-        Entertainment: "#f59e0b",
-        "Bills & Utilities": "#10b981",
-        Healthcare: "#06b6d4",
-        Travel: "#f97316",
-        Education: "#84cc16",
-        Other: "#6b7280",
+    // Get filtered categories based on what's visible
+    const getVisibleExpenseCategories = () => {
+        const allExpenseCategories: { [key: string]: string } = {
+            "Food & Dining": "#ef4444",
+            Transportation: "#3b82f6",
+            Shopping: "#8b5cf6",
+            Entertainment: "#f59e0b",
+            "Bills & Utilities": "#10b981",
+            Healthcare: "#06b6d4",
+            Travel: "#f97316",
+            Education: "#84cc16",
+            Other: "#6b7280",
+        };
+
+        return Object.entries(allExpenseCategories).filter(([category]) => visibleCategories.has(category));
     };
-    const incomeCategories: { [key: string]: string } = {
-        Salary: "#059669",
-        Freelance: "#0891b2",
-        Business: "#7c3aed",
-        Investment: "#059669",
-        "Rental Income": "#dc2626",
-        Gifts: "#ea580c",
-        Refunds: "#2563eb",
-        "Other Income": "#6b7280",
+
+    const getVisibleIncomeCategories = () => {
+        const allIncomeCategories: { [key: string]: string } = {
+            Salary: "#059669",
+            Freelance: "#0891b2",
+            Business: "#7c3aed",
+            Investment: "#059669",
+            "Rental Income": "#dc2626",
+            Gifts: "#ea580c",
+            Refunds: "#2563eb",
+            "Other Income": "#6b7280",
+        };
+
+        return Object.entries(allIncomeCategories).filter(([category]) => visibleCategories.has(category));
     };
 
     if (isLoading) {
@@ -218,74 +241,104 @@ const CalendarPage: React.FC = () => {
     }
 
     return (
-        <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
-            <div className="mb-6">
+        <div className="flex flex-col p-2 md:p-4">
+            <div>
                 <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Expense Calendar</h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">View your expenses in a calendar format</p>
+                <p className="text-gray-600 dark:text-gray-400">View your expenses in a calendar format</p>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Calendar View</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="overflow-x-auto">
-                        <FullCalendar
-                            plugins={[dayGridPlugin, interactionPlugin]}
-                            initialView="dayGridMonth"
-                            events={calendarEvents}
-                            //dateClick={handleDateClick}
-                            //eventClick={handleEventClick}
-                            eventContent={renderEventContent}
-                            height="600px"
-                            headerToolbar={{
-                                left: "prev,next today",
-                                center: "title",
-                                right: "dayGridMonth,dayGridWeek",
-                            }}
-                            editable={false}
-                            selectable={true}
-                            selectMirror={true}
-                            dayMaxEvents={true}
-                            weekends={true}
-                            eventDisplay="block"
-                        />
+            <div className="flex-1 flex flex-col min-h-0 mt-2">
+                <div className="flex-1 flex flex-col min-h-0 gap-2">
+                    {/* Calendar Section */}
+                    <div className="flex-1">
+                        <Card className="flex flex-col">
+                            <CardHeader className="pb-1 flex-shrink-0">
+                                <CardTitle className="text-base">Calendar View</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-1 md:p-2 flex-1 min-h-0">
+                                <div className="w-full">
+                                    <FullCalendar
+                                        plugins={[dayGridPlugin, interactionPlugin]}
+                                        initialView="dayGridMonth"
+                                        events={calendarEvents}
+                                        eventContent={renderEventContent}
+                                        height="55vh"
+                                        headerToolbar={{
+                                            left: "prev,next today",
+                                            center: "title",
+                                            right: "dayGridMonth,dayGridWeek",
+                                        }}
+                                        editable={false}
+                                        selectable={true}
+                                        selectMirror={true}
+                                        dayMaxEvents={true}
+                                        weekends={true}
+                                        eventDisplay="block"
+                                        datesSet={handleDatesSet}
+                                        aspectRatio={1.8}
+                                        expandRows={true}
+                                        handleWindowResize={true}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                </CardContent>
-            </Card>
 
-            {/* Category Legend */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Category Legend</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-6">
-                        <div>
-                            <h3 className="text-sm font-semibold mb-2 text-gray-700">Expense Categories</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {Object.entries(expenseCategories).map(([category, color]) => (
-                                    <div key={category} className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
-                                        <span className="text-sm">{category}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-semibold mb-2 text-gray-700">Income Categories</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {Object.entries(incomeCategories).map(([category, color]) => (
-                                    <div key={category} className="flex items-center gap-2">
-                                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color }}></div>
-                                        <span className="text-sm">{category}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                    {/* Category Legend Section */}
+                    <div className="flex flex-col min-h-0">
+                        <Card className="flex flex-col">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg">Categories</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-1 p-4 min-h-0">
+                                <div className="space-y-4">
+                                    {getVisibleExpenseCategories().length > 0 && (
+                                        <div>
+                                            <h3 className="text-sm font-semibold mb-3 text-gray-700">
+                                                Expense Categories
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {getVisibleExpenseCategories().map(([category, color]) => (
+                                                    <div key={category} className="flex items-center gap-2">
+                                                        <div
+                                                            className="w-3 h-3 rounded-full"
+                                                            style={{ backgroundColor: color }}
+                                                        ></div>
+                                                        <span className="text-sm">{category}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {getVisibleIncomeCategories().length > 0 && (
+                                        <div>
+                                            <h3 className="text-sm font-semibold mb-3 text-gray-700">
+                                                Income Categories
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {getVisibleIncomeCategories().map(([category, color]) => (
+                                                    <div key={category} className="flex items-center gap-2">
+                                                        <div
+                                                            className="w-3 h-3 rounded-full"
+                                                            style={{ backgroundColor: color }}
+                                                        ></div>
+                                                        <span className="text-sm">{category}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {visibleCategories.size === 0 && (
+                                        <div className="text-center text-gray-500 text-sm py-4">
+                                            No events in current view
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 };
