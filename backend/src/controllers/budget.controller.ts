@@ -23,9 +23,9 @@ export const createBudget = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: "User not authenticated" });
         }
 
-        const { amount, frequency, startDate }: BudgetRequest = req.body;
-        if (!amount || !frequency || !startDate) {
-            return res.status(400).json({ message: "Amount, frequency, and start date are required." });
+        const { amount, frequency, startDate, category }: BudgetRequest = req.body;
+        if (!amount || !frequency || !startDate || !category) {
+            return res.status(400).json({ message: "Amount, frequency, start date, and category are required." });
         }
 
         const budget = new Budget({
@@ -33,6 +33,7 @@ export const createBudget = async (req: AuthRequest, res: Response) => {
             amount,
             frequency,
             startDate,
+            category,
         });
 
         const savedBudget = await budget.save();
@@ -51,10 +52,10 @@ export const updateBudget = async (req: AuthRequest, res: Response) => {
         }
 
         const { id } = req.params;
-        const { amount, frequency, startDate }: BudgetRequest = req.body;
+        const { amount, frequency, startDate, category }: BudgetRequest = req.body;
 
-        if (!amount || !frequency || !startDate) {
-            return res.status(400).json({ message: "Amount, frequency, and start date are required." });
+        if (!amount || !frequency || !startDate || !category) {
+            return res.status(400).json({ message: "Amount, frequency, start date, and category are required." });
         }
 
         const budget = await Budget.findOneAndUpdate(
@@ -62,7 +63,7 @@ export const updateBudget = async (req: AuthRequest, res: Response) => {
                 _id: new mongoose.Types.ObjectId(id),
                 userId: new mongoose.Types.ObjectId(userId),
             },
-            { amount, frequency, startDate },
+            { amount, frequency, startDate, category },
             { new: true }
         );
 
@@ -204,6 +205,7 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
             }
 
             // Filter expenses from the budget start date to now (not just current period)
+            // and match the budget category
             const budgetExpenses = expenses.filter((expense) => {
                 const expenseDate = new Date(expense.date);
                 // Set time to start of day for consistent comparison
@@ -220,8 +222,9 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
                 const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
                 const isInRange = expenseDateStart >= budgetStartDateStart && expenseDateStart <= nowStart;
+                const matchesCategory = expense.category === budget.category;
 
-                return isInRange;
+                return isInRange && matchesCategory;
             });
 
             // Calculate total spent from budget start date
@@ -246,6 +249,7 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
                 amount: budget.amount,
                 frequency: budget.frequency,
                 startDate: budget.startDate,
+                category: budget.category,
                 createdAt: budget.createdAt,
                 periodStart,
                 periodEnd,

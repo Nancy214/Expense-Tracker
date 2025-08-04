@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { deleteBudget } from "@/services/budget.service";
 import { BudgetResponse } from "@/types/budget";
@@ -13,11 +14,20 @@ export function useBudgetDelete({
     onBudgetProgressRefresh,
     onBudgetRemindersRefresh,
 }: UseBudgetDeleteProps = {}) {
+    const [budgetToDelete, setBudgetToDelete] = useState<BudgetResponse | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
 
     const handleDelete = async (budget: BudgetResponse) => {
+        setBudgetToDelete(budget);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!budgetToDelete) return;
+
         try {
-            await deleteBudget(budget._id);
+            await deleteBudget(budgetToDelete._id);
             toast({
                 title: "Success",
                 description: "Budget deleted successfully!",
@@ -38,10 +48,23 @@ export function useBudgetDelete({
                 description: "Failed to delete budget",
                 variant: "destructive",
             });
+        } finally {
+            setIsDeleteDialogOpen(false);
+            setBudgetToDelete(null);
         }
     };
 
+    const cancelDelete = () => {
+        setIsDeleteDialogOpen(false);
+        setBudgetToDelete(null);
+    };
+
     return {
+        budgetToDelete,
+        isDeleteDialogOpen,
         handleDelete,
+        confirmDelete,
+        cancelDelete,
+        setIsDeleteDialogOpen,
     };
 }
