@@ -248,7 +248,7 @@ const CalendarPage: React.FC = () => {
             </div>
 
             <div className="flex-1 flex flex-col min-h-0 mt-2">
-                <div className="flex-1 flex flex-col min-h-0 gap-2">
+                <div className="flex-1 flex min-h-0 gap-2">
                     {/* Calendar Section */}
                     <div className="flex-1">
                         <Card className="flex flex-col">
@@ -262,7 +262,7 @@ const CalendarPage: React.FC = () => {
                                         initialView="dayGridMonth"
                                         events={calendarEvents}
                                         eventContent={renderEventContent}
-                                        height="55vh"
+                                        contentHeight="auto"
                                         headerToolbar={{
                                             left: "prev,next today",
                                             center: "title",
@@ -285,8 +285,8 @@ const CalendarPage: React.FC = () => {
                     </div>
 
                     {/* Category Legend Section */}
-                    <div className="flex flex-col min-h-0">
-                        <Card className="flex flex-col">
+                    <div className="w-60 flex flex-col min-h-0">
+                        <Card className="flex-1 flex flex-col">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg">Categories</CardTitle>
                             </CardHeader>
