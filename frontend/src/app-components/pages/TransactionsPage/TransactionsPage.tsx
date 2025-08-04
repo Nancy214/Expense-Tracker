@@ -315,7 +315,7 @@ const TransactionsPage = () => {
     };
 
     return (
-        <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
+        <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
             {/* Budget Reminders */}
             <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} />
 

@@ -2,32 +2,38 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Home, Receipt, PieChart, CreditCard, Calendar, User, Menu, LogOut, BarChart } from "lucide-react";
+import { Home, Receipt, PieChart, Calendar, User, Menu, LogOut, BarChart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import StatsCards from "@/app-components/StatsCards";
-
-const navLinks = [
-    { label: "Dashboard", path: "/", icon: Home },
-    { label: "Transactions", path: "/transactions", icon: Receipt },
-    { label: "Budget", path: "/budget", icon: PieChart },
-    /* { label: "Bills", path: "/bills", icon: CreditCard }, */
-    { label: "Calendar", path: "/calendar", icon: Calendar },
-    { label: "Analytics", path: "/analytics", icon: BarChart },
-    { label: "Profile", path: "/profile", icon: User },
-    { label: "Log out", path: "#logout", icon: LogOut },
-];
 
 interface LayoutProps {
     children: React.ReactNode;
 }
 
-export default function Layout({ children }: LayoutProps) {
+const navLinks = [
+    { label: "Dashboard", path: "/", icon: Home },
+    { label: "Transactions", path: "/transactions", icon: Receipt },
+    { label: "Budget", path: "/budget", icon: PieChart },
+    { label: "Calendar", path: "/calendar", icon: Calendar },
+    { label: "Analytics", path: "/analytics", icon: BarChart },
+];
+
+function LayoutContent({ children }: LayoutProps) {
     const location = useLocation();
     const navigate = useNavigate();
     const { logout, user, isAuthenticated } = useAuth();
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [isMobile, setIsMobile] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     // Check if we're on auth pages
     const isAuthPage = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/google/callback"].includes(
@@ -62,27 +68,6 @@ export default function Layout({ children }: LayoutProps) {
         checkAuth();
     }, [isAuthenticated, isAuthPage, navigate]);
 
-    // Handle responsive behavior
-    useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-            if (window.innerWidth < 768) {
-                setSidebarOpen(false);
-            }
-        };
-
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
-    }, []);
-
-    // Reset sidebar when navigating to main pages
-    useEffect(() => {
-        if (!isAuthPage && !isMobile) {
-            setSidebarOpen(true);
-        }
-    }, [location.pathname, isAuthPage, isMobile]);
-
     const handleLogout = async () => {
         try {
             await logout();
@@ -90,10 +75,6 @@ export default function Layout({ children }: LayoutProps) {
         } catch (error) {
             console.error("Logout failed:", error);
         }
-    };
-
-    const toggleSidebar = () => {
-        setSidebarOpen(!sidebarOpen);
     };
 
     // Simple layout for auth pages
@@ -107,163 +88,133 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-            {/* Top Navigation Bar */}
-            <header className="fixed top-0 left-0 right-0 border-b-4 border-slate-200/60 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200/50 dark:border-slate-800/50">
-                <div className="flex items-center justify-between px-4 py-3">
-                    {/* Left side - Logo and Toggle */}
+        <div className="min-h-screen bg-gray-50/50 flex flex-col">
+            {/* Header */}
+            <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+                <div className="flex h-16 items-center justify-between px-4 md:px-6">
+                    {/* Left side - Menu button and title */}
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={toggleSidebar}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-                        >
-                            <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                        </button>
-                        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Expense Tracker</h1>
+                        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                            <SheetTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="md:hidden"
+                                    onClick={() => setSidebarOpen(true)}
+                                >
+                                    <Menu className="h-5 w-5" />
+                                    <span className="sr-only">Toggle sidebar</span>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left" className="w-72 p-0">
+                                <SidebarContent isCollapsed={false} />
+                            </SheetContent>
+                        </Sheet>
+
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl font-semibold text-gray-900">Expense Tracker</h1>
+                        </div>
                     </div>
 
-                    {/* Right side - User Avatar with Tooltip */}
-                    <TooltipProvider>
-                        <Tooltip disableHoverableContent={isMobile}>
-                            <TooltipTrigger asChild>
-                                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-default">
+                    {/* Right side - Actions and user */}
+                    <div className="flex items-center gap-3">
+                        {/* User menu */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={user?.profilePicture || ""} alt="profile picture" />
-                                        <AvatarFallback className="text-sm">
+                                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                                             {user?.name?.charAt(0) || "U"}
                                         </AvatarFallback>
                                     </Avatar>
-                                </div>
-                            </TooltipTrigger>
-                            {!isMobile && (
-                                <TooltipContent side="bottom" className="select-none">
-                                    {user?.name || "User"}
-                                </TooltipContent>
-                            )}
-                        </Tooltip>
-                    </TooltipProvider>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">
+                                            {user?.email || "user@example.com"}
+                                        </p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                                    <User className="mr-2 h-4 w-4" />
+                                    <span>Profile</span>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400">
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Log out</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
             </header>
 
-            {/* Sidebar */}
-            <aside
-                className={cn(
-                    "fixed top-0 left-0 h-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-r border-gray-200/50 dark:border-slate-800/50 transition-all duration-300 ease-in-out z-30",
-                    isMobile ? "w-64" : sidebarOpen ? "w-64" : "w-20",
-                    isMobile && !sidebarOpen && "-translate-x-full"
-                )}
-                style={{ top: "80px" }} // Account for header height + gap
-            >
-                <nav className={cn("space-y-2", isMobile || sidebarOpen ? "p-4" : "p-2")}>
-                    <TooltipProvider>
-                        {navLinks.map(({ label, path, icon: Icon }) => {
-                            const isActive = location.pathname === path;
-                            const showTooltip = !isMobile && !sidebarOpen;
-                            const isLogout = label === "Log out";
-                            return (
-                                <Tooltip key={path} disableHoverableContent={!showTooltip}>
-                                    <TooltipTrigger asChild>
-                                        {isLogout ? (
-                                            <button
-                                                onClick={handleLogout}
-                                                className={cn(
-                                                    "flex items-center gap-4 rounded-xl transition-all duration-200 group relative overflow-hidden w-full text-left",
-                                                    isMobile || sidebarOpen ? "px-4 py-3" : "px-2 py-3",
-                                                    "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium"
-                                                )}
-                                            >
-                                                <div
-                                                    className={cn(
-                                                        "flex items-center justify-center transition-all duration-200",
-                                                        isMobile || sidebarOpen ? "w-6" : "w-full"
-                                                    )}
-                                                >
-                                                    <Icon className="h-6 w-6 transition-transform duration-200" />
-                                                </div>
-                                                <span
-                                                    className={cn(
-                                                        "text-sm font-medium transition-all duration-300 whitespace-nowrap",
-                                                        isMobile || sidebarOpen
-                                                            ? "opacity-100 translate-x-0"
-                                                            : "opacity-0 -translate-x-4 absolute left-0"
-                                                    )}
-                                                >
-                                                    {label}
-                                                </span>
-                                            </button>
-                                        ) : (
-                                            <a
-                                                href={path}
-                                                className={cn(
-                                                    "flex items-center gap-4 rounded-xl transition-all duration-200 group relative overflow-hidden",
-                                                    isMobile || sidebarOpen ? "px-4 py-3" : "px-2 py-3",
-                                                    isActive
-                                                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium"
-                                                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800/50"
-                                                )}
-                                            >
-                                                {isActive && (
-                                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full" />
-                                                )}
-                                                <div
-                                                    className={cn(
-                                                        "flex items-center justify-center transition-all duration-200",
-                                                        isMobile || sidebarOpen ? "w-6" : "w-full"
-                                                    )}
-                                                >
-                                                    <Icon
-                                                        className={cn(
-                                                            "h-6 w-6 transition-transform duration-200",
-                                                            isActive
-                                                                ? "text-blue-600 dark:text-blue-400"
-                                                                : "text-gray-600 dark:text-gray-300"
-                                                        )}
-                                                    />
-                                                </div>
-                                                <span
-                                                    className={cn(
-                                                        "text-sm font-medium transition-all duration-300 whitespace-nowrap",
-                                                        isMobile || sidebarOpen
-                                                            ? "opacity-100 translate-x-0"
-                                                            : "opacity-0 -translate-x-4 absolute left-0"
-                                                    )}
-                                                >
-                                                    {label}
-                                                </span>
-                                            </a>
-                                        )}
-                                    </TooltipTrigger>
-                                    {showTooltip && (
-                                        <TooltipContent side="right" className="select-none">
-                                            {label}
-                                        </TooltipContent>
-                                    )}
-                                </Tooltip>
-                            );
-                        })}
-                    </TooltipProvider>
-                </nav>
-            </aside>
+            <div className="flex flex-1">
+                {/* Sidebar */}
+                <aside
+                    className={cn(
+                        "hidden md:flex flex-col border-r bg-white transition-all duration-300 ease-in-out",
+                        isCollapsed ? "w-16" : "w-64"
+                    )}
+                >
+                    <SidebarContent isCollapsed={isCollapsed} />
+                </aside>
 
-            {/* Main Content */}
-            <main
-                className={cn(
-                    "transition-all duration-300 ease-in-out min-h-screen",
-                    isMobile ? "ml-0" : sidebarOpen ? "ml-64" : "ml-20"
-                )}
-                style={{ marginTop: "60px" }} // Account for header height + gap
-            >
-                {location.pathname !== "/profile" && <StatsCards />}
-                {children}
-            </main>
-
-            {/* Mobile Overlay */}
-            {isMobile && sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/20 backdrop-blur-sm z-20"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
+                {/* Main content */}
+                <main className={cn("flex-1 transition-all duration-300 ease-in-out", "md:ml-0")}>
+                    <div>
+                        {location.pathname !== "/profile" && <StatsCards />}
+                        {children}
+                    </div>
+                </main>
+            </div>
         </div>
     );
+}
+
+interface SidebarContentProps {
+    isCollapsed: boolean;
+}
+
+function SidebarContent({ isCollapsed }: SidebarContentProps) {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    return (
+        <div className="flex h-full flex-col">
+            {/* Sidebar navigation */}
+            <nav className="flex-1 space-y-1 p-4">
+                {navLinks.map(({ label, path, icon: Icon }) => {
+                    const isActive = location.pathname === path;
+
+                    return (
+                        <a
+                            key={path}
+                            href={path}
+                            className={cn(
+                                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                                isActive
+                                    ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+                                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                            )}
+                        >
+                            <Icon className="h-4 w-4" />
+                            {!isCollapsed && <span className="flex-1">{label}</span>}
+                        </a>
+                    );
+                })}
+            </nav>
+        </div>
+    );
+}
+
+export default function Layout({ children }: LayoutProps) {
+    return <LayoutContent>{children}</LayoutContent>;
 }

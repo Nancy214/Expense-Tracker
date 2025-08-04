@@ -170,7 +170,7 @@ const HomePage = () => {
     };
 
     return (
-        <div className="p-4 md:p-6 lg:p-8 space-y-4 max-w-full">
+        <div className="p-4 md:p-6 lg:p-4 space-y-4 max-w-full">
             <ExpenseReminderBanner settings={(user as any)?.settings} />
             {/* Budget Reminders */}
             <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} />

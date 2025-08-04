@@ -218,7 +218,7 @@ const CalendarPage: React.FC = () => {
     }
 
     return (
-        <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-full">
+        <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
             <div className="mb-6">
                 <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Expense Calendar</h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">View your expenses in a calendar format</p>

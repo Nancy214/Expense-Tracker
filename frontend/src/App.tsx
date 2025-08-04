@@ -6,18 +6,18 @@ import { Toaster } from "@/components/ui/toaster";
 import Layout from "@/app-components/Layout";
 
 function App() {
-  return (
-    <AuthProvider>
-      <StatsProvider>
-        <Router>
-          <Layout>
-            <AppRoutes />
-          </Layout>
-          <Toaster />
-        </Router>
-      </StatsProvider>
-    </AuthProvider>
-  );
+    return (
+        <AuthProvider>
+            <StatsProvider>
+                <Router>
+                    <Layout>
+                        <AppRoutes />
+                    </Layout>
+                    <Toaster />
+                </Router>
+            </StatsProvider>
+        </AuthProvider>
+    );
 }
 
 export default App;

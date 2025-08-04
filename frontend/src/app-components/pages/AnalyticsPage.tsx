@@ -492,7 +492,7 @@ const AnalyticsPage = () => {
     }>({ visible: false, x: 0, y: 0, content: "" });
 
     return (
-        <div className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto">
+        <div className="p-4 md:p-6 lg:p-4 max-w-7xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-1">
                 Analytics & Insights
             </h1>
