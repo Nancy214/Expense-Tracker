@@ -373,13 +373,13 @@ const TransactionsPage = () => {
             </div>
 
             {/* Transaction Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 md:gap-4 mb-4">
                 <Card>
                     <CardContent className="py-4 flex flex-col items-center">
                         <div className="text-lg sm:text-xl font-bold text-green-600">
                             {transactions.filter((t) => t.type === "income").length}
                         </div>
-                        <div className="text-xs mt-1">Income Transactions</div>
+                        <div className="text-xs mt-1">Income</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             {symbol}
                             {transactions
@@ -394,7 +394,7 @@ const TransactionsPage = () => {
                         <div className="text-lg sm:text-xl font-bold text-red-600">
                             {transactions.filter((t) => t.type === "expense").length}
                         </div>
-                        <div className="text-xs mt-1">Expense Transactions</div>
+                        <div className="text-xs mt-1">Expense</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             {symbol}
                             {transactions
@@ -415,6 +415,31 @@ const TransactionsPage = () => {
                                       transactions.reduce((sum, t) => sum + (t.amount || 0), 0) / transactions.length
                                   ).toFixed(2)
                                 : "0.00"}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="py-4 flex flex-col items-center">
+                        <div className="text-lg sm:text-xl font-bold text-blue-600">{recurringTransactions.length}</div>
+                        <div className="text-xs mt-1">Recurring Expense</div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {symbol}
+                            {recurringTransactions.reduce((sum, t) => sum + (t.amount || 0), 0).toFixed(2)}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="py-4 flex flex-col items-center">
+                        <div className="text-lg sm:text-xl font-bold text-purple-600">
+                            {transactions.filter((t) => t.category === "Bill").length}
+                        </div>
+                        <div className="text-xs mt-1">Total Bills</div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {symbol}
+                            {transactions
+                                .filter((t) => t.category === "Bill")
+                                .reduce((sum, t) => sum + (t.amount || 0), 0)
+                                .toFixed(2)}
                         </p>
                     </CardContent>
                 </Card>

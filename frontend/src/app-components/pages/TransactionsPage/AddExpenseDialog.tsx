@@ -34,13 +34,13 @@ import {
     showCreateSuccess,
     showSaveError,
 } from "@/utils/toastUtils";
+import { Badge } from "@/components/ui/badge";
 
 const EXPENSE_CATEGORIES: string[] = [
     "Food & Dining",
     "Transportation",
     "Shopping",
     "Entertainment",
-    "Bill",
     "Healthcare",
     "Travel",
     "Education",
@@ -83,6 +83,7 @@ interface AddExpenseDialogProps {
     onSuccess?: () => void;
     triggerButton?: React.ReactNode;
     preselectedCategory?: string;
+    isAddBill?: boolean;
 }
 
 // Utility functions to reduce code duplication
@@ -201,7 +202,7 @@ const SelectField = ({
     className?: string;
 }) => (
     <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className={className}>
+        <SelectTrigger className={cn("h-10", className)}>
             <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>{children}</SelectContent>
@@ -221,7 +222,7 @@ const DateField = ({
         <PopoverTrigger asChild>
             <Button
                 variant={"outline"}
-                className={cn("w-[180px] justify-start text-left font-normal", !value && "text-muted-foreground")}
+                className={cn("h-10 w-full justify-start text-left font-normal", !value && "text-muted-foreground")}
             >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {value ? format(parse(value, "dd/MM/yyyy", new Date()), "dd/MM/yyyy") : <span>{placeholder}</span>}
@@ -246,6 +247,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     onSuccess,
     triggerButton,
     preselectedCategory,
+    isAddBill,
 }) => {
     const { toast } = useToast();
     const { user } = useAuth();
@@ -364,7 +366,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         } else {
             resetForm(preselectedCategory);
         }
-    }, [editingExpense, user?.currency, preselectedCategory]);
+    }, [editingExpense, user?.currency, preselectedCategory, isAddBill]);
 
     // Handle editingExpense changes and form reset when opening for new transactions
     useEffect(() => {
@@ -376,7 +378,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             resetForm(preselectedCategory);
             setReceipts([]);
         }
-    }, [editingExpense, open, preselectedCategory]);
+    }, [editingExpense, open, preselectedCategory, isAddBill]);
 
     const fetchCurrencyOptions = async () => {
         try {
@@ -546,7 +548,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const resetForm = (preselectedCategory?: string): void => {
         setFormData({
             title: "",
-            category: preselectedCategory || "",
+            category: isAddBill ? "Bill" : preselectedCategory || "",
             description: "",
             amount: 0,
             date: format(new Date(), "dd/MM/yyyy"),
@@ -736,7 +738,15 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             {triggerButton && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{isEditing ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
+                    <DialogTitle>
+                        {isEditing
+                            ? formData.category === "Bill"
+                                ? "Edit Bill"
+                                : "Edit Transaction"
+                            : formData.category === "Bill"
+                            ? "Add Bill"
+                            : "Add Transaction"}
+                    </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-2">
                     <p className="text-sm text-gray-500">
@@ -765,6 +775,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             <div className="flex gap-2">
                                 <InputField
                                     name="amount"
+                                    type="number"
                                     value={formData.amount}
                                     onChange={(e) => handleChange("amount", e.target.value, "input")}
                                     placeholder="0.00"
@@ -844,6 +855,38 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         <div className="grid grid-cols-2 gap-4">
                             <FormField label="Category" required>
                                 <SelectField
+                                    value={formData.billCategory || ""}
+                                    onValueChange={(value) => handleChange("billCategory", value, "select")}
+                                    placeholder="Select a bill category"
+                                >
+                                    {BILL_CATEGORIES.map((category) => (
+                                        <SelectItem key={category} value={category}>
+                                            {category}
+                                        </SelectItem>
+                                    ))}
+                                </SelectField>
+                            </FormField>
+                            <FormField label="Payment Method">
+                                <SelectField
+                                    value={formData.paymentMethod || "manual"}
+                                    onValueChange={(value) => handleChange("paymentMethod", value, "select")}
+                                    placeholder="Select payment method"
+                                >
+                                    {PAYMENT_METHODS.map((method) => (
+                                        <SelectItem key={method} value={method}>
+                                            {method
+                                                .split("-")
+                                                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                                .join(" ")}
+                                        </SelectItem>
+                                    ))}
+                                </SelectField>
+                            </FormField>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField label="Category" required>
+                                <SelectField
                                     value={formData.category}
                                     onValueChange={(value) => handleChange("category", value, "select")}
                                     placeholder="Select a category"
@@ -861,55 +904,22 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                           ))}
                                 </SelectField>
                             </FormField>
-                            <FormField label="Bill Category" required>
-                                <SelectField
-                                    value={formData.billCategory || ""}
-                                    onValueChange={(value) => handleChange("billCategory", value, "select")}
-                                    placeholder="Select a bill category"
-                                >
-                                    {BILL_CATEGORIES.map((category) => (
-                                        <SelectItem key={category} value={category}>
-                                            {category}
-                                        </SelectItem>
-                                    ))}
-                                </SelectField>
+                            <FormField label="Date" required>
+                                <DateField
+                                    value={formData.date}
+                                    onSelect={(date) => handleChange("date", date, "date")}
+                                    placeholder="Pick a date"
+                                />
                             </FormField>
                         </div>
-                    ) : (
-                        <FormField label="Category" required>
-                            <SelectField
-                                value={formData.category}
-                                onValueChange={(value) => handleChange("category", value, "select")}
-                                placeholder="Select a category"
-                            >
-                                {formData.type === "expense"
-                                    ? EXPENSE_CATEGORIES.map((category) => (
-                                          <SelectItem key={category} value={category}>
-                                              {category}
-                                          </SelectItem>
-                                      ))
-                                    : INCOME_CATEGORIES.map((category) => (
-                                          <SelectItem key={category} value={category}>
-                                              {category}
-                                          </SelectItem>
-                                      ))}
-                            </SelectField>
-                        </FormField>
                     )}
                     {formData.category === "Bill" && (
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField label="Reminder Days">
-                                <InputField
-                                    name="reminderDays"
-                                    value={formData.reminderDays || 3}
-                                    onChange={(e) =>
-                                        handleChange("reminderDays", parseInt(e.target.value, 10) || 0, "input")
-                                    }
-                                    placeholder="3"
-                                    type="number"
-                                    min="0"
-                                    max="30"
-                                    className="h-10"
+                            <FormField label="Date" required>
+                                <DateField
+                                    value={formData.date}
+                                    onSelect={(date) => handleChange("date", date, "date")}
+                                    placeholder="Pick a date"
                                 />
                             </FormField>
                             <FormField label="Due Date">
@@ -936,21 +946,19 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     ))}
                                 </SelectField>
                             </FormField>
-                            <FormField label="Payment Method">
-                                <SelectField
-                                    value={formData.paymentMethod || "manual"}
-                                    onValueChange={(value) => handleChange("paymentMethod", value, "select")}
-                                    placeholder="Select payment method"
-                                >
-                                    {PAYMENT_METHODS.map((method) => (
-                                        <SelectItem key={method} value={method}>
-                                            {method
-                                                .split("-")
-                                                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                                                .join(" ")}
-                                        </SelectItem>
-                                    ))}
-                                </SelectField>
+                            <FormField label="Reminder Days">
+                                <InputField
+                                    name="reminderDays"
+                                    value={formData.reminderDays || 3}
+                                    onChange={(e) =>
+                                        handleChange("reminderDays", parseInt(e.target.value, 10) || 0, "input")
+                                    }
+                                    placeholder="3"
+                                    type="number"
+                                    min="0"
+                                    max="30"
+                                    className="h-10"
+                                />
                             </FormField>
                         </div>
                     )}
@@ -962,24 +970,15 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             placeholder="Description (Optional)"
                         />
                     </FormField>
-                    <FormField label="Date" required>
-                        <DateField
-                            value={formData.date}
-                            onSelect={(date) => handleChange("date", date, "date")}
-                            placeholder="Pick a date"
-                        />
-                    </FormField>
                     {/* Recurring Transaction - only show if not Bill */}
                     {formData.category !== "Bill" && (
-                        <FormField label="Recurring Transaction">
-                            <div className="flex items-center space-x-2">
-                                <Switch
-                                    checked={formData.isRecurring || false}
-                                    onCheckedChange={(checked) => handleChange("isRecurring", checked, "switch")}
-                                />
-                                <Label htmlFor="recurring">Enable recurring transaction</Label>
-                            </div>
-                        </FormField>
+                        <div className="flex items-center space-x-2">
+                            <Switch
+                                checked={formData.isRecurring || false}
+                                onCheckedChange={(checked) => handleChange("isRecurring", checked, "switch")}
+                            />
+                            <Label htmlFor="recurring">Enable recurring transaction</Label>
+                        </div>
                     )}
                     {/* Recurring Frequency and End Date - only show if not Bill and isRecurring */}
                     {formData.category !== "Bill" && formData.isRecurring && (
@@ -1006,104 +1005,235 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         </div>
                     )}
                     <FormField label="Receipts (Images or PDFs)" className="mb-4">
-                        <Input
-                            type="file"
-                            accept="image/*,application/pdf"
-                            multiple
-                            onChange={(e) => {
-                                if (e.target.files) {
-                                    const validFiles = Array.from(e.target.files).filter(
-                                        (file) => file.type.startsWith("image/") || file.type === "application/pdf"
+                        <div
+                            className="relative"
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.currentTarget.classList.add("border-blue-500", "bg-blue-50");
+                            }}
+                            onDragLeave={(e) => {
+                                e.preventDefault();
+                                e.currentTarget.classList.remove("border-blue-500", "bg-blue-50");
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                e.currentTarget.classList.remove("border-blue-500", "bg-blue-50");
+
+                                const files = Array.from(e.dataTransfer.files);
+                                const validFiles = files.filter(
+                                    (file) => file.type.startsWith("image/") || file.type === "application/pdf"
+                                );
+
+                                if (validFiles.length !== files.length) {
+                                    showErrorToast(
+                                        toast,
+                                        "Invalid File Type",
+                                        "Only images or PDF files are allowed as receipts."
                                     );
-                                    if (validFiles.length !== e.target.files.length) {
-                                        showErrorToast(
-                                            toast,
-                                            "Invalid File Type",
-                                            "Only images or PDF files are allowed as receipts."
-                                        );
-                                    }
-                                    setReceipts(validFiles);
+                                }
+
+                                if (validFiles.length > 0) {
+                                    setReceipts((prev) => [...prev, ...validFiles]);
                                 }
                             }}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1 mb-2">
-                            You can upload images or PDF files as receipts.
+                        >
+                            <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                multiple
+                                onChange={(e) => {
+                                    if (e.target.files) {
+                                        const validFiles = Array.from(e.target.files).filter(
+                                            (file) => file.type.startsWith("image/") || file.type === "application/pdf"
+                                        );
+                                        if (validFiles.length !== e.target.files.length) {
+                                            showErrorToast(
+                                                toast,
+                                                "Invalid File Type",
+                                                "Only images or PDF files are allowed as receipts."
+                                            );
+                                        }
+                                        setReceipts(validFiles);
+                                    }
+                                }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                id="receipt-upload"
+                            />
+                            <Button
+                                variant="outline"
+                                className="w-full h-20 border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors duration-200 bg-gray-50"
+                                asChild
+                            >
+                                <label
+                                    htmlFor="receipt-upload"
+                                    className="flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    <svg
+                                        className="w-5 h-5 text-gray-500"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                        />
+                                    </svg>
+                                    <span className="text-sm font-medium text-gray-700">
+                                        {receipts.length > 0
+                                            ? `Add more receipts (${receipts.length} uploaded)`
+                                            : "Upload receipts"}
+                                    </span>
+                                </label>
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 mb-2">
+                            📁 Drag and drop files here or click to browse. Supports images and PDF files.
                         </p>
                         {/* Show uploaded receipts as links with delete option */}
                         {receipts.length > 0 && (
-                            <div className="space-y-1 mt-2">
-                                {receipts.map((file, idx) => {
-                                    let isImage = false;
-                                    let isPdf = false;
-                                    let name = "";
-                                    if (typeof file === "string") {
-                                        name = file.split("/").pop() || file;
-                                        isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
-                                        isPdf = /\.pdf$/i.test(name);
-                                    } else {
-                                        name = file.name;
-                                        isImage = file.type.startsWith("image/");
-                                        isPdf = file.type === "application/pdf";
-                                    }
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className={`flex items-center gap-2 rounded ${
-                                                draggedIdx === idx ? "bg-blue-50" : ""
-                                            }`}
-                                            draggable
-                                            onDragStart={() => handleDragStart(idx)}
-                                            onDragOver={(e) => {
-                                                e.preventDefault();
-                                                handleDragOver(idx);
-                                            }}
-                                            onDragEnd={handleDragEnd}
-                                            onDrop={handleDragEnd}
-                                            style={{ cursor: "grab" }}
-                                        >
-                                            {typeof file === "string" ? (
-                                                <ReceiptPreviewLink
-                                                    key={file}
-                                                    fileKey={file}
-                                                    name={name}
-                                                    isImage={isImage}
-                                                    isPdf={isPdf}
-                                                    getReceiptUrl={getReceiptUrl}
-                                                />
-                                            ) : isImage ? (
-                                                <img
-                                                    src={URL.createObjectURL(file)}
-                                                    alt={name}
-                                                    className="w-10 h-10 object-cover rounded border"
-                                                />
-                                            ) : isPdf ? (
-                                                <span className="flex items-center">
-                                                    <span className="mr-1">📄</span>
-                                                    {name}
-                                                </span>
-                                            ) : (
-                                                <span>{name}</span>
-                                            )}
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    setReceipts((prev) => prev.filter((_, i) => i !== idx));
+                            <div className="mt-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                                    <span className="text-sm font-medium text-gray-700 truncate">
+                                        Uploaded Receipts ({receipts.length})
+                                    </span>
+                                </div>
+                                <div className="space-y-1.5">
+                                    {receipts.map((file, idx) => {
+                                        let isImage = false;
+                                        let isPdf = false;
+                                        let name = "";
+                                        if (typeof file === "string") {
+                                            name = file.split("/").pop() || file;
+                                            isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
+                                            isPdf = /\.pdf$/i.test(name);
+                                        } else {
+                                            name = file.name;
+                                            isImage = file.type.startsWith("image/");
+                                            isPdf = file.type === "application/pdf";
+                                        }
+                                        return (
+                                            <div
+                                                key={idx}
+                                                className={`group flex items-center gap-2 p-2 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 ${
+                                                    draggedIdx === idx ? "border-blue-400 bg-blue-100 shadow-md" : ""
+                                                }`}
+                                                draggable
+                                                onDragStart={() => handleDragStart(idx)}
+                                                onDragOver={(e) => {
+                                                    e.preventDefault();
+                                                    handleDragOver(idx);
                                                 }}
-                                                aria-label="Remove receipt"
+                                                onDragEnd={handleDragEnd}
+                                                onDrop={handleDragEnd}
+                                                style={{ cursor: "grab" }}
                                             >
-                                                ✕
-                                            </Button>
-                                        </div>
-                                    );
-                                })}
+                                                {/* File Icon/Preview */}
+                                                <div className="flex-shrink-0">
+                                                    {typeof file === "string" ? (
+                                                        <ReceiptPreviewLink
+                                                            key={file}
+                                                            fileKey={file}
+                                                            name={name}
+                                                            isImage={isImage}
+                                                            isPdf={isPdf}
+                                                            getReceiptUrl={getReceiptUrl}
+                                                        />
+                                                    ) : isImage ? (
+                                                        <div className="relative">
+                                                            <img
+                                                                src={URL.createObjectURL(file)}
+                                                                alt={name}
+                                                                className="w-8 h-8 object-cover rounded border border-gray-200 group-hover:border-blue-300 transition-colors"
+                                                            />
+                                                            <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                <span className="text-xs text-white">📷</span>
+                                                            </div>
+                                                        </div>
+                                                    ) : isPdf ? (
+                                                        <div className="w-8 h-8 bg-red-100 rounded border border-red-200 flex items-center justify-center group-hover:border-red-300 transition-colors">
+                                                            <span className="text-sm">📄</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-8 h-8 bg-gray-100 rounded border border-gray-200 flex items-center justify-center group-hover:border-gray-300 transition-colors">
+                                                            <span className="text-sm">📎</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* File Info */}
+                                                <div className="flex-1 min-w-0 overflow-hidden">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <p className="text-sm font-medium text-gray-900 truncate flex-1">
+                                                            {name}
+                                                        </p>
+                                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="text-xs px-1.5 py-0.5"
+                                                            >
+                                                                {isImage ? "Image" : isPdf ? "PDF" : "File"}
+                                                            </Badge>
+                                                            <span className="text-xs text-gray-400">•</span>
+                                                            <span className="text-xs text-gray-400">
+                                                                Drag to reorder
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 truncate">
+                                                        {typeof file === "string" ? "Uploaded" : "Ready to upload"}
+                                                    </p>
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div className="flex items-center gap-1 flex-shrink-0">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-500 hover:bg-red-50 flex-shrink-0 h-6 w-6 p-0"
+                                                        onClick={() => {
+                                                            setReceipts((prev) => prev.filter((_, i) => i !== idx));
+                                                        }}
+                                                        aria-label="Remove receipt"
+                                                    >
+                                                        <svg
+                                                            className="w-3 h-3"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                            />
+                                                        </svg>
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
                     </FormField>
                 </div>
                 <DialogFooter className="mt-4">
-                    <Button onClick={handleSubmit}>{isEditing ? "Update Transaction" : "Add Transaction"}</Button>
+                    <Button onClick={handleSubmit}>
+                        {isEditing
+                            ? formData.category === "Bill"
+                                ? "Update Bill"
+                                : "Update Transaction"
+                            : formData.category === "Bill"
+                            ? "Add Bill"
+                            : "Add Transaction"}
+                    </Button>
                     <Button onClick={handleCancel} variant="outline" type="button">
                         Cancel
                     </Button>

@@ -171,18 +171,18 @@ export function FiltersSection({
     return (
         <Card>
             <CardContent className="p-4 md:p-6">
-                <div className="flex flex-wrap items-center gap-3 md:gap-4 lg:gap-4">
-                    <div className="max-w-xs w-full">
+                <div className="flex flex-wrap items-center gap-2 md:gap-2 lg:gap-2">
+                    <div className="max-w-xs w-[250px]">
                         <Input
                             placeholder="Search transactions..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full"
+                            className="w-[250px]"
                         />
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-[180px] justify-between">
+                            <Button variant="outline" className="w-[160px] justify-between">
                                 <span className="truncate">
                                     {selectedCategories.includes("all")
                                         ? "All Categories"
@@ -191,7 +191,7 @@ export function FiltersSection({
                                 <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[180px]">
+                        <DropdownMenuContent className="w-[160px]">
                             <DropdownMenuCheckboxItem
                                 checked={selectedCategories.includes("all")}
                                 onCheckedChange={(checked) => handleCategoryFilterChange("all", checked)}
@@ -224,14 +224,14 @@ export function FiltersSection({
                     </DropdownMenu>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-[180px] justify-between">
+                            <Button variant="outline" className="w-[140px] justify-between">
                                 <span className="truncate">
                                     {selectedTypes.includes("all") ? "All Types" : `${selectedTypes.length} selected`}
                                 </span>
                                 <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[180px]">
+                        <DropdownMenuContent className="w-[140px]">
                             <DropdownMenuLabel>Transaction Types</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuCheckboxItem
@@ -259,7 +259,7 @@ export function FiltersSection({
                     {activeTab === "bills" && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-[180px] justify-between">
+                                <Button variant="outline" className="w-[140px] justify-between">
                                     <span className="truncate">
                                         {selectedStatuses.includes("all")
                                             ? "All Statuses"
@@ -273,7 +273,7 @@ export function FiltersSection({
                                     <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[180px]">
+                            <DropdownMenuContent className="w-[140px]">
                                 <DropdownMenuLabel>Bill Status</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuCheckboxItem
@@ -315,7 +315,7 @@ export function FiltersSection({
                             <PopoverTrigger asChild>
                                 <Button
                                     variant={"outline"}
-                                    className={cn("w-[200px] justify-start text-left font-normal")}
+                                    className={cn("w-[160px] justify-start text-left font-normal")}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                                     <span className="truncate">
@@ -340,6 +340,81 @@ export function FiltersSection({
                             </PopoverContent>
                         </Popover>
                     </div>
+                    <TooltipProvider>
+                        {!!loadingMonths ||
+                        availableMonths?.length === 0 ||
+                        !!(user && (user as any)?.settings?.monthlyReports === false) ? (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className="flex items-center gap-2 w-[180px]"
+                                                    disabled
+                                                >
+                                                    Monthly Statement <ChevronDownIcon className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                {availableMonths?.length === 0 && (
+                                                    <DropdownMenuItem disabled>No months available</DropdownMenuItem>
+                                                )}
+                                                {availableMonths?.map((m) => (
+                                                    <DropdownMenuItem
+                                                        key={m.label}
+                                                        onClick={() => downloadMonthlyStatementForMonth?.(m.value)}
+                                                    >
+                                                        {m.label}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" align="center">
+                                    Enable monthly reports in your profile page to use this feature.
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="flex items-center gap-2 w-[140px]">
+                                        Monthly Statement <ChevronDownIcon className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    {availableMonths?.length === 0 && (
+                                        <DropdownMenuItem disabled>No months available</DropdownMenuItem>
+                                    )}
+                                    {availableMonths?.map((m) => (
+                                        <DropdownMenuItem
+                                            key={m.label}
+                                            onClick={() => downloadMonthlyStatementForMonth?.(m.value)}
+                                        >
+                                            {m.label}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                    </TooltipProvider>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="flex items-center gap-2 w-[100px]">
+                                Export <ChevronDownIcon className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => downloadCSV(localFilteredTransactions, "expenses.csv")}>
+                                Export as CSV
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => downloadExcel(localFilteredTransactions, "expenses.xlsx")}>
+                                Export as Excel
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     {(!selectedCategories.includes("all") ||
                         !selectedTypes.includes("all") ||
                         !(
@@ -364,92 +439,6 @@ export function FiltersSection({
                             Reset Filters
                         </Button>
                     )}
-                </div>
-
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 mt-4 gap-2">
-                    <div className="flex gap-2 mt-2 md:mt-0">
-                        <TooltipProvider>
-                            {!!loadingMonths ||
-                            availableMonths?.length === 0 ||
-                            !!(user && (user as any)?.settings?.monthlyReports === false) ? (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        className="flex items-center gap-2"
-                                                        disabled
-                                                    >
-                                                        Monthly Statement <ChevronDownIcon className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    {availableMonths?.length === 0 && (
-                                                        <DropdownMenuItem disabled>
-                                                            No months available
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {availableMonths?.map((m) => (
-                                                        <DropdownMenuItem
-                                                            key={m.label}
-                                                            onClick={() => downloadMonthlyStatementForMonth?.(m.value)}
-                                                        >
-                                                            {m.label}
-                                                        </DropdownMenuItem>
-                                                    ))}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom" align="center">
-                                        Enable monthly reports in your profile page to use this feature.
-                                    </TooltipContent>
-                                </Tooltip>
-                            ) : (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="flex items-center gap-2">
-                                            Monthly Statement <ChevronDownIcon className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        {availableMonths?.length === 0 && (
-                                            <DropdownMenuItem disabled>No months available</DropdownMenuItem>
-                                        )}
-                                        {availableMonths?.map((m) => (
-                                            <DropdownMenuItem
-                                                key={m.label}
-                                                onClick={() => downloadMonthlyStatementForMonth?.(m.value)}
-                                            >
-                                                {m.label}
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            )}
-                        </TooltipProvider>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="flex items-center gap-2">
-                                    Export <ChevronDownIcon className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                    onClick={() => downloadCSV(localFilteredTransactions, "expenses.csv")}
-                                >
-                                    Export as CSV
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => downloadExcel(localFilteredTransactions, "expenses.xlsx")}
-                                >
-                                    Export as Excel
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
                 </div>
 
                 <div className="mt-6">

@@ -1,7 +1,7 @@
 // Utility to convert array of objects to CSV, excluding _id, userId, templateId
 export function arrayToCSV(data: any[]) {
     if (!data.length) return "";
-    const replacer = (key: string, value: any) => (value === null || value === undefined ? "" : value);
+    const replacer = (_id: string, value: any) => (value === null || value === undefined ? "" : value);
     const exclude = ["_id", "userId", "templateId"];
     // Dynamically determine if fromRate/toRate should be included for each row
     // We'll build a superset of all keys that should be included
