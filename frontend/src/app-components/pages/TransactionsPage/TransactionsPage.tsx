@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { format, parse, isAfter } from "date-fns";
-import { Plus } from "lucide-react";
+import { Plus, TrendingUp } from "lucide-react";
 import { getExpenses } from "@/services/transaction.service";
 import { TransactionWithId } from "@/types/transaction";
 import { BudgetReminder } from "@/types/budget";
@@ -373,77 +373,78 @@ const TransactionsPage = () => {
             </div>
 
             {/* Transaction Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 md:gap-4 mb-4">
-                <Card>
-                    <CardContent className="py-4 flex flex-col items-center">
-                        <div className="text-lg sm:text-xl font-bold text-green-600">
-                            {transactions.filter((t) => t.type === "income").length}
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5" />
+                        Transaction Overview
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div className="text-center p-4 bg-muted/50 rounded-lg">
+                            <div className="text-2xl font-bold text-green-600">
+                                {transactions.filter((t) => t.type === "income").length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Income</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                                {symbol}
+                                {transactions
+                                    .filter((t) => t.type === "income")
+                                    .reduce((sum, t) => sum + (t.amount || 0), 0)
+                                    .toFixed(2)}
+                            </div>
                         </div>
-                        <div className="text-xs mt-1">Income</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {symbol}
-                            {transactions
-                                .filter((t) => t.type === "income")
-                                .reduce((sum, t) => sum + (t.amount || 0), 0)
-                                .toFixed(2)}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="py-4 flex flex-col items-center">
-                        <div className="text-lg sm:text-xl font-bold text-red-600">
-                            {transactions.filter((t) => t.type === "expense").length}
+                        <div className="text-center p-4 bg-muted/50 rounded-lg">
+                            <div className="text-2xl font-bold text-red-600">
+                                {transactions.filter((t) => t.type === "expense").length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Expense</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                                {symbol}
+                                {transactions
+                                    .filter((t) => t.type === "expense")
+                                    .reduce((sum, t) => sum + (t.amount || 0), 0)
+                                    .toFixed(2)}
+                            </div>
                         </div>
-                        <div className="text-xs mt-1">Expense</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {symbol}
-                            {transactions
-                                .filter((t) => t.type === "expense")
-                                .reduce((sum, t) => sum + (t.amount || 0), 0)
-                                .toFixed(2)}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="py-4 flex flex-col items-center">
-                        <div className="text-lg sm:text-xl font-bold">{transactions.length}</div>
-                        <div className="text-xs mt-1">Total Transactions</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Avg: {symbol}
-                            {transactions.length > 0
-                                ? (
-                                      transactions.reduce((sum, t) => sum + (t.amount || 0), 0) / transactions.length
-                                  ).toFixed(2)
-                                : "0.00"}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="py-4 flex flex-col items-center">
-                        <div className="text-lg sm:text-xl font-bold text-blue-600">{recurringTransactions.length}</div>
-                        <div className="text-xs mt-1">Recurring Expense</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {symbol}
-                            {recurringTransactions.reduce((sum, t) => sum + (t.amount || 0), 0).toFixed(2)}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="py-4 flex flex-col items-center">
-                        <div className="text-lg sm:text-xl font-bold text-purple-600">
-                            {transactions.filter((t) => t.category === "Bill").length}
+                        <div className="text-center p-4 bg-muted/50 rounded-lg">
+                            <div className="text-2xl font-bold text-primary">{transactions.length}</div>
+                            <div className="text-sm text-muted-foreground">Total Transactions</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                                Avg: {symbol}
+                                {transactions.length > 0
+                                    ? (
+                                          transactions.reduce((sum, t) => sum + (t.amount || 0), 0) /
+                                          transactions.length
+                                      ).toFixed(2)
+                                    : "0.00"}
+                            </div>
                         </div>
-                        <div className="text-xs mt-1">Total Bills</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {symbol}
-                            {transactions
-                                .filter((t) => t.category === "Bill")
-                                .reduce((sum, t) => sum + (t.amount || 0), 0)
-                                .toFixed(2)}
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
+                        <div className="text-center p-4 bg-muted/50 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">{recurringTransactions.length}</div>
+                            <div className="text-sm text-muted-foreground">Recurring Expense</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                                {symbol}
+                                {recurringTransactions.reduce((sum, t) => sum + (t.amount || 0), 0).toFixed(2)}
+                            </div>
+                        </div>
+                        <div className="text-center p-4 bg-muted/50 rounded-lg">
+                            <div className="text-2xl font-bold text-purple-600">
+                                {transactions.filter((t) => t.category === "Bill").length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Total Bills</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                                {symbol}
+                                {transactions
+                                    .filter((t) => t.category === "Bill")
+                                    .reduce((sum, t) => sum + (t.amount || 0), 0)
+                                    .toFixed(2)}
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Filters */}
             <FiltersSection
