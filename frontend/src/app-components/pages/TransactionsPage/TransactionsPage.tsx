@@ -12,12 +12,10 @@ import { fetchBillsAlerts, fetchBillReminders, BillAlertsUI, BillRemindersUI } f
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
-import { useToast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
-    const { toast } = useToast();
     const [searchParams] = useSearchParams();
 
     const [transactions, setTransactions] = useState<TransactionWithId[]>([]);

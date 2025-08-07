@@ -355,75 +355,16 @@ export const deleteRecurringExpense = async (req: Request, res: Response) => {
 export const updateTransactionBillStatus = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
-        const userId = req.user?.id;
+        const { billStatus } = req.body;
 
-        if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
-        }
+        const transaction = await TransactionModel.findByIdAndUpdate(id, { billStatus }, { new: true });
 
-        if (!["unpaid", "paid", "overdue", "pending"].includes(status)) {
-            return res.status(400).json({ message: "Invalid status" });
-        }
-
-        const transaction = await TransactionModel.findOne({ _id: id, userId });
         if (!transaction) {
             return res.status(404).json({ message: "Transaction not found" });
         }
 
-        // If marking as paid and this is a bill with recurring frequency
-        if (
-            status === "paid" &&
-            transaction.category === "Bill" &&
-            transaction.billFrequency &&
-            transaction.billFrequency !== "one-time" &&
-            transaction.dueDate
-        ) {
-            // Calculate next due date
-            const nextDueDate = calculateNextDueDate(transaction.dueDate, transaction.billFrequency);
-
-            // Create a new bill instance with the next due date
-            const newBillInstance = await TransactionModel.create({
-                ...transaction.toObject(),
-                _id: undefined,
-                dueDate: nextDueDate,
-                nextDueDate: nextDueDate,
-                billStatus: "unpaid",
-                lastPaidDate: new Date(),
-                userId: transaction.userId,
-                // Keep the original transaction as template if it's recurring
-                templateId: transaction.isRecurring ? transaction._id : transaction.templateId || transaction._id,
-                isRecurring: false, // The new instance is not a template
-            });
-
-            // Update the original transaction's bill status to paid
-            const updatedTransaction = await TransactionModel.findByIdAndUpdate(
-                id,
-                { billStatus: status, lastPaidDate: new Date() },
-                { new: true }
-            );
-
-            res.json({
-                originalTransaction: updatedTransaction,
-                newBillInstance: newBillInstance,
-                message: "Bill marked as paid and new instance created",
-            });
-        } else {
-            // For non-bills or one-time bills, just update the status
-            const updateData: any = { billStatus: status };
-
-            if (status === "paid") {
-                updateData.lastPaidDate = new Date();
-            }
-
-            const updatedTransaction = await TransactionModel.findByIdAndUpdate({ _id: id, userId }, updateData, {
-                new: true,
-            });
-
-            res.json(updatedTransaction);
-        }
+        res.json({ message: "Bill status updated successfully", transaction });
     } catch (error) {
-        console.error("Error updating transaction bill status:", error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: "Error updating bill status", error });
     }
 };
