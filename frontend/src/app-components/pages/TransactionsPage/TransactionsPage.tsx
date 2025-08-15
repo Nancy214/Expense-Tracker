@@ -9,7 +9,7 @@ import { TransactionWithId } from "@/types/transaction";
 import { BudgetReminder } from "@/types/budget";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
 import { fetchBillsAlerts, fetchBillReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
-import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
+import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialogRefactored";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";
@@ -429,13 +429,13 @@ const TransactionsPage = () => {
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-purple-600">
-                                {transactions.filter((t) => t.category === "Bill").length}
+                                {transactions.filter((t) => t.category === "Bill" && !t.templateId).length}
                             </div>
                             <div className="text-sm text-muted-foreground">Total Bills</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
                                 {transactions
-                                    .filter((t) => t.category === "Bill")
+                                    .filter((t) => t.category === "Bill" && !t.templateId)
                                     .reduce((sum, t) => sum + (t.amount || 0), 0)
                                     .toFixed(2)}
                             </div>
