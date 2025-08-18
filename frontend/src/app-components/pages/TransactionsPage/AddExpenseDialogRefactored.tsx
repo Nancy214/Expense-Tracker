@@ -10,8 +10,8 @@ import { getCountryTimezoneCurrency } from "@/services/profile.service";
 import { Transaction } from "@/types/transaction";
 import { TRANSACTION_CONSTANTS } from "@/schemas/transactionSchema";
 import { useTransactionForm } from "@/hooks/useTransactionForm";
-import { InputField, SelectField, DateField } from "@/components/form-fields";
-import { showUpdateSuccess, showCreateSuccess, showSaveError, showErrorToast } from "@/utils/toastUtils";
+import { InputField, SelectField, DateField, FileUploadField } from "@/components/form-fields";
+import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -39,7 +39,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const { refreshStats } = useStats();
     const [currencyOptions, setCurrencyOptions] = useState<any[]>([]);
     const [showExchangeRate, setShowExchangeRate] = useState(false);
-    const [receipts, setReceipts] = useState<(File | string)[]>(editingExpense?.receipts || []);
 
     const { form, category, type, isRecurring, currency, resetForm, isEditing, handleCurrencyChange } =
         useTransactionForm({
@@ -213,39 +212,32 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         </div>
 
                         {showExchangeRate && (
-                            <div>
-                                <label className="block text-sm font-medium">Exchange Rate</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label className="block text-xs text-gray-500 mb-1">
-                                            {user?.currency || "INR"}
-                                        </label>
-                                        <InputField
-                                            name="fromRate"
-                                            label=""
-                                            type="number"
-                                            placeholder="Exchange rate"
-                                            step={0.01}
-                                            min={0}
-                                            disabled
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs text-gray-500 mb-1">{currency}</label>
-                                        <InputField
-                                            name="toRate"
-                                            label=""
-                                            type="number"
-                                            placeholder="Exchange rate"
-                                            step={0.01}
-                                            min={0}
-                                        />
-                                    </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <InputField
+                                    name="fromRate"
+                                    label={`Exchange Rate (${user?.currency || "INR"})`}
+                                    type="number"
+                                    placeholder="Exchange rate"
+                                    step={0.01}
+                                    min={0}
+                                    disabled
+                                    className="mb-0"
+                                />
+                                <InputField
+                                    name="toRate"
+                                    label={`Exchange Rate (${currency})`}
+                                    type="number"
+                                    placeholder="Exchange rate"
+                                    step={0.01}
+                                    min={0}
+                                    className="mb-0"
+                                />
+                                <div className="col-span-2">
+                                    <p className="text-xs text-gray-500">
+                                        You're entering money in {currency}. What exchange rate do you wish to use for
+                                        this transaction?
+                                    </p>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    You're entering money in {currency}. What exchange rate do you wish to use for this
-                                    transaction
-                                </p>
                             </div>
                         )}
 
@@ -346,98 +338,14 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </div>
                         )}
 
-                        <div>
-                            <label className="block text-sm font-medium">Receipts (Images or PDFs)</label>
-                            <div
-                                className="relative"
-                                onDragOver={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.classList.add("border-blue-500", "bg-blue-50");
-                                }}
-                                onDragLeave={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.classList.remove("border-blue-500", "bg-blue-50");
-                                }}
-                                onDrop={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.classList.remove("border-blue-500", "bg-blue-50");
-
-                                    const files = Array.from(e.dataTransfer.files);
-                                    const validFiles = files.filter(
-                                        (file) => file.type.startsWith("image/") || file.type === "application/pdf"
-                                    );
-
-                                    if (validFiles.length !== files.length) {
-                                        showErrorToast(
-                                            toast,
-                                            "Invalid File Type",
-                                            "Only images or PDF files are allowed as receipts."
-                                        );
-                                    }
-
-                                    if (validFiles.length > 0) {
-                                        setReceipts((prev) => [...prev, ...validFiles]);
-                                    }
-                                }}
-                            >
-                                <input
-                                    type="file"
-                                    accept="image/*,application/pdf"
-                                    multiple
-                                    onChange={(e) => {
-                                        if (e.target.files) {
-                                            const validFiles = Array.from(e.target.files).filter(
-                                                (file) =>
-                                                    file.type.startsWith("image/") || file.type === "application/pdf"
-                                            );
-                                            if (validFiles.length !== e.target.files.length) {
-                                                showErrorToast(
-                                                    toast,
-                                                    "Invalid File Type",
-                                                    "Only images or PDF files are allowed as receipts."
-                                                );
-                                            }
-                                            setReceipts(validFiles);
-                                        }
-                                    }}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    id="receipt-upload"
-                                />
-                                <Button
-                                    variant="outline"
-                                    className="w-full h-20 border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors duration-200 bg-gray-50"
-                                    asChild
-                                >
-                                    <label
-                                        htmlFor="receipt-upload"
-                                        className="flex items-center justify-center gap-2 cursor-pointer"
-                                    >
-                                        <svg
-                                            className="w-5 h-5 text-gray-500"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                            />
-                                        </svg>
-                                        <span className="text-sm font-medium text-gray-700">
-                                            {receipts.length > 0
-                                                ? `Add more receipts (${receipts.length} uploaded)`
-                                                : "Upload receipts"}
-                                        </span>
-                                    </label>
-                                </Button>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2 mb-2">
-                                📁 Drag and drop files here or click to browse. Supports images and PDF files.
-                            </p>
-                        </div>
+                        <FileUploadField
+                            name="receipts"
+                            label="Receipts"
+                            description="Upload receipt images or PDFs"
+                            accept="image/*,application/pdf"
+                            multiple
+                            maxFiles={10}
+                        />
 
                         <DialogFooter className="mt-4">
                             <Button type="submit" disabled={isSubmitting}>
