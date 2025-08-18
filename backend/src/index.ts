@@ -84,7 +84,7 @@ cron.schedule("0 0 * * *", async () => {
             });
         }
     }
-    console.log("Recurring expenses processed for", today);
+    //console.log("Recurring expenses processed for", today);
 });
 
 // Helper to get next date for a given frequency

@@ -41,7 +41,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const [showExchangeRate, setShowExchangeRate] = useState(false);
     const [receipts, setReceipts] = useState<(File | string)[]>(editingExpense?.receipts || []);
 
-    const { form, category, type, isRecurring, currency, resetForm, resetFormWithCategory, isEditing } =
+    const { form, category, type, isRecurring, currency, resetForm, isEditing, handleCurrencyChange } =
         useTransactionForm({
             editingExpense,
             preselectedCategory,
@@ -58,12 +58,12 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     }, []);
 
     useEffect(() => {
-        if (editingExpense) {
-            setShowExchangeRate(editingExpense.currency !== user?.currency);
+        if (currency) {
+            setShowExchangeRate(currency !== user?.currency);
         } else {
             setShowExchangeRate(false);
         }
-    }, [editingExpense, user?.currency]);
+    }, [currency, user?.currency]);
 
     const fetchCurrencyOptions = async () => {
         try {
@@ -137,9 +137,10 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
     // Get currency options
     const getCurrencyOptions = () => {
+        console.log(currencyOptions);
         return currencyOptions
             .filter((currency) => currency.code !== "")
-            .sort((a, b) => a.name.localeCompare(b.name))
+            .sort((a, b) => a.code.localeCompare(b.code))
             .reduce((acc, currency) => {
                 if (!acc.some((c: any) => c.code === currency.code)) {
                     acc.push(currency);
@@ -205,6 +206,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                         placeholder="Currency"
                                         options={getCurrencyOptions()}
                                         required
+                                        onChange={(value) => handleCurrencyChange(value)}
                                     />
                                 </div>
                             </div>

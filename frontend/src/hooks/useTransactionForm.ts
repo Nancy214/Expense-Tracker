@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
 import { Transaction } from "@/types/transaction";
 import { useCallback, useEffect } from "react";
+import { getExchangeRate } from "@/services/currency.service";
 
 interface UseTransactionFormProps {
     editingExpense?: Transaction | null;
@@ -138,9 +139,15 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory, isAddB
         // Show exchange rate fields only when currency is changed from profile currency
         if (newCurrency !== user?.currency) {
             // You can add logic here to fetch exchange rates
+            const exchangeRate = await getExchangeRate(
+                newCurrency,
+                user?.currency || "INR",
+                format(new Date(), "yyyy-MM-dd")
+            );
+            console.log(exchangeRate);
             // For now, we'll just set default rates
             form.setValue("fromRate", 1);
-            form.setValue("toRate", 1);
+            form.setValue("toRate", exchangeRate.rate);
         }
     };
 
