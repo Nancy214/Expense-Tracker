@@ -4,7 +4,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { BudgetReminder } from "@/types/budget";
 import { getBudgetProgress } from "@/services/budget.service";
-import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { getExpenses } from "@/services/transaction.service";
 import { isSameMonth, isSameYear } from "date-fns";
@@ -12,6 +11,7 @@ import { ExpenseReminderBanner } from "@/utils/ExpenseReminderBanner";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
 import { fetchBillsAlerts, fetchBillReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
 import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
+import AddExpenseDialogRefactored from "../TransactionsPage/AddExpenseDialog";
 
 interface FinancialOverviewData {
     savingsRate: number;
@@ -335,7 +335,7 @@ const HomePage = () => {
             </Card>
 
             {/* Add Expense Dialog */}
-            <AddExpenseDialog
+            <AddExpenseDialogRefactored
                 open={isExpenseDialogOpen}
                 onOpenChange={setIsExpenseDialogOpen}
                 preselectedCategory={preselectedCategory}

@@ -57,13 +57,13 @@ export const DateField: React.FC<DateFieldProps> = ({
                     <Button
                         variant="outline"
                         className={cn(
-                            "h-10 w-full justify-start text-left font-normal",
+                            "h-8 w-full justify-start text-left font-normal",
                             !value && "text-muted-foreground",
                             error && "border-red-500 focus:border-red-500 focus:ring-red-500"
                         )}
                         disabled={disabled}
                     >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                         {displayValue || <span>{placeholder}</span>}
                     </Button>
                 </PopoverTrigger>

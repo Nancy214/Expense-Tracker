@@ -9,7 +9,7 @@ import { TransactionWithId } from "@/types/transaction";
 import { BudgetReminder } from "@/types/budget";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
 import { fetchBillsAlerts, fetchBillReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
-import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialogRefactored";
+import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";

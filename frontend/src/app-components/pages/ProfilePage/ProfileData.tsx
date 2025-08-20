@@ -5,9 +5,11 @@ import { Camera, Save, Edit3 } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { InputField, SelectField, DateField } from "@/components/form-fields";
+import { InputField } from "@/components/form-fields/InputField";
+import { SelectField } from "@/components/form-fields/SelectField";
+import { DateField } from "@/components/form-fields/DateField";
 import { CountryTimezoneCurrency } from "@/services/profile.service";
-import { useProfileForm } from "@/hooks";
+import { useProfileForm } from "@/hooks/useProfileForm";
 
 interface ProfileDataProps {
     currencies: CountryTimezoneCurrency["currency"][];
