@@ -11,7 +11,6 @@ import GoogleCallback from "@/app-components/pages/AuthPages/GoogleCallback";
 import ForgotPasswordPage from "@/app-components/pages/AuthPages/ForgotPasswordPage";
 import ResetPasswordPage from "@/app-components/pages/AuthPages/ResetPasswordPage";
 import TransactionsPage from "@/app-components/pages/TransactionsPage/TransactionsPage";
-import BillsPage from "@/app-components/pages/BillsPage";
 import AnalyticsPage from "@/app-components/pages/AnalyticsPage/AnalyticsPage";
 
 interface RouteConfig {

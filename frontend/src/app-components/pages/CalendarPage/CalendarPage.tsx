@@ -1,49 +1,41 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getExpenses } from "@/services/transaction.service";
-import { Transaction } from "@/types/transaction";
-import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useExpenses } from "@/hooks/use-expenses";
 
 // FullCalendar components
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
-type CalendarExpense = Transaction & { _id: string };
+// Separate color mappings for expense and income categories
+const expenseColors: { [key: string]: string } = {
+    "Food & Dining": "#ef4444", // red-500
+    Transportation: "#3b82f6", // blue-500
+    Shopping: "#8b5cf6", // purple-500
+    Entertainment: "#f59e0b", // amber-500
+    "Bills & Utilities": "#10b981", // emerald-500
+    Healthcare: "#06b6d4", // cyan-500
+    Travel: "#f97316", // orange-500
+    Education: "#84cc16", // lime-500
+    Other: "#6b7280", // gray-500
+};
+
+const incomeColors: { [key: string]: string } = {
+    Salary: "#15803d", // green-700
+    Freelance: "#0e7490", // cyan-700
+    Business: "#6d28d9", // violet-700
+    Investment: "#047857", // emerald-700
+    "Rental Income": "#b91c1c", // red-700
+    Gifts: "#c2410c", // orange-700
+    Refunds: "#1d4ed8", // blue-700
+    "Other Income": "#4b5563", // gray-600
+};
 
 const CalendarPage: React.FC = () => {
-    const [expenses, setExpenses] = useState<CalendarExpense[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
-    const { toast } = useToast();
-
-    useEffect(() => {
-        fetchExpenses();
-    }, []);
-
-    const fetchExpenses = async () => {
-        try {
-            setIsLoading(true);
-            const expensesData = await getExpenses();
-            // Convert Date objects to formatted strings to match Transaction
-            const formattedExpenses = expensesData.expenses.map((expense) => ({
-                ...expense,
-                date: format(expense.date, "dd/MM/yyyy"),
-            }));
-            setExpenses(formattedExpenses);
-        } catch (error: any) {
-            console.error("Error fetching expenses:", error);
-            toast({
-                title: "Error",
-                description: "Failed to load expenses",
-                variant: "destructive",
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const { data: expenses = [], isLoading } = useExpenses();
 
     // Convert expenses to FullCalendar events
     const calendarEvents = expenses.map((expense) => {
@@ -104,29 +96,16 @@ const CalendarPage: React.FC = () => {
 
     // Color coding for different categories
     function getCategoryColor(category: string): string {
-        const colors: { [key: string]: string } = {
-            // Expense categories
-            "Food & Dining": "#ef4444", // red
-            Transportation: "#3b82f6", // blue
-            Shopping: "#8b5cf6", // purple
-            Entertainment: "#f59e0b", // amber
-            "Bills & Utilities": "#10b981", // emerald
-            Healthcare: "#06b6d4", // cyan
-            Travel: "#f97316", // orange
-            Education: "#84cc16", // lime
-            Other: "#6b7280", // gray
-
-            // Income categories
-            Salary: "#059669", // emerald-600
-            Freelance: "#0891b2", // cyan-600
-            Business: "#7c3aed", // violet-600
-            Investment: "#059669", // emerald-600
-            "Rental Income": "#dc2626", // red-600
-            Gifts: "#ea580c", // orange-600
-            Refunds: "#2563eb", // blue-600
-            "Other Income": "#6b7280", // gray-500
-        };
-        return colors[category] || "#6b7280";
+        // Check if it's an expense category
+        if (expenseColors[category]) {
+            return expenseColors[category];
+        }
+        // Check if it's an income category
+        if (incomeColors[category]) {
+            return incomeColors[category];
+        }
+        // Default color for unknown categories
+        return "#6b7280";
     }
 
     // Custom event renderer with tooltip
@@ -199,34 +178,11 @@ const CalendarPage: React.FC = () => {
 
     // Get filtered categories based on what's visible
     const getVisibleExpenseCategories = () => {
-        const allExpenseCategories: { [key: string]: string } = {
-            "Food & Dining": "#ef4444",
-            Transportation: "#3b82f6",
-            Shopping: "#8b5cf6",
-            Entertainment: "#f59e0b",
-            "Bills & Utilities": "#10b981",
-            Healthcare: "#06b6d4",
-            Travel: "#f97316",
-            Education: "#84cc16",
-            Other: "#6b7280",
-        };
-
-        return Object.entries(allExpenseCategories).filter(([category]) => visibleCategories.has(category));
+        return Object.entries(expenseColors).filter(([category]) => visibleCategories.has(category));
     };
 
     const getVisibleIncomeCategories = () => {
-        const allIncomeCategories: { [key: string]: string } = {
-            Salary: "#059669",
-            Freelance: "#0891b2",
-            Business: "#7c3aed",
-            Investment: "#059669",
-            "Rental Income": "#dc2626",
-            Gifts: "#ea580c",
-            Refunds: "#2563eb",
-            "Other Income": "#6b7280",
-        };
-
-        return Object.entries(allIncomeCategories).filter(([category]) => visibleCategories.has(category));
+        return Object.entries(incomeColors).filter(([category]) => visibleCategories.has(category));
     };
 
     if (isLoading) {

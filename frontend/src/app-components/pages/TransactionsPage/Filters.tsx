@@ -52,15 +52,11 @@ interface FiltersSectionProps {
     handleDeleteRecurring: (templateId: string) => void;
     recurringTransactions: TransactionWithId[];
     totalExpensesByCurrency: { [key: string]: { income: number; expense: number; net: number } };
-    onRefresh?: () => void;
-    setAllExpenses?: (expenses: any[]) => void;
-    setAvailableMonths?: (months: any[]) => void;
     parse?: (date: string, format: string, baseDate: Date) => Date;
     loadingMonths?: boolean;
     availableMonths?: { label: string; value: { year: number; month: number } }[];
     downloadMonthlyStatementForMonth?: (month: { year: number; month: number }) => void;
     user?: any;
-    refreshAllTransactions?: () => void;
     activeTab?: "all" | "recurring" | "bills";
     setActiveTab?: (tab: "all" | "recurring" | "bills") => void;
 }

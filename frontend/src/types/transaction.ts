@@ -11,29 +11,31 @@ export interface Transaction {
     date: Date;
     title: string;
     amount: number;
-    description?: string;
+    description: string;
     category: string;
     currency: string;
     type: TransactionType;
     fromRate?: number;
     toRate?: number;
+    userId: string;
     isRecurring?: boolean;
     recurringFrequency?: RecurringFrequency;
-    recurringEndDate?: Date;
     endDate?: Date;
-    userId?: string;
     templateId?: string;
     receipts?: string[];
+}
+
+// Bill type extends Transaction
+export type Bill = Omit<Transaction, "isRecurring" | "recurringFrequency" | "endDate" | "templateId"> & {
     billCategory?: string;
     reminderDays?: number;
     dueDate?: Date;
-    // Bill-specific fields
     billStatus?: BillStatus;
     billFrequency?: BillFrequency;
     nextDueDate?: Date;
     lastPaidDate?: Date;
     paymentMethod?: PaymentMethod;
-}
+};
 
 // API Response type - extends base with database fields
 export interface TransactionResponse extends Transaction {

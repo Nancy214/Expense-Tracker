@@ -2,17 +2,21 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.service";
 import { Transaction, TransactionWithId } from "@/types/transaction";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface UseExpenseDeleteProps {
     onRefresh?: () => void;
     onRecurringDelete?: () => void;
 }
 
-export function useExpenseDelete({ onRefresh, onRecurringDelete }: UseExpenseDeleteProps = {}) {
+const EXPENSES_QUERY_KEY = ["expenses"] as const;
+
+export function useExpenseDelete() {
     const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
     const [recurringToDelete, setRecurringToDelete] = useState<TransactionWithId | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
+    const queryClient = useQueryClient();
 
     const handleDelete = async (expenseId: string) => {
         setExpenseToDelete(expenseId);
@@ -27,13 +31,8 @@ export function useExpenseDelete({ onRefresh, onRecurringDelete }: UseExpenseDel
                 description: "Recurring transaction and all its instances deleted.",
                 variant: "destructive",
             });
-            // Refresh data
-            if (onRefresh) {
-                onRefresh();
-            }
-            if (onRecurringDelete) {
-                onRecurringDelete();
-            }
+            // Invalidate expenses query to trigger a refetch
+            await queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY });
         } catch (error) {
             toast({
                 title: "Error",
@@ -52,10 +51,8 @@ export function useExpenseDelete({ onRefresh, onRecurringDelete }: UseExpenseDel
                 title: "Success",
                 description: "Expense deleted successfully",
             });
-            // Refresh data
-            if (onRefresh) {
-                onRefresh();
-            }
+            // Invalidate expenses query to trigger a refetch
+            await queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY });
         } catch (error) {
             toast({
                 title: "Error",

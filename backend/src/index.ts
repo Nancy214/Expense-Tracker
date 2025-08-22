@@ -8,7 +8,6 @@ import session from "express-session";
 import expenseRoutes from "./routes/transaction.routes";
 import budgetRoutes from "./routes/budget.routes";
 import profileRoutes from "./routes/profile.routes";
-import billRoutes from "./routes/bill.routes";
 import analyticsRoutes from "./routes/analytics.routes";
 import axios from "axios";
 import currencyRoutes from "./routes/currency.routes";
@@ -102,7 +101,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/budget", budgetRoutes);
 app.use("/api/profile", profileRoutes);
-app.use("/api/bills", billRoutes);
 app.use("/api/currency", currencyRoutes);
 app.use("/api/analytics", analyticsRoutes);
 

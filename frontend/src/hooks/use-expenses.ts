@@ -1,34 +1,41 @@
-/* import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getExpenses } from "@/services/expense.service";
-import { format } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getExpenses } from "@/services/transaction.service";
+import { formatToDisplay } from "@/lib/dateUtils";
+import { useAuth } from "@/context/AuthContext";
+
+const EXPENSES_QUERY_KEY = ["expenses"] as const;
 
 export function useExpenses() {
-    const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(1000);
-    console.log("useExpenses", page, limit);
-    const query = useQuery({
-        queryKey: ["expenses", page, limit],
-        queryFn: () => getExpenses(page, limit),
-    });
-    return { ...query, page, setPage, limit, setLimit };
-}
+    const { isAuthenticated } = useAuth();
 
-export function useAllExpenses() {
     const query = useQuery({
-        queryKey: ["expenses", "all"],
+        queryKey: EXPENSES_QUERY_KEY,
         queryFn: async () => {
-            const response = await getExpenses(1, 100);
-            const expensesWithDates = response.expenses.map((expense: any) => ({
+            if (!isAuthenticated) {
+                return [];
+            }
+            const response = await getExpenses();
+            const expenses = response?.expenses || [];
+            const expensesWithDates = expenses.map((expense: any) => ({
                 ...expense,
-                date: format(expense.date, "dd/MM/yyyy"),
+                date: formatToDisplay(expense.date),
                 description: expense.description ?? "",
                 currency: expense.currency ?? "INR",
             }));
             return expensesWithDates;
         },
+        enabled: isAuthenticated, // Only run the query if authenticated
     });
 
-    return query;
+    const queryClient = useQueryClient();
+
+    const invalidateExpenses = () => {
+        return queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY });
+    };
+
+    return {
+        ...query,
+        invalidateExpenses,
+        expenses: query.data ?? [],
+    };
 }
- */

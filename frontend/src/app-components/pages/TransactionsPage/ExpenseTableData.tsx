@@ -28,14 +28,10 @@ interface ExpenseDataTableProps {
     showRecurringIcon?: boolean;
     showRecurringBadge?: boolean;
     isRecurringTab?: boolean;
-    onRefresh?: () => void;
-    setAllExpenses?: (expenses: any[]) => void;
-    setAvailableMonths?: (months: any[]) => void;
     parse?: (date: string, format: string, baseDate: Date) => Date;
     // Props for tabs and functionality
     recurringTransactions?: TransactionWithId[];
     totalExpensesByCurrency?: { [key: string]: { income: number; expense: number; net: number } };
-    refreshAllTransactions?: () => void;
     activeTab?: "all" | "recurring" | "bills";
     setActiveTab?: (tab: "all" | "recurring" | "bills") => void;
 }
@@ -78,7 +74,7 @@ export function ExpenseDataTable({
         setRecurringForDelete,
         clearRecurringDelete,
         setIsDeleteDialogOpen,
-    } = useExpenseDelete({ onRefresh, onRecurringDelete: refreshAllTransactions });
+    } = useExpenseDelete();
 
     const handleEdit = async (expense: TransactionWithId) => {
         onEdit(expense);

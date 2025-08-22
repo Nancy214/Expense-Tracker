@@ -1,69 +1,16 @@
-import { getExpenses } from "@/services/transaction.service";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, Bell } from "lucide-react";
+import { useExpensesSelector } from "@/hooks/use-expenses-selector";
 
-export const fetchBillsAlerts = async (
-    setUpcomingBills: (bills: any[]) => void,
-    setOverdueBills: (bills: any[]) => void
-): Promise<void> => {
-    try {
-        const response = await getExpenses();
-        const allExpenses = response.expenses;
-
-        // Filter for expenses with category "Bill"
-        const billExpenses = allExpenses.filter((expense: any) => expense.category === "Bill");
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // Separate upcoming and overdue bills
-        const upcoming: any[] = [];
-        const overdue: any[] = [];
-
-        billExpenses.forEach((bill: any) => {
-            if (!bill.dueDate) return;
-
-            const dueDate = bill.dueDate instanceof Date ? bill.dueDate : parseISO(bill.dueDate);
-            const daysLeft = differenceInCalendarDays(dueDate, today);
-
-            // Check if bill is overdue (past due date and not paid)
-            if (daysLeft < 0 && bill.billStatus !== "paid") {
-                overdue.push(bill);
-            }
-            // Check if bill is upcoming (within next 7 days and not paid)
-            else if (daysLeft >= 0 && daysLeft <= 7 && bill.billStatus !== "paid") {
-                upcoming.push(bill);
-            }
-        });
-
-        setUpcomingBills(upcoming);
-        setOverdueBills(overdue);
-    } catch (error) {
-        console.error("Error fetching bills alerts:", error);
-    }
-};
-
-export const fetchBillReminders = async (setBillReminders: (reminders: any[]) => void): Promise<void> => {
-    try {
-        const response = await getExpenses();
-        const allExpenses = response.expenses;
-
-        // Filter for expenses with category "Bill"
-        const billExpenses = allExpenses.filter((expense: any) => expense.category === "Bill");
-
-        const today = new Date();
-        const reminders = billExpenses.filter((bill: any) => {
-            if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays) return false;
-            const dueDate = bill.dueDate instanceof Date ? bill.dueDate : parseISO(bill.dueDate);
-            const daysLeft = differenceInCalendarDays(dueDate, today);
-            return daysLeft >= 0 && daysLeft <= bill.reminderDays;
-        });
-        setBillReminders(reminders);
-    } catch (error) {
-        console.error("Error fetching bill reminders:", error);
-    }
-};
+export function useBillsAndReminders() {
+    const { upcomingAndOverdueBills, billReminders } = useExpensesSelector();
+    return {
+        upcomingBills: upcomingAndOverdueBills.upcoming,
+        overdueBills: upcomingAndOverdueBills.overdue,
+        billReminders,
+    };
+}
 
 interface BillAlertsUIProps {
     billsAndBudgetsAlertEnabled: boolean;

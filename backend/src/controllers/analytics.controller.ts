@@ -1,6 +1,13 @@
 import { Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
+import { Transaction, Bill } from "../types/transactions";
+import { Document } from "mongoose";
+
+// Type guard to check if a transaction is a bill
+const isBillTransaction = (transaction: any): transaction is Bill => {
+    return transaction.category === "Bill";
+};
 
 // Get expense category breakdown for pie chart
 export const getExpenseCategoryBreakdown = async (req: AuthRequest, res: Response) => {
@@ -10,17 +17,19 @@ export const getExpenseCategoryBreakdown = async (req: AuthRequest, res: Respons
             return res.status(401).json({ message: "User not authenticated" });
         }
 
-        // Get all expense transactions for the user
+        // Get all expense transactions for the user (excluding bills)
         const expenses = await TransactionModel.find({
             userId,
             type: "expense",
+            category: { $ne: "Bill" }, // Exclude bills from regular expenses
         });
 
         // Aggregate by category
         const categoryBreakdown: { [key: string]: number } = {};
         expenses.forEach((expense) => {
-            const category = expense.category;
-            categoryBreakdown[category] = (categoryBreakdown[category] || 0) + expense.amount;
+            const expenseData = expense.toObject() as Transaction;
+            const category = expenseData.category;
+            categoryBreakdown[category] = (categoryBreakdown[category] || 0) + expenseData.amount;
         });
 
         // Convert to array format for pie chart
@@ -52,18 +61,18 @@ export const getBillsCategoryBreakdown = async (req: AuthRequest, res: Response)
             return res.status(401).json({ message: "User not authenticated" });
         }
 
-        // Get all bill transactions for the user (category is "Bill" and has billCategory)
+        // Get all bill transactions for the user
         const bills = await TransactionModel.find({
             userId,
             category: "Bill",
-            billCategory: { $exists: true, $ne: null },
         });
 
         // Aggregate by billCategory
         const billCategoryBreakdown: { [key: string]: number } = {};
         bills.forEach((bill) => {
-            const billCategory = bill.billCategory || "Other";
-            billCategoryBreakdown[billCategory] = (billCategoryBreakdown[billCategory] || 0) + bill.amount;
+            const billData = bill.toObject() as Bill;
+            const billCategory = billData.billCategory || "Other";
+            billCategoryBreakdown[billCategory] = (billCategoryBreakdown[billCategory] || 0) + billData.amount;
         });
 
         // Convert to array format for pie chart
@@ -122,21 +131,23 @@ export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response) =
                 },
             });
 
-            const income = transactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+            const transactionData = transactions.map((t) => t.toObject() as Transaction | Bill);
 
-            const expenses = transactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
+            const income = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
 
-            const bills = transactions
-                .filter((t) => t.type === "expense" && t.category === "Bill")
+            const expenses = transactionData
+                .filter((t) => t.type === "expense" && !isBillTransaction(t))
                 .reduce((sum, t) => sum + t.amount, 0);
+
+            const bills = transactionData.filter((t) => isBillTransaction(t)).reduce((sum, t) => sum + t.amount, 0);
 
             return {
                 income,
                 expenses,
                 bills,
-                netIncome: income - expenses,
+                netIncome: income - expenses - bills,
                 transactionCount: transactions.length,
-                isActive: transactions.length > 0, // Flag to indicate if user was active
+                isActive: transactions.length > 0,
             };
         }
 
@@ -236,8 +247,12 @@ export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response) =>
                 },
             });
 
-            const income = transactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
-            const expenses = transactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
+            const transactionData = transactions.map((t) => t.toObject() as Transaction | Bill);
+
+            const income = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+
+            const expenses = transactionData.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
+
             const savings = income - expenses;
 
             return {
@@ -245,7 +260,7 @@ export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response) =>
                 expenses,
                 savings,
                 transactionCount: transactions.length,
-                isActive: transactions.length > 0, // Flag to indicate if user was active
+                isActive: transactions.length > 0,
             };
         }
 

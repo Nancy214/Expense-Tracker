@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
     return (
         <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
             <div className="w-full max-w-sm">
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4">
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-2xl">Login</CardTitle>
@@ -30,7 +30,7 @@ const LoginPage: React.FC = () => {
                         <CardContent>
                             {error && <div className="mb-4 p-2 text-sm text-red-500 bg-red-50 rounded">{error}</div>}
                             <FormProvider {...form}>
-                                <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+                                <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                                     <InputField
                                         name="email"
                                         label="Email"
@@ -59,12 +59,12 @@ const LoginPage: React.FC = () => {
                                     <Button type="submit" className="w-full" disabled={isSubmitting}>
                                         {isSubmitting ? "Logging in..." : "Login"}
                                     </Button>
-                                    <div className="mt-4 text-center text-sm">
+                                    <div className="text-center text-sm">
                                         <Button variant="outline" className="w-full" onClick={handleGoogleLogin}>
                                             Login with Google
                                         </Button>
                                     </div>
-                                    <div className="mt-4 text-center text-sm">
+                                    <div className="mt-2 text-center text-sm">
                                         Don&apos;t have an account?{" "}
                                         <Button
                                             variant="link"

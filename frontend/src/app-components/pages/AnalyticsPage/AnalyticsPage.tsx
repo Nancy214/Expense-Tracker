@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getExpenses } from "@/services/transaction.service";
 import {
     getExpenseCategoryBreakdown,
     getBillsCategoryBreakdown,
@@ -11,6 +10,7 @@ import { Transaction } from "@/types/transaction";
 import { parse, isValid } from "date-fns";
 
 import { useAuth } from "@/context/AuthContext";
+import { useExpenses } from "@/hooks/use-expenses";
 
 import "react-calendar-heatmap/dist/styles.css";
 
@@ -18,11 +18,12 @@ import PieChartComponent from "./PieChart";
 import BarChartComponent from "./BarChart";
 import AreaChartComponent from "./AreaChart";
 import CalendarHeatmapComponent from "./CalendarHeatmap";
-import AccountStatistics from "./AccountStatistics";
+//
 
 const AnalyticsPage = () => {
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
+    const { expenses, isLoading: expensesLoading } = useExpenses();
 
     // Pie chart data state
     const [expenseCategoryData, setExpenseCategoryData] = useState<Array<{ name: string; value: number }>>([]);
@@ -56,39 +57,39 @@ const AnalyticsPage = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [expenses]); // Re-fetch when expenses change
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Fetch all data in parallel
-            const [expensesResponse, expenseBreakdown, billsBreakdown, incomeExpenseResponse, savingsTrendResponse] =
-                await Promise.all([
-                    getExpenses(),
-                    getExpenseCategoryBreakdown(),
-                    getBillsCategoryBreakdown(),
-                    getIncomeExpenseSummary(),
-                    getMonthlySavingsTrend(),
-                ]);
+            // Fetch analytics data in parallel
+            const [expenseBreakdown, billsBreakdown, incomeExpenseResponse, savingsTrendResponse] = await Promise.all([
+                getExpenseCategoryBreakdown(),
+                getBillsCategoryBreakdown(),
+                getIncomeExpenseSummary(),
+                getMonthlySavingsTrend(),
+            ]);
 
-            // Set expenses data
-            const mapped: Transaction[] = expensesResponse.expenses.map((e: any) => {
-                let d: Date;
-                if (typeof e.date === "string") {
-                    d = parse(e.date, "dd/MM/yyyy", new Date());
-                    if (!isValid(d)) d = new Date(e.date);
-                } else {
-                    d = e.date;
-                }
-                return {
-                    ...e,
-                    date: isValid(d) ? d : new Date(),
-                };
-            });
+            // Transform expenses for heatmap if we have expenses data
+            if (expenses.length > 0) {
+                const mapped: Transaction[] = expenses.map((e: any) => {
+                    let d: Date;
+                    if (typeof e.date === "string") {
+                        d = parse(e.date, "dd/MM/yyyy", new Date());
+                        if (!isValid(d)) d = new Date(e.date);
+                    } else {
+                        d = e.date;
+                    }
+                    return {
+                        ...e,
+                        date: isValid(d) ? d : new Date(),
+                    };
+                });
 
-            // Transform expenses for heatmap
-            const heatmapData = transformExpensesToHeatmapData(mapped);
-            setExpenseHeatmapData(heatmapData);
+                // Transform expenses for heatmap
+                const heatmapData = transformExpensesToHeatmapData(mapped);
+                setExpenseHeatmapData(heatmapData);
+            }
 
             // Set pie chart data
             if (expenseBreakdown.success) {
@@ -228,7 +229,7 @@ const AnalyticsPage = () => {
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-muted-foreground text-center">
-                            {loading
+                            {loading || expensesLoading
                                 ? "Loading expense data..."
                                 : "No expense data available. Add expense transactions to see your activity heatmap."}
                         </p>
@@ -269,7 +270,7 @@ const AnalyticsPage = () => {
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-muted-foreground text-center">
-                            {loading
+                            {loading || expensesLoading
                                 ? "Loading savings data..."
                                 : "No savings data available. Add income and expense transactions to see your savings trend."}
                         </p>

@@ -1,48 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { format, parse, isAfter } from "date-fns";
+import { parse, isAfter } from "date-fns";
 import { Plus, TrendingUp } from "lucide-react";
-import { getExpenses } from "@/services/transaction.service";
 import { TransactionWithId } from "@/types/transaction";
 import { BudgetReminder } from "@/types/budget";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
-import { fetchBillsAlerts, fetchBillReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
+import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";
+import { useExpensesSelector } from "@/hooks/use-expenses-selector";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
 
-    const [transactions, setTransactions] = useState<TransactionWithId[]>([]);
+    const { expenses, isLoading, invalidateExpenses } = useExpensesSelector();
+    const { upcomingBills, overdueBills, billReminders } = useBillsAndReminders();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<TransactionWithId | null>(null);
     const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
-    // Add a state to track if all transactions are loaded for recurring tab
-    const [allTransactions, setAllTransactions] = useState<TransactionWithId[] | null>(null);
     const [activeTab, setActiveTab] = useState<"all" | "recurring" | "bills">("all");
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
-    const [upcomingBills, setUpcomingBills] = useState<any[]>([]);
-    const [overdueBills, setOverdueBills] = useState<any[]>([]);
-    const [billReminders, setBillReminders] = useState<any[]>([]);
-
-    useEffect(() => {
-        fetchExpenses();
-    }, []);
 
     useEffect(() => {
         fetchBudgetReminders(setBudgetReminders);
-    }, []);
-
-    // Fetch bill alerts and reminders
-    useEffect(() => {
-        fetchBillsAlerts(setUpcomingBills, setOverdueBills);
-        fetchBillReminders(setBillReminders);
     }, []);
 
     // Handle URL parameter for tab
@@ -60,67 +46,11 @@ const TransactionsPage = () => {
         }
     }, [isDialogOpen]);
 
-    const fetchExpenses = async () => {
-        try {
-            const response = await getExpenses();
-            const expensesWithDates = response.expenses.map((expense: any) => ({
-                ...expense,
-                date: format(expense.date, "dd/MM/yyyy"),
-                description: expense.description ?? "",
-                currency: expense.currency ?? "INR",
-            }));
-            setTransactions(expensesWithDates);
-        } catch (error) {
-            console.error("Error fetching expenses:", error);
-        }
-    };
-
     const activeReminders = budgetReminders.filter((reminder) => !dismissedReminders.has(reminder.id));
 
     const dismissReminder = (reminderId: string) => {
         setDismissedReminders((prev) => new Set([...prev, reminderId]));
     };
-
-    // Load all transactions for recurring tab functionality
-    useEffect(() => {
-        const loadAllTransactions = async () => {
-            try {
-                const response = await getExpenses();
-                const expensesWithDates = response.expenses.map((expense: any) => ({
-                    ...expense,
-                    date: format(expense.date, "dd/MM/yyyy"),
-                    description: expense.description ?? "",
-                    currency: expense.currency ?? "INR",
-                }));
-                setAllTransactions(expensesWithDates);
-            } catch (error) {
-                console.error("Error loading all transactions:", error);
-            }
-        };
-        loadAllTransactions();
-    }, []); // Load once on mount
-
-    // Function to refresh all transactions (for recurring delete)
-    const refreshAllTransactions = async () => {
-        try {
-            const response = await getExpenses();
-            const expensesWithDates = response.expenses.map((expense: any) => ({
-                ...expense,
-                date: format(expense.date, "dd/MM/yyyy"),
-                description: expense.description ?? "",
-                currency: expense.currency ?? "INR",
-            }));
-            setAllTransactions(expensesWithDates);
-        } catch (error) {
-            console.error("Error refreshing all transactions:", error);
-        }
-    };
-
-    // Filter transactions based on selected date and categories
-    const filteredTransactions = transactions.filter(() => {
-        // This filtering logic will now be handled in the FiltersSection component
-        return true; // Return all transactions for now, filtering will be done in datatable
-    });
 
     // Helper to get a Date object from transaction.date
     const getTransactionDate = (t: TransactionWithId) => {
@@ -137,17 +67,30 @@ const TransactionsPage = () => {
         return new Date();
     };
 
+    // Get current month's transactions
+    const currentMonthTransactions = useMemo(() => {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        return expenses.filter(
+            (t) =>
+                !t.templateId &&
+                (() => {
+                    const date = parse(t.date, "dd/MM/yyyy", new Date());
+                    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+                })()
+        );
+    }, [expenses]);
+
     // Filter for recurring transactions
-    // In recurringTransactions, show only the template (isRecurring: true, no templateId)
     const today = new Date();
-    // Use allTransactions for recurring tab, transactions for all tab
-    const recurringSource = allTransactions || transactions;
-    const recurringTransactions = recurringSource.filter(
+    const recurringTransactions = expenses.filter(
         (t) => t.isRecurring && !t.templateId && !isAfter(getTransactionDate(t), today)
     );
 
     // Calculate total expenses by currency
-    const totalExpensesByCurrency = filteredTransactions.reduce((acc, transaction) => {
+    const totalExpensesByCurrency = expenses.reduce((acc, transaction) => {
         const currency = transaction.currency || "INR";
         const amount = transaction.amount;
         const type = transaction.type || "expense";
@@ -202,59 +145,39 @@ const TransactionsPage = () => {
     const userCurrency = user?.currency || "INR";
     const symbol = currencySymbols[userCurrency] || userCurrency;
 
-    // State for all expenses and available months
-    const [allExpenses, setAllExpenses] = useState<any[]>([]);
-    const [availableMonths, setAvailableMonths] = useState<{ label: string; value: { year: number; month: number } }[]>(
-        []
-    );
-    const [loadingMonths, setLoadingMonths] = useState(false);
-
-    // Fetch all expenses on mount to determine available months
-    useEffect(() => {
-        const fetchAllExpenses = async () => {
-            setLoadingMonths(true);
-            try {
-                const response = await getExpenses();
-                setAllExpenses(response.expenses);
-                // Extract unique months
-                const monthSet = new Set<string>();
-                response.expenses.forEach((t: any) => {
-                    let dateObj: Date;
-                    if (typeof t.date === "string") {
-                        dateObj = parse(t.date, "dd/MM/yyyy", new Date());
-                        if (isNaN(dateObj.getTime())) {
-                            dateObj = new Date(t.date);
-                        }
-                    } else {
-                        dateObj = t.date;
-                    }
-                    const year = dateObj.getFullYear();
-                    const month = dateObj.getMonth();
-                    monthSet.add(`${year}-${month}`);
-                });
-                // Sort months descending (latest first)
-                const monthsArr = Array.from(monthSet).map((str) => {
-                    const [year, month] = str.split("-").map(Number);
-                    const date = new Date(year, month, 1);
-                    return {
-                        label: `${date.toLocaleString("default", {
-                            month: "long",
-                        })} ${year}`,
-                        value: { year, month },
-                        sortKey: year * 12 + month,
-                    };
-                });
-                monthsArr.sort((a, b) => b.sortKey - a.sortKey);
-                setAvailableMonths(monthsArr);
-            } catch (err) {
-                setAllExpenses([]);
-                setAvailableMonths([]);
-            } finally {
-                setLoadingMonths(false);
+    // Calculate available months from expenses
+    const availableMonths = useMemo(() => {
+        const monthSet = new Set<string>();
+        expenses.forEach((t: any) => {
+            let dateObj: Date;
+            if (typeof t.date === "string") {
+                dateObj = parse(t.date, "dd/MM/yyyy", new Date());
+                if (isNaN(dateObj.getTime())) {
+                    dateObj = new Date(t.date);
+                }
+            } else {
+                dateObj = t.date;
             }
-        };
-        fetchAllExpenses();
-    }, []);
+            const year = dateObj.getFullYear();
+            const month = dateObj.getMonth();
+            monthSet.add(`${year}-${month}`);
+        });
+
+        // Sort months descending (latest first)
+        const monthsArr = Array.from(monthSet).map((str) => {
+            const [year, month] = str.split("-").map(Number);
+            const date = new Date(year, month, 1);
+            return {
+                label: `${date.toLocaleString("default", {
+                    month: "long",
+                })} ${year}`,
+                value: { year, month },
+                sortKey: year * 12 + month,
+            };
+        });
+        monthsArr.sort((a, b) => b.sortKey - a.sortKey);
+        return monthsArr;
+    }, [expenses]);
 
     // Download statement for a specific month
     const downloadMonthlyStatementForMonth = ({ year, month }: { year: number; month: number }) => {
@@ -262,7 +185,7 @@ const TransactionsPage = () => {
         const monthName = now.toLocaleString("default", { month: "long" });
         const currentYear = year;
         // Filter for the selected month
-        const monthlyTransactions = allExpenses.filter((t) => {
+        const monthlyTransactions = expenses.filter((t) => {
             let dateObj: Date;
             if (typeof t.date === "string") {
                 dateObj = parse(t.date, "dd/MM/yyyy", new Date());
@@ -295,7 +218,7 @@ const TransactionsPage = () => {
         });
         const totalExpenseForBreakdown = Object.values(expenseByCategory).reduce((a, b) => a + b, 0);
         generateMonthlyStatementPDF({
-            allExpenses,
+            allExpenses: expenses,
             filteredTransactions: monthlyTransactions,
             userCurrency,
             now,
@@ -382,39 +305,43 @@ const TransactionsPage = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-green-600">
-                                {transactions.filter((t) => t.type === "income").length}
+                                {expenses.filter((t) => t.type === "income" && !t.templateId).length}
                             </div>
-                            <div className="text-sm text-muted-foreground">Income</div>
+                            <div className="text-sm text-muted-foreground">Total Income</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
-                                {transactions
-                                    .filter((t) => t.type === "income")
+                                {expenses
+                                    .filter((t) => t.type === "income" && !t.templateId)
                                     .reduce((sum, t) => sum + (t.amount || 0), 0)
                                     .toFixed(2)}
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-red-600">
-                                {transactions.filter((t) => t.type === "expense").length}
+                                {expenses.filter((t) => t.type === "expense" && !t.templateId).length}
                             </div>
-                            <div className="text-sm text-muted-foreground">Expense</div>
+                            <div className="text-sm text-muted-foreground">Total Expenses</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
-                                {transactions
-                                    .filter((t) => t.type === "expense")
+                                {expenses
+                                    .filter((t) => t.type === "expense" && !t.templateId)
                                     .reduce((sum, t) => sum + (t.amount || 0), 0)
                                     .toFixed(2)}
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-primary">{transactions.length}</div>
+                            <div className="text-2xl font-bold text-primary">
+                                {expenses.filter((t) => !t.templateId).length}
+                            </div>
                             <div className="text-sm text-muted-foreground">Total Transactions</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 Avg: {symbol}
-                                {transactions.length > 0
+                                {expenses.filter((t) => !t.templateId).length > 0
                                     ? (
-                                          transactions.reduce((sum, t) => sum + (t.amount || 0), 0) /
-                                          transactions.length
+                                          expenses
+                                              .filter((t) => !t.templateId)
+                                              .reduce((sum, t) => sum + (t.amount || 0), 0) /
+                                          expenses.filter((t) => !t.templateId).length
                                       ).toFixed(2)
                                     : "0.00"}
                             </div>
@@ -429,12 +356,12 @@ const TransactionsPage = () => {
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-purple-600">
-                                {transactions.filter((t) => t.category === "Bill" && !t.templateId).length}
+                                {expenses.filter((t) => t.category === "Bill" && !t.templateId).length}
                             </div>
                             <div className="text-sm text-muted-foreground">Total Bills</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
-                                {transactions
+                                {expenses
                                     .filter((t) => t.category === "Bill" && !t.templateId)
                                     .reduce((sum, t) => sum + (t.amount || 0), 0)
                                     .toFixed(2)}
@@ -446,11 +373,11 @@ const TransactionsPage = () => {
 
             {/* Filters */}
             <FiltersSection
-                loadingMonths={loadingMonths}
+                loadingMonths={isLoading}
                 availableMonths={availableMonths}
                 downloadMonthlyStatementForMonth={downloadMonthlyStatementForMonth}
                 user={user}
-                filteredTransactions={filteredTransactions}
+                filteredTransactions={expenses}
                 handleEdit={(expense) => {
                     setEditingExpense(expense);
                     setIsDialogOpen(true);
@@ -459,11 +386,7 @@ const TransactionsPage = () => {
                 handleDeleteRecurring={() => {}} // This will be handled by ExpenseDataTable
                 recurringTransactions={recurringTransactions}
                 totalExpensesByCurrency={totalExpensesByCurrency}
-                onRefresh={fetchExpenses}
-                setAllExpenses={setAllExpenses}
-                setAvailableMonths={setAvailableMonths}
                 parse={parse}
-                refreshAllTransactions={refreshAllTransactions}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
             />
@@ -474,8 +397,7 @@ const TransactionsPage = () => {
                 editingExpense={editingExpense as any}
                 preselectedCategory={preselectedCategory}
                 onSuccess={() => {
-                    fetchExpenses();
-                    fetchBudgetReminders(setBudgetReminders);
+                    invalidateExpenses();
                 }}
             />
         </div>

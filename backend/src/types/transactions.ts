@@ -24,14 +24,15 @@ export interface Transaction {
     endDate?: Date;
     templateId?: Schema.Types.ObjectId;
     receipts?: string[];
+}
+
+export type Bill = Omit<Transaction, "isRecurring" | "recurringFrequency" | "endDate" | "templateId"> & {
     billCategory?: string;
     reminderDays?: number;
     dueDate?: Date;
-    // Bill-specific fields - ADDED
     billStatus?: BillStatus;
     billFrequency?: BillFrequency;
     nextDueDate?: Date;
     lastPaidDate?: Date;
     paymentMethod?: PaymentMethod;
-}
-export default Transaction;
+};

@@ -65,6 +65,7 @@ const TransactionSchema = new Schema({
         type: [String],
         default: [],
     },
+    // Bill-specific fields - ADDED
     billCategory: {
         type: String,
         required: false,
@@ -78,7 +79,6 @@ const TransactionSchema = new Schema({
         type: Date,
         required: false,
     },
-    // Bill-specific fields - ADDED
     billStatus: {
         type: String,
         enum: ["unpaid", "paid", "overdue", "pending"],

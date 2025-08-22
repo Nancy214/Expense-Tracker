@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
-import { addDays, addWeeks, addMonths, addYears, addQuarters, isAfter } from "date-fns";
+import { Transaction, Bill } from "../types/transactions";
+import { getStartOfToday, addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
 import { s3Client, isAWSConfigured } from "../config/s3Client";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
@@ -9,6 +10,12 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import path from "path";
 import sharp from "sharp";
 import crypto from "crypto";
+import { Document } from "mongoose";
+
+// Type guard to check if a transaction is a bill
+const isBillTransaction = (transaction: any): transaction is Bill => {
+    return transaction.category === "Bill";
+};
 
 // Helper function to calculate next due date for bills
 const calculateNextDueDate = (currentDueDate: Date, frequency: string): Date => {
@@ -64,61 +71,77 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
             userId: req.user?.id,
         });
 
-        // Check if this is a bill transaction
-        const isBill = expense.category === "Bill";
+        const expenseDoc = expense.toObject() as Transaction | Bill;
+        const isBill = isBillTransaction(expenseDoc);
 
         // Recurring instance generation - different logic for bills vs regular transactions
-        if (expense.isRecurring && expense.recurringFrequency) {
-            const start = new Date(expense.date);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+        if (!isBill && (expenseDoc as Transaction).isRecurring && (expenseDoc as Transaction).recurringFrequency) {
+            const transactionData = expenseDoc as Transaction;
+            const start = parseDateFromAPI(transactionData.date);
+            const today = getStartOfToday();
             let current = new Date(start);
             let end = today;
 
-            while (!isAfter(current, end)) {
+            while (!isDateAfter(current, end)) {
                 const dateStr = current.toISOString().slice(0, 10);
                 // Skip the template's original date
                 if (dateStr !== start.toISOString().slice(0, 10)) {
                     const exists = await TransactionModel.findOne({
                         templateId: expense._id,
                         date: current,
-                        userId: expense.userId,
+                        userId: transactionData.userId,
                     });
                     if (!exists) {
                         await TransactionModel.create({
-                            ...expense.toObject(),
+                            ...transactionData,
                             _id: undefined,
                             date: current,
                             templateId: expense._id,
                             isRecurring: false,
-                            userId: expense.userId,
+                            userId: transactionData.userId,
                         });
                     }
                 }
 
-                // Different frequency logic for bills vs regular transactions
-                if (isBill && expense.billFrequency) {
-                    // Bill frequency logic
-                    if (expense.billFrequency === "monthly") {
-                        current = addMonths(current, 1);
-                    } else if (expense.billFrequency === "quarterly") {
-                        current = addQuarters(current, 1);
-                    } else if (expense.billFrequency === "yearly") {
-                        current = addYears(current, 1);
-                    } else {
-                        break;
+                // Regular transaction frequency logic
+                current = addTimeByFrequency(current, transactionData.recurringFrequency || "daily");
+                if (!transactionData.recurringFrequency) {
+                    break;
+                }
+            }
+        } else if (isBill) {
+            // Handle bill frequency
+            const billData = expenseDoc as Bill;
+            if (billData.billFrequency) {
+                const start = new Date(billData.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                let current = new Date(start);
+                let end = today;
+
+                while (!isDateAfter(current, end)) {
+                    const dateStr = current.toISOString().slice(0, 10);
+                    // Skip the template's original date
+                    if (dateStr !== start.toISOString().slice(0, 10)) {
+                        const exists = await TransactionModel.findOne({
+                            templateId: expense._id,
+                            date: current,
+                            userId: billData.userId,
+                        });
+                        if (!exists) {
+                            await TransactionModel.create({
+                                ...billData,
+                                _id: undefined,
+                                date: current,
+                                templateId: expense._id,
+                                userId: billData.userId,
+                            });
+                        }
                     }
-                } else {
-                    // Regular transaction frequency logic
-                    if (expense.recurringFrequency === "daily") {
-                        current = addDays(current, 1);
-                    } else if (expense.recurringFrequency === "weekly") {
-                        current = addWeeks(current, 1);
-                    } else if (expense.recurringFrequency === "monthly") {
-                        current = addMonths(current, 1);
-                    } else if (expense.recurringFrequency === "yearly") {
-                        current = addYears(current, 1);
-                    } else {
+
+                    // Bill frequency logic
+                    current = addTimeByFrequency(current, billData.billFrequency || "monthly");
+                    if (!billData.billFrequency) {
                         break;
                     }
                 }
@@ -141,61 +164,77 @@ export const updateExpense = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: "Expense not found" });
         }
 
-        // Check if this is a bill transaction
-        const isBill = expense.category === "Bill";
+        const expenseDoc = expense.toObject() as Transaction | Bill;
+        const isBill = isBillTransaction(expenseDoc);
 
         // Recurring instance generation - different logic for bills vs regular transactions
-        if (expense.isRecurring && expense.recurringFrequency) {
-            const start = new Date(expense.date);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+        if (!isBill && (expenseDoc as Transaction).isRecurring && (expenseDoc as Transaction).recurringFrequency) {
+            const transactionData = expenseDoc as Transaction;
+            const start = parseDateFromAPI(transactionData.date);
+            const today = getStartOfToday();
             let current = new Date(start);
             let end = today;
 
-            while (!isAfter(current, end)) {
+            while (!isDateAfter(current, end)) {
                 const dateStr = current.toISOString().slice(0, 10);
                 // Skip the template's original date
                 if (dateStr !== start.toISOString().slice(0, 10)) {
                     const exists = await TransactionModel.findOne({
                         templateId: expense._id,
                         date: current,
-                        userId: expense.userId,
+                        userId: transactionData.userId,
                     });
                     if (!exists) {
                         await TransactionModel.create({
-                            ...expense.toObject(),
+                            ...transactionData,
                             _id: undefined,
                             date: current,
                             templateId: expense._id,
                             isRecurring: false,
-                            userId: expense.userId,
+                            userId: transactionData.userId,
                         });
                     }
                 }
 
-                // Different frequency logic for bills vs regular transactions
-                if (isBill && expense.billFrequency) {
-                    // Bill frequency logic
-                    if (expense.billFrequency === "monthly") {
-                        current = addMonths(current, 1);
-                    } else if (expense.billFrequency === "quarterly") {
-                        current = addQuarters(current, 1);
-                    } else if (expense.billFrequency === "yearly") {
-                        current = addYears(current, 1);
-                    } else {
-                        break;
+                // Regular transaction frequency logic
+                current = addTimeByFrequency(current, transactionData.recurringFrequency || "daily");
+                if (!transactionData.recurringFrequency) {
+                    break;
+                }
+            }
+        } else if (isBill) {
+            // Handle bill frequency
+            const billData = expenseDoc as Bill;
+            if (billData.billFrequency) {
+                const start = new Date(billData.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                let current = new Date(start);
+                let end = today;
+
+                while (!isDateAfter(current, end)) {
+                    const dateStr = current.toISOString().slice(0, 10);
+                    // Skip the template's original date
+                    if (dateStr !== start.toISOString().slice(0, 10)) {
+                        const exists = await TransactionModel.findOne({
+                            templateId: expense._id,
+                            date: current,
+                            userId: billData.userId,
+                        });
+                        if (!exists) {
+                            await TransactionModel.create({
+                                ...billData,
+                                _id: undefined,
+                                date: current,
+                                templateId: expense._id,
+                                userId: billData.userId,
+                            });
+                        }
                     }
-                } else {
-                    // Regular transaction frequency logic
-                    if (expense.recurringFrequency === "daily") {
-                        current = addDays(current, 1);
-                    } else if (expense.recurringFrequency === "weekly") {
-                        current = addWeeks(current, 1);
-                    } else if (expense.recurringFrequency === "monthly") {
-                        current = addMonths(current, 1);
-                    } else if (expense.recurringFrequency === "yearly") {
-                        current = addYears(current, 1);
-                    } else {
+
+                    // Bill frequency logic
+                    current = addTimeByFrequency(current, billData.billFrequency || "monthly");
+                    if (!billData.billFrequency) {
                         break;
                     }
                 }

@@ -5,11 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { BudgetReminder } from "@/types/budget";
 import { getBudgetProgress } from "@/services/budget.service";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
-import { getExpenses } from "@/services/transaction.service";
-import { isSameMonth, isSameYear } from "date-fns";
 import { ExpenseReminderBanner } from "@/utils/ExpenseReminderBanner";
 import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
-import { fetchBillsAlerts, fetchBillReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
+import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
+import { useExpensesSelector } from "@/hooks/use-expenses-selector";
 import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
 import AddExpenseDialogRefactored from "../TransactionsPage/AddExpenseDialog";
 
@@ -50,18 +49,13 @@ const HomePage = () => {
     });
     const [financialLoading, setFinancialLoading] = useState(true);
 
-    const [upcomingBills, setUpcomingBills] = useState<any[]>([]);
-    const [overdueBills, setOverdueBills] = useState<any[]>([]);
-    const [billReminders, setBillReminders] = useState<any[]>([]);
-    const [monthlyExpenses, setMonthlyExpenses] = useState<any[]>([]);
+    const { monthlyStats } = useExpensesSelector();
+    const { upcomingBills, overdueBills, billReminders } = useBillsAndReminders();
 
     useEffect(() => {
         fetchBudgetReminders(setBudgetReminders);
         fetchFinancialOverview();
-        fetchBillsAlerts(setUpcomingBills, setOverdueBills);
-        fetchBillReminders(setBillReminders);
-        fetchCurrentMonthExpenses();
-    }, []);
+    }, [monthlyStats]);
 
     // Clear preselected category when dialog closes
     useEffect(() => {
@@ -74,18 +68,15 @@ const HomePage = () => {
         try {
             setFinancialLoading(true);
             const budgetProgress = await getBudgetProgress();
-            // Use monthlyExpenses for all calculations
-            const totalIncome = monthlyExpenses
-                .filter((e) => e.type === "income")
-                .reduce((sum, e) => sum + e.amount, 0);
-            const totalExpenses = monthlyExpenses
-                .filter((e) => e.type === "expense")
-                .reduce((sum, e) => sum + e.amount, 0);
-            const balance = totalIncome - totalExpenses;
-            // Calculate savings rate
-            const savingsRate = totalIncome > 0 ? (balance / totalIncome) * 100 : 0;
-            // Calculate expense rate
-            const expenseRate = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : 0;
+
+            // Calculate savings rate and expense rate from monthlyStats
+            const savingsRate =
+                monthlyStats.totalIncome > 0
+                    ? ((monthlyStats.totalIncome - monthlyStats.totalExpenses) / monthlyStats.totalIncome) * 100
+                    : 0;
+            const expenseRate =
+                monthlyStats.totalIncome > 0 ? (monthlyStats.totalExpenses / monthlyStats.totalIncome) * 100 : 0;
+
             // Analyze budget progress
             const totalBudgets = budgetProgress.budgets.length;
             let overBudgetCount = 0;
@@ -103,6 +94,7 @@ const HomePage = () => {
                 }
             });
             const averageBudgetProgress = totalBudgets > 0 ? totalProgress / totalBudgets : 0;
+
             setFinancialData({
                 savingsRate,
                 expenseRate,
@@ -116,21 +108,6 @@ const HomePage = () => {
             console.error("Error fetching financial overview:", error);
         } finally {
             setFinancialLoading(false);
-        }
-    };
-
-    const fetchCurrentMonthExpenses = async () => {
-        try {
-            // Fetch up to 1000 expenses for the current month
-            const response = await getExpenses();
-            const now = new Date();
-            const currentMonthExpenses = response.expenses.filter((expense: any) => {
-                const expenseDate = new Date(expense.date);
-                return isSameMonth(expenseDate, now) && isSameYear(expenseDate, now);
-            });
-            setMonthlyExpenses(currentMonthExpenses);
-        } catch (error) {
-            // Optionally handle error
         }
     };
 

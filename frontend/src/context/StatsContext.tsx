@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-import { getMonthlyStats, getExpenses } from "@/services/transaction.service";
+import React, { createContext, useContext } from "react";
 import { getBudgets } from "@/services/budget.service";
 import { useAuth } from "@/context/AuthContext";
-import { differenceInCalendarDays, parseISO } from "date-fns";
+import { useExpensesSelector } from "@/hooks/use-expenses-selector";
 
 type Stats = {
     totalIncome: number;
@@ -23,51 +22,36 @@ type StatsContextType = {
 const StatsContext = createContext<StatsContextType | undefined>(undefined);
 
 export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [stats, setStats] = useState<Stats | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const { isAuthenticated, isLoading: authLoading } = useAuth();
+    const [budgets, setBudgets] = React.useState<any[]>([]);
+    const [error, setError] = React.useState<string | null>(null);
 
-    const refreshStats = useCallback(async () => {
-        setLoading(true);
-        setError(null);
+    // Always call useExpensesSelector to maintain hooks order
+    const {
+        monthlyStats: rawStats,
+        upcomingAndOverdueBills: rawBills,
+        isLoading: expensesLoading,
+    } = useExpensesSelector();
+
+    // Then conditionally use the data
+    const monthlyStats = isAuthenticated
+        ? rawStats
+        : {
+              totalIncome: 0,
+              totalExpenses: 0,
+              balance: 0,
+              transactionCount: 0,
+          };
+
+    const upcomingAndOverdueBills = isAuthenticated ? rawBills : { upcoming: [], overdue: [] };
+    const isLoading = isAuthenticated ? expensesLoading : false;
+
+    const refreshStats = React.useCallback(async () => {
         try {
-            const [monthlyStats, budgets, expensesResponse] = await Promise.all([
-                getMonthlyStats(),
-                getBudgets(),
-                getExpenses(),
-            ]);
-
-            // Calculate upcoming bills count from expenses with category "Bill"
-            const allExpenses = expensesResponse.expenses;
-            const billExpenses = allExpenses.filter((expense: any) => expense.category === "Bill");
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const upcomingBillsCount = billExpenses.filter((bill: any) => {
-                if (!bill.dueDate || bill.billStatus === "paid") return false;
-
-                const dueDate = bill.dueDate instanceof Date ? bill.dueDate : parseISO(bill.dueDate);
-                const daysLeft = differenceInCalendarDays(dueDate, today);
-
-                // Check if bill is upcoming (within next 7 days and not paid)
-                return daysLeft >= 0 && daysLeft <= 7;
-            }).length;
-
-            setStats({
-                totalIncome: monthlyStats.totalIncome,
-                totalExpenses: monthlyStats.totalExpenses,
-                balance: monthlyStats.balance,
-                transactionCount: monthlyStats.transactionCount,
-                activeBudgetsCount: budgets.length,
-                upcomingBillsCount: upcomingBillsCount,
-            });
+            const budgetsResponse = await getBudgets();
+            setBudgets(budgetsResponse);
         } catch (err) {
-            setStats(null);
             setError("Failed to load stats. Please try again.");
-        } finally {
-            setLoading(false);
         }
     }, []);
 
@@ -77,7 +61,17 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     }, [isAuthenticated, authLoading, refreshStats]);
 
-    return <StatsContext.Provider value={{ stats, loading, error, refreshStats }}>{children}</StatsContext.Provider>;
+    const stats = monthlyStats && {
+        ...monthlyStats,
+        activeBudgetsCount: budgets.length,
+        upcomingBillsCount: upcomingAndOverdueBills.upcoming.length,
+    };
+
+    return (
+        <StatsContext.Provider value={{ stats, loading: isLoading, error, refreshStats }}>
+            {children}
+        </StatsContext.Provider>
+    );
 };
 
 export const useStats = () => {
