@@ -10,6 +10,9 @@ export function useExpenses() {
 
     const query = useQuery({
         queryKey: EXPENSES_QUERY_KEY,
+        staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+        refetchOnWindowFocus: false, // Don't refetch on window focus
         queryFn: async () => {
             if (!isAuthenticated) {
                 return [];

@@ -2,14 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { BudgetReminder } from "@/types/budget";
-import { getBudgetProgress } from "@/services/budget.service";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { ExpenseReminderBanner } from "@/utils/ExpenseReminderBanner";
-import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
+import { BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
 import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
 import { useExpensesSelector } from "@/hooks/use-expenses-selector";
 import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
+import { useBudgetsQuery } from "@/hooks/use-budgets-query";
 import AddExpenseDialogRefactored from "../TransactionsPage/AddExpenseDialog";
 
 interface FinancialOverviewData {
@@ -31,31 +30,37 @@ const HomePage = () => {
         (user as any).settings.billsAndBudgetsAlert
     );
 
-    const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
     const [isAddBudgetDialogOpen, setIsAddBudgetDialogOpen] = useState(false);
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
 
-    // Financial Overview state
-    const [financialData, setFinancialData] = useState<FinancialOverviewData>({
-        savingsRate: 0,
-        expenseRate: 0,
-        totalBudgets: 0,
-        overBudgetCount: 0,
-        warningBudgetCount: 0,
-        onTrackBudgetCount: 0,
-        averageBudgetProgress: 0,
-    });
-    const [financialLoading, setFinancialLoading] = useState(true);
-
     const { monthlyStats } = useExpensesSelector();
     const { upcomingBills, overdueBills, billReminders } = useBillsAndReminders();
+    const {
+        budgetProgress,
+        budgetReminders: budgetRemindersData,
+        isProgressLoading,
+        budgetsError,
+        progressError,
+        remindersError,
+    } = useBudgetsQuery();
 
-    useEffect(() => {
-        fetchBudgetReminders(setBudgetReminders);
-        fetchFinancialOverview();
-    }, [monthlyStats]);
+    // Financial Overview data
+    const financialData: FinancialOverviewData = {
+        savingsRate:
+            monthlyStats.totalIncome > 0
+                ? ((monthlyStats.totalIncome - monthlyStats.totalExpenses) / monthlyStats.totalIncome) * 100
+                : 0,
+        expenseRate: monthlyStats.totalIncome > 0 ? (monthlyStats.totalExpenses / monthlyStats.totalIncome) * 100 : 0,
+        totalBudgets: budgetProgress?.budgets?.length || 0,
+        overBudgetCount: budgetProgress?.budgets?.filter((b) => b.isOverBudget)?.length || 0,
+        warningBudgetCount: budgetProgress?.budgets?.filter((b) => !b.isOverBudget && b.progress >= 80)?.length || 0,
+        onTrackBudgetCount: budgetProgress?.budgets?.filter((b) => !b.isOverBudget && b.progress < 80)?.length || 0,
+        averageBudgetProgress: budgetProgress?.budgets
+            ? budgetProgress.budgets.reduce((acc, b) => acc + b.progress, 0) / budgetProgress.budgets.length || 0
+            : 0,
+    };
 
     // Clear preselected category when dialog closes
     useEffect(() => {
@@ -64,58 +69,9 @@ const HomePage = () => {
         }
     }, [isExpenseDialogOpen]);
 
-    const fetchFinancialOverview = async () => {
-        try {
-            setFinancialLoading(true);
-            const budgetProgress = await getBudgetProgress();
-
-            // Calculate savings rate and expense rate from monthlyStats
-            const savingsRate =
-                monthlyStats.totalIncome > 0
-                    ? ((monthlyStats.totalIncome - monthlyStats.totalExpenses) / monthlyStats.totalIncome) * 100
-                    : 0;
-            const expenseRate =
-                monthlyStats.totalIncome > 0 ? (monthlyStats.totalExpenses / monthlyStats.totalIncome) * 100 : 0;
-
-            // Analyze budget progress
-            const totalBudgets = budgetProgress.budgets.length;
-            let overBudgetCount = 0;
-            let warningBudgetCount = 0;
-            let onTrackBudgetCount = 0;
-            let totalProgress = 0;
-            budgetProgress.budgets.forEach((budget) => {
-                totalProgress += budget.progress;
-                if (budget.isOverBudget) {
-                    overBudgetCount++;
-                } else if (budget.progress >= 80) {
-                    warningBudgetCount++;
-                } else {
-                    onTrackBudgetCount++;
-                }
-            });
-            const averageBudgetProgress = totalBudgets > 0 ? totalProgress / totalBudgets : 0;
-
-            setFinancialData({
-                savingsRate,
-                expenseRate,
-                totalBudgets,
-                overBudgetCount,
-                warningBudgetCount,
-                onTrackBudgetCount,
-                averageBudgetProgress,
-            });
-        } catch (error) {
-            console.error("Error fetching financial overview:", error);
-        } finally {
-            setFinancialLoading(false);
-        }
-    };
-
     const dismissReminder = (reminderId: string) => {
         setDismissedReminders((prev) => new Set([...prev, reminderId]));
     };
-
-    const activeReminders = budgetReminders.filter((reminder) => !dismissedReminders.has(reminder.id));
 
     // Financial Overview helper functions
     const getSavingsRateColor = (rate: number) => {
@@ -150,7 +106,19 @@ const HomePage = () => {
         <div className="p-4 md:p-6 lg:p-4 space-y-4 max-w-full">
             <ExpenseReminderBanner settings={(user as any)?.settings} />
             {/* Budget Reminders */}
-            <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} />
+            {remindersError ? (
+                <div className="text-center p-4 text-red-600">
+                    <p>Error loading budget reminders. Please try again later.</p>
+                </div>
+            ) : (
+                <BudgetRemindersUI
+                    user={user}
+                    activeReminders={
+                        budgetRemindersData?.filter((reminder) => !dismissedReminders.has(reminder.id)) || []
+                    }
+                    dismissReminder={dismissReminder}
+                />
+            )}
 
             {/* Bill Alerts */}
             <BillAlertsUI
@@ -177,9 +145,13 @@ const HomePage = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {financialLoading ? (
+                        {isProgressLoading ? (
                             <div className="flex items-center justify-center h-32">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            </div>
+                        ) : progressError || budgetsError ? (
+                            <div className="text-center p-4 text-red-600">
+                                <p>Error loading financial data. Please try again later.</p>
                             </div>
                         ) : (
                             <>
@@ -317,7 +289,6 @@ const HomePage = () => {
                 onOpenChange={setIsExpenseDialogOpen}
                 preselectedCategory={preselectedCategory}
                 onSuccess={() => {
-                    fetchBudgetReminders(setBudgetReminders);
                     navigate("/transactions");
                 }}
             />
@@ -327,7 +298,6 @@ const HomePage = () => {
                 open={isAddBudgetDialogOpen}
                 onOpenChange={setIsAddBudgetDialogOpen}
                 onSuccess={() => {
-                    fetchBudgetReminders(setBudgetReminders);
                     setIsAddBudgetDialogOpen(false);
                     navigate("/budget");
                 }}

@@ -1,7 +1,7 @@
 import React, { createContext, useContext } from "react";
-import { getBudgets } from "@/services/budget.service";
 import { useAuth } from "@/context/AuthContext";
 import { useExpensesSelector } from "@/hooks/use-expenses-selector";
+import { useBudgetsQuery } from "@/hooks/use-budgets-query";
 
 type Stats = {
     totalIncome: number;
@@ -22,16 +22,17 @@ type StatsContextType = {
 const StatsContext = createContext<StatsContextType | undefined>(undefined);
 
 export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated, isLoading: authLoading } = useAuth();
-    const [budgets, setBudgets] = React.useState<any[]>([]);
-    const [error, setError] = React.useState<string | null>(null);
+    const { isAuthenticated } = useAuth();
+    const [error] = React.useState<string | null>(null);
 
-    // Always call useExpensesSelector to maintain hooks order
+    // Use our hooks
     const {
         monthlyStats: rawStats,
         upcomingAndOverdueBills: rawBills,
         isLoading: expensesLoading,
     } = useExpensesSelector();
+
+    const { budgets, isBudgetsLoading } = useBudgetsQuery();
 
     // Then conditionally use the data
     const monthlyStats = isAuthenticated
@@ -44,26 +45,15 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           };
 
     const upcomingAndOverdueBills = isAuthenticated ? rawBills : { upcoming: [], overdue: [] };
-    const isLoading = isAuthenticated ? expensesLoading : false;
+    const isLoading = isAuthenticated ? expensesLoading || isBudgetsLoading : false;
 
     const refreshStats = React.useCallback(async () => {
-        try {
-            const budgetsResponse = await getBudgets();
-            setBudgets(budgetsResponse);
-        } catch (err) {
-            setError("Failed to load stats. Please try again.");
-        }
+        // No need to manually refresh as TanStack Query handles this
     }, []);
-
-    React.useEffect(() => {
-        if (isAuthenticated && !authLoading) {
-            refreshStats();
-        }
-    }, [isAuthenticated, authLoading, refreshStats]);
 
     const stats = monthlyStats && {
         ...monthlyStats,
-        activeBudgetsCount: budgets.length,
+        activeBudgetsCount: budgets?.length || 0,
         upcomingBillsCount: upcomingAndOverdueBills.upcoming.length,
     };
 

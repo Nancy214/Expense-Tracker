@@ -1,20 +1,5 @@
-import { checkBudgetReminders } from "@/services/budget.service";
 import { BudgetReminder } from "@/types/budget";
 import { Notification } from "@/app-components/Notification";
-
-export const fetchBudgetReminders = async (
-    setBudgetReminders: (reminders: BudgetReminder[]) => void
-): Promise<void> => {
-    try {
-        const token = localStorage.getItem("accessToken");
-        if (!token) return;
-
-        const reminders = await checkBudgetReminders();
-        setBudgetReminders(reminders);
-    } catch (error) {
-        console.error("Error fetching budget reminders:", error);
-    }
-};
 
 interface BudgetRemindersUIProps {
     user: any;

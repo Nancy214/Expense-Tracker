@@ -1,67 +1,38 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BudgetFrequency, BudgetResponse, BudgetProgress } from "@/types/budget";
-import { getBudgets, getBudgetProgress } from "@/services/budget.service";
+import { BudgetFrequency, BudgetResponse } from "@/types/budget";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { BudgetReminder } from "@/types/budget";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { useAuth } from "@/context/AuthContext";
-import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils";
+import { BudgetRemindersUI } from "@/utils/budgetUtils";
 import { useBudgetDelete } from "@/hooks/use-budget-delete";
 import { DeleteConfirmationDialog } from "@/utils/deleteDialog";
+import { useBudgetsQuery } from "@/hooks/use-budgets-query";
 
 const BudgetPage: React.FC = () => {
-    const [budgets, setBudgets] = useState<BudgetResponse[]>([]);
-    const [budgetProgress, setBudgetProgress] = useState<BudgetProgress[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingBudget, setEditingBudget] = useState<BudgetResponse | null>(null);
-    const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     const { toast } = useToast();
     const { user } = useAuth();
 
-    const fetchBudgets = async () => {
-        try {
-            setIsLoading(true);
-            const budgetsData = await getBudgets();
-            setBudgets(budgetsData);
-        } catch (error: any) {
-            console.error("Error fetching budgets:", error);
-            toast({
-                title: "Error",
-                description: "Failed to load budgets",
-                variant: "destructive",
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const fetchBudgetProgress = async () => {
-        try {
-            const progressData = await getBudgetProgress();
-            setBudgetProgress(progressData.budgets);
-        } catch (error: any) {
-            console.error("Error fetching budget progress:", error);
-        }
-    };
+    const {
+        budgets = [],
+        budgetProgress = { budgets: [] },
+        budgetReminders = [],
+        isBudgetsLoading: isLoading,
+        budgetsError,
+    } = useBudgetsQuery();
 
     const { budgetToDelete, isDeleteDialogOpen, handleDelete, confirmDelete, cancelDelete, setIsDeleteDialogOpen } =
         useBudgetDelete({
-            onRefresh: fetchBudgets,
-            onBudgetProgressRefresh: fetchBudgetProgress,
-            onBudgetRemindersRefresh: () => fetchBudgetReminders(setBudgetReminders),
+            onSuccess: () => {
+                // TanStack Query will handle the refetching
+            },
         });
-
-    useEffect(() => {
-        fetchBudgets();
-        fetchBudgetProgress();
-        fetchBudgetReminders(setBudgetReminders);
-    }, []);
 
     const dismissReminder = (reminderId: string) => {
         setDismissedReminders((prev) => new Set([...prev, reminderId]));
@@ -138,7 +109,7 @@ const BudgetPage: React.FC = () => {
                 </div>
 
                 {/* Budget Overview */}
-                {budgetProgress.length > 0 && (
+                {budgetProgress.budgets.length > 0 && (
                     <Card className="mb-6">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -154,19 +125,19 @@ const BudgetPage: React.FC = () => {
                                 </div>
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                                     <div className="text-2xl font-bold text-green-600">
-                                        {formatAmount(budgetProgress.reduce((sum, b) => sum + b.amount, 0))}
+                                        {formatAmount(budgetProgress.budgets.reduce((sum, b) => sum + b.amount, 0))}
                                     </div>
                                     <div className="text-sm text-muted-foreground">Total Budget</div>
                                 </div>
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                                     <div className="text-2xl font-bold text-blue-600">
-                                        {formatAmount(budgetProgress.reduce((sum, b) => sum + b.totalSpent, 0))}
+                                        {formatAmount(budgetProgress.budgets.reduce((sum, b) => sum + b.totalSpent, 0))}
                                     </div>
                                     <div className="text-sm text-muted-foreground">Total Spent</div>
                                 </div>
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                                     <div className="text-2xl font-bold text-purple-600">
-                                        {budgetProgress.filter((b) => b.isOverBudget).length}
+                                        {budgetProgress.budgets.filter((b) => b.isOverBudget).length}
                                     </div>
                                     <div className="text-sm text-muted-foreground">Over Budget</div>
                                 </div>
@@ -181,9 +152,6 @@ const BudgetPage: React.FC = () => {
                     onOpenChange={setIsDialogOpen}
                     editingBudget={editingBudget}
                     onSuccess={() => {
-                        fetchBudgets();
-                        fetchBudgetProgress();
-                        fetchBudgetReminders(setBudgetReminders);
                         setEditingBudget(null);
                     }}
                 />
@@ -200,7 +168,7 @@ const BudgetPage: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {budgets.map((budget) => {
-                            const progress = budgetProgress.find((p) => p._id === budget._id);
+                            const progress = budgetProgress.budgets.find((p) => p._id === budget._id);
                             return (
                                 <Card key={budget._id}>
                                     <CardHeader>

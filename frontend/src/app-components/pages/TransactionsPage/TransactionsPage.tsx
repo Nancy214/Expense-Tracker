@@ -5,8 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { parse, isAfter } from "date-fns";
 import { Plus, TrendingUp } from "lucide-react";
 import { TransactionWithId } from "@/types/transaction";
-import { BudgetReminder } from "@/types/budget";
-import { fetchBudgetReminders, BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
+import { BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
+import { useBudgetsQuery } from "@/hooks/use-budgets-query";
 import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
@@ -22,14 +22,11 @@ const TransactionsPage = () => {
     const { upcomingBills, overdueBills, billReminders } = useBillsAndReminders();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<TransactionWithId | null>(null);
-    const [budgetReminders, setBudgetReminders] = useState<BudgetReminder[]>([]);
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState<"all" | "recurring" | "bills">("all");
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
 
-    useEffect(() => {
-        fetchBudgetReminders(setBudgetReminders);
-    }, []);
+    const { budgetReminders = [] } = useBudgetsQuery();
 
     // Handle URL parameter for tab
     useEffect(() => {
@@ -66,22 +63,6 @@ const TransactionsPage = () => {
         if (t.date instanceof Date) return t.date;
         return new Date();
     };
-
-    // Get current month's transactions
-    const currentMonthTransactions = useMemo(() => {
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        return expenses.filter(
-            (t) =>
-                !t.templateId &&
-                (() => {
-                    const date = parse(t.date, "dd/MM/yyyy", new Date());
-                    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-                })()
-        );
-    }, [expenses]);
 
     // Filter for recurring transactions
     const today = new Date();
