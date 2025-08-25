@@ -5,7 +5,7 @@ import {
     updateBudget,
     deleteBudget,
     getBudgetProgress,
-    checkBudgetReminders,
+    processBudgetReminders,
 } from "../services/budget.service";
 import { BudgetData } from "../types/budget";
 import { useAuth } from "@/context/AuthContext";
@@ -34,16 +34,8 @@ export const useBudgetsQuery = () => {
         enabled: isAuthenticated && !!budgetsQuery.data, // Only run when authenticated and after budgets query succeeds
     });
 
-    // Query for budget reminders
-    const budgetRemindersQuery = useQuery({
-        queryKey: ["budgetReminders"],
-        queryFn: checkBudgetReminders,
-        staleTime: 30 * 1000, // Consider data fresh for 30 seconds
-        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
-        refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
-        refetchOnWindowFocus: false, // Don't refetch on window focus
-        enabled: isAuthenticated && !!budgetProgressQuery.data, // Only run when authenticated and after progress query succeeds
-    });
+    // Computed budget reminders from budget progress data
+    const budgetReminders = budgetProgressQuery.data ? processBudgetReminders(budgetProgressQuery.data) : [];
 
     // Mutation for creating a budget
     const createBudgetMutation = useMutation({
@@ -57,11 +49,6 @@ export const useBudgetsQuery = () => {
             });
             queryClient.invalidateQueries({
                 queryKey: ["budgetProgress"],
-                exact: true,
-                refetchType: "active",
-            });
-            queryClient.invalidateQueries({
-                queryKey: ["budgetReminders"],
                 exact: true,
                 refetchType: "active",
             });
@@ -82,11 +69,6 @@ export const useBudgetsQuery = () => {
                 exact: true,
                 refetchType: "active",
             });
-            queryClient.invalidateQueries({
-                queryKey: ["budgetReminders"],
-                exact: true,
-                refetchType: "active",
-            });
         },
     });
 
@@ -104,11 +86,6 @@ export const useBudgetsQuery = () => {
                 exact: true,
                 refetchType: "active",
             });
-            queryClient.invalidateQueries({
-                queryKey: ["budgetReminders"],
-                exact: true,
-                refetchType: "active",
-            });
         },
     });
 
@@ -116,17 +93,17 @@ export const useBudgetsQuery = () => {
         // Queries
         budgets: isAuthenticated ? budgetsQuery.data : [],
         budgetProgress: isAuthenticated ? budgetProgressQuery.data : { budgets: [] },
-        budgetReminders: isAuthenticated ? budgetRemindersQuery.data : [],
+        budgetReminders: isAuthenticated ? budgetReminders : [],
 
         // Loading states
         isBudgetsLoading: isAuthenticated && budgetsQuery.isLoading,
         isProgressLoading: isAuthenticated && budgetProgressQuery.isLoading,
-        isRemindersLoading: isAuthenticated && budgetRemindersQuery.isLoading,
+        isRemindersLoading: isAuthenticated && budgetReminders.length === 0, // No separate loading state for reminders, it's derived
 
         // Error states
         budgetsError: isAuthenticated ? budgetsQuery.error : null,
         progressError: isAuthenticated ? budgetProgressQuery.error : null,
-        remindersError: isAuthenticated ? budgetRemindersQuery.error : null,
+        remindersError: null, // No separate error state for reminders, it's derived
 
         // Mutations
         createBudget: isAuthenticated ? createBudgetMutation.mutate : () => Promise.reject("Not authenticated"),

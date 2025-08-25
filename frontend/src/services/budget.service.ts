@@ -79,73 +79,79 @@ export const getBudgetProgress = async (): Promise<BudgetProgressResponse> => {
     }
 };
 
+// New function that processes budget progress data to generate reminders
+export const processBudgetReminders = (progressData: BudgetProgressResponse): BudgetReminder[] => {
+    const reminders: BudgetReminder[] = [];
+
+    progressData.budgets.forEach((budget) => {
+        const progress = budget.progress;
+        const remaining = budget.remaining;
+        const isOverBudget = budget.isOverBudget;
+
+        // Check for over-budget alerts
+        if (isOverBudget) {
+            reminders.push({
+                id: `over-${budget._id}`,
+                budgetId: budget._id,
+                budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
+                    budget.category
+                }`,
+                type: "danger",
+                title: "Budget Exceeded!",
+                message: `You've exceeded your ${budget.frequency} budget for ${budget.category} by ₹${Math.abs(
+                    remaining
+                ).toFixed(2)}. Consider reviewing your spending in this category.`,
+                progress,
+                remaining,
+                isOverBudget: true,
+            });
+        }
+        // Check for warning alerts (80% or more spent)
+        else if (progress >= 80 && progress < 100) {
+            reminders.push({
+                id: `warning-${budget._id}`,
+                budgetId: budget._id,
+                budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
+                    budget.category
+                }`,
+                type: "warning",
+                title: "Budget Warning",
+                message: `You've used ${progress.toFixed(1)}% of your ${budget.frequency} budget for ${
+                    budget.category
+                }. Only ₹${remaining.toFixed(2)} remaining.`,
+                progress,
+                remaining,
+                isOverBudget: false,
+            });
+        }
+        // Check for approaching limit (60% or more spent)
+        else if (progress >= 60 && progress < 80) {
+            reminders.push({
+                id: `info-${budget._id}`,
+                budgetId: budget._id,
+                budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
+                    budget.category
+                }`,
+                type: "warning",
+                title: "Budget Update",
+                message: `You've used ${progress.toFixed(1)}% of your ${budget.frequency} budget for ${
+                    budget.category
+                }. ₹${remaining.toFixed(2)} remaining.`,
+                progress,
+                remaining,
+                isOverBudget: false,
+            });
+        }
+    });
+
+    return reminders;
+};
+
+// Keep the old function for backward compatibility, but mark it as deprecated
 export const checkBudgetReminders = async (): Promise<BudgetReminder[]> => {
     try {
         const progressData = await getBudgetProgress();
-        const reminders: BudgetReminder[] = [];
-
-        progressData.budgets.forEach((budget) => {
-            const progress = budget.progress;
-            const remaining = budget.remaining;
-            const isOverBudget = budget.isOverBudget;
-
-            // Check for over-budget alerts
-            if (isOverBudget) {
-                reminders.push({
-                    id: `over-${budget._id}`,
-                    budgetId: budget._id,
-                    budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
-                        budget.category
-                    }`,
-                    type: "danger",
-                    title: "Budget Exceeded!",
-                    message: `You've exceeded your ${budget.frequency} budget for ${budget.category} by ₹${Math.abs(
-                        remaining
-                    ).toFixed(2)}. Consider reviewing your spending in this category.`,
-                    progress,
-                    remaining,
-                    isOverBudget: true,
-                });
-            }
-            // Check for warning alerts (80% or more spent)
-            else if (progress >= 80 && progress < 100) {
-                reminders.push({
-                    id: `warning-${budget._id}`,
-                    budgetId: budget._id,
-                    budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
-                        budget.category
-                    }`,
-                    type: "warning",
-                    title: "Budget Warning",
-                    message: `You've used ${progress.toFixed(1)}% of your ${budget.frequency} budget for ${
-                        budget.category
-                    }. Only ₹${remaining.toFixed(2)} remaining.`,
-                    progress,
-                    remaining,
-                    isOverBudget: false,
-                });
-            }
-            // Check for approaching limit (60% or more spent)
-            else if (progress >= 60 && progress < 80) {
-                reminders.push({
-                    id: `info-${budget._id}`,
-                    budgetId: budget._id,
-                    budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
-                        budget.category
-                    }`,
-                    type: "warning",
-                    title: "Budget Update",
-                    message: `You've used ${progress.toFixed(1)}% of your ${budget.frequency} budget for ${
-                        budget.category
-                    }. ₹${remaining.toFixed(2)} remaining.`,
-                    progress,
-                    remaining,
-                    isOverBudget: false,
-                });
-            }
-        });
-
-        return reminders;
+        return processBudgetReminders(progressData);
     } catch (error) {
         console.error("Error checking budget reminders:", error);
         return [];
