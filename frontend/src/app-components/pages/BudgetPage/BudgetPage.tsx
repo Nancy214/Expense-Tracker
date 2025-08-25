@@ -18,7 +18,6 @@ const BudgetPage: React.FC = () => {
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     const { toast } = useToast();
     const { user } = useAuth();
-
     const {
         budgets = [],
         budgetProgress = { budgets: [] },
@@ -29,8 +28,14 @@ const BudgetPage: React.FC = () => {
 
     const { budgetToDelete, isDeleteDialogOpen, handleDelete, confirmDelete, cancelDelete, setIsDeleteDialogOpen } =
         useBudgetDelete({
-            onSuccess: () => {
-                // TanStack Query will handle the refetching
+            onRefresh: () => {
+                // Query invalidation is now handled automatically by TanStack Query mutations
+            },
+            onBudgetProgressRefresh: () => {
+                // Query invalidation is now handled automatically by TanStack Query mutations
+            },
+            onBudgetRemindersRefresh: () => {
+                // Query invalidation is now handled automatically by TanStack Query mutations
             },
         });
 

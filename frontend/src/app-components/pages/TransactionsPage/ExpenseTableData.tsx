@@ -30,8 +30,10 @@ interface ExpenseDataTableProps {
     isRecurringTab?: boolean;
     parse?: (date: string, format: string, baseDate: Date) => Date;
     // Props for tabs and functionality
+    onRefresh?: () => void;
     recurringTransactions?: TransactionWithId[];
     totalExpensesByCurrency?: { [key: string]: { income: number; expense: number; net: number } };
+    refreshAllTransactions?: () => void;
     activeTab?: "all" | "recurring" | "bills";
     setActiveTab?: (tab: "all" | "recurring" | "bills") => void;
 }

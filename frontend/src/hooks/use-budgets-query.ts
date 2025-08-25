@@ -106,9 +106,16 @@ export const useBudgetsQuery = () => {
         remindersError: null, // No separate error state for reminders, it's derived
 
         // Mutations
-        createBudget: isAuthenticated ? createBudgetMutation.mutate : () => Promise.reject("Not authenticated"),
-        updateBudget: isAuthenticated ? updateBudgetMutation.mutate : () => Promise.reject("Not authenticated"),
-        deleteBudget: isAuthenticated ? deleteBudgetMutation.mutate : () => Promise.reject("Not authenticated"),
+        createBudget: isAuthenticated
+            ? (budgetData: BudgetData) => createBudgetMutation.mutateAsync(budgetData)
+            : () => Promise.reject("Not authenticated"),
+        updateBudget: isAuthenticated
+            ? ({ id, budgetData }: { id: string; budgetData: BudgetData }) =>
+                  updateBudgetMutation.mutateAsync({ id, budgetData })
+            : () => Promise.reject("Not authenticated"),
+        deleteBudget: isAuthenticated
+            ? (id: string) => deleteBudgetMutation.mutateAsync(id)
+            : () => Promise.reject("Not authenticated"),
 
         // Mutation states
         isCreating: isAuthenticated && createBudgetMutation.isPending,

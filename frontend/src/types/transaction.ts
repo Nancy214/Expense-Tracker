@@ -45,7 +45,18 @@ export interface TransactionResponse extends Transaction {
 }
 
 // Component usage type - for state management
-export type TransactionWithId = Transaction & { _id?: string };
+export type TransactionWithId = Transaction & {
+    _id?: string;
+    // Bill-related properties
+    billCategory?: string;
+    billStatus?: BillStatus;
+    dueDate?: Date;
+    billFrequency?: BillFrequency;
+    nextDueDate?: Date;
+    lastPaidDate?: Date;
+    paymentMethod?: PaymentMethod;
+    reminderDays?: number;
+};
 
 // Form handling type - with string dates for UI
 export type TransactionFormData = Omit<Transaction, "date" | "endDate" | "dueDate" | "nextDueDate" | "lastPaidDate"> & {

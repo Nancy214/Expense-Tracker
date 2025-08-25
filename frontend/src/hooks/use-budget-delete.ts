@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { deleteBudget } from "@/services/budget.service";
 import { BudgetResponse } from "@/types/budget";
+import { useBudgetsQuery } from "@/hooks/use-budgets-query";
 
 interface UseBudgetDeleteProps {
     onRefresh?: () => void;
@@ -17,6 +17,7 @@ export function useBudgetDelete({
     const [budgetToDelete, setBudgetToDelete] = useState<BudgetResponse | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const { toast } = useToast();
+    const { deleteBudget, isDeleting } = useBudgetsQuery();
 
     const handleDelete = async (budget: BudgetResponse) => {
         setBudgetToDelete(budget);
@@ -32,6 +33,7 @@ export function useBudgetDelete({
                 title: "Success",
                 description: "Budget deleted successfully!",
             });
+            // Callbacks are kept for backward compatibility, but query invalidation is now handled automatically
             if (onRefresh) {
                 onRefresh();
             }
@@ -66,5 +68,6 @@ export function useBudgetDelete({
         confirmDelete,
         cancelDelete,
         setIsDeleteDialogOpen,
+        isDeleting,
     };
 }

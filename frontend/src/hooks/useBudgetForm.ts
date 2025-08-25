@@ -4,9 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useStats } from "@/context/StatsContext";
-import { createBudget, updateBudget } from "@/services/budget.service";
 import { BudgetResponse } from "@/types/budget";
 import { budgetSchema, BudgetFormData, getDefaultValues } from "@/schemas/budgetSchema";
+import { useBudgetsQuery } from "@/hooks/use-budgets-query";
 
 interface UseBudgetFormProps {
     editingBudget?: BudgetResponse | null;
@@ -17,6 +17,7 @@ interface UseBudgetFormProps {
 export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBudgetFormProps = {}) => {
     const { toast } = useToast();
     const { refreshStats } = useStats();
+    const { createBudget, updateBudget, isCreating, isUpdating } = useBudgetsQuery();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<BudgetFormData>({
@@ -50,7 +51,7 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
             };
 
             if (editingBudget) {
-                await updateBudget(editingBudget._id, budgetData);
+                await updateBudget({ id: editingBudget._id, budgetData });
                 toast({
                     title: "Success",
                     description: "Budget updated successfully!",
@@ -86,7 +87,7 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
 
     return {
         form,
-        isSubmitting,
+        isSubmitting: isSubmitting || isCreating || isUpdating,
         onSubmit,
         handleCancel,
         isEditing: !!editingBudget,
