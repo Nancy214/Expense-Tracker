@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
@@ -37,6 +37,7 @@ export const DateField: React.FC<DateFieldProps> = ({
 
     const error = errors[name];
     const value = watch(name);
+    const [isOpen, setIsOpen] = useState(false);
 
     // Register the field
     React.useEffect(() => {
@@ -52,7 +53,7 @@ export const DateField: React.FC<DateFieldProps> = ({
             <Label htmlFor={name} className="text-sm font-medium">
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>
-            <Popover>
+            <Popover open={isOpen} onOpenChange={setIsOpen}>
                 <PopoverTrigger asChild>
                     <Button
                         variant="outline"
@@ -67,7 +68,7 @@ export const DateField: React.FC<DateFieldProps> = ({
                         {displayValue || <span>{placeholder}</span>}
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                     <Calendar
                         mode="single"
                         selected={
@@ -82,6 +83,7 @@ export const DateField: React.FC<DateFieldProps> = ({
                                 shouldValidate: true,
                             });
                             trigger(name);
+                            setIsOpen(false); // Close the popover after selecting a date
                         }}
                         disabled={disabled}
                         initialFocus

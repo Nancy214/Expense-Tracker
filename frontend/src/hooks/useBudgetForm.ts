@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format, parse } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useStats } from "@/context/StatsContext";
 import { createBudget, updateBudget } from "@/services/budget.service";
@@ -27,10 +28,10 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
     useEffect(() => {
         if (editingBudget) {
             form.reset({
-                amount: editingBudget.amount.toString(),
+                amount: editingBudget.amount,
                 frequency: editingBudget.frequency,
                 startDate: format(new Date(editingBudget.startDate), "dd/MM/yyyy"),
-                category: editingBudget.category,
+                category: editingBudget.category as BudgetFormData["category"],
             });
         } else {
             form.reset(getDefaultValues());
@@ -42,7 +43,7 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
 
         try {
             const budgetData = {
-                amount: parseFloat(data.amount),
+                amount: data.amount,
                 frequency: data.frequency,
                 startDate: parse(data.startDate, "dd/MM/yyyy", new Date()),
                 category: data.category,

@@ -17,8 +17,8 @@ export const BUDGET_CATEGORIES = [
     "Other",
 ] as const;
 
-// Budget frequencies
-export const BUDGET_FREQUENCIES = ["monthly", "quarterly", "yearly", "one-time"] as const;
+// Budget frequencies - align with BudgetFrequency type
+export const BUDGET_FREQUENCIES = ["daily", "weekly", "monthly", "yearly"] as const;
 
 // Helper function to validate date format
 const isValidDate = (dateString: string) => {
@@ -33,22 +33,19 @@ const isValidDate = (dateString: string) => {
 
 // Budget schema
 export const budgetSchema = z.object({
-    amount: z
-        .string()
-        .min(1, "Amount is required")
-        .refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+    amount: z.number().positive("Amount must be greater than 0"),
     frequency: z.enum(BUDGET_FREQUENCIES),
     startDate: z.string().refine(isValidDate, "Please choose a valid date"),
-    category: z.enum(BUDGET_CATEGORIES, { required_error: "Category is required" }),
+    category: z.enum(BUDGET_CATEGORIES, { message: "Category is required" }),
 });
 
 // Type inference
 export type BudgetFormData = z.infer<typeof budgetSchema>;
 
 // Default values
-export const getDefaultValues = () => ({
-    amount: "",
-    frequency: "monthly" as const,
+export const getDefaultValues = (): BudgetFormData => ({
+    amount: 0,
+    frequency: "monthly",
     startDate: format(new Date(), "dd/MM/yyyy"),
-    category: "" as any,
+    category: "Other",
 });
