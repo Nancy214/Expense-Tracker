@@ -19,12 +19,37 @@ expenseApi.interceptors.request.use((config) => {
     return config;
 });
 
-export const getExpenses = async (): Promise<{ expenses: any[]; total: number }> => {
+export const getExpenses = async (
+    page: number = 1,
+    limit: number = 10
+): Promise<{
+    expenses: any[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNextPage: boolean;
+        hasPrevPage: boolean;
+    };
+}> => {
     try {
-        const response = await expenseApi.get(`/get-expenses`);
+        const response = await expenseApi.get(`/get-expenses?page=${page}&limit=${limit}`);
         return response.data;
     } catch (error) {
         console.error("Error fetching expenses:", error);
+        throw error;
+    }
+};
+
+export const getRecurringTemplates = async (): Promise<{
+    recurringTemplates: any[];
+}> => {
+    try {
+        const response = await expenseApi.get(`/get-recurring-templates`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching recurring templates:", error);
         throw error;
     }
 };

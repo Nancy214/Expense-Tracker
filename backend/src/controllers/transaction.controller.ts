@@ -41,8 +41,46 @@ const calculateNextDueDate = (currentDueDate: Date, frequency: string): Date => 
 export const getExpenses = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.id;
-        const expenses = await TransactionModel.find({ userId }).sort({ date: -1 });
-        res.json({ expenses });
+
+        // Get pagination parameters from query
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination
+        const total = await TransactionModel.countDocuments({ userId });
+
+        // Get paginated expenses
+        const expenses = await TransactionModel.find({ userId }).sort({ date: -1 }).skip(skip).limit(limit);
+
+        res.json({
+            expenses,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1,
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ message: error });
+    }
+};
+
+export const getRecurringTemplates = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+
+        // Get all recurring templates (isRecurring: true, templateId: null)
+        const recurringTemplates = await TransactionModel.find({
+            userId,
+            isRecurring: true,
+            templateId: null,
+        }).sort({ date: -1 });
+
+        res.json({ recurringTemplates });
     } catch (error) {
         res.status(500).json({ message: error });
     }

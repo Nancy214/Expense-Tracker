@@ -59,6 +59,19 @@ interface FiltersSectionProps {
     user?: any;
     activeTab?: "all" | "recurring" | "bills";
     setActiveTab?: (tab: "all" | "recurring" | "bills") => void;
+    // Additional props
+    onRefresh?: () => void;
+    setAllExpenses?: (expenses: TransactionWithId[]) => void;
+    setAvailableMonths?: (months: { label: string; value: { year: number; month: number } }[]) => void;
+    refreshAllTransactions?: () => void;
+    // Pagination props
+    currentPage?: number;
+    totalPages?: number;
+    onPageChange?: (page: number) => void;
+    totalItems?: number;
+    itemsPerPage?: number;
+    // Recurring templates from API
+    apiRecurringTemplates?: TransactionWithId[];
 }
 
 export function FiltersSection({
@@ -78,6 +91,14 @@ export function FiltersSection({
     refreshAllTransactions,
     activeTab = "all",
     setActiveTab,
+    // Pagination props
+    currentPage = 1,
+    totalPages = 1,
+    onPageChange,
+    totalItems = 0,
+    itemsPerPage = 10,
+    // Recurring templates from API
+    apiRecurringTemplates = [],
 }: FiltersSectionProps) {
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
@@ -86,43 +107,91 @@ export function FiltersSection({
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
-    // Filter transactions based on selected filters
-    const localFilteredTransactions = filteredTransactions.filter((transaction: TransactionWithId) => {
-        const matchesCategory = selectedCategories.includes("all") || selectedCategories.includes(transaction.category);
-        const matchesType = selectedTypes.includes("all") || selectedTypes.includes(transaction.type);
+    // Filter transactions based on selected filters and active tab
+    let localFilteredTransactions: TransactionWithId[] = [];
 
-        // Status filtering - only apply to bills
-        // By default, hide paid bills unless "paid" or "all" is explicitly selected
-        const matchesStatus =
-            transaction.category === "Bill"
-                ? selectedStatuses.includes("all") || selectedStatuses.includes(transaction.billStatus || "unpaid")
-                : true;
+    if (activeTab === "recurring") {
+        // For recurring tab, use the API recurring templates
+        localFilteredTransactions = apiRecurringTemplates.filter((transaction: TransactionWithId) => {
+            const matchesCategory =
+                selectedCategories.includes("all") || selectedCategories.includes(transaction.category);
+            const matchesType = selectedTypes.includes("all") || selectedTypes.includes(transaction.type);
 
-        // Search filtering
-        const matchesSearch =
-            searchQuery === "" ||
-            transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
+            // Search filtering
+            const matchesSearch =
+                searchQuery === "" ||
+                transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
 
-        // Date filtering logic - support single date or range
-        let matchesDate = true;
-        if (dateRangeForFilter?.from) {
-            let transactionDate: Date;
-            if (typeof transaction.date === "string") {
-                transactionDate = parse
-                    ? parse(transaction.date, "dd/MM/yyyy", new Date())
-                    : new Date(transaction.date);
-            } else {
-                transactionDate = transaction.date;
+            // Date filtering logic - support single date or range
+            let matchesDate = true;
+            if (dateRangeForFilter?.from) {
+                let transactionDate: Date;
+                if (typeof transaction.date === "string") {
+                    transactionDate = parse
+                        ? parse(transaction.date, "dd/MM/yyyy", new Date())
+                        : new Date(transaction.date);
+                } else {
+                    transactionDate = transaction.date;
+                }
+                const from = dateRangeForFilter.from;
+                const to = dateRangeForFilter.to || dateRangeForFilter.from;
+                matchesDate = transactionDate >= from && transactionDate <= to;
             }
-            const from = dateRangeForFilter.from;
-            const to = dateRangeForFilter.to || dateRangeForFilter.from;
-            matchesDate = transactionDate >= from && transactionDate <= to;
-        }
 
-        return matchesCategory && matchesType && matchesStatus && matchesDate && matchesSearch;
-    });
+            return matchesCategory && matchesType && matchesDate && matchesSearch;
+        });
+    } else {
+        // For other tabs, use the regular filtering logic
+        localFilteredTransactions = filteredTransactions.filter((transaction: TransactionWithId) => {
+            // Tab-specific filtering
+            let matchesTab = true;
+            if (activeTab === "bills") {
+                // Show only bills
+                matchesTab = transaction.category === "Bill";
+            } else {
+                // "all" tab - show all transactions including recurring instances
+                matchesTab = true;
+            }
+
+            const matchesCategory =
+                selectedCategories.includes("all") || selectedCategories.includes(transaction.category);
+            const matchesType = selectedTypes.includes("all") || selectedTypes.includes(transaction.type);
+
+            // Status filtering - only apply to bills
+            // By default, hide paid bills unless "paid" or "all" is explicitly selected
+            const matchesStatus =
+                transaction.category === "Bill"
+                    ? selectedStatuses.includes("all") || selectedStatuses.includes(transaction.billStatus || "unpaid")
+                    : true;
+
+            // Search filtering
+            const matchesSearch =
+                searchQuery === "" ||
+                transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+            // Date filtering logic - support single date or range
+            let matchesDate = true;
+            if (dateRangeForFilter?.from) {
+                let transactionDate: Date;
+                if (typeof transaction.date === "string") {
+                    transactionDate = parse
+                        ? parse(transaction.date, "dd/MM/yyyy", new Date())
+                        : new Date(transaction.date);
+                } else {
+                    transactionDate = transaction.date;
+                }
+                const from = dateRangeForFilter.from;
+                const to = dateRangeForFilter.to || dateRangeForFilter.from;
+                matchesDate = transactionDate >= from && transactionDate <= to;
+            }
+
+            return matchesTab && matchesCategory && matchesType && matchesStatus && matchesDate && matchesSearch;
+        });
+    }
 
     const handleCategoryFilterChange = (category: string, checked: boolean) => {
         let newCategories: string[];
@@ -439,7 +508,7 @@ export function FiltersSection({
 
                 <div className="mt-6">
                     <ExpenseDataTable
-                        data={localFilteredTransactions as any}
+                        data={filteredTransactions as any}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         showRecurringIcon={true}
@@ -452,6 +521,12 @@ export function FiltersSection({
                         refreshAllTransactions={refreshAllTransactions}
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
+                        // Pagination props
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={onPageChange}
+                        totalItems={totalItems}
+                        itemsPerPage={itemsPerPage}
                     />
                 </div>
             </CardContent>

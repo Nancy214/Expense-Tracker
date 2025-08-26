@@ -35,7 +35,7 @@ const incomeColors: { [key: string]: string } = {
 
 const CalendarPage: React.FC = () => {
     const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
-    const { data: expenses = [], isLoading } = useExpenses();
+    const { expenses = [], isLoading } = useExpenses();
 
     // Convert expenses to FullCalendar events
     const calendarEvents = expenses.map((expense) => {

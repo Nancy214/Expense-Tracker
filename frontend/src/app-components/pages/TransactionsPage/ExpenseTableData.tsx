@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isBefore, startOfDay } from "date-fns";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { BillStatus } from "@/types/transaction";
+import { PaginationWrapper } from "@/components/ui/pagination";
 
 interface ExpenseDataTableProps {
     data: TransactionWithId[];
@@ -31,11 +32,19 @@ interface ExpenseDataTableProps {
     parse?: (date: string, format: string, baseDate: Date) => Date;
     // Props for tabs and functionality
     onRefresh?: () => void;
+    setAllExpenses?: (expenses: TransactionWithId[]) => void;
+    setAvailableMonths?: (months: { label: string; value: { year: number; month: number } }[]) => void;
     recurringTransactions?: TransactionWithId[];
     totalExpensesByCurrency?: { [key: string]: { income: number; expense: number; net: number } };
     refreshAllTransactions?: () => void;
     activeTab?: "all" | "recurring" | "bills";
     setActiveTab?: (tab: "all" | "recurring" | "bills") => void;
+    // Pagination props
+    currentPage?: number;
+    totalPages?: number;
+    onPageChange?: (page: number) => void;
+    totalItems?: number;
+    itemsPerPage?: number;
 }
 
 export function ExpenseDataTable({
@@ -45,11 +54,19 @@ export function ExpenseDataTable({
     showRecurringBadge = false,
     isRecurringTab = false,
     onRefresh,
+    setAllExpenses,
+    setAvailableMonths,
     recurringTransactions = [],
     totalExpensesByCurrency = {},
     refreshAllTransactions,
     activeTab = "all",
     setActiveTab,
+    // Pagination props
+    currentPage = 1,
+    totalPages = 1,
+    onPageChange,
+    totalItems = 0,
+    itemsPerPage = 10,
 }: ExpenseDataTableProps) {
     const { toast } = useToast();
 
@@ -754,6 +771,23 @@ export function ExpenseDataTable({
                             })}
                         </div>
                     </div>
+
+                    {/* Pagination */}
+                    {onPageChange && (
+                        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="text-sm text-muted-foreground">
+                                Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                                {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} results
+                            </div>
+                            {totalPages > 1 && (
+                                <PaginationWrapper
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={onPageChange}
+                                />
+                            )}
+                        </div>
+                    )}
                 </>
             )}
 

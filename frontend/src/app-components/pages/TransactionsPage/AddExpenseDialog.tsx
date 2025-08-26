@@ -43,12 +43,21 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const [currencyOptions, setCurrencyOptions] = useState<any[]>([]);
     const [showExchangeRate, setShowExchangeRate] = useState(false);
 
-    const { form, category, type, isRecurring, currency, resetForm, isEditing, handleCurrencyChange } =
-        useTransactionForm({
-            editingExpense,
-            preselectedCategory,
-            isAddBill,
-        });
+    const {
+        form,
+        category,
+        type,
+        isRecurring,
+        currency,
+        resetForm,
+        isEditing,
+        handleCurrencyChange,
+        handleRecurringToggle,
+    } = useTransactionForm({
+        editingExpense,
+        preselectedCategory,
+        isAddBill,
+    });
 
     const {
         handleSubmit,
@@ -99,6 +108,13 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     ? new Date(data.lastPaidDate.split("/").reverse().join("-")).toISOString()
                     : undefined,
             };
+
+            // Ensure isRecurring is explicitly set as boolean
+            if (data.isRecurring === true) {
+                transactionData.isRecurring = true;
+            } else {
+                transactionData.isRecurring = false;
+            }
 
             if (isEditing && editingExpense && (editingExpense as any)._id) {
                 await updateExpense((editingExpense as any)._id, transactionData);
@@ -317,8 +333,9 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         {category !== "Bill" && (
                             <div className="flex items-center space-x-2">
                                 <Switch
+                                    {...form.register("isRecurring")}
                                     checked={isRecurring || false}
-                                    onCheckedChange={(checked) => form.setValue("isRecurring", checked)}
+                                    onCheckedChange={handleRecurringToggle}
                                 />
                                 <Label htmlFor="recurring">Enable recurring transaction</Label>
                             </div>

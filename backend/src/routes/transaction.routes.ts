@@ -2,6 +2,7 @@ import { RequestHandler, Router } from "express";
 import { authenticateToken } from "../middleware/auth.middleware";
 import {
     getExpenses,
+    getRecurringTemplates,
     createExpense,
     updateExpense,
     deleteExpense,
@@ -16,6 +17,7 @@ import { uploadReceipt } from "../controllers/transaction.controller";
 const router = Router();
 
 router.get("/get-expenses", authenticateToken as RequestHandler, getExpenses as RequestHandler);
+router.get("/get-recurring-templates", authenticateToken as RequestHandler, getRecurringTemplates as RequestHandler);
 router.post("/add-expenses", authenticateToken as RequestHandler, createExpense as RequestHandler);
 router.post("/trigger-recurring", authenticateToken as RequestHandler, triggerRecurringExpensesJob as RequestHandler);
 router.post(

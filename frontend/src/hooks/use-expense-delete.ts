@@ -10,6 +10,7 @@ interface UseExpenseDeleteProps {
 }
 
 const EXPENSES_QUERY_KEY = ["expenses"] as const;
+const RECURRING_TEMPLATES_QUERY_KEY = ["recurring-templates"] as const;
 
 export function useExpenseDelete() {
     const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
@@ -31,8 +32,11 @@ export function useExpenseDelete() {
                 description: "Recurring transaction and all its instances deleted.",
                 variant: "destructive",
             });
-            // Invalidate expenses query to trigger a refetch
-            await queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY });
+            // Invalidate both expenses and recurring templates queries to trigger a refetch
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY }),
+                queryClient.invalidateQueries({ queryKey: RECURRING_TEMPLATES_QUERY_KEY }),
+            ]);
         } catch (error) {
             toast({
                 title: "Error",
@@ -51,8 +55,11 @@ export function useExpenseDelete() {
                 title: "Success",
                 description: "Expense deleted successfully",
             });
-            // Invalidate expenses query to trigger a refetch
-            await queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY });
+            // Invalidate both expenses and recurring templates queries to trigger a refetch
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY }),
+                queryClient.invalidateQueries({ queryKey: RECURRING_TEMPLATES_QUERY_KEY }),
+            ]);
         } catch (error) {
             toast({
                 title: "Error",

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { deleteBill } from "@/services/bill.service";
+import { deleteExpense } from "@/services/transaction.service";
 
 interface UseBillDeleteProps {
     onRefresh?: () => void;
@@ -18,7 +18,7 @@ export function useBillDelete({ onRefresh }: UseBillDeleteProps = {}) {
         if (!billToDelete) return;
 
         try {
-            await deleteBill(billToDelete);
+            await deleteExpense(billToDelete);
             toast({
                 title: "Success",
                 description: "Bill deleted successfully",
