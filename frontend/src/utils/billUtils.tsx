@@ -1,7 +1,7 @@
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, Bell } from "lucide-react";
-import { useExpensesSelector } from "@/hooks/use-expenses-selector";
+import { useExpensesSelector } from "@/hooks/use-transactions";
 
 export function useBillsAndReminders() {
     const { upcomingAndOverdueBills, billReminders } = useExpensesSelector();

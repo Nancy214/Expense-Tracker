@@ -6,14 +6,13 @@ import { parse, isAfter } from "date-fns";
 import { Plus, TrendingUp } from "lucide-react";
 import { TransactionWithId } from "@/types/transaction";
 import { BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
-import { useBudgetsQuery } from "@/hooks/use-budgets-query";
+import { useBudgets } from "@/hooks/use-budgets";
 import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";
-import { useExpenses } from "@/hooks/use-expenses";
-import { useRecurringTemplates } from "@/hooks/use-recurring-templates";
+import { useExpenses, useRecurringTemplates } from "@/hooks/use-transactions";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
@@ -37,7 +36,7 @@ const TransactionsPage = () => {
     const [activeTab, setActiveTab] = useState<"all" | "recurring" | "bills">("all");
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
 
-    const { budgetReminders = [] } = useBudgetsQuery();
+    const { budgetReminders = [] } = useBudgets();
 
     // Handle URL parameter for tab
     useEffect(() => {

@@ -6,9 +6,9 @@ import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { ExpenseReminderBanner } from "@/utils/ExpenseReminderBanner";
 import { BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
 import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
-import { useExpensesSelector } from "@/hooks/use-expenses-selector";
+import { useExpensesSelector } from "@/hooks/use-transactions";
 import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
-import { useBudgetsQuery } from "@/hooks/use-budgets-query";
+import { useBudgets } from "@/hooks/use-budgets";
 import AddExpenseDialogRefactored from "../TransactionsPage/AddExpenseDialog";
 
 interface FinancialOverviewData {
@@ -44,7 +44,7 @@ const HomePage = () => {
         budgetsError,
         progressError,
         remindersError,
-    } = useBudgetsQuery();
+    } = useBudgets();
 
     // Financial Overview data
     const financialData: FinancialOverviewData = {

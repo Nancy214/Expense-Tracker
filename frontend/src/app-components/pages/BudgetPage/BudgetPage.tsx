@@ -8,9 +8,9 @@ import { Progress } from "@/components/ui/progress";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { useAuth } from "@/context/AuthContext";
 import { BudgetRemindersUI } from "@/utils/budgetUtils";
-import { useBudgetDelete } from "@/hooks/use-budget-delete";
+import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { DeleteConfirmationDialog } from "@/utils/deleteDialog";
-import { useBudgetsQuery } from "@/hooks/use-budgets-query";
+import { useBudgets } from "@/hooks/use-budgets";
 
 const BudgetPage: React.FC = () => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -24,20 +24,26 @@ const BudgetPage: React.FC = () => {
         budgetReminders = [],
         isBudgetsLoading: isLoading,
         budgetsError,
-    } = useBudgetsQuery();
+    } = useBudgets();
 
-    const { budgetToDelete, isDeleteDialogOpen, handleDelete, confirmDelete, cancelDelete, setIsDeleteDialogOpen } =
-        useBudgetDelete({
-            onRefresh: () => {
-                // Query invalidation is now handled automatically by TanStack Query mutations
-            },
-            onBudgetProgressRefresh: () => {
-                // Query invalidation is now handled automatically by TanStack Query mutations
-            },
-            onBudgetRemindersRefresh: () => {
-                // Query invalidation is now handled automatically by TanStack Query mutations
-            },
-        });
+    const {
+        budgetToDelete,
+        isDeleteDialogOpen,
+        handleBudgetDelete: handleDelete,
+        confirmBudgetDelete: confirmDelete,
+        cancelDelete,
+        setIsDeleteDialogOpen,
+    } = useDeleteOperations({
+        onRefresh: () => {
+            // Query invalidation is now handled automatically by TanStack Query mutations
+        },
+        onBudgetProgressRefresh: () => {
+            // Query invalidation is now handled automatically by TanStack Query mutations
+        },
+        onBudgetRemindersRefresh: () => {
+            // Query invalidation is now handled automatically by TanStack Query mutations
+        },
+    });
 
     const dismissReminder = (reminderId: string) => {
         setDismissedReminders((prev) => new Set([...prev, reminderId]));

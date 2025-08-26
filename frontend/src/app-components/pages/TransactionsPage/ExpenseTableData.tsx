@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmationDialog } from "@/utils/deleteDialog";
-import { useExpenseDelete } from "@/hooks/use-expense-delete";
+import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isBefore, startOfDay } from "date-fns";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
@@ -86,14 +86,14 @@ export function ExpenseDataTable({
     const {
         recurringToDelete,
         isDeleteDialogOpen,
-        handleDelete,
-        handleDeleteRecurring,
-        confirmDelete,
+        handleExpenseDelete: handleDelete,
+        handleRecurringDelete,
+        confirmExpenseDelete: confirmDelete,
         cancelDelete,
         setRecurringForDelete,
         clearRecurringDelete,
         setIsDeleteDialogOpen,
-    } = useExpenseDelete();
+    } = useDeleteOperations();
 
     const handleEdit = async (expense: TransactionWithId) => {
         onEdit(expense);
@@ -797,7 +797,7 @@ export function ExpenseDataTable({
                 onOpenChange={(open) => !open && clearRecurringDelete()}
                 onConfirm={async () => {
                     if (recurringToDelete) {
-                        await handleDeleteRecurring(recurringToDelete._id!);
+                        await handleRecurringDelete(recurringToDelete._id!);
                         clearRecurringDelete();
                     }
                 }}

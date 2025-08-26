@@ -5,11 +5,11 @@ import { FormProvider } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
 import { useStats } from "@/context/StatsContext";
 import { useToast } from "@/hooks/use-toast";
-import { createExpense, updateExpense, uploadReceipt } from "@/services/transaction.service";
+import { uploadReceipt } from "@/services/transaction.service";
+import { useTransactionMutations, useTransactionForm } from "@/hooks/use-transactions";
 import { getCountryTimezoneCurrency } from "@/services/profile.service";
 import { Transaction } from "@/types/transaction";
 import { TRANSACTION_CONSTANTS } from "@/schemas/transactionSchema";
-import { useTransactionForm } from "@/hooks/useTransactionForm";
 import { InputField } from "@/components/form-fields/InputField";
 import { SelectField } from "@/components/form-fields/SelectField";
 import { DateField } from "@/components/form-fields/DateField";
@@ -43,6 +43,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const [currencyOptions, setCurrencyOptions] = useState<any[]>([]);
     const [showExchangeRate, setShowExchangeRate] = useState(false);
 
+    const { createTransaction, updateTransaction, isCreating, isUpdating } = useTransactionMutations();
+
     const {
         form,
         category,
@@ -63,6 +65,9 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         handleSubmit,
         formState: { isSubmitting },
     } = form;
+
+    // Use mutation loading states
+    const isSubmittingForm = isSubmitting || isCreating || isUpdating;
 
     useEffect(() => {
         fetchCurrencyOptions();
@@ -117,11 +122,9 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             }
 
             if (isEditing && editingExpense && (editingExpense as any)._id) {
-                await updateExpense((editingExpense as any)._id, transactionData);
-                showUpdateSuccess(toast, "Transaction");
+                await updateTransaction({ id: (editingExpense as any)._id, data: transactionData });
             } else {
-                await createExpense(transactionData);
-                showCreateSuccess(toast, "Transaction");
+                await createTransaction(transactionData);
             }
 
             await refreshStats();
@@ -367,8 +370,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         />
 
                         <DialogFooter className="mt-4">
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting
+                            <Button type="submit" disabled={isSubmittingForm}>
+                                {isSubmittingForm
                                     ? "Saving..."
                                     : isEditing
                                     ? category === "Bill"

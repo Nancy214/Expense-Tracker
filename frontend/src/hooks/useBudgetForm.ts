@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useStats } from "@/context/StatsContext";
 import { BudgetResponse } from "@/types/budget";
 import { budgetSchema, BudgetFormData, getDefaultValues } from "@/schemas/budgetSchema";
-import { useBudgetsQuery } from "@/hooks/use-budgets-query";
+import { useBudgets } from "@/hooks/use-budgets";
 
 interface UseBudgetFormProps {
     editingBudget?: BudgetResponse | null;
@@ -17,7 +17,7 @@ interface UseBudgetFormProps {
 export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBudgetFormProps = {}) => {
     const { toast } = useToast();
     const { refreshStats } = useStats();
-    const { createBudget, updateBudget, isCreating, isUpdating } = useBudgetsQuery();
+    const { createBudget, updateBudget, isCreating, isUpdating } = useBudgets();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<BudgetFormData>({

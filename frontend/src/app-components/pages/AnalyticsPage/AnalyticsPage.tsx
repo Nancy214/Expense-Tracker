@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-    getExpenseCategoryBreakdown,
-    getBillsCategoryBreakdown,
-    getIncomeExpenseSummary,
-    getMonthlySavingsTrend,
-} from "@/services/analytics.service";
 import { Transaction } from "@/types/transaction";
 import { parse, isValid } from "date-fns";
 
 import { useAuth } from "@/context/AuthContext";
-import { useExpenses } from "@/hooks/use-expenses";
+import { useExpenses } from "@/hooks/use-transactions";
+import {
+    useExpenseCategoryBreakdown,
+    useBillsCategoryBreakdown,
+    useIncomeExpenseSummary,
+    useMonthlySavingsTrend,
+    transformExpensesToHeatmapData,
+} from "@/hooks/use-analytics";
 
 import "react-calendar-heatmap/dist/styles.css";
 
@@ -18,159 +18,84 @@ import PieChartComponent from "./PieChart";
 import BarChartComponent from "./BarChart";
 import AreaChartComponent from "./AreaChart";
 import CalendarHeatmapComponent from "./CalendarHeatmap";
-//
 
 const AnalyticsPage = () => {
-    const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const { expenses, isLoading: expensesLoading } = useExpenses();
 
-    // Pie chart data state
-    const [expenseCategoryData, setExpenseCategoryData] = useState<Array<{ name: string; value: number }>>([]);
-    const [billsCategoryData, setBillsCategoryData] = useState<Array<{ name: string; value: number }>>([]);
+    // TanStack Query hooks for analytics data
+    const {
+        data: expenseBreakdown,
+        isLoading: expenseBreakdownLoading,
+        error: expenseBreakdownError,
+    } = useExpenseCategoryBreakdown();
 
-    // Income/Expense summary data state
-    const [incomeExpenseData, setIncomeExpenseData] = useState<
-        Array<{ name: string; value: number; category?: string }>
-    >([]);
+    const {
+        data: billsBreakdown,
+        isLoading: billsBreakdownLoading,
+        error: billsBreakdownError,
+    } = useBillsCategoryBreakdown();
 
-    // Savings trend data state
-    const [savingsTrendData, setSavingsTrendData] = useState<
-        Array<{
-            name: string;
-            savings: number;
-            income?: number;
-            expenses?: number;
-            target?: number;
-        }>
-    >([]);
+    const {
+        data: incomeExpenseResponse,
+        isLoading: incomeExpenseLoading,
+        error: incomeExpenseError,
+    } = useIncomeExpenseSummary();
 
-    // Heatmap data state
-    const [expenseHeatmapData, setExpenseHeatmapData] = useState<
-        Array<{
-            date: string;
-            count: number;
-            amount: number;
-            category: string;
-        }>
-    >([]);
+    const {
+        data: savingsTrendResponse,
+        isLoading: savingsTrendLoading,
+        error: savingsTrendError,
+    } = useMonthlySavingsTrend();
 
-    useEffect(() => {
-        fetchData();
-    }, [expenses]); // Re-fetch when expenses change
+    // Transform data for charts
+    const expenseCategoryData = expenseBreakdown?.data || [];
+    const billsCategoryData = billsBreakdown?.data || [];
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            // Fetch analytics data in parallel
-            const [expenseBreakdown, billsBreakdown, incomeExpenseResponse, savingsTrendResponse] = await Promise.all([
-                getExpenseCategoryBreakdown(),
-                getBillsCategoryBreakdown(),
-                getIncomeExpenseSummary(),
-                getMonthlySavingsTrend(),
-            ]);
+    // Transform income/expense data for bar chart
+    const incomeExpenseData =
+        incomeExpenseResponse?.data?.months?.flatMap((monthData) => [
+            { name: monthData.month, value: monthData.income, category: "Income" },
+            { name: monthData.month, value: monthData.expenses, category: "Expense" },
+        ]) || [];
 
-            // Transform expenses for heatmap if we have expenses data
-            if (expenses.length > 0) {
-                const mapped: Transaction[] = expenses.map((e: any) => {
-                    let d: Date;
-                    if (typeof e.date === "string") {
-                        d = parse(e.date, "dd/MM/yyyy", new Date());
-                        if (!isValid(d)) d = new Date(e.date);
-                    } else {
-                        d = e.date;
-                    }
-                    return {
-                        ...e,
-                        date: isValid(d) ? d : new Date(),
-                    };
-                });
+    // Transform savings trend data for area chart
+    const savingsTrendData =
+        savingsTrendResponse?.data?.trend?.map((item) => ({
+            name: item.month,
+            savings: item.savings,
+            income: item.income,
+            expenses: item.expenses,
+            target: item.savings * 1.1, // Set target as 10% higher than actual savings
+        })) || [];
 
-                // Transform expenses for heatmap
-                const heatmapData = transformExpensesToHeatmapData(mapped);
-                setExpenseHeatmapData(heatmapData);
-            }
+    // Transform expenses for heatmap
+    const expenseHeatmapData =
+        expenses.length > 0
+            ? transformExpensesToHeatmapData(
+                  expenses.map((e: any) => {
+                      let d: Date;
+                      if (typeof e.date === "string") {
+                          d = parse(e.date, "dd/MM/yyyy", new Date());
+                          if (!isValid(d)) d = new Date(e.date);
+                      } else {
+                          d = e.date;
+                      }
+                      return {
+                          ...e,
+                          date: isValid(d) ? d : new Date(),
+                      };
+                  })
+              )
+            : [];
 
-            // Set pie chart data
-            if (expenseBreakdown.success) {
-                setExpenseCategoryData(expenseBreakdown.data);
-            }
-            if (billsBreakdown.success) {
-                setBillsCategoryData(billsBreakdown.data);
-            }
-
-            // Set income/expense data for bar chart
-            if (incomeExpenseResponse.success) {
-                // Transform data for bar chart - show all months
-                const barChartData = incomeExpenseResponse.data.months.flatMap((monthData) => [
-                    { name: monthData.month, value: monthData.income, category: "Income" },
-                    { name: monthData.month, value: monthData.expenses, category: "Expense" },
-                ]);
-                setIncomeExpenseData(barChartData);
-            }
-
-            // Set savings trend data for area chart
-            if (savingsTrendResponse.success) {
-                const transformedData = savingsTrendResponse.data.trend.map((item) => ({
-                    name: item.month,
-                    savings: item.savings,
-                    income: item.income,
-                    expenses: item.expenses,
-                    target: item.savings * 1.1, // Set target as 10% higher than actual savings
-                }));
-                setSavingsTrendData(transformedData);
-            }
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Transform expenses data for heatmap
-    const transformExpensesToHeatmapData = (expenses: Transaction[]) => {
-        const groupedByDate = expenses.reduce(
-            (acc, expense) => {
-                const date = new Date(expense.date).toISOString().split("T")[0];
-
-                if (!acc[date]) {
-                    acc[date] = {
-                        date,
-                        count: 0,
-                        amount: 0,
-                        categories: new Set<string>(),
-                    };
-                }
-
-                acc[date].count++;
-                acc[date].amount += expense.amount;
-                acc[date].categories.add(expense.category || "Uncategorized");
-
-                return acc;
-            },
-            {} as Record<
-                string,
-                {
-                    date: string;
-                    count: number;
-                    amount: number;
-                    categories: Set<string>;
-                }
-            >
-        );
-
-        // Sort by date to ensure proper ordering
-        const sortedData = Object.values(groupedByDate).sort(
-            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-
-        return sortedData.map((day) => ({
-            date: day.date,
-            count: day.count,
-            amount: day.amount,
-            category: Array.from(day.categories).join(", "),
-        }));
-    };
+    // Combined loading state
+    const isLoading =
+        expenseBreakdownLoading ||
+        billsBreakdownLoading ||
+        incomeExpenseLoading ||
+        savingsTrendLoading ||
+        expensesLoading;
 
     return (
         <div className="p-4 md:p-6 lg:p-4 max-w-7xl mx-auto space-y-8">
@@ -229,7 +154,7 @@ const AnalyticsPage = () => {
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-muted-foreground text-center">
-                            {loading || expensesLoading
+                            {isLoading
                                 ? "Loading expense data..."
                                 : "No expense data available. Add expense transactions to see your activity heatmap."}
                         </p>
@@ -270,7 +195,7 @@ const AnalyticsPage = () => {
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-muted-foreground text-center">
-                            {loading || expensesLoading
+                            {isLoading
                                 ? "Loading savings data..."
                                 : "No savings data available. Add income and expense transactions to see your savings trend."}
                         </p>

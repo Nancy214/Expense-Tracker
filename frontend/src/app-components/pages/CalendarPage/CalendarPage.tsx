@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useExpenses } from "@/hooks/use-expenses";
+import { useExpenses } from "@/hooks/use-transactions";
 
 // FullCalendar components
 import FullCalendar from "@fullcalendar/react";

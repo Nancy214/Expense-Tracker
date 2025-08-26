@@ -10,7 +10,7 @@ import {
 import { BudgetData } from "../types/budget";
 import { useAuth } from "@/context/AuthContext";
 
-export const useBudgetsQuery = () => {
+export const useBudgets = () => {
     const queryClient = useQueryClient();
     const { isAuthenticated } = useAuth();
 

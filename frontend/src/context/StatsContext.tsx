@@ -1,7 +1,7 @@
 import React, { createContext, useContext } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useExpensesSelector } from "@/hooks/use-expenses-selector";
-import { useBudgetsQuery } from "@/hooks/use-budgets-query";
+import { useExpensesSelector } from "@/hooks/use-transactions";
+import { useBudgets } from "@/hooks/use-budgets";
 
 type Stats = {
     totalIncome: number;
@@ -32,7 +32,7 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isLoading: expensesLoading,
     } = useExpensesSelector();
 
-    const { budgets, isBudgetsLoading } = useBudgetsQuery();
+    const { budgets, isBudgetsLoading } = useBudgets();
 
     // Then conditionally use the data
     const monthlyStats = isAuthenticated
