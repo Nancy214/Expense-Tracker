@@ -45,6 +45,10 @@ const userSchema = new Schema({
         type: String,
         required: false,
     },
+    timezone: {
+        type: String,
+        required: false,
+    },
     budget: {
         type: Boolean,
         required: false,

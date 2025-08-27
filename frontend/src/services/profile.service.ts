@@ -70,6 +70,7 @@ export const updateProfile = async (profileData: ProfileData): Promise<any> => {
         if (profileData.dateOfBirth) formData.append("dateOfBirth", profileData.dateOfBirth);
         if (profileData.currency) formData.append("currency", profileData.currency);
         if (profileData.country) formData.append("country", profileData.country);
+        if (profileData.timezone) formData.append("timezone", profileData.timezone);
 
         // Add file if present
         if (profileData.profilePicture) {

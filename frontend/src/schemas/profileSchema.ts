@@ -9,6 +9,7 @@ export const profileSchema = z.object({
     dateOfBirth: z.string().optional(),
     currency: z.string().optional(),
     country: z.string().optional(),
+    timezone: z.string().optional(),
 });
 
 // Type inference

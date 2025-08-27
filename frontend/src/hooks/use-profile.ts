@@ -46,8 +46,8 @@ export function useCountryTimezoneCurrency() {
     return useQuery({
         queryKey: PROFILE_QUERY_KEYS.countryTimezoneCurrency,
         queryFn: getCountryTimezoneCurrency,
-        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-        gcTime: 10 * 60 * 1000, // Cache for 10 minutes
+        staleTime: 30 * 60 * 1000, // Consider data fresh for 30 minutes (country data rarely changes)
+        gcTime: 60 * 60 * 1000, // Cache for 1 hour
         refetchOnWindowFocus: false, // Don't refetch on window focus
         enabled: isAuthenticated, // Only run the query if authenticated
     });
@@ -166,6 +166,7 @@ export function useProfileForm() {
     const [error, setError] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [photoRemoved, setPhotoRemoved] = useState(false);
+    const [isUpdatingSuccessfully, setIsUpdatingSuccessfully] = useState(false);
 
     // Use profile data from query if available, otherwise fall back to auth context
     const currentProfileData = profileData || user;
@@ -180,12 +181,13 @@ export function useProfileForm() {
             dateOfBirth: currentProfileData?.dateOfBirth || "",
             currency: currentProfileData?.currency || "INR",
             country: currentProfileData?.country || "",
+            timezone: currentProfileData?.timezone || "",
         },
     });
 
-    // Reset form when profile data changes, but only when not editing
+    // Reset form when profile data changes, but only when not editing and not in the middle of a successful update
     useEffect(() => {
-        if (currentProfileData && !isEditing) {
+        if (currentProfileData && !isEditing && !isUpdatingSuccessfully) {
             form.reset({
                 name: currentProfileData.name || "",
                 email: currentProfileData.email || "",
@@ -194,10 +196,11 @@ export function useProfileForm() {
                 dateOfBirth: currentProfileData.dateOfBirth || "",
                 currency: currentProfileData.currency || "INR",
                 country: currentProfileData.country || "",
+                timezone: currentProfileData.timezone || "",
             });
             setPhotoRemoved(false);
         }
-    }, [currentProfileData, form, isEditing]);
+    }, [currentProfileData, form, isEditing, isUpdatingSuccessfully]);
 
     const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -229,6 +232,7 @@ export function useProfileForm() {
             data.dateOfBirth !== currentProfileData?.dateOfBirth ||
             data.currency !== currentProfileData?.currency ||
             data.country !== currentProfileData?.country ||
+            data.timezone !== currentProfileData?.timezone ||
             data.profilePicture instanceof File ||
             photoRemoved;
 
@@ -242,30 +246,37 @@ export function useProfileForm() {
         }
 
         try {
+            setIsUpdatingSuccessfully(true);
+
             // If photo was removed, call backend to delete it first
             if (photoRemoved) {
                 await removeProfilePicture();
             }
 
-            await updateProfile(data);
+            const response = await updateProfile(data);
             setIsEditing(false);
             setPhotoRemoved(false);
 
-            // Reset form with updated data after successful submission
+            // Reset form with the updated data from the response
+            if (response && response.user) {
+                form.reset({
+                    name: response.user.name || "",
+                    email: response.user.email || "",
+                    profilePicture: response.user.profilePicture || "",
+                    phoneNumber: response.user.phoneNumber || "",
+                    dateOfBirth: response.user.dateOfBirth || "",
+                    currency: response.user.currency || "INR",
+                    country: response.user.country || "",
+                    timezone: response.user.timezone || "",
+                });
+            }
+
+            // Reset the updating flag after a short delay to allow the query cache to update
             setTimeout(() => {
-                if (currentProfileData) {
-                    form.reset({
-                        name: currentProfileData.name || "",
-                        email: currentProfileData.email || "",
-                        profilePicture: currentProfileData.profilePicture || "",
-                        phoneNumber: currentProfileData.phoneNumber || "",
-                        dateOfBirth: currentProfileData.dateOfBirth || "",
-                        currency: currentProfileData.currency || "INR",
-                        country: currentProfileData.country || "",
-                    });
-                }
-            }, 100);
+                setIsUpdatingSuccessfully(false);
+            }, 1000);
         } catch (error: any) {
+            setIsUpdatingSuccessfully(false);
             console.error("Error updating profile:", error);
             setError(error.response?.data?.message || "Failed to update profile. Please try again.");
         }
@@ -280,6 +291,7 @@ export function useProfileForm() {
             dateOfBirth: currentProfileData?.dateOfBirth || "",
             currency: currentProfileData?.currency || "INR",
             country: currentProfileData?.country || "",
+            timezone: currentProfileData?.timezone || "",
         });
         setPhotoRemoved(false);
         setIsEditing(false);

@@ -9,7 +9,7 @@ import { InputField } from "@/components/form-fields/InputField";
 import { SelectField } from "@/components/form-fields/SelectField";
 import { DateField } from "@/components/form-fields/DateField";
 import { useProfileForm, useCountryTimezoneCurrency } from "@/hooks/use-profile";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 const ProfileData: React.FC = () => {
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
@@ -29,6 +29,89 @@ const ProfileData: React.FC = () => {
         setIsEditing,
         user,
     } = useProfileForm();
+
+    // Get the currently selected country
+    const selectedCountry = form.watch("country");
+
+    // Filter currencies based on selected country
+    const getCurrenciesForCountry = (country: string) => {
+        if (!country || !countryTimezoneData) return [];
+
+        const countryData = countryTimezoneData.find((item) => item.country === country);
+        if (!countryData) return [];
+
+        // Return the currency for this country
+        return [countryData.currency].filter((currency) => currency && currency.code);
+    };
+
+    // Get timezones for selected country
+    const getTimezonesForCountry = (country: string) => {
+        if (!country || !countryTimezoneData) return [];
+
+        const countryData = countryTimezoneData.find((item) => item.country === country);
+        if (!countryData) return [];
+
+        // Return the timezones for this country
+        return countryData.timezones || [];
+    };
+
+    // Get available currencies for the selected country
+    const availableCurrencies = useMemo(() => {
+        if (!selectedCountry) {
+            // If no country is selected, return all currencies
+            return currencies
+                .filter((currency) => currency.code !== "")
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .reduce((acc, currency) => {
+                    if (!acc.some((c: any) => c.code === currency.code)) {
+                        acc.push(currency);
+                    }
+                    return acc;
+                }, [] as any[])
+                .map((currency) => ({
+                    value: currency.code || "Not Defined",
+                    label: `${currency.name} (${currency.code})`,
+                }));
+        }
+
+        // Return currencies for the selected country
+        return getCurrenciesForCountry(selectedCountry).map((currency) => ({
+            value: currency.code || "Not Defined",
+            label: `${currency.name} (${currency.code})`,
+        }));
+    }, [selectedCountry, countryTimezoneData, currencies]);
+
+    // Get available timezones for the selected country
+    const availableTimezones = useMemo(() => {
+        if (!selectedCountry) {
+            return [];
+        }
+
+        const timezones = getTimezonesForCountry(selectedCountry);
+        return timezones.map((timezone) => ({
+            value: timezone,
+            label: timezone,
+        }));
+    }, [selectedCountry, countryTimezoneData]);
+
+    // Auto-select currency and timezone when country changes
+    useEffect(() => {
+        if (selectedCountry && isEditing) {
+            // Auto-select currency
+            const countryCurrencies = getCurrenciesForCountry(selectedCountry);
+            if (countryCurrencies.length > 0) {
+                const defaultCurrency = countryCurrencies[0];
+                form.setValue("currency", defaultCurrency.code);
+            }
+
+            // Auto-select timezone
+            const countryTimezones = getTimezonesForCountry(selectedCountry);
+            if (countryTimezones.length > 0) {
+                const defaultTimezone = countryTimezones[0];
+                form.setValue("timezone", defaultTimezone);
+            }
+        }
+    }, [selectedCountry, isEditing, form]);
 
     // Don't render if user data is not available
     if (!user) {
@@ -51,21 +134,6 @@ const ProfileData: React.FC = () => {
             </Card>
         );
     }
-
-    // Reset form when user data changes and not editing
-    useEffect(() => {
-        if (user && !isEditing) {
-            form.reset({
-                name: user.name || "",
-                email: user.email || "",
-                profilePicture: user.profilePicture || "",
-                phoneNumber: user.phoneNumber || "",
-                dateOfBirth: user.dateOfBirth || "",
-                currency: user.currency || "INR",
-                country: user.country || "",
-            });
-        }
-    }, [user, form, isEditing]);
 
     const getInitials = (name: string) => {
         return name
@@ -180,29 +248,6 @@ const ProfileData: React.FC = () => {
                                 disabled={!isEditing}
                             />
                             <SelectField
-                                name="currency"
-                                label="Currency"
-                                placeholder="Select currency"
-                                options={
-                                    currencies && currencies.length > 0
-                                        ? currencies
-                                              .filter((currency) => currency.code !== "")
-                                              .sort((a, b) => a.name.localeCompare(b.name))
-                                              .reduce((acc, currency) => {
-                                                  if (!acc.some((c: any) => c.code === currency.code)) {
-                                                      acc.push(currency);
-                                                  }
-                                                  return acc;
-                                              }, [] as any[])
-                                              .map((currency) => ({
-                                                  value: currency.code || "Not Defined",
-                                                  label: `${currency.name} (${currency.code})`,
-                                              }))
-                                        : [{ value: "INR", label: "INR" }]
-                                }
-                                disabled={!isEditing}
-                            />
-                            <SelectField
                                 name="country"
                                 label="Country"
                                 placeholder="Select a country"
@@ -215,6 +260,20 @@ const ProfileData: React.FC = () => {
                                         : []
                                 }
                                 disabled={!isEditing}
+                            />
+                            <SelectField
+                                name="timezone"
+                                label="Timezone"
+                                placeholder={selectedCountry ? "Select timezone" : "Select a country first"}
+                                options={availableTimezones}
+                                disabled={!isEditing || !selectedCountry}
+                            />
+                            <SelectField
+                                name="currency"
+                                label="Currency"
+                                placeholder={selectedCountry ? "Select currency" : "Select a country first"}
+                                options={availableCurrencies}
+                                disabled={!isEditing || !selectedCountry}
                             />
                         </div>
 

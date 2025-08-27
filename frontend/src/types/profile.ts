@@ -5,6 +5,7 @@ export interface ProfileData {
     dateOfBirth?: string;
     currency?: string;
     country?: string;
+    timezone?: string;
     profilePicture?: File | string;
 }
 
@@ -24,6 +25,7 @@ export interface ProfileResponse {
     dateOfBirth?: string;
     currency?: string;
     country?: string;
+    timezone?: string;
     budget?: boolean;
     budgetType?: string;
     settings?: SettingsData;

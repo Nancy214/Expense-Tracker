@@ -7,7 +7,7 @@ import { useStats } from "@/context/StatsContext";
 import { useToast } from "@/hooks/use-toast";
 import { uploadReceipt } from "@/services/transaction.service";
 import { useTransactionMutations, useTransactionForm } from "@/hooks/use-transactions";
-import { getCountryTimezoneCurrency } from "@/services/profile.service";
+import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { Transaction } from "@/types/transaction";
 import { TRANSACTION_CONSTANTS } from "@/schemas/transactionSchema";
 import { InputField } from "@/components/form-fields/InputField";
@@ -40,8 +40,10 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const { toast } = useToast();
     const { user } = useAuth();
     const { refreshStats } = useStats();
-    const [currencyOptions, setCurrencyOptions] = useState<any[]>([]);
     const [showExchangeRate, setShowExchangeRate] = useState(false);
+
+    // Use the cached hook instead of direct API call
+    const { data: countryTimezoneData } = useCountryTimezoneCurrency();
 
     const { createTransaction, updateTransaction, isCreating, isUpdating } = useTransactionMutations();
 
@@ -69,9 +71,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     // Use mutation loading states
     const isSubmittingForm = isSubmitting || isCreating || isUpdating;
 
-    useEffect(() => {
-        fetchCurrencyOptions();
-    }, []);
+    // Extract currency options from the cached data
+    const currencyOptions = countryTimezoneData?.map((item) => item.currency) || [];
 
     useEffect(() => {
         if (currency) {
@@ -80,16 +81,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             setShowExchangeRate(false);
         }
     }, [currency, user?.currency]);
-
-    const fetchCurrencyOptions = async () => {
-        try {
-            const response = await getCountryTimezoneCurrency();
-            const currenciesOptions = response.map((item) => item.currency);
-            setCurrencyOptions(currenciesOptions);
-        } catch (error) {
-            console.error("Error fetching currency options:", error);
-        }
-    };
 
     const onSubmit = async (data: any) => {
         try {

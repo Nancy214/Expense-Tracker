@@ -80,6 +80,7 @@ export const getProfile = async (req: Request, res: Response) => {
                 dateOfBirth: userDoc.dateOfBirth,
                 currency: userDoc.currency,
                 country: userDoc.country,
+                timezone: userDoc.timezone,
                 budget: userDoc.budget,
                 budgetType: userDoc.budgetType,
                 settings: settingsDoc,
@@ -105,7 +106,7 @@ export const updateProfile = async (req: Request, res: Response) => {
         const currentUser = await User.findById(userId).select("profilePicture");
         const oldProfilePictureKey = currentUser?.profilePicture;
 
-        const { name, email, phoneNumber, dateOfBirth, currency, country } = req.body;
+        const { name, email, phoneNumber, dateOfBirth, currency, country, timezone } = req.body;
 
         // Check if email is being changed and if it's already taken
         if (email) {
@@ -122,6 +123,7 @@ export const updateProfile = async (req: Request, res: Response) => {
         if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
         if (currency !== undefined) updateData.currency = currency;
         if (country !== undefined) updateData.country = country;
+        if (timezone !== undefined) updateData.timezone = timezone;
 
         if (req.file) {
             // Check if AWS is properly configured
@@ -311,7 +313,12 @@ export const getCountryTimezoneCurrency = async (req: Request, res: Response) =>
     try {
         //console.log("getCountryTimezoneCurrency");
         const countryTimezoneCurrency = await CountryTimezoneCurrency.find().sort({ country: 1 });
-        res.json(countryTimezoneCurrency);
+        const result = countryTimezoneCurrency.map((item) => ({
+            country: item.country,
+            currency: item.currency,
+            timezones: item.timezones,
+        }));
+        res.json(result);
     } catch (error) {
         console.error("Error fetching country timezone currency:", error);
         res.status(500).json({ message: "Internal server error" });
