@@ -9,7 +9,7 @@ import { InputField } from "@/components/form-fields/InputField";
 import { SelectField } from "@/components/form-fields/SelectField";
 import { DateField } from "@/components/form-fields/DateField";
 import { CountryTimezoneCurrency } from "@/services/profile.service";
-import { useProfileForm } from "@/hooks/useProfileForm";
+import { useProfileForm } from "@/hooks/use-profile";
 
 interface ProfileDataProps {
     currencies: CountryTimezoneCurrency["currency"][];
@@ -183,28 +183,28 @@ const ProfileData: React.FC<ProfileDataProps> = ({ currencies, countryList }) =>
                                 disabled={!isEditing}
                             />
                         </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                            {isEditing ? (
+                                <>
+                                    <Button type="submit" disabled={isLoading}>
+                                        <Save className="h-4 w-4 mr-2" />
+                                        {isLoading ? "Saving..." : "Save Changes"}
+                                    </Button>
+                                    <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
+                                        Cancel
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button onClick={() => setIsEditing(true)}>
+                                    <Edit3 className="h-4 w-4 mr-2" />
+                                    Edit Profile
+                                </Button>
+                            )}
+                        </div>
                     </form>
                 </FormProvider>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                    {isEditing ? (
-                        <>
-                            <Button type="submit" disabled={isLoading}>
-                                <Save className="h-4 w-4 mr-2" />
-                                {isLoading ? "Saving..." : "Save Changes"}
-                            </Button>
-                            <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
-                                Cancel
-                            </Button>
-                        </>
-                    ) : (
-                        <Button onClick={() => setIsEditing(true)}>
-                            <Edit3 className="h-4 w-4 mr-2" />
-                            Edit Profile
-                        </Button>
-                    )}
-                </div>
             </CardContent>
         </Card>
     );

@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { getCountryTimezoneCurrency, CountryTimezoneCurrency } from "@/services/profile.service";
+import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import ProfileData from "@/app-components/pages/ProfilePage/ProfileData";
 import SettingsData from "@/app-components/pages/ProfilePage/SettingsData";
 
@@ -11,21 +10,11 @@ const ProfilePage: React.FC = () => {
     const { toast } = useToast();
     const navigate = useNavigate();
 
-    const [currencies, setCurrencies] = useState<CountryTimezoneCurrency["currency"][]>([]);
-    const [countryList, setCountryList] = useState<string[]>([]);
+    const { data: countryTimezoneData, isLoading, error } = useCountryTimezoneCurrency();
 
-    useEffect(() => {
-        fetchCountryTimezoneCurrency();
-    }, []);
-
-    const fetchCountryTimezoneCurrency = async () => {
-        const response = await getCountryTimezoneCurrency();
-        const countriesOptions = response.map((item) => item.country);
-        setCountryList(countriesOptions);
-
-        const currenciesOptions = response.map((item) => item.currency);
-        setCurrencies(currenciesOptions);
-    };
+    // Extract currencies and countries from the query data
+    const currencies = countryTimezoneData?.map((item) => item.currency) || [];
+    const countryList = countryTimezoneData?.map((item) => item.country) || [];
 
     const handleLogout = async () => {
         try {
@@ -43,6 +32,43 @@ const ProfilePage: React.FC = () => {
             });
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
+                <div className="mb-6">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Profile & Settings</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">
+                        Manage your account information and preferences
+                    </p>
+                </div>
+                <div className="flex items-center justify-center p-6">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-sm text-muted-foreground">Loading profile data...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
+                <div className="mb-6">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Profile & Settings</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">
+                        Manage your account information and preferences
+                    </p>
+                </div>
+                <div className="flex items-center justify-center p-6">
+                    <div className="text-center">
+                        <p className="text-sm text-red-600">Failed to load profile data. Please refresh the page.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">

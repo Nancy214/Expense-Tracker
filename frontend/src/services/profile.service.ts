@@ -51,7 +51,7 @@ profileApi.interceptors.response.use(
 export const getProfile = async (): Promise<ProfileResponse> => {
     try {
         const response = await profileApi.get("/");
-        return response.data.user;
+        return response.data.user || response.data;
     } catch (error) {
         console.error("Error fetching profile:", error);
         throw error;
@@ -91,7 +91,7 @@ export const updateProfile = async (profileData: ProfileData): Promise<any> => {
 export const updateSettings = async (settings: SettingsData): Promise<SettingsData> => {
     try {
         const response = await profileApi.put("/settings", settings);
-        return response.data.settings;
+        return response.data.settings || response.data;
     } catch (error) {
         console.error("Error updating settings:", error);
         throw error;
@@ -101,7 +101,7 @@ export const updateSettings = async (settings: SettingsData): Promise<SettingsDa
 export const getSettings = async (userId: string): Promise<SettingsData> => {
     try {
         const response = await profileApi.get(`/settings/${userId}`);
-        return response.data.settings;
+        return response.data.settings || response.data;
     } catch (error) {
         console.error("Error fetching settings:", error);
         throw error;
@@ -129,7 +129,6 @@ export interface CountryTimezoneCurrency {
 export const getCountryTimezoneCurrency = async (): Promise<CountryTimezoneCurrency[]> => {
     try {
         const response = await profileApi.get("/country-timezone-currency");
-        //console.log(response.data);
         return response.data;
     } catch (error) {
         console.error("Error fetching country timezone currency:", error);
