@@ -79,6 +79,7 @@ export const getProfile = async (req: Request, res: Response) => {
                 phoneNumber: userDoc.phoneNumber,
                 dateOfBirth: userDoc.dateOfBirth,
                 currency: userDoc.currency,
+                country: userDoc.country,
                 budget: userDoc.budget,
                 budgetType: userDoc.budgetType,
                 settings: settingsDoc,
@@ -104,7 +105,7 @@ export const updateProfile = async (req: Request, res: Response) => {
         const currentUser = await User.findById(userId).select("profilePicture");
         const oldProfilePictureKey = currentUser?.profilePicture;
 
-        const { name, email, phoneNumber, dateOfBirth, currency } = req.body;
+        const { name, email, phoneNumber, dateOfBirth, currency, country } = req.body;
 
         // Check if email is being changed and if it's already taken
         if (email) {
@@ -120,6 +121,7 @@ export const updateProfile = async (req: Request, res: Response) => {
         if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
         if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
         if (currency !== undefined) updateData.currency = currency;
+        if (country !== undefined) updateData.country = country;
 
         if (req.file) {
             // Check if AWS is properly configured

@@ -8,15 +8,15 @@ import { Label } from "@/components/ui/label";
 import { InputField } from "@/components/form-fields/InputField";
 import { SelectField } from "@/components/form-fields/SelectField";
 import { DateField } from "@/components/form-fields/DateField";
-import { CountryTimezoneCurrency } from "@/services/profile.service";
-import { useProfileForm } from "@/hooks/use-profile";
+import { useProfileForm, useCountryTimezoneCurrency } from "@/hooks/use-profile";
+import { useEffect } from "react";
 
-interface ProfileDataProps {
-    currencies: CountryTimezoneCurrency["currency"][];
-    countryList: string[];
-}
+const ProfileData: React.FC = () => {
+    const { data: countryTimezoneData } = useCountryTimezoneCurrency();
 
-const ProfileData: React.FC<ProfileDataProps> = ({ currencies, countryList }) => {
+    // Extract currencies and countries from the query data
+    const currencies = countryTimezoneData?.map((item) => item.currency) || [];
+    const countryList = countryTimezoneData?.map((item) => item.country) || [];
     const {
         form,
         isEditing,
@@ -29,6 +29,43 @@ const ProfileData: React.FC<ProfileDataProps> = ({ currencies, countryList }) =>
         setIsEditing,
         user,
     } = useProfileForm();
+
+    // Don't render if user data is not available
+    if (!user) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Camera className="h-5 w-5" />
+                        Personal Information
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-center justify-center p-6">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p className="text-sm text-muted-foreground">Loading profile data...</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    // Reset form when user data changes and not editing
+    useEffect(() => {
+        if (user && !isEditing) {
+            form.reset({
+                name: user.name || "",
+                email: user.email || "",
+                profilePicture: user.profilePicture || "",
+                phoneNumber: user.phoneNumber || "",
+                dateOfBirth: user.dateOfBirth || "",
+                currency: user.currency || "INR",
+                country: user.country || "",
+            });
+        }
+    }, [user, form, isEditing]);
 
     const getInitials = (name: string) => {
         return name
@@ -54,36 +91,35 @@ const ProfileData: React.FC<ProfileDataProps> = ({ currencies, countryList }) =>
                         <AvatarImage
                             src={
                                 photoRemoved
-                                    ? getInitials(form.watch("name")) // Hide avatar if photo is marked for removal
+                                    ? undefined // Hide avatar if photo is marked for removal
                                     : form.watch("profilePicture") instanceof File
                                     ? URL.createObjectURL(form.watch("profilePicture") as File)
                                     : form.watch("profilePicture")
                                     ? (form.watch("profilePicture") as string)
                                     : user?.profilePicture
                                     ? user.profilePicture
-                                    : getInitials(form.watch("name"))
+                                    : undefined
                             }
                             onError={(e) => {
                                 e.currentTarget.style.display = "none";
                             }}
                         />
-                        <AvatarFallback className="text-lg">{getInitials(form.watch("name"))}</AvatarFallback>
+                        <AvatarFallback className="text-lg">{getInitials(form.watch("name") || "")}</AvatarFallback>
                     </Avatar>
-                    <div className="flex items-center">
-                        <Label
-                            htmlFor="profilePicture"
-                            className={`flex items-center gap-2 border border-gray-300 rounded-md px-3 py-2 transition-colors ${
-                                isEditing ? "cursor-pointer hover:bg-gray-50" : "cursor-not-allowed opacity-50"
-                            }`}
-                            aria-disabled={!isEditing}
-                            tabIndex={isEditing ? 0 : -1}
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={!isEditing}
                             onClick={(e) => {
-                                if (!isEditing) e.preventDefault();
+                                if (isEditing) {
+                                    document.getElementById("profilePicture")?.click();
+                                }
                             }}
                         >
-                            <Camera className="h-4 w-4" />
+                            <Camera className="h-4 w-4 mr-2" />
                             Change Photo
-                        </Label>
+                        </Button>
                         <Input
                             id="profilePicture"
                             type="file"
@@ -92,15 +128,10 @@ const ProfileData: React.FC<ProfileDataProps> = ({ currencies, countryList }) =>
                             disabled={!isEditing}
                         />
                         {isEditing && (form.watch("profilePicture") || user?.profilePicture) && (
-                            <Label
-                                tabIndex={0}
-                                role="button"
-                                className="flex items-center gap-2 border border-gray-300 rounded-md px-3 py-2 ms-2 transition-colors cursor-pointer hover:bg-gray-50"
-                                onClick={handleRemovePhoto}
-                            >
+                            <Button type="button" variant="outline" onClick={handleRemovePhoto}>
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    className="h-4 w-4"
+                                    className="h-4 w-4 mr-2"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -113,23 +144,28 @@ const ProfileData: React.FC<ProfileDataProps> = ({ currencies, countryList }) =>
                                     />
                                 </svg>
                                 Remove Photo
-                            </Label>
+                            </Button>
                         )}
                     </div>
                 </div>
 
                 {/* Basic Information */}
                 <FormProvider {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <form
+                        onSubmit={(e) => {
+                            console.log("Form submit event triggered, isEditing:", isEditing);
+                            if (!isEditing) {
+                                console.log("Preventing form submission - not in editing mode");
+                                e.preventDefault();
+                                return;
+                            }
+                            form.handleSubmit(onSubmit)(e);
+                        }}
+                        className="space-y-6"
+                    >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputField name="name" label="Name" required disabled={!isEditing} />
-                            <InputField
-                                name="email"
-                                label="Email Address"
-                                type="email"
-                                required
-                                disabled={!isEditing}
-                            />
+                            <InputField name="name" label="Name" disabled={!isEditing} />
+                            <InputField name="email" label="Email Address" type="email" disabled={!isEditing} />
                             <InputField
                                 name="phoneNumber"
                                 label="Phone Number"
@@ -153,18 +189,17 @@ const ProfileData: React.FC<ProfileDataProps> = ({ currencies, countryList }) =>
                                               .filter((currency) => currency.code !== "")
                                               .sort((a, b) => a.name.localeCompare(b.name))
                                               .reduce((acc, currency) => {
-                                                  if (!acc.some((c) => c.code === currency.code)) {
+                                                  if (!acc.some((c: any) => c.code === currency.code)) {
                                                       acc.push(currency);
                                                   }
                                                   return acc;
-                                              }, [] as CountryTimezoneCurrency["currency"][])
+                                              }, [] as any[])
                                               .map((currency) => ({
                                                   value: currency.code || "Not Defined",
                                                   label: `${currency.name} (${currency.code})`,
                                               }))
                                         : [{ value: "INR", label: "INR" }]
                                 }
-                                required
                                 disabled={!isEditing}
                             />
                             <SelectField
@@ -179,7 +214,6 @@ const ProfileData: React.FC<ProfileDataProps> = ({ currencies, countryList }) =>
                                           }))
                                         : []
                                 }
-                                required
                                 disabled={!isEditing}
                             />
                         </div>
@@ -192,19 +226,34 @@ const ProfileData: React.FC<ProfileDataProps> = ({ currencies, countryList }) =>
                                         <Save className="h-4 w-4 mr-2" />
                                         {isLoading ? "Saving..." : "Save Changes"}
                                     </Button>
-                                    <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
+                                    <Button type="button" variant="outline" onClick={handleCancel} disabled={isLoading}>
                                         Cancel
                                     </Button>
                                 </>
-                            ) : (
-                                <Button onClick={() => setIsEditing(true)}>
-                                    <Edit3 className="h-4 w-4 mr-2" />
-                                    Edit Profile
-                                </Button>
-                            )}
+                            ) : null}
                         </div>
                     </form>
                 </FormProvider>
+
+                {/* Edit Profile Button - Outside the form */}
+                {!isEditing && (
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log("Edit Profile clicked, current isEditing:", isEditing);
+                                console.log("Form values:", form.getValues());
+                                setIsEditing(true);
+                            }}
+                        >
+                            <Edit3 className="h-4 w-4" />
+                            Edit Profile
+                        </button>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

@@ -69,6 +69,7 @@ export const updateProfile = async (profileData: ProfileData): Promise<any> => {
         if (profileData.phoneNumber) formData.append("phoneNumber", profileData.phoneNumber);
         if (profileData.dateOfBirth) formData.append("dateOfBirth", profileData.dateOfBirth);
         if (profileData.currency) formData.append("currency", profileData.currency);
+        if (profileData.country) formData.append("country", profileData.country);
 
         // Add file if present
         if (profileData.profilePicture) {

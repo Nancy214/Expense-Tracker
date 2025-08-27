@@ -33,9 +33,9 @@ export function useProfile() {
     return useQuery({
         queryKey: PROFILE_QUERY_KEYS.profile,
         queryFn: getProfile,
-        staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+        staleTime: 0, // Always consider data stale to ensure fresh profile picture URLs
         gcTime: 5 * 60 * 1000, // Cache for 5 minutes
-        refetchOnWindowFocus: false, // Don't refetch on window focus
+        refetchOnWindowFocus: true, // Refetch on window focus to get fresh profile picture URLs
         enabled: isAuthenticated, // Only run the query if authenticated
     });
 }
@@ -87,8 +87,9 @@ export function useProfileMutations() {
             localStorage.setItem("user", JSON.stringify(data.user));
             updateUser(data.user);
 
-            // Invalidate profile query
+            // Invalidate and refetch profile query to ensure fresh data
             queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
+            queryClient.refetchQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
         },
         onError: (error: any) => {
             toast({
@@ -107,8 +108,9 @@ export function useProfileMutations() {
                 description: "Profile picture removed successfully",
             });
 
-            // Invalidate profile query
+            // Invalidate and refetch profile query to ensure fresh data
             queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
+            queryClient.refetchQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
         },
         onError: (error: any) => {
             toast({
@@ -160,6 +162,7 @@ export function useProfileForm() {
     const { user } = useAuth();
     const { data: profileData } = useProfile();
     const { updateProfile, removeProfilePicture, isUpdatingProfile, isRemovingPicture } = useProfileMutations();
+    const { toast } = useToast();
     const [error, setError] = useState("");
     const [isEditing, setIsEditing] = useState(false);
     const [photoRemoved, setPhotoRemoved] = useState(false);
@@ -180,7 +183,7 @@ export function useProfileForm() {
         },
     });
 
-    // Reset form when profile data changes
+    // Reset form when profile data changes, but only when not editing
     useEffect(() => {
         if (currentProfileData && !isEditing) {
             form.reset({
@@ -192,6 +195,7 @@ export function useProfileForm() {
                 currency: currentProfileData.currency || "INR",
                 country: currentProfileData.country || "",
             });
+            setPhotoRemoved(false);
         }
     }, [currentProfileData, form, isEditing]);
 
@@ -217,6 +221,26 @@ export function useProfileForm() {
     const onSubmit = async (data: ProfileFormData) => {
         setError("");
 
+        // Check if any changes were made
+        const hasChanges =
+            data.name !== currentProfileData?.name ||
+            data.email !== currentProfileData?.email ||
+            data.phoneNumber !== currentProfileData?.phoneNumber ||
+            data.dateOfBirth !== currentProfileData?.dateOfBirth ||
+            data.currency !== currentProfileData?.currency ||
+            data.country !== currentProfileData?.country ||
+            data.profilePicture instanceof File ||
+            photoRemoved;
+
+        if (!hasChanges) {
+            toast({
+                title: "No Changes",
+                description: "No changes were made to save.",
+            });
+            setIsEditing(false);
+            return;
+        }
+
         try {
             // If photo was removed, call backend to delete it first
             if (photoRemoved) {
@@ -226,6 +250,21 @@ export function useProfileForm() {
             await updateProfile(data);
             setIsEditing(false);
             setPhotoRemoved(false);
+
+            // Reset form with updated data after successful submission
+            setTimeout(() => {
+                if (currentProfileData) {
+                    form.reset({
+                        name: currentProfileData.name || "",
+                        email: currentProfileData.email || "",
+                        profilePicture: currentProfileData.profilePicture || "",
+                        phoneNumber: currentProfileData.phoneNumber || "",
+                        dateOfBirth: currentProfileData.dateOfBirth || "",
+                        currency: currentProfileData.currency || "INR",
+                        country: currentProfileData.country || "",
+                    });
+                }
+            }, 100);
         } catch (error: any) {
             console.error("Error updating profile:", error);
             setError(error.response?.data?.message || "Failed to update profile. Please try again.");

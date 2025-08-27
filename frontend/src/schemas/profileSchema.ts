@@ -2,13 +2,13 @@ import { z } from "zod";
 
 // Profile schema
 export const profileSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Invalid email address"),
+    name: z.string().optional(),
+    email: z.string().email("Invalid email address").optional(),
     profilePicture: z.union([z.instanceof(File), z.string()]).optional(),
     phoneNumber: z.string().optional(),
     dateOfBirth: z.string().optional(),
-    currency: z.string().min(1, "Currency is required"),
-    country: z.string().min(1, "Country is required"),
+    currency: z.string().optional(),
+    country: z.string().optional(),
 });
 
 // Type inference
