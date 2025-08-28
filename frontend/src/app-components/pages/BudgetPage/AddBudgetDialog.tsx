@@ -71,7 +71,7 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
                                 placeholder="Select a category"
                                 options={BUDGET_CATEGORIES.map((category) => ({
                                     value: category,
-                                    label: category,
+                                    label: category === "Bill" ? "Bills" : category,
                                 }))}
                                 required
                             />

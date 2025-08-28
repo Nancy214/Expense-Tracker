@@ -9,7 +9,7 @@ import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/bil
 import { useExpensesSelector } from "@/hooks/use-transactions";
 import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
 import { useBudgets } from "@/hooks/use-budgets";
-import AddExpenseDialogRefactored from "../TransactionsPage/AddExpenseDialog";
+import AddExpenseDialog from "../TransactionsPage/AddExpenseDialog";
 
 interface FinancialOverviewData {
     savingsRate: number;
@@ -284,10 +284,11 @@ const HomePage = () => {
             </Card>
 
             {/* Add Expense Dialog */}
-            <AddExpenseDialogRefactored
+            <AddExpenseDialog
                 open={isExpenseDialogOpen}
                 onOpenChange={setIsExpenseDialogOpen}
                 preselectedCategory={preselectedCategory}
+                isAddBill={preselectedCategory === "Bill"}
                 onSuccess={() => {
                     navigate("/transactions");
                 }}

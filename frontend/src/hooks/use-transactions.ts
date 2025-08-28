@@ -240,7 +240,7 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory, isAddB
             fromRate: 1,
             toRate: 1,
             endDate: undefined,
-            billCategory: "" as any,
+            billCategory: "Rent/Mortgage" as any,
             reminderDays: 3,
             dueDate: format(new Date(), "dd/MM/yyyy"),
             billStatus: "unpaid" as const,

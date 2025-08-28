@@ -189,7 +189,9 @@ const BudgetPage: React.FC = () => {
                                                 <CardDescription>
                                                     {formatFrequency(budget.frequency)} Budget
                                                 </CardDescription>
-                                                <div className="text-xs text-gray-500 mt-1">{budget.category}</div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    {budget.category === "Bill" ? "Bills" : budget.category}
+                                                </div>
                                             </div>
                                             <div className="flex gap-1">
                                                 <Button variant="ghost" size="sm" onClick={() => handleEdit(budget)}>

@@ -82,6 +82,13 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         }
     }, [currency, user?.currency]);
 
+    // Reset form when dialog opens
+    useEffect(() => {
+        if (open) {
+            resetForm();
+        }
+    }, [open, resetForm]);
+
     const onSubmit = async (data: any) => {
         try {
             // Upload receipts if any

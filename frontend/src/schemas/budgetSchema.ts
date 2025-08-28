@@ -3,11 +3,12 @@ import { format } from "date-fns";
 
 // Budget categories
 export const BUDGET_CATEGORIES = [
+    "All Categories",
     "Food & Dining",
     "Transportation",
     "Shopping",
     "Entertainment",
-    "Bills & Utilities",
+    "Bill",
     "Healthcare",
     "Travel",
     "Education",

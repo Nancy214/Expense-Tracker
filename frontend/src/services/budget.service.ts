@@ -94,13 +94,21 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
                 id: `over-${budget._id}`,
                 budgetId: budget._id,
                 budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
-                    budget.category
+                    budget.category === "Bill"
+                        ? "Bills"
+                        : budget.category === "All Categories"
+                        ? "All Categories"
+                        : budget.category
                 }`,
                 type: "danger",
                 title: "Budget Exceeded!",
-                message: `You've exceeded your ${budget.frequency} budget for ${budget.category} by ₹${Math.abs(
-                    remaining
-                ).toFixed(2)}. Consider reviewing your spending in this category.`,
+                message: `You've exceeded your ${budget.frequency} budget for ${
+                    budget.category === "Bill"
+                        ? "Bills"
+                        : budget.category === "All Categories"
+                        ? "All Categories"
+                        : budget.category
+                } by ₹${Math.abs(remaining).toFixed(2)}. Consider reviewing your spending in this category.`,
                 progress,
                 remaining,
                 isOverBudget: true,
@@ -112,12 +120,20 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
                 id: `warning-${budget._id}`,
                 budgetId: budget._id,
                 budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
-                    budget.category
+                    budget.category === "Bill"
+                        ? "Bills"
+                        : budget.category === "All Categories"
+                        ? "All Categories"
+                        : budget.category
                 }`,
                 type: "warning",
                 title: "Budget Warning",
                 message: `You've used ${progress.toFixed(1)}% of your ${budget.frequency} budget for ${
-                    budget.category
+                    budget.category === "Bill"
+                        ? "Bills"
+                        : budget.category === "All Categories"
+                        ? "All Categories"
+                        : budget.category
                 }. Only ₹${remaining.toFixed(2)} remaining.`,
                 progress,
                 remaining,
@@ -130,12 +146,20 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
                 id: `info-${budget._id}`,
                 budgetId: budget._id,
                 budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
-                    budget.category
+                    budget.category === "Bill"
+                        ? "Bills"
+                        : budget.category === "All Categories"
+                        ? "All Categories"
+                        : budget.category
                 }`,
                 type: "warning",
                 title: "Budget Update",
                 message: `You've used ${progress.toFixed(1)}% of your ${budget.frequency} budget for ${
-                    budget.category
+                    budget.category === "Bill"
+                        ? "Bills"
+                        : budget.category === "All Categories"
+                        ? "All Categories"
+                        : budget.category
                 }. ₹${remaining.toFixed(2)} remaining.`,
                 progress,
                 remaining,

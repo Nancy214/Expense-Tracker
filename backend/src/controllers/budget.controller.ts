@@ -222,7 +222,7 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
                 const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
                 const isInRange = expenseDateStart >= budgetStartDateStart && expenseDateStart <= nowStart;
-                const matchesCategory = expense.category === budget.category;
+                const matchesCategory = budget.category === "All Categories" || expense.category === budget.category;
 
                 return isInRange && matchesCategory;
             });
