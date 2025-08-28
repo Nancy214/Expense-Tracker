@@ -1,5 +1,6 @@
 import axios from "axios";
 import { BudgetData, BudgetResponse, BudgetProgressResponse, BudgetReminder } from "../types/budget";
+import { handleTokenExpiration } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -19,6 +20,34 @@ budgetApi.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Add interceptor to handle token refresh
+budgetApi.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 403 && !originalRequest._retry) {
+            originalRequest._retry = true;
+            const refreshToken = localStorage.getItem("refreshToken");
+
+            try {
+                const response = await axios.post("http://localhost:8000/api/auth/refresh-token", {
+                    refreshToken,
+                });
+                const { accessToken } = response.data;
+                localStorage.setItem("accessToken", accessToken);
+
+                originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+                return budgetApi(originalRequest);
+            } catch (error) {
+                handleTokenExpiration();
+                return Promise.reject(error);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 export const createBudget = async (budgetData: BudgetData): Promise<BudgetResponse> => {
     try {

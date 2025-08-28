@@ -1,5 +1,6 @@
 import axios from "axios";
 import { LoginCredentials, AuthResponse, RegisterCredentials, User } from "@/types/auth";
+import { removeTokens, handleTokenExpiration } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -9,11 +10,7 @@ const storeTokens = (tokens: AuthResponse) => {
     localStorage.setItem("refreshToken", tokens.refreshToken);
 };
 
-// Remove tokens from localStorage
-const removeTokens = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-};
+// Remove tokens from localStorage - using utility function
 
 // Create axios instance
 const authApi = axios.create({
@@ -57,7 +54,7 @@ authApi.interceptors.response.use(
                 originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
                 return authApi(originalRequest);
             } catch (error) {
-                removeTokens();
+                handleTokenExpiration();
                 return Promise.reject(error);
             }
         }

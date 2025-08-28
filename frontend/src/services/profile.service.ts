@@ -1,5 +1,6 @@
 import axios from "axios";
 import { ProfileData, ProfileResponse, SettingsData } from "@/types/profile";
+import { handleTokenExpiration } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api/profile";
 
@@ -39,8 +40,7 @@ profileApi.interceptors.response.use(
                 originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
                 return profileApi(originalRequest);
             } catch (error) {
-                localStorage.removeItem("accessToken");
-                localStorage.removeItem("refreshToken");
+                handleTokenExpiration();
                 return Promise.reject(error);
             }
         }

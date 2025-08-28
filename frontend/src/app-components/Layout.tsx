@@ -36,9 +36,14 @@ function LayoutContent({ children }: LayoutProps) {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     // Check if we're on auth pages
-    const isAuthPage = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/google/callback"].includes(
-        location.pathname
-    );
+    const isAuthPage = [
+        "/login",
+        "/register",
+        "/forgot-password",
+        "/reset-password",
+        "/auth/google/callback",
+        "/logout",
+    ].includes(location.pathname);
 
     // Authentication guard
     useEffect(() => {
@@ -51,10 +56,10 @@ function LayoutContent({ children }: LayoutProps) {
                 return;
             }
 
-            // If token exists but user is not authenticated (expired token), redirect to login
+            // If token exists but user is not authenticated (expired token), redirect to logout page
             if (token && !isAuthenticated && !isAuthPage) {
                 localStorage.removeItem("accessToken"); // Clear expired token
-                navigate("/login", { replace: true });
+                navigate("/logout", { replace: true });
                 return;
             }
 

@@ -2,6 +2,7 @@ import { Navigate, useLocation, Route, Routes } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import LoginPage from "@/app-components/pages/AuthPages/LoginPage";
 import RegisterPage from "@/app-components/pages/AuthPages/RegisterPage";
+import LogoutPage from "@/app-components/pages/AuthPages/LogoutPage";
 import HomePage from "@/app-components/pages/HomePage/HomePage";
 import BudgetPage from "@/app-components/pages/BudgetPage/BudgetPage";
 import CalendarPage from "@/app-components/pages/CalendarPage/CalendarPage";
@@ -81,6 +82,11 @@ const routes: RouteConfig[] = [
         requireAuth: false,
     },
     {
+        path: "/logout",
+        element: <LogoutPage />,
+        requireAuth: false,
+    },
+    {
         path: "/analytics",
         element: <AnalyticsPage />,
         requireAuth: true,
@@ -103,7 +109,7 @@ export const RouteGuard = ({ children }: { children: React.ReactNode }) => {
     }
 
     if (currentRoute.requireAuth && !isAuthenticated) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        return <Navigate to="/logout" state={{ from: location }} replace />;
     }
 
     if (!currentRoute.requireAuth && isAuthenticated) {

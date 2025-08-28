@@ -1,4 +1,5 @@
 import axios from "axios";
+import { handleTokenExpiration } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api/analytics";
 
@@ -16,6 +17,34 @@ analyticsApi.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Add interceptor to handle token refresh
+analyticsApi.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 403 && !originalRequest._retry) {
+            originalRequest._retry = true;
+            const refreshToken = localStorage.getItem("refreshToken");
+
+            try {
+                const response = await axios.post("http://localhost:8000/api/auth/refresh-token", {
+                    refreshToken,
+                });
+                const { accessToken } = response.data;
+                localStorage.setItem("accessToken", accessToken);
+
+                originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+                return analyticsApi(originalRequest);
+            } catch (error) {
+                handleTokenExpiration();
+                return Promise.reject(error);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 // Get expense category breakdown for pie chart
 export const getExpenseCategoryBreakdown = async (): Promise<{

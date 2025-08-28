@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { login, logout } from "@/services/auth.service";
 import { LoginCredentials, AuthResponse } from "@/types/auth";
+import { removeTokens } from "@/utils/authUtils";
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -67,12 +68,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleLogout = async () => {
         try {
             await logout();
-            localStorage.removeItem("user");
+            removeTokens();
             setUser(null);
             setIsAuthenticated(false);
         } catch (error) {
             console.error("Logout failed:", error);
-            localStorage.removeItem("user");
+            removeTokens();
             setUser(null);
             setIsAuthenticated(false);
             throw error;

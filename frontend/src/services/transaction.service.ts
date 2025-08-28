@@ -1,6 +1,7 @@
 import axios from "axios";
 import { Transaction, TransactionResponse } from "@/types/transaction";
 import { parse, isValid } from "date-fns";
+import { handleTokenExpiration } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api/expenses";
 
@@ -18,6 +19,34 @@ expenseApi.interceptors.request.use((config) => {
     }
     return config;
 });
+
+// Add interceptor to handle token refresh
+expenseApi.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 403 && !originalRequest._retry) {
+            originalRequest._retry = true;
+            const refreshToken = localStorage.getItem("refreshToken");
+
+            try {
+                const response = await axios.post("http://localhost:8000/api/auth/refresh-token", {
+                    refreshToken,
+                });
+                const { accessToken } = response.data;
+                localStorage.setItem("accessToken", accessToken);
+
+                originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+                return expenseApi(originalRequest);
+            } catch (error) {
+                handleTokenExpiration();
+                return Promise.reject(error);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 export const getExpenses = async (
     page: number = 1,
