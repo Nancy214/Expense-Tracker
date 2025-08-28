@@ -1,7 +1,28 @@
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Clock, Bell } from "lucide-react";
+import { AlertTriangle, Clock, Bell, CreditCard, Loader2 } from "lucide-react";
 import { useExpensesSelector } from "@/hooks/use-transactions";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { formatToDisplay } from "@/lib/dateUtils";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { updateTransactionBillStatus } from "@/services/transaction.service";
+
+// Helper function to parse dates correctly
+const parseDate = (dateValue: any): Date => {
+    if (dateValue instanceof Date) {
+        return dateValue;
+    } else if (typeof dateValue === "string") {
+        // Check if it's an ISO date string
+        if (dateValue.includes("T") || dateValue.includes("-")) {
+            return new Date(dateValue);
+        } else {
+            // Assume it's in display format (dd/MM/yyyy)
+            return parseISO(dateValue);
+        }
+    }
+    throw new Error("Invalid date format");
+};
 
 export function useBillsAndReminders() {
     const { upcomingAndOverdueBills, billReminders } = useExpensesSelector();
@@ -16,153 +37,226 @@ interface BillAlertsUIProps {
     billsAndBudgetsAlertEnabled: boolean;
     overdueBills: any[];
     upcomingBills: any[];
-    onViewBills: () => void;
-    showViewBillsButton?: boolean;
-}
-
-interface BillRemindersUIProps {
-    billsAndBudgetsAlertEnabled: boolean;
     billReminders: any[];
     onViewBills: () => void;
     showViewBillsButton?: boolean;
 }
 
+// Bill Item Component
+const BillItem = ({
+    bill,
+    onPay,
+    isUpdating,
+}: {
+    bill: any;
+    onPay: (billId: string) => void;
+    isUpdating: string | null;
+}) => {
+    const dueDate = parseDate(bill.dueDate);
+    const formattedDueDate = formatToDisplay(dueDate);
+    const daysLeft = differenceInCalendarDays(dueDate, new Date());
+    const isThisBillUpdating = isUpdating === bill._id;
+
+    // Determine bill status for styling
+    const getBillStatus = () => {
+        if (daysLeft < 0) return "overdue";
+        if (daysLeft <= 3) return "urgent";
+        return "upcoming";
+    };
+
+    const billStatus = getBillStatus();
+    const statusColors = {
+        overdue: "border-red-200 bg-red-50",
+        urgent: "border-yellow-200 bg-yellow-50",
+        upcoming: "border-blue-200 bg-blue-50",
+    };
+
+    return (
+        <div
+            className={`flex items-center justify-between p-4 rounded-lg border shadow-sm hover:shadow-md transition-shadow ${statusColors[billStatus]}`}
+        >
+            <div className="flex-1">
+                <h4 className="font-medium text-gray-900">{bill.title}</h4>
+                <p className="text-sm text-gray-600">
+                    Due: {formattedDueDate}
+                    {daysLeft >= 0
+                        ? ` (${daysLeft} day${daysLeft !== 1 ? "s" : ""} left)`
+                        : ` (${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? "s" : ""} overdue)`}
+                </p>
+                <p className="text-sm font-medium text-gray-900">₹{bill.amount?.toFixed(2)}</p>
+            </div>
+            <Button
+                size="sm"
+                onClick={() => onPay(bill._id)}
+                className="ml-4"
+                disabled={bill.billStatus === "paid" || isThisBillUpdating}
+            >
+                {isThisBillUpdating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                    <CreditCard className="h-4 w-4 mr-2" />
+                )}
+                {isThisBillUpdating ? "Updating..." : bill.billStatus === "paid" ? "Paid" : "Pay"}
+            </Button>
+        </div>
+    );
+};
+
 export function BillAlertsUI({
     billsAndBudgetsAlertEnabled,
     overdueBills,
     upcomingBills,
-    onViewBills,
-    showViewBillsButton = true,
-}: BillAlertsUIProps) {
-    if (!billsAndBudgetsAlertEnabled || (overdueBills.length === 0 && upcomingBills.length === 0)) {
-        return null;
-    }
-
-    // Calculate days remaining for upcoming bills
-    const upcomingBillsWithDays = upcomingBills.map((bill) => {
-        const dueDate = bill.dueDate instanceof Date ? bill.dueDate : parseISO(bill.dueDate);
-        const daysLeft = differenceInCalendarDays(dueDate, new Date());
-        return { ...bill, daysLeft };
-    });
-
-    return (
-        <div className="mb-6 space-y-3">
-            {overdueBills.length > 0 && (
-                <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0">
-                            <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="font-medium text-red-900">
-                                {overdueBills.length} bill
-                                {overdueBills.length > 1 ? "s" : ""} overdue
-                            </h4>
-                            <p className="text-sm text-red-700 mt-1">
-                                You have {overdueBills.length} bill
-                                {overdueBills.length > 1 ? "s" : ""} that {overdueBills.length > 1 ? "are" : "is"} past
-                                due date. Please review and take action.
-                            </p>
-                        </div>
-                        {showViewBillsButton && (
-                            <Button size="sm" variant="secondary" className="mt-1" onClick={onViewBills}>
-                                View Bills
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            )}
-            {upcomingBillsWithDays.length > 0 && (
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0">
-                            <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="font-medium text-blue-900">
-                                {upcomingBillsWithDays.length} upcoming bill
-                                {upcomingBillsWithDays.length > 1 ? "s" : ""}
-                            </h4>
-                            <p className="text-sm text-blue-700 mt-1">
-                                You have {upcomingBillsWithDays.length} bill
-                                {upcomingBillsWithDays.length > 1 ? "s" : ""} due within the next 7 days. Plan your
-                                payments accordingly.
-                            </p>
-                            {/* Show individual upcoming bills with days remaining */}
-                            {/* <div className="mt-3 space-y-2">
-                                {upcomingBillsWithDays.map((bill) => (
-                                    <div key={bill._id} className="flex items-center justify-between text-xs">
-                                        <span className="font-medium">
-                                            {bill.title} - Due in {bill.daysLeft} day{bill.daysLeft !== 1 ? "s" : ""}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div> */}
-                        </div>
-                        {showViewBillsButton && (
-                            <Button size="sm" variant="secondary" className="mt-1" onClick={onViewBills}>
-                                View Bills
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-export function BillRemindersUI({
-    billsAndBudgetsAlertEnabled,
     billReminders,
     onViewBills,
     showViewBillsButton = true,
-}: BillRemindersUIProps) {
-    if (!billsAndBudgetsAlertEnabled || billReminders.length === 0) {
+}: BillAlertsUIProps) {
+    const { toast } = useToast();
+    const [isUpdating, setIsUpdating] = useState<string | null>(null);
+
+    const handlePayBill = async (billId: string) => {
+        setIsUpdating(billId);
+        try {
+            await updateTransactionBillStatus(billId, "paid");
+            toast({
+                title: "Bill marked as paid",
+                description: "The bill has been successfully marked as paid.",
+            });
+            // Trigger a refresh of the data instead of reloading the page
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent("refresh-bills"));
+            }, 500);
+        } catch (error) {
+            console.error("Error updating bill status:", error);
+            toast({
+                title: "Error",
+                description: "Failed to mark bill as paid. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsUpdating(null);
+        }
+    };
+
+    // Combine all bills and remove duplicates
+    const allBills = [...overdueBills, ...upcomingBills, ...billReminders];
+    const uniqueBills = allBills.filter((bill, index, self) => index === self.findIndex((b) => b._id === bill._id));
+
+    if (!billsAndBudgetsAlertEnabled || uniqueBills.length === 0) {
         return null;
     }
 
-    // Calculate days remaining for bill reminders
-    const remindersWithDays = billReminders.map((bill) => {
-        const dueDate = bill.dueDate instanceof Date ? bill.dueDate : parseISO(bill.dueDate);
+    // Calculate days remaining for all bills
+    const billsWithDays = uniqueBills.map((bill) => {
+        const dueDate = parseDate(bill.dueDate);
         const daysLeft = differenceInCalendarDays(dueDate, new Date());
         return { ...bill, daysLeft };
     });
 
+    // Sort bills by priority: overdue first, then by days remaining
+    const sortedBills = billsWithDays.sort((a, b) => {
+        if (a.daysLeft < 0 && b.daysLeft >= 0) return -1;
+        if (a.daysLeft >= 0 && b.daysLeft < 0) return 1;
+        return a.daysLeft - b.daysLeft;
+    });
+
+    // Count different types of bills
+    const overdueCount = overdueBills.length;
+    const urgentCount = billReminders.length;
+    const upcomingCount = upcomingBills.length;
+
+    // Determine the main alert type and message
+    const getAlertType = () => {
+        if (overdueCount > 0) return "overdue";
+        if (urgentCount > 0) return "urgent";
+        return "upcoming";
+    };
+
+    const alertType = getAlertType();
+    const alertConfig = {
+        overdue: {
+            icon: AlertTriangle,
+            bgColor: "bg-gradient-to-r from-red-50 to-red-100",
+            borderColor: "border-red-200",
+            textColor: "text-red-900",
+            descColor: "text-red-700",
+            title: `${overdueCount} bill${overdueCount > 1 ? "s" : ""} overdue`,
+            description: `You have ${overdueCount} bill${overdueCount > 1 ? "s" : ""} that ${
+                overdueCount > 1 ? "are" : "is"
+            } past due date. Please review and take action.`,
+        },
+        urgent: {
+            icon: Bell,
+            bgColor: "bg-gradient-to-r from-yellow-50 to-yellow-100",
+            borderColor: "border-yellow-200",
+            textColor: "text-yellow-900",
+            descColor: "text-yellow-700",
+            title: `${urgentCount} bill reminder${urgentCount > 1 ? "s" : ""}`,
+            description: `You have ${urgentCount} bill${
+                urgentCount > 1 ? "s" : ""
+            } with active reminders. Don't forget to pay them on time.`,
+        },
+        upcoming: {
+            icon: Clock,
+            bgColor: "bg-gradient-to-r from-blue-50 to-blue-100",
+            borderColor: "border-blue-200",
+            textColor: "text-blue-900",
+            descColor: "text-blue-700",
+            title: `${upcomingCount} upcoming bill${upcomingCount > 1 ? "s" : ""}`,
+            description: `You have ${upcomingCount} bill${
+                upcomingCount > 1 ? "s" : ""
+            } due within the next 7 days. Plan your payments accordingly.`,
+        },
+    };
+
+    const config = alertConfig[alertType];
+    const IconComponent = config.icon;
+
     return (
         <div className="mb-6 space-y-3">
-            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200 rounded-xl p-4">
+            <div className={`${config.bgColor} ${config.borderColor} border rounded-xl p-4`}>
                 <div className="flex items-start gap-3">
                     <div className="flex-shrink-0">
-                        <Bell className="h-5 w-5 text-yellow-600 mt-0.5" />
+                        <IconComponent className={`h-5 w-5 ${config.textColor} mt-0.5`} />
                     </div>
                     <div className="flex-1">
-                        <h4 className="font-medium text-yellow-900">
-                            {remindersWithDays.length} bill reminder
-                            {remindersWithDays.length > 1 ? "s" : ""}
-                        </h4>
-                        <p className="text-sm text-yellow-700 mt-1">
-                            You have {remindersWithDays.length} bill
-                            {remindersWithDays.length > 1 ? "s" : ""} with active reminders. Don't forget to pay them on
-                            time.
-                        </p>
-                        {/* Show individual bill reminders with days remaining */}
-                        <div className="mt-3 space-y-2">
-                            {remindersWithDays.map((bill) => (
-                                <div key={bill._id} className="flex items-center justify-between text-xs">
-                                    <span className="font-medium">
-                                        {bill.title} - Due in {bill.daysLeft} day{bill.daysLeft !== 1 ? "s" : ""}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
+                        <h4 className={`font-medium ${config.textColor}`}>{config.title}</h4>
+                        <p className={`text-sm ${config.descColor} mt-1`}>{config.description}</p>
+
+                        <Accordion type="single" collapsible className="mt-4">
+                            <AccordionItem value="all-bills" className="border-none">
+                                <AccordionTrigger
+                                    className={`text-sm ${config.descColor} hover:${config.textColor} py-2 px-3 bg-white/50 hover:bg-white/70 rounded-lg transition-colors`}
+                                >
+                                    View All Bills ({sortedBills.length})
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-3 mt-3">
+                                        {sortedBills.map((bill) => (
+                                            <BillItem
+                                                key={bill._id}
+                                                bill={bill}
+                                                onPay={handlePayBill}
+                                                isUpdating={isUpdating}
+                                            />
+                                        ))}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     </div>
-                    {showViewBillsButton && (
-                        <Button size="sm" variant="secondary" className="mt-1" onClick={onViewBills}>
-                            View Bills
-                        </Button>
-                    )}
                 </div>
             </div>
         </div>
     );
+}
+
+// Keep the old interface for backward compatibility but mark as deprecated
+export function BillRemindersUI(props: {
+    billsAndBudgetsAlertEnabled: boolean;
+    billReminders: any[];
+    onViewBills: () => void;
+    showViewBillsButton?: boolean;
+}) {
+    // This is now deprecated - use BillAlertsUI instead
+    return null;
 }

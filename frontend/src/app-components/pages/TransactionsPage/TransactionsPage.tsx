@@ -7,16 +7,24 @@ import { Plus, TrendingUp } from "lucide-react";
 import { TransactionWithId } from "@/types/transaction";
 import { BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
 import { useBudgets } from "@/hooks/use-budgets";
-import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";
 import { useExpenses, useRecurringTemplates } from "@/hooks/use-transactions";
+import { useSettings } from "@/hooks/use-profile";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
+
+    // Load user settings properly
+    const { data: settingsData } = useSettings(user?.id || "");
+
+    // Use settings from the API if available, otherwise fall back to user context
+    const billsAndBudgetsAlertEnabled = !!(
+        (settingsData?.billsAndBudgetsAlert ?? (user as any)?.settings?.billsAndBudgetsAlert ?? true) // Default to true if no settings found
+    );
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -29,7 +37,6 @@ const TransactionsPage = () => {
         invalidateRecurringTemplates,
     } = useRecurringTemplates();
 
-    const { upcomingBills, overdueBills, billReminders } = useBillsAndReminders();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<TransactionWithId | null>(null);
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
@@ -222,27 +229,6 @@ const TransactionsPage = () => {
         <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
             {/* Budget Reminders */}
             <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} />
-
-            {/* Bill Alerts */}
-            <BillAlertsUI
-                billsAndBudgetsAlertEnabled={
-                    !!(user && (user as any).settings && (user as any).settings.billsAndBudgetsAlert)
-                }
-                overdueBills={overdueBills}
-                upcomingBills={upcomingBills}
-                onViewBills={() => {}} // Empty function since we're already on transactions page
-                showViewBillsButton={false} // Hide button on transactions page
-            />
-
-            {/* Bill Reminders */}
-            <BillRemindersUI
-                billsAndBudgetsAlertEnabled={
-                    !!(user && (user as any).settings && (user as any).settings.billsAndBudgetsAlert)
-                }
-                billReminders={billReminders}
-                onViewBills={() => {}} // Empty function since we're already on transactions page
-                showViewBillsButton={false} // Hide button on transactions page
-            />
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

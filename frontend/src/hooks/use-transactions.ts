@@ -2,10 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse, isValid, parseISO } from "date-fns";
-import { useMemo, useCallback, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { getExpenses, getRecurringTemplates, createExpense, updateExpense } from "@/services/transaction.service";
+import {
+    getExpenses,
+    getRecurringTemplates,
+    createExpense,
+    updateExpense,
+    deleteExpense,
+    uploadReceipt,
+    updateTransactionBillStatus,
+} from "@/services/transaction.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
 import { Transaction, TransactionWithId } from "@/types/transaction";
@@ -329,6 +337,18 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory, isAddB
 export function useExpensesSelector() {
     const { expenses, isLoading, invalidateExpenses } = useExpenses();
 
+    // Listen for bill refresh events
+    useEffect(() => {
+        const handleRefreshBills = () => {
+            invalidateExpenses();
+        };
+
+        window.addEventListener("refresh-bills", handleRefreshBills);
+        return () => {
+            window.removeEventListener("refresh-bills", handleRefreshBills);
+        };
+    }, [invalidateExpenses]);
+
     const billExpenses = useMemo(() => {
         return expenses.filter((expense: any) => expense.category === "Bill");
     }, [expenses]);
@@ -341,7 +361,22 @@ export function useExpensesSelector() {
         billExpenses.forEach((bill: any) => {
             if (!bill.dueDate || bill.billStatus === "paid") return;
 
-            const dueDate = bill.dueDate instanceof Date ? bill.dueDate : parseFromDisplay(bill.dueDate);
+            // Handle different date formats
+            let dueDate: Date;
+            if (bill.dueDate instanceof Date) {
+                dueDate = bill.dueDate;
+            } else if (typeof bill.dueDate === "string") {
+                // Check if it's an ISO date string
+                if (bill.dueDate.includes("T") || bill.dueDate.includes("-")) {
+                    dueDate = new Date(bill.dueDate);
+                } else {
+                    // Assume it's in display format (dd/MM/yyyy)
+                    dueDate = parseFromDisplay(bill.dueDate);
+                }
+            } else {
+                return;
+            }
+
             const daysLeft = getDaysDifference(dueDate, today);
 
             if (daysLeft < 0) {
@@ -356,12 +391,30 @@ export function useExpensesSelector() {
 
     const billReminders = useMemo(() => {
         const today = getStartOfToday();
-        return billExpenses.filter((bill: any) => {
+        const reminders = billExpenses.filter((bill: any) => {
             if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays) return false;
-            const dueDate = bill.dueDate instanceof Date ? bill.dueDate : parseFromDisplay(bill.dueDate);
+
+            // Handle different date formats
+            let dueDate: Date;
+            if (bill.dueDate instanceof Date) {
+                dueDate = bill.dueDate;
+            } else if (typeof bill.dueDate === "string") {
+                // Check if it's an ISO date string
+                if (bill.dueDate.includes("T") || bill.dueDate.includes("-")) {
+                    dueDate = new Date(bill.dueDate);
+                } else {
+                    // Assume it's in display format (dd/MM/yyyy)
+                    dueDate = parseFromDisplay(bill.dueDate);
+                }
+            } else {
+                return false;
+            }
+
             const daysLeft = getDaysDifference(dueDate, today);
             return daysLeft >= 0 && daysLeft <= bill.reminderDays;
         });
+
+        return reminders;
     }, [billExpenses]);
 
     const monthlyStats = useMemo(() => {

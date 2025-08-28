@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { AlertTriangle } from "lucide-react";
+import { X, Bell } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/hooks/use-profile";
 
 interface ExpenseReminderBannerProps {
     settings?: {
@@ -9,6 +11,15 @@ interface ExpenseReminderBannerProps {
 }
 
 export function ExpenseReminderBanner({ settings }: ExpenseReminderBannerProps) {
+    const { user } = useAuth();
+    const { data: settingsData } = useSettings(user?.id || "");
+
+    // Use settings from the API if available, otherwise fall back to prop or defaults
+    const effectiveSettings = {
+        expenseReminders: settingsData?.expenseReminders ?? settings?.expenseReminders ?? false,
+        expenseReminderTime: settingsData?.expenseReminderTime ?? settings?.expenseReminderTime ?? "18:00",
+    };
+
     const [show, setShow] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
@@ -21,9 +32,9 @@ export function ExpenseReminderBanner({ settings }: ExpenseReminderBannerProps) 
         }
         let interval: NodeJS.Timeout | undefined;
         const checkReminder = () => {
-            if (settings?.expenseReminders && settings?.expenseReminderTime) {
+            if (effectiveSettings.expenseReminders && effectiveSettings.expenseReminderTime) {
                 const now = new Date();
-                const [h, m] = settings.expenseReminderTime.split(":");
+                const [h, m] = effectiveSettings.expenseReminderTime.split(":");
                 const nowMinutes = now.getHours() * 60 + now.getMinutes();
                 const reminderMinutes = Number(h) * 60 + Number(m);
 
@@ -41,7 +52,7 @@ export function ExpenseReminderBanner({ settings }: ExpenseReminderBannerProps) 
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [settings?.expenseReminders, settings?.expenseReminderTime]);
+    }, [effectiveSettings.expenseReminders, effectiveSettings.expenseReminderTime]);
 
     const handleClose = () => {
         setShow(false);
@@ -54,15 +65,11 @@ export function ExpenseReminderBanner({ settings }: ExpenseReminderBannerProps) 
     return (
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 flex items-center gap-2 justify-between">
             <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                <Bell className="h-5 w-5 text-yellow-600" />
                 <span>Don't forget to log your expenses for today!</span>
             </div>
-            <button
-                onClick={handleClose}
-                className="ml-4 px-2 py-1 rounded bg-yellow-200 hover:bg-yellow-300 text-yellow-900 text-xs font-medium"
-                aria-label="Dismiss reminder"
-            >
-                Dismiss
+            <button onClick={handleClose} className="text-yellow-600 hover:text-yellow-800">
+                <X className="h-4 w-4" />
             </button>
         </div>
     );

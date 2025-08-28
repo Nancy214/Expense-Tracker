@@ -9,6 +9,7 @@ import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/bil
 import { useExpensesSelector } from "@/hooks/use-transactions";
 import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
 import { useBudgets } from "@/hooks/use-budgets";
+import { useSettings } from "@/hooks/use-profile";
 import AddExpenseDialog from "../TransactionsPage/AddExpenseDialog";
 
 interface FinancialOverviewData {
@@ -24,10 +25,13 @@ interface FinancialOverviewData {
 const HomePage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+
+    // Load user settings properly
+    const { data: settingsData } = useSettings(user?.id || "");
+
+    // Use settings from the API if available, otherwise fall back to user context
     const billsAndBudgetsAlertEnabled = !!(
-        user &&
-        (user as any).settings &&
-        (user as any).settings.billsAndBudgetsAlert
+        (settingsData?.billsAndBudgetsAlert ?? (user as any)?.settings?.billsAndBudgetsAlert ?? true) // Default to true if no settings found
     );
 
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
@@ -104,7 +108,7 @@ const HomePage = () => {
 
     return (
         <div className="p-4 md:p-6 lg:p-4 space-y-4 max-w-full">
-            <ExpenseReminderBanner settings={(user as any)?.settings} />
+            <ExpenseReminderBanner settings={settingsData} />
             {/* Budget Reminders */}
             {remindersError ? (
                 <div className="text-center p-4 text-red-600">
@@ -120,17 +124,11 @@ const HomePage = () => {
                 />
             )}
 
-            {/* Bill Alerts */}
+            {/* Bill Alerts - Unified */}
             <BillAlertsUI
                 billsAndBudgetsAlertEnabled={billsAndBudgetsAlertEnabled}
                 overdueBills={overdueBills}
                 upcomingBills={upcomingBills}
-                onViewBills={() => navigate("/transactions?tab=bills")}
-            />
-
-            {/* Bill Reminders */}
-            <BillRemindersUI
-                billsAndBudgetsAlertEnabled={billsAndBudgetsAlertEnabled}
                 billReminders={billReminders}
                 onViewBills={() => navigate("/transactions?tab=bills")}
             />
