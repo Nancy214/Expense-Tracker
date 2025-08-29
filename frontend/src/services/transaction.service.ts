@@ -94,6 +94,18 @@ export const getAllTransactions = async (
     }
 };
 
+export const getAllTransactionsForAnalytics = async (): Promise<{
+    transactions: any[];
+}> => {
+    try {
+        const response = await expenseApi.get(`/get-all-transactions-analytics`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching all transactions for analytics:", error);
+        throw error;
+    }
+};
+
 export const getBills = async (
     page: number = 1,
     limit: number = 10

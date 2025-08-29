@@ -3,7 +3,7 @@ import { Transaction } from "@/types/transaction";
 import { parse, isValid } from "date-fns";
 
 import { useAuth } from "@/context/AuthContext";
-import { useExpenses } from "@/hooks/use-transactions";
+import { useExpenses, useAllTransactionsForAnalytics } from "@/hooks/use-transactions";
 import {
     useExpenseCategoryBreakdown,
     useBillsCategoryBreakdown,
@@ -22,6 +22,7 @@ import CalendarHeatmapComponent from "./CalendarHeatmap";
 const AnalyticsPage = () => {
     const { user } = useAuth();
     const { expenses, isLoading: expensesLoading } = useExpenses();
+    const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactionsForAnalytics();
 
     // TanStack Query hooks for analytics data
     const {
@@ -69,23 +70,11 @@ const AnalyticsPage = () => {
             target: item.savings * 1.1, // Set target as 10% higher than actual savings
         })) || [];
 
-    // Transform expenses for heatmap
+    // Transform expenses for heatmap using all transactions
     const expenseHeatmapData =
-        expenses.length > 0
+        allTransactions.length > 0
             ? transformExpensesToHeatmapData(
-                  expenses.map((e: any) => {
-                      let d: Date;
-                      if (typeof e.date === "string") {
-                          d = parse(e.date, "dd/MM/yyyy", new Date());
-                          if (!isValid(d)) d = new Date(e.date);
-                      } else {
-                          d = e.date;
-                      }
-                      return {
-                          ...e,
-                          date: isValid(d) ? d : new Date(),
-                      };
-                  })
+                  allTransactions.filter((t: any) => t.type === "expense") // Only include expenses for the heatmap
               )
             : [];
 
@@ -95,7 +84,8 @@ const AnalyticsPage = () => {
         billsBreakdownLoading ||
         incomeExpenseLoading ||
         savingsTrendLoading ||
-        expensesLoading;
+        expensesLoading ||
+        allTransactionsLoading;
 
     return (
         <div className="p-4 md:p-6 lg:p-4 max-w-7xl mx-auto space-y-8">
@@ -143,7 +133,6 @@ const AnalyticsPage = () => {
                     currency={user?.currency || "INR"}
                     showInsights={true}
                     showLegend={true}
-                    year={new Date().getFullYear()}
                 />
             ) : (
                 <Card className="rounded-2xl shadow-lg hover:shadow-2xl transition">

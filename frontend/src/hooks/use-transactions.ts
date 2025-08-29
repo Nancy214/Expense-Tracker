@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
     getExpenses,
     getAllTransactions,
+    getAllTransactionsForAnalytics,
     getBills,
     getRecurringTemplates,
     getTransactionSummary,
@@ -127,6 +128,49 @@ export function useAllTransactions(page: number = 1, limit: number = 10) {
         invalidateAllTransactions,
         transactions: query.data?.transactions ?? [],
         pagination: query.data?.pagination ?? null,
+    };
+}
+
+export function useAllTransactionsForAnalytics() {
+    const { isAuthenticated } = useAuth();
+
+    const query = useQuery({
+        queryKey: [...TRANSACTION_QUERY_KEYS.allTransactions, "analytics"],
+        staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+        refetchOnWindowFocus: false, // Don't refetch on window focus
+        queryFn: async () => {
+            if (!isAuthenticated) {
+                return { transactions: [] };
+            }
+            // Fetch all transactions without pagination for analytics
+            const response = await getAllTransactionsForAnalytics();
+
+            const transactions = response?.transactions || [];
+            const transactionsWithDates = transactions.map((transaction: any) => ({
+                ...transaction,
+                date: formatToDisplay(transaction.date),
+                description: transaction.description ?? "",
+                currency: transaction.currency ?? "INR",
+            }));
+
+            return {
+                transactions: transactionsWithDates,
+            };
+        },
+        enabled: isAuthenticated, // Only run the query if authenticated
+    });
+
+    const queryClient = useQueryClient();
+
+    const invalidateAllTransactionsForAnalytics = () => {
+        return queryClient.invalidateQueries({ queryKey: [...TRANSACTION_QUERY_KEYS.allTransactions, "analytics"] });
+    };
+
+    return {
+        ...query,
+        invalidateAllTransactionsForAnalytics,
+        transactions: query.data?.transactions ?? [],
     };
 }
 
@@ -605,20 +649,41 @@ export function useExpensesSelector() {
 export const transformExpensesToHeatmapData = (expenses: Transaction[]) => {
     const groupedByDate = expenses.reduce(
         (acc, expense) => {
-            const date = new Date(expense.date).toISOString().split("T")[0];
+            let dateStr: string;
 
-            if (!acc[date]) {
-                acc[date] = {
-                    date,
+            // Handle different date formats
+            const expenseDate = expense.date as string | Date;
+
+            if (typeof expenseDate === "string") {
+                // Check if it's already in ISO format (contains 'T' or 'Z')
+                if (expenseDate.includes("T") || expenseDate.includes("Z")) {
+                    // ISO format - extract date part
+                    dateStr = expenseDate.split("T")[0];
+                } else {
+                    // Assume it's in dd/MM/yyyy format - convert to ISO
+                    const [day, month, year] = expenseDate.split("/");
+                    dateStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+                }
+            } else if (expenseDate instanceof Date) {
+                // Date object - convert to ISO string
+                dateStr = expenseDate.toISOString().split("T")[0];
+            } else {
+                // Fallback to current date
+                dateStr = new Date().toISOString().split("T")[0];
+            }
+
+            if (!acc[dateStr]) {
+                acc[dateStr] = {
+                    date: dateStr,
                     count: 0,
                     amount: 0,
                     categories: new Set<string>(),
                 };
             }
 
-            acc[date].count++;
-            acc[date].amount += expense.amount;
-            acc[date].categories.add(expense.category || "Uncategorized");
+            acc[dateStr].count++;
+            acc[dateStr].amount += expense.amount;
+            acc[dateStr].categories.add(expense.category || "Uncategorized");
 
             return acc;
         },

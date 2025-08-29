@@ -622,3 +622,25 @@ export const updateTransactionBillStatus = async (req: AuthRequest, res: Respons
         res.status(500).json({ message: "Error updating bill status", error });
     }
 };
+
+// New function for getting all transactions for analytics (no pagination)
+export const getAllTransactionsForAnalytics = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: "User not authenticated" });
+        }
+
+        // Get all transactions (excluding recurring templates) without pagination
+        const transactions = await TransactionModel.find({
+            userId,
+            $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
+        }).sort({ date: -1 });
+
+        res.json({
+            transactions,
+        });
+    } catch (error) {
+        res.status(500).json({ message: error });
+    }
+};

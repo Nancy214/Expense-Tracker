@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 // @ts-ignore
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface HeatmapData {
@@ -45,6 +46,26 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
     maxValue,
     year,
 }) => {
+    // Get all available years from the data
+    const availableYears = useMemo(() => {
+        if (data.length === 0) return [new Date().getFullYear()];
+
+        const years = new Set<number>();
+        data.forEach((item) => {
+            const itemYear = new Date(item.date).getFullYear();
+            years.add(itemYear);
+        });
+
+        return Array.from(years).sort((a, b) => b - a); // Sort in descending order
+    }, [data]);
+
+    // State for selected year
+    const [selectedYear, setSelectedYear] = useState<number>(() => {
+        if (year) return year;
+        if (availableYears.length > 0) return availableYears[0];
+        return new Date().getFullYear();
+    });
+
     // Format amount with currency
     const formatAmount = (amount: number) => {
         if (amount === undefined || amount === null || isNaN(amount)) {
@@ -70,13 +91,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
 
     // Determine the year to display
     const getDisplayYear = () => {
-        if (year) return year; // Use provided year if specified
-
-        if (data.length === 0) return new Date().getFullYear();
-
-        // Get the year from the first data point
-        const firstDate = new Date(data[0].date);
-        return firstDate.getFullYear();
+        return selectedYear;
     };
 
     const displayYear = getDisplayYear();
@@ -215,10 +230,31 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
         <TooltipProvider>
             <Card className="w-full">
                 <CardHeader>
-                    <CardTitle className="text-xl font-semibold">
-                        {title} {year ? `(${displayYear})` : ""}
-                    </CardTitle>
-                    {description && <CardDescription className="text-muted-foreground">{description}</CardDescription>}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                            {description && (
+                                <CardDescription className="text-muted-foreground">{description}</CardDescription>
+                            )}
+                        </div>
+                        {availableYears.length > 1 && (
+                            <Select
+                                value={selectedYear.toString()}
+                                onValueChange={(value) => setSelectedYear(parseInt(value))}
+                            >
+                                <SelectTrigger className="w-[120px]">
+                                    <SelectValue placeholder="Select Year" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableYears.map((year) => (
+                                        <SelectItem key={year} value={year.toString()}>
+                                            {year}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="overflow-x-auto">

@@ -3,6 +3,7 @@ import { authenticateToken } from "../middleware/auth.middleware";
 import {
     getExpenses,
     getAllTransactions,
+    getAllTransactionsForAnalytics,
     getBills,
     getRecurringTemplates,
     getTransactionSummary,
@@ -21,6 +22,11 @@ const router = Router();
 
 router.get("/get-expenses", authenticateToken as RequestHandler, getExpenses as RequestHandler);
 router.get("/get-all-transactions", authenticateToken as RequestHandler, getAllTransactions as RequestHandler);
+router.get(
+    "/get-all-transactions-analytics",
+    authenticateToken as RequestHandler,
+    getAllTransactionsForAnalytics as RequestHandler
+);
 router.get("/get-bills", authenticateToken as RequestHandler, getBills as RequestHandler);
 router.get("/get-recurring-templates", authenticateToken as RequestHandler, getRecurringTemplates as RequestHandler);
 router.get("/transaction-summary", authenticateToken as RequestHandler, getTransactionSummary as RequestHandler);
