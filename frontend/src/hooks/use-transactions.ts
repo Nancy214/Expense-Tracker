@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
     getExpenses,
     getRecurringTemplates,
+    getTransactionSummary,
     createExpense,
     updateExpense,
     deleteExpense,
@@ -120,6 +121,44 @@ export function useRecurringTemplates() {
         ...query,
         invalidateRecurringTemplates,
         recurringTemplates: query.data?.recurringTemplates ?? [],
+    };
+}
+
+export function useTransactionSummary() {
+    const { isAuthenticated } = useAuth();
+
+    const query = useQuery({
+        queryKey: [...TRANSACTION_QUERY_KEYS.expenses, "summary"],
+        staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+        refetchOnWindowFocus: false, // Don't refetch on window focus
+        queryFn: async () => {
+            if (!isAuthenticated) {
+                return {
+                    summary: {
+                        totalTransactions: 0,
+                        totalIncome: 0,
+                        totalExpenses: 0,
+                        totalBills: 0,
+                        totalRecurringTemplates: 0,
+                    },
+                };
+            }
+            const response = await getTransactionSummary();
+            return response;
+        },
+        enabled: isAuthenticated, // Only run the query if authenticated
+    });
+
+    return {
+        ...query,
+        summary: query.data?.summary ?? {
+            totalTransactions: 0,
+            totalIncome: 0,
+            totalExpenses: 0,
+            totalBills: 0,
+            totalRecurringTemplates: 0,
+        },
     };
 }
 

@@ -777,7 +777,7 @@ export function ExpenseDataTable({
                         <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="text-sm text-muted-foreground">
                                 Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                                {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} results
+                                {(currentPage - 1) * itemsPerPage + data.length} of {totalItems} results
                             </div>
                             {totalPages > 1 && (
                                 <PaginationWrapper

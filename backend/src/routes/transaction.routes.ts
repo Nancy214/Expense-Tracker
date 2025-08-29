@@ -3,6 +3,7 @@ import { authenticateToken } from "../middleware/auth.middleware";
 import {
     getExpenses,
     getRecurringTemplates,
+    getTransactionSummary,
     createExpense,
     updateExpense,
     deleteExpense,
@@ -18,6 +19,7 @@ const router = Router();
 
 router.get("/get-expenses", authenticateToken as RequestHandler, getExpenses as RequestHandler);
 router.get("/get-recurring-templates", authenticateToken as RequestHandler, getRecurringTemplates as RequestHandler);
+router.get("/transaction-summary", authenticateToken as RequestHandler, getTransactionSummary as RequestHandler);
 router.post("/add-expenses", authenticateToken as RequestHandler, createExpense as RequestHandler);
 router.post("/trigger-recurring", authenticateToken as RequestHandler, triggerRecurringExpensesJob as RequestHandler);
 router.post(

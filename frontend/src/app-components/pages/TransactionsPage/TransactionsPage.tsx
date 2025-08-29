@@ -11,7 +11,7 @@ import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpense
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";
-import { useExpenses, useRecurringTemplates } from "@/hooks/use-transactions";
+import { useExpenses, useRecurringTemplates, useTransactionSummary } from "@/hooks/use-transactions";
 import { useSettings } from "@/hooks/use-profile";
 
 const TransactionsPage = () => {
@@ -36,6 +36,7 @@ const TransactionsPage = () => {
         isLoading: isLoadingRecurring,
         invalidateRecurringTemplates,
     } = useRecurringTemplates();
+    const { summary } = useTransactionSummary();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<TransactionWithId | null>(null);
@@ -273,9 +274,7 @@ const TransactionsPage = () => {
                 <CardContent>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">
-                                {expenses.filter((t) => t.type === "income" && !t.templateId).length}
-                            </div>
+                            <div className="text-2xl font-bold text-green-600">{summary.totalIncome}</div>
                             <div className="text-sm text-muted-foreground">Total Income</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
@@ -286,9 +285,7 @@ const TransactionsPage = () => {
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-red-600">
-                                {expenses.filter((t) => t.type === "expense" && !t.templateId).length}
-                            </div>
+                            <div className="text-2xl font-bold text-red-600">{summary.totalExpenses}</div>
                             <div className="text-sm text-muted-foreground">Total Expenses</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
@@ -299,9 +296,7 @@ const TransactionsPage = () => {
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-primary">
-                                {expenses.filter((t) => !t.templateId).length}
-                            </div>
+                            <div className="text-2xl font-bold text-primary">{pagination?.total || 0}</div>
                             <div className="text-sm text-muted-foreground">Total Transactions</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 Avg: {symbol}
@@ -316,7 +311,7 @@ const TransactionsPage = () => {
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">{recurringTemplates.length}</div>
+                            <div className="text-2xl font-bold text-blue-600">{summary.totalRecurringTemplates}</div>
                             <div className="text-sm text-muted-foreground">Recurring Expense</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
@@ -326,9 +321,7 @@ const TransactionsPage = () => {
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-purple-600">
-                                {expenses.filter((t) => t.category === "Bill" && !t.templateId).length}
-                            </div>
+                            <div className="text-2xl font-bold text-purple-600">{summary.totalBills}</div>
                             <div className="text-sm text-muted-foreground">Total Bills</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}

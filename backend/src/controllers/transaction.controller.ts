@@ -86,6 +86,37 @@ export const getRecurringTemplates = async (req: AuthRequest, res: Response) => 
     }
 };
 
+export const getTransactionSummary = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: "User not authenticated" });
+        }
+
+        // Get all transactions for the user
+        const allTransactions = await TransactionModel.find({ userId });
+
+        // Calculate summary statistics
+        const totalTransactions = allTransactions.filter((t) => !t.templateId).length;
+        const totalIncome = allTransactions.filter((t) => t.type === "income" && !t.templateId).length;
+        const totalExpenses = allTransactions.filter((t) => t.type === "expense" && !t.templateId).length;
+        const totalBills = allTransactions.filter((t) => t.category === "Bill" && !t.templateId).length;
+        const totalRecurringTemplates = allTransactions.filter((t) => t.isRecurring && !t.templateId).length;
+
+        res.json({
+            summary: {
+                totalTransactions,
+                totalIncome,
+                totalExpenses,
+                totalBills,
+                totalRecurringTemplates,
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ message: error });
+    }
+};
+
 export const getExpensesById = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.id;

@@ -83,6 +83,24 @@ export const getRecurringTemplates = async (): Promise<{
     }
 };
 
+export const getTransactionSummary = async (): Promise<{
+    summary: {
+        totalTransactions: number;
+        totalIncome: number;
+        totalExpenses: number;
+        totalBills: number;
+        totalRecurringTemplates: number;
+    };
+}> => {
+    try {
+        const response = await expenseApi.get("/transaction-summary");
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching transaction summary:", error);
+        throw error;
+    }
+};
+
 export const createExpense = async (expense: Transaction): Promise<TransactionResponse> => {
     try {
         const response = await expenseApi.post(`/add-expenses`, expense);
