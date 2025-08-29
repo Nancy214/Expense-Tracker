@@ -45,8 +45,31 @@ const BudgetPage: React.FC = () => {
         },
     });
 
+    const handleConfirmDelete = () => {
+        confirmDelete();
+        if (budgetToDelete) {
+            toast({
+                title: "Budget deleted",
+                description: `${budgetToDelete.category} budget has been deleted successfully.`,
+            });
+        }
+    };
+
+    // Show error toast if budgets fail to load
+    if (budgetsError) {
+        toast({
+            title: "Error loading budgets",
+            description: budgetsError.message || "Failed to load your budgets. Please try again.",
+            variant: "destructive",
+        });
+    }
+
     const dismissReminder = (reminderId: string) => {
         setDismissedReminders((prev) => new Set([...prev, reminderId]));
+        toast({
+            title: "Reminder dismissed",
+            description: "Budget reminder has been dismissed.",
+        });
     };
 
     const activeReminders = budgetReminders.filter((reminder) => !dismissedReminders.has(reminder.id));
@@ -54,6 +77,18 @@ const BudgetPage: React.FC = () => {
     const handleEdit = (budget: BudgetResponse) => {
         setEditingBudget(budget);
         setIsDialogOpen(true);
+        toast({
+            title: "Edit budget",
+            description: `Editing ${budget.category} budget`,
+        });
+    };
+
+    const handleAddBudget = () => {
+        setIsDialogOpen(true);
+        toast({
+            title: "Add budget",
+            description: "Creating a new budget",
+        });
     };
 
     const formatFrequency = (freq: BudgetFrequency) => {
@@ -112,7 +147,7 @@ const BudgetPage: React.FC = () => {
                         </p>
                     </div>
                     {budgets.length !== 0 ? (
-                        <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
+                        <Button onClick={handleAddBudget} className="flex items-center gap-2">
                             <Plus className="h-4 w-4" />
                             Add Budget
                         </Button>
@@ -164,6 +199,12 @@ const BudgetPage: React.FC = () => {
                     editingBudget={editingBudget}
                     onSuccess={() => {
                         setEditingBudget(null);
+                        toast({
+                            title: editingBudget ? "Budget updated" : "Budget created",
+                            description: editingBudget
+                                ? "Your budget has been updated successfully."
+                                : "Your new budget has been created successfully.",
+                        });
                     }}
                 />
 
@@ -172,7 +213,7 @@ const BudgetPage: React.FC = () => {
                         <CardContent className="flex items-center justify-center p-12">
                             <div className="text-center">
                                 <p className="text-lg text-gray-600 mb-4">No budgets found</p>
-                                <Button onClick={() => setIsDialogOpen(true)}>Create your first budget</Button>
+                                <Button onClick={handleAddBudget}>Create your first budget</Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -246,7 +287,7 @@ const BudgetPage: React.FC = () => {
             <DeleteConfirmationDialog
                 open={isDeleteDialogOpen}
                 onOpenChange={setIsDeleteDialogOpen}
-                onConfirm={confirmDelete}
+                onConfirm={handleConfirmDelete}
                 onCancel={cancelDelete}
                 title="Delete Budget"
                 message={
