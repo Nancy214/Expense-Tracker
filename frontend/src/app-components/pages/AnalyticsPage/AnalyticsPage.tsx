@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Transaction } from "@/types/transaction";
-import { parse, isValid } from "date-fns";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { useExpenses, useAllTransactionsForAnalytics } from "@/hooks/use-transactions";
@@ -21,7 +21,7 @@ import CalendarHeatmapComponent from "./CalendarHeatmap";
 
 const AnalyticsPage = () => {
     const { user } = useAuth();
-    const { expenses, isLoading: expensesLoading } = useExpenses();
+    const { isLoading: expensesLoading } = useExpenses();
     const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactionsForAnalytics();
 
     // TanStack Query hooks for analytics data
@@ -48,6 +48,9 @@ const AnalyticsPage = () => {
         isLoading: savingsTrendLoading,
         error: savingsTrendError,
     } = useMonthlySavingsTrend();
+
+    // Check for any errors
+    const hasErrors = expenseBreakdownError || billsBreakdownError || incomeExpenseError || savingsTrendError;
 
     // Transform data for charts
     const expenseCategoryData = expenseBreakdown?.data || [];
@@ -99,6 +102,20 @@ const AnalyticsPage = () => {
                     </p>
                 </div>
             </div>
+
+            {/* Error Alert */}
+            {hasErrors && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                        {expenseBreakdownError && "Failed to load expense breakdown data. "}
+                        {billsBreakdownError && "Failed to load bills breakdown data. "}
+                        {incomeExpenseError && "Failed to load income/expense summary data. "}
+                        {savingsTrendError && "Failed to load savings trend data. "}
+                        Please try refreshing the page or contact support if the issue persists.
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {/* Account Statistics Component */}
             {/* <AccountStatistics /> */}

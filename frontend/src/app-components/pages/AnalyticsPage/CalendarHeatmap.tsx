@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-// @ts-ignore
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -265,7 +264,6 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                             classForValue={getClassForValue}
                             showWeekdayLabels={true}
                             gutterSize={2}
-                            square={true}
                             transformDayElement={(element: any, value: any, index: number) => {
                                 if (!value || !value.date) {
                                     return element;
