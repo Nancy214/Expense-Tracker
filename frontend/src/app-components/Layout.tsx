@@ -33,7 +33,6 @@ function LayoutContent({ children }: LayoutProps) {
     const navigate = useNavigate();
     const { logout, user, isAuthenticated } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(false);
 
     // Check if we're on auth pages
     const isAuthPage = [
@@ -112,7 +111,7 @@ function LayoutContent({ children }: LayoutProps) {
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="left" className="w-72 p-0">
-                                <SidebarContent isCollapsed={false} />
+                                <SidebarContent />
                             </SheetContent>
                         </Sheet>
 
@@ -163,13 +162,8 @@ function LayoutContent({ children }: LayoutProps) {
 
             <div className="flex flex-1">
                 {/* Sidebar */}
-                <aside
-                    className={cn(
-                        "hidden md:flex flex-col border-r bg-white transition-all duration-300 ease-in-out",
-                        isCollapsed ? "w-16" : "w-64"
-                    )}
-                >
-                    <SidebarContent isCollapsed={isCollapsed} />
+                <aside className="hidden md:flex flex-col border-r bg-white w-64">
+                    <SidebarContent />
                 </aside>
 
                 {/* Main content */}
@@ -184,13 +178,8 @@ function LayoutContent({ children }: LayoutProps) {
     );
 }
 
-interface SidebarContentProps {
-    isCollapsed: boolean;
-}
-
-function SidebarContent({ isCollapsed }: SidebarContentProps) {
+function SidebarContent() {
     const location = useLocation();
-    const navigate = useNavigate();
 
     return (
         <div className="flex h-full flex-col">
@@ -211,7 +200,7 @@ function SidebarContent({ isCollapsed }: SidebarContentProps) {
                             )}
                         >
                             <Icon className="h-4 w-4" />
-                            {!isCollapsed && <span className="flex-1">{label}</span>}
+                            <span className="flex-1">{label}</span>
                         </a>
                     );
                 })}
