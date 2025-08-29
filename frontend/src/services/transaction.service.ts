@@ -361,7 +361,7 @@ export const deleteRecurringExpense = async (id: string): Promise<void> => {
 // Update bill status for transactions
 export const updateTransactionBillStatus = async (id: string, status: string): Promise<TransactionResponse> => {
     try {
-        const response = await expenseApi.patch(`/${id}/bill-status`, { status });
+        const response = await expenseApi.patch(`/${id}/bill-status`, { billStatus: status });
         return response.data;
     } catch (error) {
         console.error("Error updating transaction bill status:", error);

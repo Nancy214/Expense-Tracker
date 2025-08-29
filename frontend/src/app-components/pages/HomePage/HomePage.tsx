@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { ExpenseReminderBanner } from "@/utils/ExpenseReminderBanner";
 import { BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
-import { useBillsAndReminders, BillAlertsUI, BillRemindersUI } from "@/utils/billUtils.tsx";
+import { useBillsAndReminders, BillAlertsUI } from "@/utils/billUtils.tsx";
 import { useExpensesSelector } from "@/hooks/use-transactions";
 import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
 import { useBudgets } from "@/hooks/use-budgets";

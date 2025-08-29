@@ -4,12 +4,11 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Camera, Save, Edit3 } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { InputField } from "@/components/form-fields/InputField";
 import { SelectField } from "@/components/form-fields/SelectField";
 import { DateField } from "@/components/form-fields/DateField";
 import { useProfileForm, useCountryTimezoneCurrency } from "@/hooks/use-profile";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 
 const ProfileData: React.FC = () => {
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
@@ -34,26 +33,32 @@ const ProfileData: React.FC = () => {
     const selectedCountry = form.watch("country");
 
     // Filter currencies based on selected country
-    const getCurrenciesForCountry = (country: string) => {
-        if (!country || !countryTimezoneData) return [];
+    const getCurrenciesForCountry = useCallback(
+        (country: string) => {
+            if (!country || !countryTimezoneData) return [];
 
-        const countryData = countryTimezoneData.find((item) => item.country === country);
-        if (!countryData) return [];
+            const countryData = countryTimezoneData.find((item) => item.country === country);
+            if (!countryData) return [];
 
-        // Return the currency for this country
-        return [countryData.currency].filter((currency) => currency && currency.code);
-    };
+            // Return the currency for this country
+            return [countryData.currency].filter((currency) => currency && currency.code);
+        },
+        [countryTimezoneData]
+    );
 
     // Get timezones for selected country
-    const getTimezonesForCountry = (country: string) => {
-        if (!country || !countryTimezoneData) return [];
+    const getTimezonesForCountry = useCallback(
+        (country: string) => {
+            if (!country || !countryTimezoneData) return [];
 
-        const countryData = countryTimezoneData.find((item) => item.country === country);
-        if (!countryData) return [];
+            const countryData = countryTimezoneData.find((item) => item.country === country);
+            if (!countryData) return [];
 
-        // Return the timezones for this country
-        return countryData.timezones || [];
-    };
+            // Return the timezones for this country
+            return countryData.timezones || [];
+        },
+        [countryTimezoneData]
+    );
 
     // Get available currencies for the selected country
     const availableCurrencies = useMemo(() => {
@@ -111,7 +116,7 @@ const ProfileData: React.FC = () => {
                 form.setValue("timezone", defaultTimezone);
             }
         }
-    }, [selectedCountry, isEditing, form]);
+    }, [selectedCountry, isEditing, form, getCurrenciesForCountry, getTimezonesForCountry]);
 
     // Don't render if user data is not available
     if (!user) {
@@ -179,7 +184,7 @@ const ProfileData: React.FC = () => {
                             type="button"
                             variant="outline"
                             disabled={!isEditing}
-                            onClick={(e) => {
+                            onClick={() => {
                                 if (isEditing) {
                                     document.getElementById("profilePicture")?.click();
                                 }
@@ -247,6 +252,9 @@ const ProfileData: React.FC = () => {
                                 placeholder="Pick a date"
                                 disabled={!isEditing}
                             />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <SelectField
                                 name="country"
                                 label="Country"

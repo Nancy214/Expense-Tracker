@@ -142,9 +142,18 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
             };
             localStorage.setItem("user", JSON.stringify(updatedUser));
             updateUser(updatedUser);
+
+            toast({
+                title: "Settings Saved",
+                description: "Your settings have been updated successfully.",
+            });
         } catch (error) {
             console.error("Error updating settings:", error);
-            // Error handling is done in the mutation hook
+            toast({
+                title: "Error",
+                description: "Failed to save settings. Please try again.",
+                variant: "destructive",
+            });
         }
     };
 

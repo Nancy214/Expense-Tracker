@@ -6,7 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { formatToDisplay } from "@/lib/dateUtils";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { updateTransactionBillStatus } from "@/services/transaction.service";
+import { useTransactionMutations } from "@/hooks/use-transactions";
 
 // Helper function to parse dates correctly
 const parseDate = (dateValue: any): Date => {
@@ -112,34 +112,36 @@ export function BillAlertsUI({
 }: BillAlertsUIProps) {
     const { toast } = useToast();
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
+    const { updateBillStatus } = useTransactionMutations();
 
     const handlePayBill = async (billId: string) => {
         setIsUpdating(billId);
         try {
-            await updateTransactionBillStatus(billId, "paid");
-            toast({
-                title: "Bill marked as paid",
-                description: "The bill has been successfully marked as paid.",
-            });
-            // Trigger a refresh of the data instead of reloading the page
-            setTimeout(() => {
-                window.dispatchEvent(new CustomEvent("refresh-bills"));
-            }, 500);
+            await updateBillStatus({ id: billId, status: "paid" });
+            // Success toast is handled by the mutation hook
         } catch (error) {
             console.error("Error updating bill status:", error);
-            toast({
-                title: "Error",
-                description: "Failed to mark bill as paid. Please try again.",
-                variant: "destructive",
-            });
+            // Error handling is already done in the mutation hook
         } finally {
             setIsUpdating(null);
         }
     };
 
-    // Combine all bills and remove duplicates
+    // Combine all bills and remove duplicates, also filter out paid bills
     const allBills = [...overdueBills, ...upcomingBills, ...billReminders];
-    const uniqueBills = allBills.filter((bill, index, self) => index === self.findIndex((b) => b._id === bill._id));
+    console.log(
+        "All bills before filtering:",
+        allBills.map((b) => ({ id: b._id, title: b.title, billStatus: b.billStatus }))
+    );
+
+    const uniqueBills = allBills
+        .filter((bill, index, self) => index === self.findIndex((b) => b._id === bill._id))
+        .filter((bill) => bill.billStatus !== "paid");
+
+    console.log(
+        "Unique bills after filtering paid:",
+        uniqueBills.map((b) => ({ id: b._id, title: b.title, billStatus: b.billStatus }))
+    );
 
     if (!billsAndBudgetsAlertEnabled || uniqueBills.length === 0) {
         return null;
@@ -159,10 +161,10 @@ export function BillAlertsUI({
         return a.daysLeft - b.daysLeft;
     });
 
-    // Count different types of bills
-    const overdueCount = overdueBills.length;
-    const urgentCount = billReminders.length;
-    const upcomingCount = upcomingBills.length;
+    // Count different types of bills (excluding paid bills)
+    const overdueCount = overdueBills.filter((bill) => bill.billStatus !== "paid").length;
+    const urgentCount = billReminders.filter((bill) => bill.billStatus !== "paid").length;
+    const upcomingCount = upcomingBills.filter((bill) => bill.billStatus !== "paid").length;
 
     // Determine the main alert type and message
     const getAlertType = () => {

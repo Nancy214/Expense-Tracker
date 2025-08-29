@@ -346,13 +346,39 @@ export function useTransactionMutations() {
         },
     });
 
+    const updateBillStatusMutation = useMutation({
+        mutationFn: ({ id, status }: { id: string; status: string }) => updateTransactionBillStatus(id, status),
+        onSuccess: (data, variables) => {
+            console.log("Bill status updated successfully:", { id: variables.id, status: variables.status, data });
+            toast({
+                title: "Bill marked as paid",
+                description: "The bill has been successfully marked as paid.",
+            });
+            // Invalidate all related queries to refresh the data
+            queryClient.invalidateQueries({ queryKey: TRANSACTION_QUERY_KEYS.expenses });
+            queryClient.invalidateQueries({ queryKey: TRANSACTION_QUERY_KEYS.bills });
+            queryClient.invalidateQueries({ queryKey: TRANSACTION_QUERY_KEYS.analytics });
+        },
+        onError: (error, variables) => {
+            console.error("Error updating bill status:", { id: variables.id, status: variables.status, error });
+            toast({
+                title: "Error",
+                description: "Failed to update bill status. Please try again.",
+                variant: "destructive",
+            });
+        },
+    });
+
     return {
         createTransaction: createTransactionMutation.mutateAsync,
         updateTransaction: updateTransactionMutation.mutateAsync,
+        updateBillStatus: updateBillStatusMutation.mutateAsync,
         isCreating: createTransactionMutation.isPending,
         isUpdating: updateTransactionMutation.isPending,
+        isUpdatingBillStatus: updateBillStatusMutation.isPending,
         createError: createTransactionMutation.error,
         updateError: updateTransactionMutation.error,
+        updateBillStatusError: updateBillStatusMutation.error,
     };
 }
 
@@ -527,6 +553,7 @@ export function useExpensesSelector() {
     // Listen for bill refresh events
     useEffect(() => {
         const handleRefreshBills = () => {
+            console.log("Refreshing bills data...");
             invalidateExpenses();
         };
 
@@ -545,8 +572,21 @@ export function useExpensesSelector() {
         const upcoming: any[] = [];
         const overdue: any[] = [];
 
+        console.log(
+            "Processing bill expenses:",
+            billExpenses.map((b) => ({ id: b._id, title: b.title, billStatus: b.billStatus, dueDate: b.dueDate }))
+        );
+
         billExpenses.forEach((bill: any) => {
-            if (!bill.dueDate || bill.billStatus === "paid") return;
+            if (!bill.dueDate || bill.billStatus === "paid") {
+                console.log("Skipping bill:", {
+                    id: bill._id,
+                    title: bill.title,
+                    billStatus: bill.billStatus,
+                    dueDate: bill.dueDate,
+                });
+                return;
+            }
 
             // Handle different date formats
             let dueDate: Date;
@@ -579,7 +619,16 @@ export function useExpensesSelector() {
     const billReminders = useMemo(() => {
         const today = getStartOfToday();
         const reminders = billExpenses.filter((bill: any) => {
-            if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays) return false;
+            if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays) {
+                console.log("Skipping bill reminder:", {
+                    id: bill._id,
+                    title: bill.title,
+                    billStatus: bill.billStatus,
+                    dueDate: bill.dueDate,
+                    reminderDays: bill.reminderDays,
+                });
+                return false;
+            }
 
             // Handle different date formats
             let dueDate: Date;
