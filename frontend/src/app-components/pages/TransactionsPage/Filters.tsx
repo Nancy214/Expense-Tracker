@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +64,7 @@ interface FiltersSectionProps {
     setAllExpenses?: (expenses: TransactionWithId[]) => void;
     setAvailableMonths?: (months: { label: string; value: { year: number; month: number } }[]) => void;
     refreshAllTransactions?: () => void;
-    // Pagination props
+    // Pagination props - now handled internally
     currentPage?: number;
     totalPages?: number;
     onPageChange?: (page: number) => void;
@@ -103,95 +103,23 @@ export function FiltersSection({
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
     const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
-    const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["unpaid", "overdue", "pending"]);
+    const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["all"]);
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
-    // Filter transactions based on selected filters and active tab
-    let localFilteredTransactions: TransactionWithId[] = [];
+    // For now, use the data directly from the backend since it's already paginated
+    // In the future, we can implement server-side filtering
+    let localFilteredTransactions: TransactionWithId[] = filteredTransactions;
 
-    if (activeTab === "recurring") {
-        // For recurring tab, use the API recurring templates
-        localFilteredTransactions = apiRecurringTemplates.filter((transaction: TransactionWithId) => {
-            const matchesCategory =
-                selectedCategories.includes("all") || selectedCategories.includes(transaction.category);
-            const matchesType = selectedTypes.includes("all") || selectedTypes.includes(transaction.type);
+    // Use the data directly from backend pagination
+    const paginatedData = localFilteredTransactions;
 
-            // Search filtering
-            const matchesSearch =
-                searchQuery === "" ||
-                transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
-
-            // Date filtering logic - support single date or range
-            let matchesDate = true;
-            if (dateRangeForFilter?.from) {
-                let transactionDate: Date;
-                if (typeof transaction.date === "string") {
-                    transactionDate = parse
-                        ? parse(transaction.date, "dd/MM/yyyy", new Date())
-                        : new Date(transaction.date);
-                } else {
-                    transactionDate = transaction.date;
-                }
-                const from = dateRangeForFilter.from;
-                const to = dateRangeForFilter.to || dateRangeForFilter.from;
-                matchesDate = transactionDate >= from && transactionDate <= to;
-            }
-
-            return matchesCategory && matchesType && matchesDate && matchesSearch;
-        });
-    } else {
-        // For other tabs, use the regular filtering logic
-        localFilteredTransactions = filteredTransactions.filter((transaction: TransactionWithId) => {
-            // Tab-specific filtering
-            let matchesTab = true;
-            if (activeTab === "bills") {
-                // Show only bills
-                matchesTab = transaction.category === "Bill";
-            } else {
-                // "all" tab - show all transactions including recurring instances
-                matchesTab = true;
-            }
-
-            const matchesCategory =
-                selectedCategories.includes("all") || selectedCategories.includes(transaction.category);
-            const matchesType = selectedTypes.includes("all") || selectedTypes.includes(transaction.type);
-
-            // Status filtering - only apply to bills
-            // By default, hide paid bills unless "paid" or "all" is explicitly selected
-            const matchesStatus =
-                transaction.category === "Bill"
-                    ? selectedStatuses.includes("all") || selectedStatuses.includes(transaction.billStatus || "unpaid")
-                    : true;
-
-            // Search filtering
-            const matchesSearch =
-                searchQuery === "" ||
-                transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
-
-            // Date filtering logic - support single date or range
-            let matchesDate = true;
-            if (dateRangeForFilter?.from) {
-                let transactionDate: Date;
-                if (typeof transaction.date === "string") {
-                    transactionDate = parse
-                        ? parse(transaction.date, "dd/MM/yyyy", new Date())
-                        : new Date(transaction.date);
-                } else {
-                    transactionDate = transaction.date;
-                }
-                const from = dateRangeForFilter.from;
-                const to = dateRangeForFilter.to || dateRangeForFilter.from;
-                matchesDate = transactionDate >= from && transactionDate <= to;
-            }
-
-            return matchesTab && matchesCategory && matchesType && matchesStatus && matchesDate && matchesSearch;
-        });
-    }
+    // Reset to first page when filters change
+    useEffect(() => {
+        if (onPageChange) {
+            onPageChange(1);
+        }
+    }, [selectedCategories, selectedTypes, selectedStatuses, searchQuery, dateRangeForFilter, activeTab]);
 
     const handleCategoryFilterChange = (category: string, checked: boolean) => {
         let newCategories: string[];
@@ -321,18 +249,13 @@ export function FiltersSection({
                         </DropdownMenuContent>
                     </DropdownMenu>
                     {/* Status filter - only show for bills tab */}
-                    {activeTab === "bills" && (
+                    {/* {activeTab === "bills" && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="w-[140px] justify-between">
                                     <span className="truncate">
                                         {selectedStatuses.includes("all")
                                             ? "All Statuses"
-                                            : selectedStatuses.length === 3 &&
-                                              selectedStatuses.includes("unpaid") &&
-                                              selectedStatuses.includes("overdue") &&
-                                              selectedStatuses.includes("pending")
-                                            ? "Active Bills"
                                             : `${selectedStatuses.length} selected`}
                                     </span>
                                     <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -374,7 +297,7 @@ export function FiltersSection({
                                 </DropdownMenuCheckboxItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
-                    )}
+                    )} */}
                     <div className="flex items-center gap-2">
                         <Popover>
                             <PopoverTrigger asChild>
@@ -482,12 +405,7 @@ export function FiltersSection({
                     </DropdownMenu>
                     {(!selectedCategories.includes("all") ||
                         !selectedTypes.includes("all") ||
-                        !(
-                            selectedStatuses.includes("unpaid") &&
-                            selectedStatuses.includes("overdue") &&
-                            selectedStatuses.includes("pending") &&
-                            selectedStatuses.length === 3
-                        ) ||
+                        !selectedStatuses.includes("all") ||
                         dateRangeForFilter?.from ||
                         dateRangeForFilter?.to ||
                         searchQuery !== "") && (
@@ -496,7 +414,7 @@ export function FiltersSection({
                             onClick={() => {
                                 setSelectedCategories(["all"]);
                                 setSelectedTypes(["all"]);
-                                setSelectedStatuses(["unpaid", "overdue", "pending"]);
+                                setSelectedStatuses(["all"]);
                                 setDateRangeForFilter(undefined);
                                 setSearchQuery("");
                             }}
@@ -508,7 +426,7 @@ export function FiltersSection({
 
                 <div className="mt-6">
                     <ExpenseDataTable
-                        data={filteredTransactions as any}
+                        data={paginatedData as any}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         showRecurringIcon={true}
@@ -521,7 +439,7 @@ export function FiltersSection({
                         refreshAllTransactions={refreshAllTransactions}
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
-                        // Pagination props
+                        // Pagination props - use values from parent component
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={onPageChange}

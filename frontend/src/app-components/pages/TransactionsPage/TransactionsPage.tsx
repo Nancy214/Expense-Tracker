@@ -11,7 +11,13 @@ import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpense
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";
-import { useExpenses, useRecurringTemplates, useTransactionSummary } from "@/hooks/use-transactions";
+import {
+    useExpenses,
+    useAllTransactions,
+    useBills,
+    useRecurringTemplates,
+    useTransactionSummary,
+} from "@/hooks/use-transactions";
 import { useSettings } from "@/hooks/use-profile";
 
 const TransactionsPage = () => {
@@ -26,16 +32,31 @@ const TransactionsPage = () => {
         (settingsData?.billsAndBudgetsAlert ?? (user as any)?.settings?.billsAndBudgetsAlert ?? true) // Default to true if no settings found
     );
 
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(1);
+    // Separate pagination state for each tab
+    const [allTransactionsPage, setAllTransactionsPage] = useState(1);
+    const [recurringTransactionsPage, setRecurringTransactionsPage] = useState(1);
+    const [billsPage, setBillsPage] = useState(1);
     const [itemsPerPage] = useState(10);
 
-    const { expenses, pagination, isLoading, invalidateExpenses } = useExpenses(currentPage, itemsPerPage);
+    // Use the appropriate hook based on active tab
+    const {
+        transactions: allTransactions,
+        pagination: allTransactionsPagination,
+        isLoading: isLoadingAllTransactions,
+        invalidateAllTransactions,
+    } = useAllTransactions(allTransactionsPage, itemsPerPage);
+    const {
+        bills,
+        pagination: billsPagination,
+        isLoading: isLoadingBills,
+        invalidateBills,
+    } = useBills(billsPage, itemsPerPage);
     const {
         recurringTemplates: apiRecurringTemplates,
+        pagination: recurringPagination,
         isLoading: isLoadingRecurring,
         invalidateRecurringTemplates,
-    } = useRecurringTemplates();
+    } = useRecurringTemplates(recurringTransactionsPage, itemsPerPage);
     const { summary } = useTransactionSummary();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -43,6 +64,20 @@ const TransactionsPage = () => {
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState<"all" | "recurring" | "bills">("all");
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
+
+    // Get current page based on active tab
+    const getCurrentPage = () => {
+        switch (activeTab) {
+            case "all":
+                return allTransactionsPage;
+            case "recurring":
+                return recurringTransactionsPage;
+            case "bills":
+                return billsPage;
+            default:
+                return allTransactionsPage;
+        }
+    };
 
     const { budgetReminders = [] } = useBudgets();
 
@@ -56,7 +91,18 @@ const TransactionsPage = () => {
 
     // Reset to first page when tab changes
     useEffect(() => {
-        setCurrentPage(1);
+        // Reset pagination for the tab being switched to
+        switch (activeTab) {
+            case "all":
+                setAllTransactionsPage(1);
+                break;
+            case "recurring":
+                setRecurringTransactionsPage(1);
+                break;
+            case "bills":
+                setBillsPage(1);
+                break;
+        }
     }, [activeTab]);
 
     // Clear preselected category when dialog closes
@@ -90,11 +136,27 @@ const TransactionsPage = () => {
     // Use recurring templates from API instead of filtering from expenses
     const recurringTemplates = apiRecurringTemplates;
 
+    // Get the appropriate data based on active tab
+    const getCurrentData = () => {
+        switch (activeTab) {
+            case "all":
+                return allTransactions;
+            case "recurring":
+                return apiRecurringTemplates;
+            case "bills":
+                return bills;
+            default:
+                return allTransactions;
+        }
+    };
+
+    const currentData = getCurrentData();
+
     // Filter for recurring instances (for all transactions tab)
-    const recurringInstances = expenses.filter((t) => t.templateId && !t.isRecurring);
+    const recurringInstances = allTransactions.filter((t) => t.templateId && !t.isRecurring);
 
     // Calculate total expenses by currency
-    const totalExpensesByCurrency = expenses.reduce((acc, transaction) => {
+    const totalExpensesByCurrency = currentData.reduce((acc, transaction) => {
         const currency = transaction.currency || "INR";
         const amount = transaction.amount;
         const type = transaction.type || "expense";
@@ -133,15 +195,25 @@ const TransactionsPage = () => {
         return acc;
     }, {} as { [key: string]: { income: number; expense: number; net: number } });
 
-    // Handle page change
+    // Handle page change for different tabs
     const handlePageChange = (page: number) => {
-        setCurrentPage(page);
+        switch (activeTab) {
+            case "all":
+                setAllTransactionsPage(page);
+                break;
+            case "recurring":
+                setRecurringTransactionsPage(page);
+                break;
+            case "bills":
+                setBillsPage(page);
+                break;
+        }
     };
 
     // Get available months for filtering
     const availableMonths = useMemo(() => {
         const monthSet = new Set<string>();
-        expenses.forEach((expense) => {
+        allTransactions.forEach((expense) => {
             const date = getTransactionDate(expense);
             const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
             monthSet.add(monthKey);
@@ -161,7 +233,7 @@ const TransactionsPage = () => {
         });
         monthsArr.sort((a, b) => b.sortKey - a.sortKey);
         return monthsArr;
-    }, [expenses]);
+    }, [allTransactions]);
 
     // Download statement for a specific month
     const downloadMonthlyStatementForMonth = ({ year, month }: { year: number; month: number }) => {
@@ -169,7 +241,7 @@ const TransactionsPage = () => {
         const monthName = now.toLocaleString("default", { month: "long" });
         const currentYear = year;
         // Filter for the selected month
-        const monthlyTransactions = expenses.filter((expense) => {
+        const monthlyTransactions = allTransactions.filter((expense) => {
             const date = getTransactionDate(expense);
             return date.getMonth() === month && date.getFullYear() === year;
         });
@@ -195,7 +267,7 @@ const TransactionsPage = () => {
         const totalExpenseForBreakdown = Object.values(expenseByCategory).reduce((a, b) => a + b, 0);
         const userCurrency = user?.currency || "INR";
         generateMonthlyStatementPDF({
-            allExpenses: expenses,
+            allExpenses: allTransactions,
             filteredTransactions: monthlyTransactions,
             userCurrency,
             now,
@@ -275,49 +347,36 @@ const TransactionsPage = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-green-600">{summary.totalIncome}</div>
-                            <div className="text-sm text-muted-foreground">Total Income</div>
+                            <div className="text-sm text-muted-foreground">Total Income Transactions</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
-                                {expenses
-                                    .filter((t) => t.type === "income" && !t.templateId)
-                                    .reduce((sum, t) => sum + (t.amount || 0), 0)
-                                    .toFixed(2)}
+                                {(summary.totalIncomeAmount || 0).toFixed(2)}
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-red-600">{summary.totalExpenses}</div>
-                            <div className="text-sm text-muted-foreground">Total Expenses</div>
+                            <div className="text-sm text-muted-foreground">Total Expense Transactions</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
-                                {expenses
-                                    .filter((t) => t.type === "expense" && !t.templateId)
-                                    .reduce((sum, t) => sum + (t.amount || 0), 0)
-                                    .toFixed(2)}
+                                {(summary.totalExpenseAmount || 0).toFixed(2)}
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-primary">{pagination?.total || 0}</div>
+                            <div className="text-2xl font-bold text-primary">
+                                {allTransactionsPagination?.total || 0}
+                            </div>
                             <div className="text-sm text-muted-foreground">Total Transactions</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 Avg: {symbol}
-                                {expenses.filter((t) => !t.templateId).length > 0
-                                    ? (
-                                          expenses
-                                              .filter((t) => !t.templateId)
-                                              .reduce((sum, t) => sum + (t.amount || 0), 0) /
-                                          expenses.filter((t) => !t.templateId).length
-                                      ).toFixed(2)
-                                    : "0.00"}
+                                {(summary.averageTransactionAmount || 0).toFixed(2)}
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-blue-600">{summary.totalRecurringTemplates}</div>
-                            <div className="text-sm text-muted-foreground">Recurring Expense</div>
+                            <div className="text-sm text-muted-foreground">Recurring Transactions</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
-                                {recurringTemplates
-                                    .reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
-                                    .toFixed(2)}
+                                {(summary.totalRecurringAmount || 0).toFixed(2)}
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -325,10 +384,7 @@ const TransactionsPage = () => {
                             <div className="text-sm text-muted-foreground">Total Bills</div>
                             <div className="text-xs text-muted-foreground mt-1">
                                 {symbol}
-                                {expenses
-                                    .filter((t) => t.category === "Bill" && !t.templateId)
-                                    .reduce((sum, t) => sum + (t.amount || 0), 0)
-                                    .toFixed(2)}
+                                {(summary.totalBillsAmount || 0).toFixed(2)}
                             </div>
                         </div>
                     </div>
@@ -337,11 +393,19 @@ const TransactionsPage = () => {
 
             {/* Filters */}
             <FiltersSection
-                loadingMonths={isLoading}
+                loadingMonths={isLoadingAllTransactions}
                 availableMonths={availableMonths}
                 downloadMonthlyStatementForMonth={downloadMonthlyStatementForMonth}
                 user={user}
-                filteredTransactions={expenses}
+                filteredTransactions={
+                    activeTab === "all"
+                        ? allTransactions
+                        : activeTab === "recurring"
+                        ? apiRecurringTemplates
+                        : activeTab === "bills"
+                        ? bills
+                        : allTransactions
+                }
                 handleEdit={(expense) => {
                     setEditingExpense(expense);
                     setIsDialogOpen(true);
@@ -353,11 +417,27 @@ const TransactionsPage = () => {
                 parse={parse}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
-                // Pagination props
-                currentPage={currentPage}
-                totalPages={pagination?.totalPages || 1}
+                // Pagination props - use the correct pagination based on active tab
+                currentPage={getCurrentPage()}
+                totalPages={
+                    activeTab === "all"
+                        ? allTransactionsPagination?.totalPages || 1
+                        : activeTab === "recurring"
+                        ? recurringPagination?.totalPages || 1
+                        : activeTab === "bills"
+                        ? billsPagination?.totalPages || 1
+                        : 1
+                }
                 onPageChange={handlePageChange}
-                totalItems={pagination?.total || 0}
+                totalItems={
+                    activeTab === "all"
+                        ? allTransactionsPagination?.total || 0
+                        : activeTab === "recurring"
+                        ? recurringPagination?.total || 0
+                        : activeTab === "bills"
+                        ? billsPagination?.total || 0
+                        : 0
+                }
                 itemsPerPage={itemsPerPage}
                 // Recurring templates from API
                 apiRecurringTemplates={apiRecurringTemplates}
@@ -369,7 +449,8 @@ const TransactionsPage = () => {
                 editingExpense={editingExpense as any}
                 preselectedCategory={preselectedCategory}
                 onSuccess={() => {
-                    invalidateExpenses();
+                    invalidateAllTransactions();
+                    invalidateBills();
                     invalidateRecurringTemplates();
                 }}
             />

@@ -69,18 +69,134 @@ export const getExpenses = async (req: AuthRequest, res: Response) => {
     }
 };
 
+// New function for getting all transactions (non-recurring templates)
+export const getAllTransactions = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: "User not authenticated" });
+        }
+
+        // Get pagination parameters from query
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination (excluding recurring templates)
+        const total = await TransactionModel.countDocuments({
+            userId,
+            $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
+        });
+
+        // Get paginated transactions (excluding recurring templates)
+        const transactions = await TransactionModel.find({
+            userId,
+            $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
+        })
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        res.json({
+            transactions,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1,
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ message: error });
+    }
+};
+
+// New function for getting bills with pagination
+export const getBills = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: "User not authenticated" });
+        }
+
+        // Get pagination parameters from query
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination (only bills)
+        const total = await TransactionModel.countDocuments({
+            userId,
+            category: "Bill",
+        });
+
+        // Get paginated bills
+        const bills = await TransactionModel.find({
+            userId,
+            category: "Bill",
+        })
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        res.json({
+            bills,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1,
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ message: error });
+    }
+};
+
 export const getRecurringTemplates = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: "User not authenticated" });
+        }
 
-        // Get all recurring templates (isRecurring: true, templateId: null)
+        // Get pagination parameters from query
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination (only recurring templates)
+        const total = await TransactionModel.countDocuments({
+            userId,
+            isRecurring: true,
+            templateId: null,
+        });
+
+        // Get paginated recurring templates
         const recurringTemplates = await TransactionModel.find({
             userId,
             isRecurring: true,
             templateId: null,
-        }).sort({ date: -1 });
+        })
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(limit);
 
-        res.json({ recurringTemplates });
+        res.json({
+            recurringTemplates,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1,
+            },
+        });
     } catch (error) {
         res.status(500).json({ message: error });
     }
@@ -103,6 +219,31 @@ export const getTransactionSummary = async (req: AuthRequest, res: Response) => 
         const totalBills = allTransactions.filter((t) => t.category === "Bill" && !t.templateId).length;
         const totalRecurringTemplates = allTransactions.filter((t) => t.isRecurring && !t.templateId).length;
 
+        // Calculate total amounts
+        const totalIncomeAmount = allTransactions
+            .filter((t) => t.type === "income" && !t.templateId)
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+        const totalExpenseAmount = allTransactions
+            .filter((t) => t.type === "expense" && !t.templateId)
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+        const totalBillsAmount = allTransactions
+            .filter((t) => t.category === "Bill" && !t.templateId)
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+        const totalRecurringAmount = allTransactions
+            .filter((t) => t.isRecurring && !t.templateId)
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+        // Calculate average transaction amount
+        const allNonTemplateTransactions = allTransactions.filter((t) => !t.templateId);
+        const averageTransactionAmount =
+            allNonTemplateTransactions.length > 0
+                ? allNonTemplateTransactions.reduce((sum, t) => sum + (t.amount || 0), 0) /
+                  allNonTemplateTransactions.length
+                : 0;
+
         res.json({
             summary: {
                 totalTransactions,
@@ -110,6 +251,11 @@ export const getTransactionSummary = async (req: AuthRequest, res: Response) => 
                 totalExpenses,
                 totalBills,
                 totalRecurringTemplates,
+                totalIncomeAmount,
+                totalExpenseAmount,
+                totalBillsAmount,
+                totalRecurringAmount,
+                averageTransactionAmount,
             },
         });
     } catch (error) {

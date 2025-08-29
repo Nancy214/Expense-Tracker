@@ -779,6 +779,7 @@ export function ExpenseDataTable({
                                 Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                                 {(currentPage - 1) * itemsPerPage + data.length} of {totalItems} results
                             </div>
+
                             {totalPages > 1 && (
                                 <PaginationWrapper
                                     currentPage={currentPage}

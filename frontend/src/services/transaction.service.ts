@@ -71,11 +71,68 @@ export const getExpenses = async (
     }
 };
 
-export const getRecurringTemplates = async (): Promise<{
-    recurringTemplates: any[];
+export const getAllTransactions = async (
+    page: number = 1,
+    limit: number = 10
+): Promise<{
+    transactions: any[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNextPage: boolean;
+        hasPrevPage: boolean;
+    };
 }> => {
     try {
-        const response = await expenseApi.get(`/get-recurring-templates`);
+        const response = await expenseApi.get(`/get-all-transactions?page=${page}&limit=${limit}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching all transactions:", error);
+        throw error;
+    }
+};
+
+export const getBills = async (
+    page: number = 1,
+    limit: number = 10
+): Promise<{
+    bills: any[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNextPage: boolean;
+        hasPrevPage: boolean;
+    };
+}> => {
+    try {
+        const response = await expenseApi.get(`/get-bills?page=${page}&limit=${limit}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching bills:", error);
+        throw error;
+    }
+};
+
+export const getRecurringTemplates = async (
+    page: number = 1,
+    limit: number = 10
+): Promise<{
+    recurringTemplates: any[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNextPage: boolean;
+        hasPrevPage: boolean;
+    };
+}> => {
+    try {
+        const response = await expenseApi.get(`/get-recurring-templates?page=${page}&limit=${limit}`);
         return response.data;
     } catch (error) {
         console.error("Error fetching recurring templates:", error);
@@ -90,6 +147,11 @@ export const getTransactionSummary = async (): Promise<{
         totalExpenses: number;
         totalBills: number;
         totalRecurringTemplates: number;
+        totalIncomeAmount: number;
+        totalExpenseAmount: number;
+        totalBillsAmount: number;
+        totalRecurringAmount: number;
+        averageTransactionAmount: number;
     };
 }> => {
     try {

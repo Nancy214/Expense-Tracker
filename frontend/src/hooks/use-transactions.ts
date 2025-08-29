@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
     getExpenses,
+    getAllTransactions,
+    getBills,
     getRecurringTemplates,
     getTransactionSummary,
     createExpense,
@@ -30,6 +32,8 @@ import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toa
 // Query keys
 const TRANSACTION_QUERY_KEYS = {
     expenses: ["expenses"] as const,
+    allTransactions: ["all-transactions"] as const,
+    bills: ["bills"] as const,
     recurringTemplates: ["recurring-templates"] as const,
     analytics: ["analytics"] as const,
 } as const;
@@ -82,19 +86,107 @@ export function useExpenses(page: number = 1, limit: number = 10) {
     };
 }
 
-export function useRecurringTemplates() {
+export function useAllTransactions(page: number = 1, limit: number = 10) {
     const { isAuthenticated } = useAuth();
 
     const query = useQuery({
-        queryKey: TRANSACTION_QUERY_KEYS.recurringTemplates,
+        queryKey: [...TRANSACTION_QUERY_KEYS.allTransactions, page, limit],
         staleTime: 30 * 1000, // Consider data fresh for 30 seconds
         gcTime: 5 * 60 * 1000, // Cache for 5 minutes
         refetchOnWindowFocus: false, // Don't refetch on window focus
         queryFn: async () => {
             if (!isAuthenticated) {
-                return { recurringTemplates: [] };
+                return { transactions: [], pagination: null };
             }
-            const response = await getRecurringTemplates();
+            const response = await getAllTransactions(page, limit);
+
+            const transactions = response?.transactions || [];
+            const transactionsWithDates = transactions.map((transaction: any) => ({
+                ...transaction,
+                date: formatToDisplay(transaction.date),
+                description: transaction.description ?? "",
+                currency: transaction.currency ?? "INR",
+            }));
+
+            return {
+                transactions: transactionsWithDates,
+                pagination: response?.pagination || null,
+            };
+        },
+        enabled: isAuthenticated, // Only run the query if authenticated
+    });
+
+    const queryClient = useQueryClient();
+
+    const invalidateAllTransactions = () => {
+        return queryClient.invalidateQueries({ queryKey: TRANSACTION_QUERY_KEYS.allTransactions });
+    };
+
+    return {
+        ...query,
+        invalidateAllTransactions,
+        transactions: query.data?.transactions ?? [],
+        pagination: query.data?.pagination ?? null,
+    };
+}
+
+export function useBills(page: number = 1, limit: number = 10) {
+    const { isAuthenticated } = useAuth();
+
+    const query = useQuery({
+        queryKey: [...TRANSACTION_QUERY_KEYS.bills, page, limit],
+        staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+        refetchOnWindowFocus: false, // Don't refetch on window focus
+        queryFn: async () => {
+            if (!isAuthenticated) {
+                return { bills: [], pagination: null };
+            }
+            const response = await getBills(page, limit);
+
+            const bills = response?.bills || [];
+            const billsWithDates = bills.map((bill: any) => ({
+                ...bill,
+                date: formatToDisplay(bill.date),
+                description: bill.description ?? "",
+                currency: bill.currency ?? "INR",
+            }));
+
+            return {
+                bills: billsWithDates,
+                pagination: response?.pagination || null,
+            };
+        },
+        enabled: isAuthenticated, // Only run the query if authenticated
+    });
+
+    const queryClient = useQueryClient();
+
+    const invalidateBills = () => {
+        return queryClient.invalidateQueries({ queryKey: TRANSACTION_QUERY_KEYS.bills });
+    };
+
+    return {
+        ...query,
+        invalidateBills,
+        bills: query.data?.bills ?? [],
+        pagination: query.data?.pagination ?? null,
+    };
+}
+
+export function useRecurringTemplates(page: number = 1, limit: number = 10) {
+    const { isAuthenticated } = useAuth();
+
+    const query = useQuery({
+        queryKey: [...TRANSACTION_QUERY_KEYS.recurringTemplates, page, limit],
+        staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+        refetchOnWindowFocus: false, // Don't refetch on window focus
+        queryFn: async () => {
+            if (!isAuthenticated) {
+                return { recurringTemplates: [], pagination: null };
+            }
+            const response = await getRecurringTemplates(page, limit);
 
             const recurringTemplates = response?.recurringTemplates || [];
             const templatesWithDates = recurringTemplates.map((template: any) => ({
@@ -106,6 +198,7 @@ export function useRecurringTemplates() {
 
             return {
                 recurringTemplates: templatesWithDates,
+                pagination: response?.pagination || null,
             };
         },
         enabled: isAuthenticated, // Only run the query if authenticated
@@ -121,6 +214,7 @@ export function useRecurringTemplates() {
         ...query,
         invalidateRecurringTemplates,
         recurringTemplates: query.data?.recurringTemplates ?? [],
+        pagination: query.data?.pagination ?? null,
     };
 }
 
@@ -141,6 +235,11 @@ export function useTransactionSummary() {
                         totalExpenses: 0,
                         totalBills: 0,
                         totalRecurringTemplates: 0,
+                        totalIncomeAmount: 0,
+                        totalExpenseAmount: 0,
+                        totalBillsAmount: 0,
+                        totalRecurringAmount: 0,
+                        averageTransactionAmount: 0,
                     },
                 };
             }
@@ -158,6 +257,11 @@ export function useTransactionSummary() {
             totalExpenses: 0,
             totalBills: 0,
             totalRecurringTemplates: 0,
+            totalIncomeAmount: 0,
+            totalExpenseAmount: 0,
+            totalBillsAmount: 0,
+            totalRecurringAmount: 0,
+            averageTransactionAmount: 0,
         },
     };
 }

@@ -110,7 +110,7 @@ const PaginationWrapper: React.FC<PaginationWrapperProps> = ({ currentPage, tota
         return rangeWithDots;
     };
 
-    if (totalPages <= 1) return null;
+    if (totalPages <= 1 || totalPages === 0) return null;
 
     return (
         <Pagination className={className}>
