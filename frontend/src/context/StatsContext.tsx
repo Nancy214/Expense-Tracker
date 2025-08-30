@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useExpensesSelector } from "@/hooks/use-transactions";
+import { useBillsSelector } from "@/hooks/use-bills";
 import { useBudgets } from "@/hooks/use-budgets";
 
 type Stats = {
@@ -26,11 +27,9 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [error] = React.useState<string | null>(null);
 
     // Use our hooks
-    const {
-        monthlyStats: rawStats,
-        upcomingAndOverdueBills: rawBills,
-        isLoading: expensesLoading,
-    } = useExpensesSelector();
+    const { monthlyStats: rawStats, isLoading: expensesLoading } = useExpensesSelector();
+
+    const { upcomingAndOverdueBills: rawBills, isLoading: billsLoading } = useBillsSelector();
 
     const { budgets, isBudgetsLoading } = useBudgets();
 
@@ -45,7 +44,7 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           };
 
     const upcomingAndOverdueBills = isAuthenticated ? rawBills : { upcoming: [], overdue: [] };
-    const isLoading = isAuthenticated ? expensesLoading || isBudgetsLoading : false;
+    const isLoading = isAuthenticated ? expensesLoading || billsLoading || isBudgetsLoading : false;
 
     const refreshStats = React.useCallback(async () => {
         // No need to manually refresh as TanStack Query handles this

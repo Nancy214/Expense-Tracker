@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
-import { login, register, resetPassword, forgotPassword } from "@/services/auth.service";
+import { register, resetPassword, forgotPassword } from "@/services/auth.service";
 import {
     loginSchema,
     registerSchema,

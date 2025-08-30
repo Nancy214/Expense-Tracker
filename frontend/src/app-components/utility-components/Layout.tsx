@@ -14,7 +14,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import StatsCards from "@/app-components/StatsCards";
+import StatsCards from "@/app-components/utility-components/StatsCards";
 
 interface LayoutProps {
     children: React.ReactNode;

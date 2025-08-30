@@ -14,7 +14,7 @@ import { TransactionWithId } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { DeleteConfirmationDialog } from "@/utils/deleteDialog";
+import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isBefore, startOfDay } from "date-fns";

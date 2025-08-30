@@ -7,9 +7,9 @@ import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle } from "luc
 import { Progress } from "@/components/ui/progress";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { useAuth } from "@/context/AuthContext";
-import { BudgetRemindersUI } from "@/utils/budgetUtils";
+import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
-import { DeleteConfirmationDialog } from "@/utils/deleteDialog";
+import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { useBudgets } from "@/hooks/use-budgets";
 
 const BudgetPage: React.FC = () => {

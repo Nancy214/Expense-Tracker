@@ -5,19 +5,15 @@ import { useAuth } from "@/context/AuthContext";
 import { parse, isAfter } from "date-fns";
 import { Plus, TrendingUp } from "lucide-react";
 import { TransactionWithId } from "@/types/transaction";
-import { BudgetRemindersUI } from "@/utils/budgetUtils.tsx";
+import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
 import { useBudgets } from "@/hooks/use-budgets";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";
-import {
-    useExpenses,
-    useAllTransactions,
-    useBills,
-    useRecurringTemplates,
-    useTransactionSummary,
-} from "@/hooks/use-transactions";
+import { useExpenses, useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
+import { useBills } from "@/hooks/use-bills";
+import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
 import { useSettings } from "@/hooks/use-profile";
 
 const TransactionsPage = () => {

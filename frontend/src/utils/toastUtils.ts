@@ -5,12 +5,6 @@ import { toast } from "@/hooks/use-toast";
  * These functions provide a consistent way to display success and error messages
  */
 
-interface ToastParams {
-    title: string;
-    description: string;
-    variant?: "default" | "destructive";
-}
-
 export const showErrorToast = (toastFn: typeof toast, title: string, description: string) => {
     toastFn({
         title,

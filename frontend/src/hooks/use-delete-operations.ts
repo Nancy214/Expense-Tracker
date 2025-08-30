@@ -2,14 +2,14 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.service";
-import { Transaction, TransactionWithId } from "@/types/transaction";
+import { TransactionWithId } from "@/types/transaction";
 import { BudgetResponse } from "@/types/budget";
 import { useBudgets } from "@/hooks/use-budgets";
 
-// Query keys for invalidation
+// Query keys for invalidation - matching use-transactions.ts
 const EXPENSES_QUERY_KEY = ["expenses"] as const;
+const ALL_TRANSACTIONS_QUERY_KEY = ["all-transactions"] as const;
 const RECURRING_TEMPLATES_QUERY_KEY = ["recurring-templates"] as const;
-const ANALYTICS_QUERY_KEY = ["analytics"] as const;
 const BUDGETS_QUERY_KEY = ["budgets"] as const;
 const BUDGET_PROGRESS_QUERY_KEY = ["budgetProgress"] as const;
 
@@ -22,7 +22,6 @@ interface UseDeleteOperationsProps {
 
 export function useDeleteOperations({
     onRefresh,
-    onRecurringDelete,
     onBudgetProgressRefresh,
     onBudgetRemindersRefresh,
 }: UseDeleteOperationsProps = {}) {
@@ -54,8 +53,8 @@ export function useDeleteOperations({
             // Invalidate all related queries
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY }),
+                queryClient.invalidateQueries({ queryKey: ALL_TRANSACTIONS_QUERY_KEY }),
                 queryClient.invalidateQueries({ queryKey: RECURRING_TEMPLATES_QUERY_KEY }),
-                queryClient.invalidateQueries({ queryKey: ANALYTICS_QUERY_KEY }),
             ]);
         } catch (error) {
             toast({
@@ -81,8 +80,8 @@ export function useDeleteOperations({
             // Invalidate all related queries
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY }),
+                queryClient.invalidateQueries({ queryKey: ALL_TRANSACTIONS_QUERY_KEY }),
                 queryClient.invalidateQueries({ queryKey: RECURRING_TEMPLATES_QUERY_KEY }),
-                queryClient.invalidateQueries({ queryKey: ANALYTICS_QUERY_KEY }),
             ]);
         } catch (error) {
             toast({
@@ -118,8 +117,8 @@ export function useDeleteOperations({
             // Invalidate all related queries
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY }),
+                queryClient.invalidateQueries({ queryKey: ALL_TRANSACTIONS_QUERY_KEY }),
                 queryClient.invalidateQueries({ queryKey: RECURRING_TEMPLATES_QUERY_KEY }),
-                queryClient.invalidateQueries({ queryKey: ANALYTICS_QUERY_KEY }),
             ]);
             if (onRefresh) {
                 onRefresh();

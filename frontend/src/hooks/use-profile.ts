@@ -11,7 +11,6 @@ import {
     getCountryTimezoneCurrency,
     updateSettings,
     getSettings,
-    CountryTimezoneCurrency,
 } from "@/services/profile.service";
 import { profileSchema, ProfileFormData } from "@/schemas/profileSchema";
 import { SettingsData } from "@/types/profile";
@@ -91,7 +90,7 @@ export function useProfileMutations() {
             queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
             queryClient.refetchQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
         },
-        onError: (error: any) => {
+        onError: (error: Error & { response?: { data?: { message?: string } } }) => {
             toast({
                 title: "Error",
                 description: error.response?.data?.message || "Failed to update profile. Please try again.",
@@ -112,7 +111,7 @@ export function useProfileMutations() {
             queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
             queryClient.refetchQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
         },
-        onError: (error: any) => {
+        onError: (error: Error & { response?: { data?: { message?: string } } }) => {
             toast({
                 title: "Error",
                 description: error.response?.data?.message || "Failed to remove profile picture. Please try again.",
@@ -122,8 +121,8 @@ export function useProfileMutations() {
     });
 
     const updateSettingsMutation = useMutation({
-        mutationFn: ({ settings, userId }: { settings: SettingsData; userId: string }) => updateSettings(settings),
-        onSuccess: (data, variables) => {
+        mutationFn: ({ settings }: { settings: SettingsData; userId: string }) => updateSettings(settings),
+        onSuccess: (_, variables) => {
             toast({
                 title: "Success",
                 description: "Settings updated successfully",
@@ -132,7 +131,7 @@ export function useProfileMutations() {
             // Invalidate settings query
             queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.settings(variables.userId) });
         },
-        onError: (error: any) => {
+        onError: (error: Error & { response?: { data?: { message?: string } } }) => {
             toast({
                 title: "Error",
                 description: error.response?.data?.message || "Failed to update settings. Please try again.",
@@ -275,10 +274,14 @@ export function useProfileForm() {
             setTimeout(() => {
                 setIsUpdatingSuccessfully(false);
             }, 1000);
-        } catch (error: any) {
+        } catch (error: unknown) {
             setIsUpdatingSuccessfully(false);
             console.error("Error updating profile:", error);
-            setError(error.response?.data?.message || "Failed to update profile. Please try again.");
+            const errorMessage =
+                error && typeof error === "object" && "response" in error
+                    ? (error.response as { data?: { message?: string } })?.data?.message
+                    : undefined;
+            setError(errorMessage || "Failed to update profile. Please try again.");
         }
     };
 

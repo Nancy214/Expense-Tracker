@@ -1,31 +1,14 @@
-import { differenceInCalendarDays, parseISO } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, Bell, CreditCard, Loader2 } from "lucide-react";
-import { useExpensesSelector } from "@/hooks/use-transactions";
+import { useBillsSelector } from "@/hooks/use-bills";
+import { useBillMutations } from "@/hooks/use-bills";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { formatToDisplay } from "@/lib/dateUtils";
+import { formatToDisplay, parseFromAPI, parseFromDisplay } from "@/utils/dateUtils";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useTransactionMutations } from "@/hooks/use-transactions";
-
-// Helper function to parse dates correctly
-const parseDate = (dateValue: any): Date => {
-    if (dateValue instanceof Date) {
-        return dateValue;
-    } else if (typeof dateValue === "string") {
-        // Check if it's an ISO date string
-        if (dateValue.includes("T") || dateValue.includes("-")) {
-            return new Date(dateValue);
-        } else {
-            // Assume it's in display format (dd/MM/yyyy)
-            return parseISO(dateValue);
-        }
-    }
-    throw new Error("Invalid date format");
-};
 
 export function useBillsAndReminders() {
-    const { upcomingAndOverdueBills, billReminders } = useExpensesSelector();
+    const { upcomingAndOverdueBills, billReminders } = useBillsSelector();
     return {
         upcomingBills: upcomingAndOverdueBills.upcoming,
         overdueBills: upcomingAndOverdueBills.overdue,
@@ -52,7 +35,12 @@ const BillItem = ({
     onPay: (billId: string) => void;
     isUpdating: string | null;
 }) => {
-    const dueDate = parseDate(bill.dueDate);
+    const dueDate =
+        bill.dueDate instanceof Date
+            ? bill.dueDate
+            : bill.dueDate.includes("T") || bill.dueDate.includes("-")
+            ? parseFromAPI(bill.dueDate)
+            : parseFromDisplay(bill.dueDate);
     const formattedDueDate = formatToDisplay(dueDate);
     const daysLeft = differenceInCalendarDays(dueDate, new Date());
     const isThisBillUpdating = isUpdating === bill._id;
@@ -107,12 +95,9 @@ export function BillAlertsUI({
     overdueBills,
     upcomingBills,
     billReminders,
-    onViewBills,
-    showViewBillsButton = true,
 }: BillAlertsUIProps) {
-    const { toast } = useToast();
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
-    const { updateBillStatus } = useTransactionMutations();
+    const { updateBillStatus } = useBillMutations();
 
     const handlePayBill = async (billId: string) => {
         setIsUpdating(billId);
@@ -129,19 +114,10 @@ export function BillAlertsUI({
 
     // Combine all bills and remove duplicates, also filter out paid bills
     const allBills = [...overdueBills, ...upcomingBills, ...billReminders];
-    console.log(
-        "All bills before filtering:",
-        allBills.map((b) => ({ id: b._id, title: b.title, billStatus: b.billStatus }))
-    );
 
     const uniqueBills = allBills
         .filter((bill, index, self) => index === self.findIndex((b) => b._id === bill._id))
         .filter((bill) => bill.billStatus !== "paid");
-
-    console.log(
-        "Unique bills after filtering paid:",
-        uniqueBills.map((b) => ({ id: b._id, title: b.title, billStatus: b.billStatus }))
-    );
 
     if (!billsAndBudgetsAlertEnabled || uniqueBills.length === 0) {
         return null;
@@ -149,7 +125,12 @@ export function BillAlertsUI({
 
     // Calculate days remaining for all bills
     const billsWithDays = uniqueBills.map((bill) => {
-        const dueDate = parseDate(bill.dueDate);
+        const dueDate =
+            bill.dueDate instanceof Date
+                ? bill.dueDate
+                : bill.dueDate.includes("T") || bill.dueDate.includes("-")
+                ? parseFromAPI(bill.dueDate)
+                : parseFromDisplay(bill.dueDate);
         const daysLeft = differenceInCalendarDays(dueDate, new Date());
         return { ...bill, daysLeft };
     });
@@ -253,12 +234,7 @@ export function BillAlertsUI({
 }
 
 // Keep the old interface for backward compatibility but mark as deprecated
-export function BillRemindersUI(props: {
-    billsAndBudgetsAlertEnabled: boolean;
-    billReminders: any[];
-    onViewBills: () => void;
-    showViewBillsButton?: boolean;
-}) {
+export function BillRemindersUI() {
     // This is now deprecated - use BillAlertsUI instead
     return null;
 }

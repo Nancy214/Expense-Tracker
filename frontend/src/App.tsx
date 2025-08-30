@@ -3,7 +3,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { StatsProvider } from "@/context/StatsContext";
 import { AppRoutes } from "@/routes";
 import { Toaster } from "@/components/ui/toaster";
-import Layout from "@/app-components/Layout";
+import Layout from "@/app-components/utility-components/Layout";
 
 function App() {
     return (

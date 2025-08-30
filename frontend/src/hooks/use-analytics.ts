@@ -7,7 +7,6 @@ import {
 } from "@/services/analytics.service";
 import { useAuth } from "@/context/AuthContext";
 import { Transaction } from "@/types/transaction";
-import { parse, isValid } from "date-fns";
 
 // Query keys for analytics data
 const ANALYTICS_QUERY_KEYS = {
