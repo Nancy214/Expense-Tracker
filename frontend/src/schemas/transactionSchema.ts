@@ -54,52 +54,131 @@ const isValidDate = (dateString: string) => {
 
 // Base transaction schema
 const baseTransactionSchema = z.object({
-    title: z.string().min(1, "Title is required").max(30, "Title must be less than 30 characters"),
-    description: z.string().optional(),
-    amount: z.number().positive("Amount must be greater than 0"),
-    currency: z.string().min(1, "Currency is required"),
-    date: z.string().refine(isValidDate, "Please choose a valid date"),
-    type: z.enum(["income", "expense"]),
+    title: z.string().min(1, "Title is required").max(50, "Title must be less than 50 characters").trim(),
+    description: z.string().max(200, "Description must be less than 200 characters").optional().or(z.literal("")),
+    amount: z
+        .number({ message: "Amount must be a number" })
+        .positive("Amount must be greater than 0")
+        .max(999999999, "Amount cannot exceed 999,999,999"),
+    currency: z.string().min(1, "Currency is required").max(10, "Currency code is too long"),
+    date: z.string().min(1, "Date is required").refine(isValidDate, "Please enter a valid date in DD/MM/YYYY format"),
+    type: z.enum(["income", "expense"], {
+        message: "Transaction type must be either income or expense",
+    }),
     isRecurring: z.boolean().default(false),
-    recurringFrequency: z.enum(RECURRING_FREQUENCIES).optional(),
+    recurringFrequency: z
+        .enum(RECURRING_FREQUENCIES, {
+            message: "Please select a valid recurring frequency",
+        })
+        .optional(),
     endDate: z
         .string()
-        .refine((val) => !val || isValidDate(val), "Please choose a valid date")
+        .refine((val) => !val || isValidDate(val), "Please enter a valid end date in DD/MM/YYYY format")
         .optional(),
-    fromRate: z.number().positive().default(1),
-    toRate: z.number().positive().default(1),
+    fromRate: z
+        .number({ message: "Exchange rate must be a number" })
+        .positive("Exchange rate must be greater than 0")
+        .default(1),
+    toRate: z
+        .number({ message: "Exchange rate must be a number" })
+        .positive("Exchange rate must be greater than 0")
+        .default(1),
     receipts: z.array(z.any()).default([]),
 });
 
 // Regular transaction schema
 const regularTransactionSchema = baseTransactionSchema.extend({
-    category: z.enum([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES]),
+    category: z.enum([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES], {
+        message: "Please select a valid category",
+    }),
 });
 
 // Bill transaction schema
 const billTransactionSchema = baseTransactionSchema.extend({
     category: z.literal("Bill"),
-    billCategory: z.enum(BILL_CATEGORIES, { message: "Bill category is required" }),
-    reminderDays: z.number().min(0, "Reminder days must be 0 or greater").max(30, "Reminder days cannot exceed 30"),
-    dueDate: z.string().refine(isValidDate, "Please enter a valid due date in DD/MM/YYYY format"),
-    billStatus: z.enum(["unpaid", "paid", "pending", "overdue"]).default("unpaid"),
-    billFrequency: z.enum(BILL_FREQUENCIES).default("monthly"),
+    billCategory: z.enum(BILL_CATEGORIES, {
+        message: "Please select a bill category",
+    }),
+    reminderDays: z
+        .number({ message: "Reminder days must be a number" })
+        .min(0, "Reminder days must be 0 or greater")
+        .max(30, "Reminder days cannot exceed 30"),
+    dueDate: z
+        .string()
+        .min(1, "Due date is required")
+        .refine(isValidDate, "Please enter a valid due date in DD/MM/YYYY format")
+        .or(z.literal("")),
+    billStatus: z
+        .enum(["unpaid", "paid", "pending", "overdue"], {
+            message: "Please select a valid bill status",
+        })
+        .default("unpaid"),
+    billFrequency: z
+        .enum(BILL_FREQUENCIES, {
+            message: "Please select a valid bill frequency",
+        })
+        .default("monthly"),
     nextDueDate: z
         .string()
-        .refine((val) => !val || isValidDate(val), "Please enter a valid date in DD/MM/YYYY format")
+        .refine((val) => !val || isValidDate(val), "Please enter a valid next due date in DD/MM/YYYY format")
         .optional(),
     lastPaidDate: z
         .string()
-        .refine((val) => !val || isValidDate(val), "Please enter a valid date in DD/MM/YYYY format")
+        .refine((val) => !val || isValidDate(val), "Please enter a valid last paid date in DD/MM/YYYY format")
         .optional(),
-    paymentMethod: z.enum(PAYMENT_METHODS).default("manual"),
+    paymentMethod: z
+        .enum(PAYMENT_METHODS, {
+            message: "Please select a valid payment method",
+        })
+        .default("manual"),
 });
 
 // Union schema for all transaction types
-export const transactionFormSchema = z.discriminatedUnion("category", [
-    regularTransactionSchema,
-    billTransactionSchema,
-]);
+export const transactionFormSchema = z
+    .discriminatedUnion("category", [regularTransactionSchema, billTransactionSchema])
+    .refine(
+        (data) => {
+            // If isRecurring is true, recurringFrequency must be provided
+            if (data.isRecurring && !data.recurringFrequency) {
+                return false;
+            }
+            return true;
+        },
+        {
+            message: "Recurring frequency is required when enabling recurring transactions",
+            path: ["recurringFrequency"],
+        }
+    )
+    .refine(
+        (data) => {
+            // If endDate is provided, it must be after the transaction date
+            if (data.endDate && data.date) {
+                const transactionDate = new Date(data.date.split("/").reverse().join("-"));
+                const endDate = new Date(data.endDate.split("/").reverse().join("-"));
+                return endDate > transactionDate;
+            }
+            return true;
+        },
+        {
+            message: "End date must be after the transaction date",
+            path: ["endDate"],
+        }
+    )
+    .refine(
+        (data) => {
+            // For bills, dueDate must be provided and not empty
+            if (data.category === "Bill") {
+                if (!data.dueDate || data.dueDate.trim() === "") {
+                    return false;
+                }
+            }
+            return true;
+        },
+        {
+            message: "Due date is required for bills",
+            path: ["dueDate"],
+        }
+    );
 
 // Type inference
 export type TransactionFormData = z.infer<typeof transactionFormSchema>;

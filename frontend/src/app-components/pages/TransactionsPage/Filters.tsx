@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ExpenseDataTable } from "@/app-components/pages/TransactionsPage/ExpenseTableData";
+import { DataTable } from "@/app-components/pages/TransactionsPage/DataTable";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -97,9 +97,8 @@ export function FiltersSection({
     onPageChange,
     totalItems = 0,
     itemsPerPage = 10,
-    // Recurring templates from API
-    apiRecurringTemplates = [],
-}: FiltersSectionProps) {
+}: // Recurring templates from API
+FiltersSectionProps) {
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
     const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
@@ -149,7 +148,7 @@ export function FiltersSection({
         setSelectedTypes(newTypes.length ? newTypes : ["all"]);
     };
 
-    const handleStatusFilterChange = (status: string, checked: boolean) => {
+    /*   const handleStatusFilterChange = (status: string, checked: boolean) => {
         let newStatuses: string[];
         if (status === "all") {
             newStatuses = ["all"];
@@ -159,7 +158,7 @@ export function FiltersSection({
             newStatuses = selectedStatuses.filter((s) => s !== status);
         }
         setSelectedStatuses(newStatuses.length ? newStatuses : ["all"]);
-    };
+    }; */
 
     return (
         <Card>
@@ -425,7 +424,7 @@ export function FiltersSection({
                 </div>
 
                 <div className="mt-6">
-                    <ExpenseDataTable
+                    <DataTable
                         data={paginatedData as any}
                         onEdit={handleEdit}
                         onDelete={handleDelete}

@@ -15,7 +15,7 @@ import {
 } from "@/services/transaction.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
-import { Transaction } from "@/types/transaction";
+import { Transaction, TransactionWithId } from "@/types/transaction";
 import { formatToDisplay, parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 
@@ -187,11 +187,12 @@ export function useTransactionMutations() {
 
 // Form Hook
 interface UseTransactionFormProps {
-    editingExpense?: Transaction | null;
+    editingExpense?: TransactionWithId | null;
     preselectedCategory?: string;
+    isAddBill?: boolean;
 }
 
-export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseTransactionFormProps) => {
+export const useTransactionForm = ({ editingExpense, preselectedCategory, isAddBill }: UseTransactionFormProps) => {
     const { user } = useAuth();
 
     const parseDateToFormat = useCallback((date: string | Date | undefined): string => {
@@ -220,6 +221,13 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseT
                 fromRate: editingExpense.fromRate || 1,
                 toRate: editingExpense.toRate || 1,
                 endDate: editingExpense.endDate ? parseDateToFormat(editingExpense.endDate) : undefined,
+                dueDate: editingExpense.dueDate ? parseDateToFormat(editingExpense.dueDate) : undefined,
+                nextDueDate: editingExpense.nextDueDate ? parseDateToFormat(editingExpense.nextDueDate) : undefined,
+                lastPaidDate: editingExpense.lastPaidDate ? parseDateToFormat(editingExpense.lastPaidDate) : undefined,
+                billCategory: editingExpense.billCategory || "",
+                paymentMethod: editingExpense.paymentMethod || "",
+                billFrequency: editingExpense.billFrequency || "",
+                reminderDays: editingExpense.reminderDays || 0,
                 receipts: editingExpense.receipts || [],
             };
         }
@@ -237,6 +245,13 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseT
             fromRate: 1,
             toRate: 1,
             endDate: undefined,
+            dueDate: undefined,
+            nextDueDate: undefined,
+            lastPaidDate: undefined,
+            billCategory: "",
+            paymentMethod: "",
+            billFrequency: "",
+            reminderDays: 0,
             receipts: [],
         };
     }, [editingExpense, preselectedCategory, user?.currency, parseDateToFormat]);

@@ -77,6 +77,13 @@ const TransactionsPage = () => {
 
     const { budgetReminders = [] } = useBudgets();
 
+    // Combined refresh function that invalidates both all transactions and bills
+    const refreshAllTransactions = () => {
+        invalidateAllTransactions();
+        invalidateBills();
+        invalidateRecurringTemplates();
+    };
+
     // Handle URL parameter for tab
     useEffect(() => {
         const tabParam = searchParams.get("tab");
@@ -413,6 +420,7 @@ const TransactionsPage = () => {
                 parse={parse}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
+                refreshAllTransactions={refreshAllTransactions}
                 // Pagination props - use the correct pagination based on active tab
                 currentPage={getCurrentPage()}
                 totalPages={
@@ -445,9 +453,7 @@ const TransactionsPage = () => {
                 editingExpense={editingExpense as any}
                 preselectedCategory={preselectedCategory}
                 onSuccess={() => {
-                    invalidateAllTransactions();
-                    invalidateBills();
-                    invalidateRecurringTemplates();
+                    refreshAllTransactions();
                 }}
             />
         </div>
