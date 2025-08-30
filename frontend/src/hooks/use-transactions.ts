@@ -234,7 +234,7 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory, isAddB
 
         return {
             title: "",
-            category: preselectedCategory || "",
+            category: preselectedCategory || "Food & Dining",
             description: "",
             amount: 0,
             date: format(new Date(), "dd/MM/yyyy"),
@@ -261,7 +261,7 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory, isAddB
     const form = useForm({
         resolver: zodResolver(transactionFormSchema),
         defaultValues: defaultValues as any,
-        mode: "onChange",
+        mode: "onSubmit",
     });
 
     const handleCurrencyChange = useCallback(

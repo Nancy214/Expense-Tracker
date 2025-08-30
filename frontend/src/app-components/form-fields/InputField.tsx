@@ -75,7 +75,7 @@ export const InputField: React.FC<InputFieldProps> = ({
                     />
                 )}
             />
-            {error && <p className="text-sm text-red-500">{error.message as string}</p>}
+            {error && <p className="text-xs text-red-500">{error.message as string}</p>}
         </div>
     );
 };

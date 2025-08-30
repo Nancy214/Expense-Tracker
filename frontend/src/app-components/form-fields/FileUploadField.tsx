@@ -57,7 +57,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
     const handleDragEnd = () => setDraggedIdx(null);
 
     return (
-        <div className={cn("space-y-2", className)}>
+        <div className={cn("space-y-1", className)}>
             <Label htmlFor={name} className="text-sm font-medium">
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>
@@ -265,7 +265,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                     </div>
                 )}
             </div>
-            {error && <p className="text-sm text-red-500">{error.message as string}</p>}
+            {error && <p className="text-xs text-red-500">{error.message as string}</p>}
         </div>
     );
 };

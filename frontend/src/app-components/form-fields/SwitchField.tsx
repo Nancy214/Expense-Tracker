@@ -55,7 +55,7 @@ export const SwitchField: React.FC<SwitchFieldProps> = ({
                     {description && <p className="text-xs text-muted-foreground">{description}</p>}
                 </div>
             </div>
-            {error && <p className="text-sm text-red-500">{error.message as string}</p>}
+            {error && <p className="text-xs text-red-500">{error.message as string}</p>}
         </div>
     );
 };

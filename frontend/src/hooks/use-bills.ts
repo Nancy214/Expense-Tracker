@@ -222,7 +222,7 @@ export const useBillForm = ({ editingBill }: UseBillFormProps) => {
     const form = useForm({
         resolver: zodResolver(transactionFormSchema),
         defaultValues: getDefaultValues() as any,
-        mode: "onChange",
+        mode: "onSubmit",
     });
 
     // Watch form values

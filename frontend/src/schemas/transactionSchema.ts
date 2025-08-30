@@ -38,11 +38,13 @@ const INCOME_CATEGORIES = [
 ] as const;
 
 const BILL_FREQUENCIES = ["monthly", "quarterly", "yearly", "one-time"] as const;
-const PAYMENT_METHODS = ["manual", "auto-pay", "bank-transfer", "credit-card", "debit-card", "cash"] as const;
+const PAYMENT_METHODS = ["manual", "auto-pay", "bank-transfer", "credit-card", "debit-card", "cash", "other"] as const;
 const RECURRING_FREQUENCIES = ["daily", "weekly", "monthly", "yearly"] as const;
 
 // Date validation helper
 const isValidDate = (dateString: string) => {
+    if (!dateString || dateString.trim() === "") return false;
+
     const regex = /^\d{2}\/\d{2}\/\d{4}$/;
     if (!regex.test(dateString)) return false;
 
@@ -54,14 +56,24 @@ const isValidDate = (dateString: string) => {
 
 // Base transaction schema
 const baseTransactionSchema = z.object({
-    title: z.string().min(1, "Title is required").max(50, "Title must be less than 50 characters").trim(),
+    title: z
+        .string({ message: "Title is required" })
+        .min(1, "Title is required")
+        .max(50, "Title must be less than 50 characters")
+        .trim(),
     description: z.string().max(200, "Description must be less than 200 characters").optional().or(z.literal("")),
     amount: z
         .number({ message: "Amount must be a number" })
         .positive("Amount must be greater than 0")
         .max(999999999, "Amount cannot exceed 999,999,999"),
-    currency: z.string().min(1, "Currency is required").max(10, "Currency code is too long"),
-    date: z.string().min(1, "Date is required").refine(isValidDate, "Please enter a valid date in DD/MM/YYYY format"),
+    currency: z
+        .string({ message: "Currency is required" })
+        .min(1, "Currency is required")
+        .max(10, "Currency code is too long"),
+    date: z
+        .string({ message: "Date is required" })
+        .min(1, "Date is required")
+        .refine(isValidDate, "Please enter a valid date in DD/MM/YYYY format"),
     type: z.enum(["income", "expense"], {
         message: "Transaction type must be either income or expense",
     }),
@@ -72,8 +84,9 @@ const baseTransactionSchema = z.object({
         })
         .optional(),
     endDate: z
-        .string()
-        .refine((val) => !val || isValidDate(val), "Please enter a valid end date in DD/MM/YYYY format")
+        .string({ message: "End date is required for recurring transactions" })
+        .min(1, "End date is required for recurring transactions")
+        .refine(isValidDate, "Please enter a valid end date in DD/MM/YYYY format")
         .optional(),
     fromRate: z
         .number({ message: "Exchange rate must be a number" })
@@ -89,7 +102,7 @@ const baseTransactionSchema = z.object({
 // Regular transaction schema
 const regularTransactionSchema = baseTransactionSchema.extend({
     category: z.enum([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES], {
-        message: "Please select a valid category",
+        message: "Please select a category",
     }),
 });
 
@@ -104,10 +117,9 @@ const billTransactionSchema = baseTransactionSchema.extend({
         .min(0, "Reminder days must be 0 or greater")
         .max(30, "Reminder days cannot exceed 30"),
     dueDate: z
-        .string()
+        .string({ message: "Due date is required" })
         .min(1, "Due date is required")
-        .refine(isValidDate, "Please enter a valid due date in DD/MM/YYYY format")
-        .or(z.literal("")),
+        .refine(isValidDate, "Please enter a valid due date in DD/MM/YYYY format"),
     billStatus: z
         .enum(["unpaid", "paid", "pending", "overdue"], {
             message: "Please select a valid bill status",
@@ -119,18 +131,18 @@ const billTransactionSchema = baseTransactionSchema.extend({
         })
         .default("monthly"),
     nextDueDate: z
-        .string()
-        .refine((val) => !val || isValidDate(val), "Please enter a valid next due date in DD/MM/YYYY format")
+        .string({ message: "Next due date is required for recurring bills" })
+        .min(1, "Next due date is required for recurring bills")
+        .refine(isValidDate, "Please enter a valid next due date in DD/MM/YYYY format")
         .optional(),
     lastPaidDate: z
-        .string()
-        .refine((val) => !val || isValidDate(val), "Please enter a valid last paid date in DD/MM/YYYY format")
+        .string({ message: "Last paid date is required when provided" })
+        .min(1, "Last paid date is required when provided")
+        .refine(isValidDate, "Please enter a valid last paid date in DD/MM/YYYY format")
         .optional(),
-    paymentMethod: z
-        .enum(PAYMENT_METHODS, {
-            message: "Please select a valid payment method",
-        })
-        .default("manual"),
+    paymentMethod: z.enum(PAYMENT_METHODS, {
+        message: "Please select a valid payment method",
+    }),
 });
 
 // Union schema for all transaction types
@@ -178,6 +190,21 @@ export const transactionFormSchema = z
             message: "Due date is required for bills",
             path: ["dueDate"],
         }
+    )
+    .refine(
+        (data) => {
+            // For recurring bills, nextDueDate must be provided
+            if (data.category === "Bill" && data.billFrequency !== "one-time") {
+                if (!data.nextDueDate || data.nextDueDate.trim() === "") {
+                    return false;
+                }
+            }
+            return true;
+        },
+        {
+            message: "Next due date is required for recurring bills",
+            path: ["nextDueDate"],
+        }
     );
 
 // Type inference
@@ -185,7 +212,7 @@ export type TransactionFormData = z.infer<typeof transactionFormSchema>;
 
 // Helper function to validate date ranges
 export const validateDateRange = (startDate: string, endDate: string): boolean => {
-    if (!startDate || !endDate) return true;
+    if (!startDate || !endDate || startDate.trim() === "" || endDate.trim() === "") return false;
 
     const start = new Date(startDate.split("/").reverse().join("-"));
     const end = new Date(endDate.split("/").reverse().join("-"));
@@ -195,20 +222,20 @@ export const validateDateRange = (startDate: string, endDate: string): boolean =
 
 // Helper function to validate bill dates
 export const validateBillDates = (dueDate: string, lastPaidDate?: string, nextDueDate?: string): boolean => {
-    if (!dueDate) return false;
+    if (!dueDate || dueDate.trim() === "") return false;
 
     const due = new Date(dueDate.split("/").reverse().join("-"));
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // lastPaidDate should not be in the future
-    if (lastPaidDate) {
+    if (lastPaidDate && lastPaidDate.trim() !== "") {
         const lastPaid = new Date(lastPaidDate.split("/").reverse().join("-"));
         if (lastPaid > today) return false;
     }
 
     // nextDueDate should be after dueDate for recurring bills
-    if (nextDueDate) {
+    if (nextDueDate && nextDueDate.trim() !== "") {
         const nextDue = new Date(nextDueDate.split("/").reverse().join("-"));
         if (nextDue <= due) return false;
     }

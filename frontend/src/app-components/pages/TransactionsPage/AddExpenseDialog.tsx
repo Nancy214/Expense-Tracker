@@ -10,10 +10,10 @@ import { useTransactionMutations, useTransactionForm } from "@/hooks/use-transac
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { Transaction } from "@/types/transaction";
 import { TRANSACTION_CONSTANTS } from "@/schemas/transactionSchema";
-import { InputField } from "@/components/form-fields/InputField";
-import { SelectField } from "@/components/form-fields/SelectField";
-import { DateField } from "@/components/form-fields/DateField";
-import { FileUploadField } from "@/components/form-fields/FileUploadField";
+import { InputField } from "@/app-components/form-fields/InputField";
+import { SelectField } from "@/app-components/form-fields/SelectField";
+import { DateField } from "@/app-components/form-fields/DateField";
+import { FileUploadField } from "@/app-components/form-fields/FileUploadField";
 import { showSaveError } from "@/utils/toastUtils";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -188,7 +188,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 </DialogHeader>
 
                 <FormProvider {...form}>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-1">
                         <p className="text-sm text-gray-500">
                             <span className="text-red-500">*</span> Required fields
                         </p>
@@ -283,6 +283,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                                             .join(" "),
                                     }))}
+                                    required
                                 />
                             </div>
                         ) : (
@@ -302,7 +303,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             <>
                                 <div className="grid grid-cols-2 gap-4">
                                     <DateField name="date" label="Date" placeholder="Pick a date" required />
-                                    <DateField name="dueDate" label="Due Date" placeholder="Pick a due date" />
+                                    <DateField name="dueDate" label="Due Date" placeholder="Pick a due date" required />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -367,7 +368,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             maxFiles={10}
                         />
 
-                        <DialogFooter className="mt-4">
+                        <DialogFooter className="pt-1">
                             <Button type="submit" disabled={isSubmittingForm}>
                                 {isSubmittingForm
                                     ? "Saving..."

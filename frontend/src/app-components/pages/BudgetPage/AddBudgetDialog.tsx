@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import { BudgetResponse } from "@/types/budget";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { FormProvider } from "react-hook-form";
-import { InputField } from "@/components/form-fields/InputField";
-import { SelectField } from "@/components/form-fields/SelectField";
-import { DateField } from "@/components/form-fields/DateField";
+import { InputField } from "@/app-components/form-fields/InputField";
+import { SelectField } from "@/app-components/form-fields/SelectField";
+import { DateField } from "@/app-components/form-fields/DateField";
 import { useBudgetForm } from "@/hooks/useBudgetForm";
 import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
 

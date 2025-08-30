@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { FormProvider } from "react-hook-form";
-import { InputField } from "@/components/form-fields/InputField";
+import { InputField } from "@/app-components/form-fields/InputField";
 import { useRegisterForm } from "@/hooks/useAuthForm";
 
 const RegisterPage = () => {

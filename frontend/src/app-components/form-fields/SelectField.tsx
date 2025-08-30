@@ -71,7 +71,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
                     ))}
                 </SelectContent>
             </Select>
-            {error && <p className="text-sm text-red-500">{error.message as string}</p>}
+            {error && <p className="text-xs text-red-500">{error.message as string}</p>}
         </div>
     );
 };
