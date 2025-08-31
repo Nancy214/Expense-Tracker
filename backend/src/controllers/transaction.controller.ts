@@ -44,7 +44,7 @@ export const getExpenses = async (req: AuthRequest, res: Response) => {
 
         // Get pagination parameters from query
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const limit = parseInt(req.query.limit as string) || 20;
         const skip = (page - 1) * limit;
 
         // Get total count for pagination
@@ -79,7 +79,7 @@ export const getAllTransactions = async (req: AuthRequest, res: Response) => {
 
         // Get pagination parameters from query
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const limit = parseInt(req.query.limit as string) || 20;
         const skip = (page - 1) * limit;
 
         // Get total count for pagination (excluding recurring templates)
@@ -123,7 +123,7 @@ export const getBills = async (req: AuthRequest, res: Response) => {
 
         // Get pagination parameters from query
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const limit = parseInt(req.query.limit as string) || 20;
         const skip = (page - 1) * limit;
 
         // Get total count for pagination (only bills)
@@ -166,7 +166,7 @@ export const getRecurringTemplates = async (req: AuthRequest, res: Response) => 
 
         // Get pagination parameters from query
         const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const limit = parseInt(req.query.limit as string) || 20;
         const skip = (page - 1) * limit;
 
         // Get total count for pagination (only recurring templates)

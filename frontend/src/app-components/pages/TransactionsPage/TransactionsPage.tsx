@@ -32,7 +32,7 @@ const TransactionsPage = () => {
     const [allTransactionsPage, setAllTransactionsPage] = useState(1);
     const [recurringTransactionsPage, setRecurringTransactionsPage] = useState(1);
     const [billsPage, setBillsPage] = useState(1);
-    const [itemsPerPage] = useState(10);
+    const [itemsPerPage] = useState(20);
 
     // Use the appropriate hook based on active tab
     const {

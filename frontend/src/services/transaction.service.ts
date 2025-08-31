@@ -50,7 +50,7 @@ expenseApi.interceptors.response.use(
 
 export const getExpenses = async (
     page: number = 1,
-    limit: number = 10
+    limit: number = 20
 ): Promise<{
     expenses: any[];
     pagination: {
@@ -73,7 +73,7 @@ export const getExpenses = async (
 
 export const getAllTransactions = async (
     page: number = 1,
-    limit: number = 10
+    limit: number = 20
 ): Promise<{
     transactions: any[];
     pagination: {
@@ -108,7 +108,7 @@ export const getAllTransactionsForAnalytics = async (): Promise<{
 
 export const getBills = async (
     page: number = 1,
-    limit: number = 10
+    limit: number = 20
 ): Promise<{
     bills: any[];
     pagination: {
@@ -131,7 +131,7 @@ export const getBills = async (
 
 export const getRecurringTemplates = async (
     page: number = 1,
-    limit: number = 10
+    limit: number = 20
 ): Promise<{
     recurringTemplates: any[];
     pagination: {

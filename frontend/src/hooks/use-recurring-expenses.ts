@@ -27,7 +27,7 @@ const RECURRING_EXPENSE_QUERY_KEYS = {
 // QUERY HOOKS
 // ============================================================================
 
-export function useRecurringTemplates(page: number = 1, limit: number = 10) {
+export function useRecurringTemplates(page: number = 1, limit: number = 20) {
     const { isAuthenticated } = useAuth();
 
     const query = useQuery({

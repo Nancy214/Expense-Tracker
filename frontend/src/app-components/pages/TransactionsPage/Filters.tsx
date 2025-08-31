@@ -96,7 +96,7 @@ export function FiltersSection({
     totalPages = 1,
     onPageChange,
     totalItems = 0,
-    itemsPerPage = 10,
+    itemsPerPage = 20,
 }: // Recurring templates from API
 FiltersSectionProps) {
     // Filter-related state variables

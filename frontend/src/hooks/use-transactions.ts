@@ -53,7 +53,7 @@ const formatTransactionData = (data: any[]) =>
     }));
 
 // Query Hooks
-export function useExpenses(page: number = 1, limit: number = 10) {
+export function useExpenses(page: number = 1, limit: number = 20) {
     const { isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
 
@@ -79,7 +79,7 @@ export function useExpenses(page: number = 1, limit: number = 10) {
     };
 }
 
-export function useAllTransactions(page: number = 1, limit: number = 10) {
+export function useAllTransactions(page: number = 1, limit: number = 20) {
     const { isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
 

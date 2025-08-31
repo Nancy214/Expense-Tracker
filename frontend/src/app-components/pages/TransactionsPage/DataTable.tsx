@@ -47,7 +47,7 @@ export function DataTable({
     totalPages = 1,
     onPageChange,
     totalItems = 0,
-    itemsPerPage = 10,
+    itemsPerPage = 20,
 }: DataTableProps) {
     // Sync activeTab with isRecurringTab prop
     useEffect(() => {
