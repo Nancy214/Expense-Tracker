@@ -1,24 +1,42 @@
 import { Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
-import { Transaction, Bill } from "../types/transactions";
+import { Bill } from "../types/transactions";
 import { getStartOfToday, addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
 import { s3Client, isAWSConfigured } from "../config/s3Client";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import path from "path";
 import sharp from "sharp";
 import crypto from "crypto";
-import { Document } from "mongoose";
+import { Types } from "mongoose";
+import {
+    TransactionOrBill,
+    TransactionOrBillDocument,
+    BillDocument,
+    PaginationQuery,
+    PaginatedResponse,
+    SummaryResponse,
+    ReceiptUploadResponse,
+    ReceiptUrlResponse,
+    BillStatusUpdateRequest,
+    BillStatusUpdateResponse,
+    RecurringExpenseJobResponse,
+    DeleteResponse,
+} from "../types/transactions";
 
 // Type guard to check if a transaction is a bill
-const isBillTransaction = (transaction: any): transaction is Bill => {
+const isBillTransaction = (transaction: TransactionOrBill): transaction is Bill => {
     return transaction.category === "Bill";
 };
 
+// Type guard to check if a document is a bill document
+const isBillDocument = (doc: TransactionOrBillDocument): doc is BillDocument => {
+    return doc.category === "Bill";
+};
+
 // Helper function to calculate next due date for bills
-const calculateNextDueDate = (currentDueDate: Date, frequency: string): Date => {
+/* const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): Date => {
     const nextDate = new Date(currentDueDate);
 
     switch (frequency) {
@@ -36,24 +54,104 @@ const calculateNextDueDate = (currentDueDate: Date, frequency: string): Date => 
     }
 
     return nextDate;
+}; */
+
+// Helper function to create recurring instances
+const createRecurringInstances = async (template: TransactionOrBillDocument, userId: Types.ObjectId): Promise<void> => {
+    if (isBillDocument(template)) {
+        // Handle bill frequency
+        if (template.billFrequency) {
+            const start: Date = new Date(template.date);
+            const today: Date = new Date();
+            today.setHours(0, 0, 0, 0);
+            let current: Date = new Date(start);
+            let end: Date = today;
+
+            while (!isDateAfter(current, end)) {
+                const dateStr: string = current.toISOString().slice(0, 10);
+                // Skip the template's original date
+                if (dateStr !== start.toISOString().slice(0, 10)) {
+                    const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
+                        templateId: template._id,
+                        date: current,
+                        userId: template.userId,
+                    });
+                    if (!exists) {
+                        await TransactionModel.create<TransactionOrBillDocument>({
+                            ...template.toObject(),
+                            _id: undefined,
+                            date: current,
+                            templateId: template._id,
+                            userId: template.userId,
+                        });
+                    }
+                }
+
+                // Bill frequency logic
+                current = addTimeByFrequency(current, template.billFrequency);
+            }
+        }
+    } else {
+        // Handle regular transaction frequency
+        if (template.isRecurring && template.recurringFrequency) {
+            const start: Date = parseDateFromAPI(template.date);
+            const today: Date = getStartOfToday();
+            let current: Date = new Date(start);
+            let end: Date = today;
+
+            while (!isDateAfter(current, end)) {
+                const dateStr: string = current.toISOString().slice(0, 10);
+                // Skip the template's original date
+                if (dateStr !== start.toISOString().slice(0, 10)) {
+                    const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
+                        templateId: template._id,
+                        date: current,
+                        userId: template.userId,
+                    });
+                    if (!exists) {
+                        await TransactionModel.create<TransactionOrBillDocument>({
+                            ...template.toObject(),
+                            _id: undefined,
+                            date: current,
+                            templateId: template._id,
+                            isRecurring: false,
+                            userId: template.userId,
+                        });
+                    }
+                }
+
+                // Regular transaction frequency logic
+                current = addTimeByFrequency(current, template.recurringFrequency);
+            }
+        }
+    }
 };
 
-export const getExpenses = async (req: AuthRequest, res: Response) => {
+export const getExpenses = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: "User not authenticated" });
+            return;
+        }
 
         // Get pagination parameters from query
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
-        const skip = (page - 1) * limit;
+        const page: number = parseInt((req.query as PaginationQuery).page || "1");
+        const limit: number = parseInt((req.query as PaginationQuery).limit || "20");
+        const skip: number = (page - 1) * limit;
 
         // Get total count for pagination
-        const total = await TransactionModel.countDocuments({ userId });
+        const total: number = await TransactionModel.countDocuments({ userId: new Types.ObjectId(userId) });
 
         // Get paginated expenses
-        const expenses = await TransactionModel.find({ userId }).sort({ date: -1 }).skip(skip).limit(limit);
+        const expenses: TransactionOrBillDocument[] = await TransactionModel.find({
+            userId: new Types.ObjectId(userId),
+        })
+            .sort({ date: -1 })
+            .skip(skip)
+            .limit(limit);
 
-        res.json({
+        const response: PaginatedResponse<TransactionOrBillDocument> = {
             expenses,
             pagination: {
                 page,
@@ -63,41 +161,45 @@ export const getExpenses = async (req: AuthRequest, res: Response) => {
                 hasNextPage: page < Math.ceil(total / limit),
                 hasPrevPage: page > 1,
             },
-        });
-    } catch (error) {
-        res.status(500).json({ message: error });
+        };
+
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
 // New function for getting all transactions (non-recurring templates)
-export const getAllTransactions = async (req: AuthRequest, res: Response) => {
+export const getAllTransactions = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         // Get pagination parameters from query
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
-        const skip = (page - 1) * limit;
+        const page: number = parseInt((req.query as PaginationQuery).page || "1");
+        const limit: number = parseInt((req.query as PaginationQuery).limit || "20");
+        const skip: number = (page - 1) * limit;
 
         // Get total count for pagination (excluding recurring templates)
-        const total = await TransactionModel.countDocuments({
-            userId,
+        const total: number = await TransactionModel.countDocuments({
+            userId: new Types.ObjectId(userId),
             $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
         });
 
         // Get paginated transactions (excluding recurring templates)
-        const transactions = await TransactionModel.find({
-            userId,
+        const transactions: TransactionOrBillDocument[] = await TransactionModel.find({
+            userId: new Types.ObjectId(userId),
             $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
         })
             .sort({ date: -1 })
             .skip(skip)
             .limit(limit);
 
-        res.json({
+        const response: PaginatedResponse<TransactionOrBillDocument> = {
             transactions,
             pagination: {
                 page,
@@ -107,41 +209,45 @@ export const getAllTransactions = async (req: AuthRequest, res: Response) => {
                 hasNextPage: page < Math.ceil(total / limit),
                 hasPrevPage: page > 1,
             },
-        });
-    } catch (error) {
-        res.status(500).json({ message: error });
+        };
+
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
 // New function for getting bills with pagination
-export const getBills = async (req: AuthRequest, res: Response) => {
+export const getBills = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         // Get pagination parameters from query
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
-        const skip = (page - 1) * limit;
+        const page: number = parseInt((req.query as PaginationQuery).page || "1");
+        const limit: number = parseInt((req.query as PaginationQuery).limit || "20");
+        const skip: number = (page - 1) * limit;
 
         // Get total count for pagination (only bills)
-        const total = await TransactionModel.countDocuments({
-            userId,
+        const total: number = await TransactionModel.countDocuments({
+            userId: new Types.ObjectId(userId),
             category: "Bill",
         });
 
         // Get paginated bills
-        const bills = await TransactionModel.find({
-            userId,
+        const bills: TransactionOrBillDocument[] = await TransactionModel.find({
+            userId: new Types.ObjectId(userId),
             category: "Bill",
         })
             .sort({ date: -1 })
             .skip(skip)
             .limit(limit);
 
-        res.json({
+        const response: PaginatedResponse<TransactionOrBillDocument> = {
             bills,
             pagination: {
                 page,
@@ -151,34 +257,38 @@ export const getBills = async (req: AuthRequest, res: Response) => {
                 hasNextPage: page < Math.ceil(total / limit),
                 hasPrevPage: page > 1,
             },
-        });
-    } catch (error) {
-        res.status(500).json({ message: error });
+        };
+
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
-export const getRecurringTemplates = async (req: AuthRequest, res: Response) => {
+export const getRecurringTemplates = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         // Get pagination parameters from query
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
-        const skip = (page - 1) * limit;
+        const page: number = parseInt((req.query as PaginationQuery).page || "1");
+        const limit: number = parseInt((req.query as PaginationQuery).limit || "20");
+        const skip: number = (page - 1) * limit;
 
         // Get total count for pagination (only recurring templates)
-        const total = await TransactionModel.countDocuments({
-            userId,
+        const total: number = await TransactionModel.countDocuments({
+            userId: new Types.ObjectId(userId),
             isRecurring: true,
             templateId: null,
         });
 
         // Get paginated recurring templates
-        const recurringTemplates = await TransactionModel.find({
-            userId,
+        const recurringTemplates: TransactionOrBillDocument[] = await TransactionModel.find({
+            userId: new Types.ObjectId(userId),
             isRecurring: true,
             templateId: null,
         })
@@ -186,7 +296,7 @@ export const getRecurringTemplates = async (req: AuthRequest, res: Response) => 
             .skip(skip)
             .limit(limit);
 
-        res.json({
+        const response: PaginatedResponse<TransactionOrBillDocument> = {
             recurringTemplates,
             pagination: {
                 page,
@@ -196,55 +306,71 @@ export const getRecurringTemplates = async (req: AuthRequest, res: Response) => 
                 hasNextPage: page < Math.ceil(total / limit),
                 hasPrevPage: page > 1,
             },
-        });
-    } catch (error) {
-        res.status(500).json({ message: error });
+        };
+
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
-export const getTransactionSummary = async (req: AuthRequest, res: Response) => {
+export const getTransactionSummary = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         // Get all transactions for the user
-        const allTransactions = await TransactionModel.find({ userId });
+        const allTransactions: TransactionOrBillDocument[] = await TransactionModel.find({
+            userId: new Types.ObjectId(userId),
+        });
 
         // Calculate summary statistics
-        const totalTransactions = allTransactions.filter((t) => !t.templateId).length;
-        const totalIncome = allTransactions.filter((t) => t.type === "income" && !t.templateId).length;
-        const totalExpenses = allTransactions.filter((t) => t.type === "expense" && !t.templateId).length;
-        const totalBills = allTransactions.filter((t) => t.category === "Bill" && !t.templateId).length;
-        const totalRecurringTemplates = allTransactions.filter((t) => t.isRecurring && !t.templateId).length;
+        const allNonTemplateTransactions: TransactionOrBillDocument[] = allTransactions.filter((t) => {
+            if (isBillDocument(t)) return true; // Bills don't have templateId
+            return !t.templateId; // Only check templateId for regular transactions
+        });
+
+        const totalTransactions: number = allNonTemplateTransactions.length;
+        const totalIncome: number = allNonTemplateTransactions.filter((t) => t.type === "income").length;
+        const totalExpenses: number = allNonTemplateTransactions.filter((t) => t.type === "expense").length;
+        const totalBills: number = allNonTemplateTransactions.filter((t) => t.category === "Bill").length;
+        const totalRecurringTemplates: number = allTransactions.filter((t) => {
+            if (isBillDocument(t)) return false; // Bills are not recurring templates
+            return t.isRecurring && !t.templateId;
+        }).length;
 
         // Calculate total amounts
-        const totalIncomeAmount = allTransactions
-            .filter((t) => t.type === "income" && !t.templateId)
+        const totalIncomeAmount: number = allNonTemplateTransactions
+            .filter((t) => t.type === "income")
             .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-        const totalExpenseAmount = allTransactions
-            .filter((t) => t.type === "expense" && !t.templateId)
+        const totalExpenseAmount: number = allNonTemplateTransactions
+            .filter((t) => t.type === "expense")
             .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-        const totalBillsAmount = allTransactions
-            .filter((t) => t.category === "Bill" && !t.templateId)
+        const totalBillsAmount: number = allNonTemplateTransactions
+            .filter((t) => t.category === "Bill")
             .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-        const totalRecurringAmount = allTransactions
-            .filter((t) => t.isRecurring && !t.templateId)
+        const totalRecurringAmount: number = allTransactions
+            .filter((t) => {
+                if (isBillDocument(t)) return false; // Bills are not recurring templates
+                return t.isRecurring && !t.templateId;
+            })
             .reduce((sum, t) => sum + (t.amount || 0), 0);
 
         // Calculate average transaction amount
-        const allNonTemplateTransactions = allTransactions.filter((t) => !t.templateId);
-        const averageTransactionAmount =
+        const averageTransactionAmount: number =
             allNonTemplateTransactions.length > 0
                 ? allNonTemplateTransactions.reduce((sum, t) => sum + (t.amount || 0), 0) /
                   allNonTemplateTransactions.length
                 : 0;
 
-        res.json({
+        const response: SummaryResponse = {
             summary: {
                 totalTransactions,
                 totalIncome,
@@ -257,287 +383,205 @@ export const getTransactionSummary = async (req: AuthRequest, res: Response) => 
                 totalRecurringAmount,
                 averageTransactionAmount,
             },
-        });
-    } catch (error) {
-        res.status(500).json({ message: error });
+        };
+
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
-export const getExpensesById = async (req: AuthRequest, res: Response) => {
+export const getExpensesById = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
-        const expenses = await TransactionModel.find({ userId, _id: req.params.id });
-        if (!expenses) {
-            return res.status(404).json({ message: "Expense not found" });
+
+        const expense: TransactionOrBillDocument | null = await TransactionModel.findOne({
+            userId: new Types.ObjectId(userId),
+            _id: new Types.ObjectId(req.params.id),
+        });
+        if (!expense) {
+            res.status(404).json({ message: "Expense not found" });
+            return;
         }
-        res.json({ expenses });
-    } catch (error) {
-        res.status(500).json({ message: error });
+
+        res.json({ expenses: [expense] });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
-export const createExpense = async (req: AuthRequest, res: Response) => {
+export const createExpense = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const expense = await TransactionModel.create({
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: "User not authenticated" });
+            return;
+        }
+
+        const expense: TransactionOrBillDocument = await TransactionModel.create({
             ...req.body,
-            userId: req.user?.id,
+            userId: new Types.ObjectId(userId),
         });
 
-        const expenseDoc = expense.toObject() as Transaction | Bill;
-        const isBill = isBillTransaction(expenseDoc);
+        const expenseDoc: TransactionOrBill = expense.toObject() as TransactionOrBill;
+        const isBill: boolean = isBillTransaction(expenseDoc);
 
-        // Recurring instance generation - different logic for bills vs regular transactions
-        if (!isBill && (expenseDoc as Transaction).isRecurring && (expenseDoc as Transaction).recurringFrequency) {
-            const transactionData = expenseDoc as Transaction;
-            const start = parseDateFromAPI(transactionData.date);
-            const today = getStartOfToday();
-            let current = new Date(start);
-            let end = today;
-
-            while (!isDateAfter(current, end)) {
-                const dateStr = current.toISOString().slice(0, 10);
-                // Skip the template's original date
-                if (dateStr !== start.toISOString().slice(0, 10)) {
-                    const exists = await TransactionModel.findOne({
-                        templateId: expense._id,
-                        date: current,
-                        userId: transactionData.userId,
-                    });
-                    if (!exists) {
-                        await TransactionModel.create({
-                            ...transactionData,
-                            _id: undefined,
-                            date: current,
-                            templateId: expense._id,
-                            isRecurring: false,
-                            userId: transactionData.userId,
-                        });
-                    }
-                }
-
-                // Regular transaction frequency logic
-                current = addTimeByFrequency(current, transactionData.recurringFrequency || "daily");
-                if (!transactionData.recurringFrequency) {
-                    break;
-                }
-            }
-        } else if (isBill) {
-            // Handle bill frequency
-            const billData = expenseDoc as Bill;
-            if (billData.billFrequency) {
-                const start = new Date(billData.date);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                let current = new Date(start);
-                let end = today;
-
-                while (!isDateAfter(current, end)) {
-                    const dateStr = current.toISOString().slice(0, 10);
-                    // Skip the template's original date
-                    if (dateStr !== start.toISOString().slice(0, 10)) {
-                        const exists = await TransactionModel.findOne({
-                            templateId: expense._id,
-                            date: current,
-                            userId: billData.userId,
-                        });
-                        if (!exists) {
-                            await TransactionModel.create({
-                                ...billData,
-                                _id: undefined,
-                                date: current,
-                                templateId: expense._id,
-                                userId: billData.userId,
-                            });
-                        }
-                    }
-
-                    // Bill frequency logic
-                    current = addTimeByFrequency(current, billData.billFrequency || "monthly");
-                    if (!billData.billFrequency) {
-                        break;
-                    }
-                }
-            }
-        }
+        // Create recurring instances
+        await createRecurringInstances(expense, new Types.ObjectId(userId));
 
         res.json(expense);
-    } catch (error) {
-        res.status(500).json({ message: error });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
-export const updateExpense = async (req: AuthRequest, res: Response) => {
+export const updateExpense = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const expense = await TransactionModel.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-        });
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: "User not authenticated" });
+            return;
+        }
+
+        const expense: TransactionOrBillDocument | null = await TransactionModel.findByIdAndUpdate(
+            new Types.ObjectId(req.params.id),
+            req.body,
+            {
+                new: true,
+            }
+        );
 
         if (!expense) {
-            return res.status(404).json({ message: "Expense not found" });
+            res.status(404).json({ message: "Expense not found" });
+            return;
         }
 
-        const expenseDoc = expense.toObject() as Transaction | Bill;
-        const isBill = isBillTransaction(expenseDoc);
-
-        // Recurring instance generation - different logic for bills vs regular transactions
-        if (!isBill && (expenseDoc as Transaction).isRecurring && (expenseDoc as Transaction).recurringFrequency) {
-            const transactionData = expenseDoc as Transaction;
-            const start = parseDateFromAPI(transactionData.date);
-            const today = getStartOfToday();
-            let current = new Date(start);
-            let end = today;
-
-            while (!isDateAfter(current, end)) {
-                const dateStr = current.toISOString().slice(0, 10);
-                // Skip the template's original date
-                if (dateStr !== start.toISOString().slice(0, 10)) {
-                    const exists = await TransactionModel.findOne({
-                        templateId: expense._id,
-                        date: current,
-                        userId: transactionData.userId,
-                    });
-                    if (!exists) {
-                        await TransactionModel.create({
-                            ...transactionData,
-                            _id: undefined,
-                            date: current,
-                            templateId: expense._id,
-                            isRecurring: false,
-                            userId: transactionData.userId,
-                        });
-                    }
-                }
-
-                // Regular transaction frequency logic
-                current = addTimeByFrequency(current, transactionData.recurringFrequency || "daily");
-                if (!transactionData.recurringFrequency) {
-                    break;
-                }
-            }
-        } else if (isBill) {
-            // Handle bill frequency
-            const billData = expenseDoc as Bill;
-            if (billData.billFrequency) {
-                const start = new Date(billData.date);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                let current = new Date(start);
-                let end = today;
-
-                while (!isDateAfter(current, end)) {
-                    const dateStr = current.toISOString().slice(0, 10);
-                    // Skip the template's original date
-                    if (dateStr !== start.toISOString().slice(0, 10)) {
-                        const exists = await TransactionModel.findOne({
-                            templateId: expense._id,
-                            date: current,
-                            userId: billData.userId,
-                        });
-                        if (!exists) {
-                            await TransactionModel.create({
-                                ...billData,
-                                _id: undefined,
-                                date: current,
-                                templateId: expense._id,
-                                userId: billData.userId,
-                            });
-                        }
-                    }
-
-                    // Bill frequency logic
-                    current = addTimeByFrequency(current, billData.billFrequency || "monthly");
-                    if (!billData.billFrequency) {
-                        break;
-                    }
-                }
-            }
-        }
+        // Create recurring instances
+        await createRecurringInstances(expense, new Types.ObjectId(userId));
 
         res.json(expense);
-    } catch (error) {
-        res.status(500).json({ message: error });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
-export const deleteExpense = async (req: Request, res: Response) => {
+export const deleteExpense = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
-        const userId = (req as any).user?.id;
+        const userId = (req as AuthRequest).user?.id;
+
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
-        const expense = await TransactionModel.findOneAndDelete({ _id: id, userId });
+
+        const expense: TransactionOrBillDocument | null = await TransactionModel.findOneAndDelete({
+            _id: new Types.ObjectId(id),
+            userId: new Types.ObjectId(userId),
+        });
         if (!expense) {
-            return res.status(404).json({ message: "Expense not found" });
+            res.status(404).json({ message: "Expense not found" });
+            return;
         }
-        res.json({ message: "Expense deleted" });
-    } catch (error) {
-        res.status(500).json({ message: error });
+
+        const response: DeleteResponse = { message: "Expense deleted" };
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
-export const triggerRecurringExpensesJob = async (req: AuthRequest, res: Response) => {
+export const triggerRecurringExpensesJob = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         // Only process for the current user
         const userId = req.user?.id;
-        if (!userId) return res.status(401).json({ message: "Unauthorized" });
-        const recurringExpenses = await TransactionModel.find({ isRecurring: true, userId });
-        const today = new Date().toISOString().slice(0, 10);
+        if (!userId) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
+        const recurringExpenses: TransactionOrBillDocument[] = await TransactionModel.find({
+            isRecurring: true,
+            userId: new Types.ObjectId(userId),
+        });
+        const today: string = new Date().toISOString().slice(0, 10);
         let createdCount = 0;
+
         for (const template of recurringExpenses) {
-            const exists = await TransactionModel.findOne({
+            const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
                 templateId: template._id,
                 date: today,
-                userId,
+                userId: new Types.ObjectId(userId),
             });
             if (!exists) {
-                await TransactionModel.create({
+                await TransactionModel.create<TransactionOrBillDocument>({
                     ...template.toObject(),
                     _id: undefined,
                     date: today,
                     templateId: template._id,
                     isRecurring: false,
-                    userId,
+                    userId: new Types.ObjectId(userId),
                 });
                 createdCount++;
             }
         }
-        res.json({ success: true, createdCount });
-    } catch (error) {
-        res.status(500).json({ message: error });
+
+        const response: RecurringExpenseJobResponse = { success: true, createdCount };
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };
 
-export const uploadReceipt = async (req: AuthRequest, res: Response) => {
+export const uploadReceipt = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.file) {
-            return res.status(400).json({ message: "No file uploaded" });
+            res.status(400).json({ message: "No file uploaded" });
+            return;
         }
+
         if (!isAWSConfigured) {
-            return res.status(500).json({ message: "S3 not configured" });
+            res.status(500).json({ message: "S3 not configured" });
+            return;
         }
+
         const userId = req.user?.id;
-        const timestamp = Date.now();
-        const originalName = req.file.originalname;
-        const hashInput = `${originalName}_${timestamp}_${userId}`;
-        let fileName = crypto
+        if (!userId) {
+            res.status(401).json({ message: "User not authenticated" });
+            return;
+        }
+
+        const timestamp: number = Date.now();
+        const originalName: string = req.file.originalname;
+        const hashInput: string = `${originalName}_${timestamp}_${userId}`;
+        let fileName: string = crypto
             .createHash("sha256")
             .update(hashInput)
             .digest("hex")
             .replace(/[^a-zA-Z0-9]/g, "");
-        const ext = path.extname(originalName) || ".jpg";
+        const ext: string = path.extname(originalName) || ".jpg";
         fileName = `${fileName}${ext}`;
-        const s3Key = `receipts/${fileName}`;
+        const s3Key: string = `receipts/${fileName}`;
 
-        let fileBuffer = req.file.buffer;
-        let contentType = req.file.mimetype;
+        let fileBuffer: Buffer = req.file.buffer;
+        let contentType: string = req.file.mimetype;
+
         // Restrict PDF size (e.g., 5MB)
         if (contentType === "application/pdf" && fileBuffer.length > 5 * 1024 * 1024) {
-            return res.status(400).json({ message: "PDF file size exceeds 5MB limit" });
+            res.status(400).json({ message: "PDF file size exceeds 5MB limit" });
+            return;
         }
+
         // If image, process with sharp
         if (contentType.startsWith("image/")) {
             fileBuffer = await sharp(req.file.buffer)
@@ -554,93 +598,127 @@ export const uploadReceipt = async (req: AuthRequest, res: Response) => {
             ContentType: contentType,
             ACL: "private",
         });
+
         await s3Client.send(uploadCommand);
-        res.json({ key: s3Key });
-    } catch (error) {
-        res.status(500).json({ message: "Failed to upload receipt" });
+
+        const response: ReceiptUploadResponse = { key: s3Key };
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: "Failed to upload receipt", error: errorMessage });
     }
 };
 
-export const getReceiptUrl = async (req: AuthRequest, res: Response) => {
+export const getReceiptUrl = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const key = decodeURIComponent(req.params.key);
-        if (!key) return res.status(400).json({ message: "Missing key" });
-        const command = new GetObjectCommand({
+        const key: string = decodeURIComponent(req.params.key);
+        if (!key) {
+            res.status(400).json({ message: "Missing key" });
+            return;
+        }
+
+        const command: GetObjectCommand = new GetObjectCommand({
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: key,
         });
-        const url = await getSignedUrl(s3Client, command, { expiresIn: 300 });
-        res.json({ url });
-    } catch (error) {
-        res.status(500).json({ message: "Failed to generate receipt URL" });
+
+        const url: string = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+
+        const response: ReceiptUrlResponse = { url };
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: "Failed to generate receipt URL", error: errorMessage });
     }
 };
 
 // Delete a recurring template and all its instances
-export const deleteRecurringExpense = async (req: Request, res: Response) => {
+export const deleteRecurringExpense = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
-        const userId = (req as any).user?.id;
+        const userId = (req as AuthRequest).user?.id;
 
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         // Find the recurring template
-        const template = await TransactionModel.findOne({ _id: id, userId, isRecurring: true, templateId: null });
+        const template: TransactionOrBillDocument | null = await TransactionModel.findOne({
+            _id: new Types.ObjectId(id),
+            userId: new Types.ObjectId(userId),
+            isRecurring: true,
+            templateId: null,
+        });
+
         if (!template) {
-            return res.status(404).json({ message: "Recurring transaction template not found" });
+            res.status(404).json({ message: "Recurring transaction template not found" });
+            return;
         }
 
         // Delete all instances of this recurring transaction
-        await TransactionModel.deleteMany({ templateId: id, userId });
+        await TransactionModel.deleteMany({ templateId: new Types.ObjectId(id), userId: new Types.ObjectId(userId) });
 
         // Delete the template itself
-        await TransactionModel.findByIdAndDelete(id);
+        await TransactionModel.findByIdAndDelete(new Types.ObjectId(id));
 
-        res.json({ message: "Recurring transaction and all its instances deleted successfully" });
-    } catch (error) {
+        const response: DeleteResponse = {
+            message: "Recurring transaction and all its instances deleted successfully",
+        };
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         console.error("Error deleting recurring expense:", error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: "Internal server error", error: errorMessage });
     }
 };
 
 // Update bill status for transactions
-export const updateTransactionBillStatus = async (req: AuthRequest, res: Response) => {
+export const updateTransactionBillStatus = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
-        const { billStatus } = req.body;
+        const { billStatus } = req.body as BillStatusUpdateRequest;
 
-        const transaction = await TransactionModel.findByIdAndUpdate(id, { billStatus }, { new: true });
+        const transaction: TransactionOrBillDocument | null = await TransactionModel.findByIdAndUpdate(
+            new Types.ObjectId(id),
+            { billStatus },
+            { new: true }
+        );
 
         if (!transaction) {
-            return res.status(404).json({ message: "Transaction not found" });
+            res.status(404).json({ message: "Transaction not found" });
+            return;
         }
 
-        res.json({ message: "Bill status updated successfully", transaction });
-    } catch (error) {
-        res.status(500).json({ message: "Error updating bill status", error });
+        const response: BillStatusUpdateResponse = {
+            message: "Bill status updated successfully",
+            transaction,
+        };
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: "Error updating bill status", error: errorMessage });
     }
 };
 
 // New function for getting all transactions for analytics (no pagination)
-export const getAllTransactionsForAnalytics = async (req: AuthRequest, res: Response) => {
+export const getAllTransactionsForAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         // Get all transactions (excluding recurring templates) without pagination
-        const transactions = await TransactionModel.find({
-            userId,
+        const transactions: TransactionOrBillDocument[] = await TransactionModel.find({
+            userId: new Types.ObjectId(userId),
             $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
         }).sort({ date: -1 });
 
-        res.json({
-            transactions,
-        });
-    } catch (error) {
-        res.status(500).json({ message: error });
+        res.json({ transactions });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
     }
 };

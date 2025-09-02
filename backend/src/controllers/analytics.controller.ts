@@ -2,23 +2,44 @@ import { Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
 import { Transaction, Bill } from "../types/transactions";
-import { Document } from "mongoose";
+import {
+    TransactionDocument,
+    BillDocument,
+    PieChartDataPoint,
+    CategoryBreakdownResponse,
+    MonthlyData,
+    IncomeExpenseSummaryResponse,
+    MonthlySavingsData,
+    MonthlySavingsTrendResponse,
+    MonthDates,
+    PeriodTransactionData,
+    MonthSavingsData,
+} from "../types/analytics";
 
-// Type guard to check if a transaction is a bill
-const isBillTransaction = (transaction: any): transaction is Bill => {
-    return transaction.category === "Bill";
+// Helper function to get start and end dates for a month
+const getMonthDates = (year: number, month: number): MonthDates => {
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
+    return { startDate, endDate };
+};
+
+// Helper function to get month name
+const getMonthName = (month: number): string => {
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return monthNames[month];
 };
 
 // Get expense category breakdown for pie chart
-export const getExpenseCategoryBreakdown = async (req: AuthRequest, res: Response) => {
+export const getExpenseCategoryBreakdown = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId: string | undefined = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         // Get all expense transactions for the user (excluding bills)
-        const expenses = await TransactionModel.find({
+        const expenses: TransactionDocument[] = await TransactionModel.find({
             userId,
             type: "expense",
             category: { $ne: "Bill" }, // Exclude bills from regular expenses
@@ -26,25 +47,27 @@ export const getExpenseCategoryBreakdown = async (req: AuthRequest, res: Respons
 
         // Aggregate by category
         const categoryBreakdown: { [key: string]: number } = {};
-        expenses.forEach((expense) => {
-            const expenseData = expense.toObject() as Transaction;
-            const category = expenseData.category;
+        expenses.forEach((expense: TransactionDocument) => {
+            const expenseData: Transaction = expense.toObject();
+            const category: string = expenseData.category;
             categoryBreakdown[category] = (categoryBreakdown[category] || 0) + expenseData.amount;
         });
 
         // Convert to array format for pie chart
-        const pieChartData = Object.entries(categoryBreakdown).map(([name, value]) => ({
+        const pieChartData: PieChartDataPoint[] = Object.entries(categoryBreakdown).map(([name, value]) => ({
             name,
             value,
         }));
 
-        res.json({
+        const response: CategoryBreakdownResponse = {
             success: true,
             data: pieChartData,
             totalExpenses: expenses.length,
             totalAmount: expenses.reduce((sum, expense) => sum + expense.amount, 0),
-        });
-    } catch (error) {
+        };
+
+        res.json(response);
+    } catch (error: unknown) {
         res.status(500).json({
             success: false,
             message: "Error fetching expense category breakdown",
@@ -54,40 +77,43 @@ export const getExpenseCategoryBreakdown = async (req: AuthRequest, res: Respons
 };
 
 // Get bills category breakdown for pie chart
-export const getBillsCategoryBreakdown = async (req: AuthRequest, res: Response) => {
+export const getBillsCategoryBreakdown = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId: string | undefined = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         // Get all bill transactions for the user
-        const bills = await TransactionModel.find({
+        const bills: BillDocument[] = await TransactionModel.find({
             userId,
             category: "Bill",
         });
 
         // Aggregate by billCategory
         const billCategoryBreakdown: { [key: string]: number } = {};
-        bills.forEach((bill) => {
-            const billData = bill.toObject() as Bill;
-            const billCategory = billData.billCategory || "Other";
+        bills.forEach((bill: BillDocument) => {
+            const billData: Bill = bill.toObject();
+            const billCategory: string = billData.billCategory || "Other";
             billCategoryBreakdown[billCategory] = (billCategoryBreakdown[billCategory] || 0) + billData.amount;
         });
 
         // Convert to array format for pie chart
-        const pieChartData = Object.entries(billCategoryBreakdown).map(([name, value]) => ({
+        const pieChartData: PieChartDataPoint[] = Object.entries(billCategoryBreakdown).map(([name, value]) => ({
             name,
             value,
         }));
 
-        res.json({
+        const response: CategoryBreakdownResponse = {
             success: true,
             data: pieChartData,
             totalBills: bills.length,
             totalAmount: bills.reduce((sum, bill) => sum + bill.amount, 0),
-        });
-    } catch (error) {
+        };
+
+        res.json(response);
+    } catch (error: unknown) {
         res.status(500).json({
             success: false,
             message: "Error fetching bills category breakdown",
@@ -96,70 +122,72 @@ export const getBillsCategoryBreakdown = async (req: AuthRequest, res: Response)
     }
 };
 
-// Get income and expenses summary for different time periods
-export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response) => {
+// Helper function to aggregate transactions for a time period
+const getTransactionsForPeriod = async (
+    userId: string,
+    startDate: Date,
+    endDate: Date
+): Promise<PeriodTransactionData> => {
     try {
-        const userId = req.user?.id;
+        const transactions: TransactionDocument[] = await TransactionModel.find({
+            userId,
+            date: {
+                $gte: startDate,
+                $lte: endDate,
+            },
+        });
+
+        const transactionData: Transaction | Bill[] = transactions.map((t) => t.toObject());
+
+        const income: number = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+
+        const expenses: number = transactionData
+            .filter((t) => t.type === "expense" && t.category !== "Bill")
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        const bills: number = transactionData
+            .filter((t) => t.category === "Bill")
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        return {
+            income,
+            expenses,
+            bills,
+            netIncome: income - expenses - bills,
+            transactionCount: transactions.length,
+            isActive: transactions.length > 0,
+        };
+    } catch (error: unknown) {
+        throw new Error("Error fetching transactions for period");
+    }
+};
+
+// Get income and expenses summary for different time periods
+export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const userId: string | undefined = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-
-        // Helper function to get start and end dates for a month
-        function getMonthDates(year: number, month: number) {
-            const startDate = new Date(year, month, 1);
-            const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
-            return { startDate, endDate };
-        }
-
-        // Helper function to get month name
-        function getMonthName(month: number): string {
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            return monthNames[month];
-        }
-
-        // Helper function to aggregate transactions for a time period
-        async function getTransactionsForPeriod(startDate: Date, endDate: Date) {
-            const transactions = await TransactionModel.find({
-                userId,
-                date: {
-                    $gte: startDate,
-                    $lte: endDate,
-                },
-            });
-
-            const transactionData = transactions.map((t) => t.toObject() as Transaction | Bill);
-
-            const income = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
-
-            const expenses = transactionData
-                .filter((t) => t.type === "expense" && !isBillTransaction(t))
-                .reduce((sum, t) => sum + t.amount, 0);
-
-            const bills = transactionData.filter((t) => isBillTransaction(t)).reduce((sum, t) => sum + t.amount, 0);
-
-            return {
-                income,
-                expenses,
-                bills,
-                netIncome: income - expenses - bills,
-                transactionCount: transactions.length,
-                isActive: transactions.length > 0,
-            };
-        }
+        const now: Date = new Date();
+        const currentYear: number = now.getFullYear();
+        const currentMonth: number = now.getMonth();
 
         // Get data for last 6 months
-        const allMonthsData = [];
+        const allMonthsData: MonthlyData[] = [];
         for (let i = 5; i >= 0; i--) {
-            const monthIndex = currentMonth - i;
-            const year = currentYear + Math.floor(monthIndex / 12);
-            const month = ((monthIndex % 12) + 12) % 12;
+            const monthIndex: number = currentMonth - i;
+            const year: number = currentYear + Math.floor(monthIndex / 12);
+            const month: number = ((monthIndex % 12) + 12) % 12;
 
-            const monthDates = getMonthDates(year, month);
-            const monthData = await getTransactionsForPeriod(monthDates.startDate, monthDates.endDate);
+            const monthDates: MonthDates = getMonthDates(year, month);
+            const monthData: PeriodTransactionData = await getTransactionsForPeriod(
+                userId,
+                monthDates.startDate,
+                monthDates.endDate
+            );
 
             allMonthsData.push({
                 month: getMonthName(month),
@@ -170,16 +198,17 @@ export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response) =
         }
 
         // Filter to only include months where user was active
-        const activeMonthsData = allMonthsData.filter((month) => month.isActive);
+        const activeMonthsData: MonthlyData[] = allMonthsData.filter((month) => month.isActive);
 
         // Get current month data
-        const currentMonthData = await getTransactionsForPeriod(
+        const currentMonthData: PeriodTransactionData = await getTransactionsForPeriod(
+            userId,
             getMonthDates(currentYear, currentMonth).startDate,
             getMonthDates(currentYear, currentMonth).endDate
         );
 
         // Format the response
-        const response = {
+        const response: IncomeExpenseSummaryResponse = {
             success: true,
             data: {
                 months: activeMonthsData,
@@ -202,7 +231,7 @@ export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response) =
         };
 
         res.json(response);
-    } catch (error) {
+    } catch (error: unknown) {
         res.status(500).json({
             success: false,
             message: "Error fetching income and expense summary",
@@ -211,67 +240,61 @@ export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response) =
     }
 };
 
-// Get monthly savings trend data for the last 12 months
-export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response) => {
+// Helper function to get transactions for a specific month
+const getTransactionsForMonth = async (userId: string, year: number, month: number): Promise<MonthSavingsData> => {
     try {
-        const userId = req.user?.id;
+        const monthDates: MonthDates = getMonthDates(year, month);
+        const transactions: TransactionDocument[] = await TransactionModel.find({
+            userId,
+            date: {
+                $gte: monthDates.startDate,
+                $lte: monthDates.endDate,
+            },
+        });
+
+        const transactionData: Transaction | Bill[] = transactions.map((t) => t.toObject());
+
+        const income: number = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+
+        const expenses: number = transactionData
+            .filter((t) => t.type === "expense")
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        const savings: number = income - expenses;
+
+        return {
+            income,
+            expenses,
+            savings,
+            transactionCount: transactions.length,
+            isActive: transactions.length > 0,
+        };
+    } catch (error: unknown) {
+        throw new Error("Error fetching transactions for month");
+    }
+};
+
+// Get monthly savings trend data for the last 12 months
+export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const userId: string | undefined = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-
-        // Helper function to get start and end dates for a month
-        function getMonthDates(year: number, month: number) {
-            const startDate = new Date(year, month, 1);
-            const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
-            return { startDate, endDate };
-        }
-
-        // Helper function to get month name
-        function getMonthName(month: number): string {
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            return monthNames[month];
-        }
-
-        // Helper function to get transactions for a specific month
-        async function getTransactionsForMonth(year: number, month: number) {
-            const monthDates = getMonthDates(year, month);
-            const transactions = await TransactionModel.find({
-                userId,
-                date: {
-                    $gte: monthDates.startDate,
-                    $lte: monthDates.endDate,
-                },
-            });
-
-            const transactionData = transactions.map((t) => t.toObject() as Transaction | Bill);
-
-            const income = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
-
-            const expenses = transactionData.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
-
-            const savings = income - expenses;
-
-            return {
-                income,
-                expenses,
-                savings,
-                transactionCount: transactions.length,
-                isActive: transactions.length > 0,
-            };
-        }
+        const now: Date = new Date();
+        const currentYear: number = now.getFullYear();
+        const currentMonth: number = now.getMonth();
 
         // Get data for last 12 months
-        const allMonthsData = [];
+        const allMonthsData: MonthlySavingsData[] = [];
         for (let i = 11; i >= 0; i--) {
-            const monthIndex = currentMonth - i;
-            const year = currentYear + Math.floor(monthIndex / 12);
-            const month = ((monthIndex % 12) + 12) % 12;
+            const monthIndex: number = currentMonth - i;
+            const year: number = currentYear + Math.floor(monthIndex / 12);
+            const month: number = ((monthIndex % 12) + 12) % 12;
 
-            const monthData = await getTransactionsForMonth(year, month);
+            const monthData: MonthSavingsData = await getTransactionsForMonth(userId, year, month);
 
             allMonthsData.push({
                 month: getMonthName(month),
@@ -283,11 +306,11 @@ export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response) =>
         }
 
         // Filter to only include months where user was active
-        const activeMonthsData = allMonthsData.filter((month) => month.isActive);
+        const activeMonthsData: MonthlySavingsData[] = allMonthsData.filter((month) => month.isActive);
 
         // If no active months, return empty data
         if (activeMonthsData.length === 0) {
-            return res.json({
+            const emptyResponse: MonthlySavingsTrendResponse = {
                 success: true,
                 data: {
                     trend: [],
@@ -302,27 +325,31 @@ export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response) =>
                         worstMonth: null,
                     },
                 },
-            });
+            };
+            res.json(emptyResponse);
+            return;
         }
 
         // Calculate summary statistics only for active months
-        const totalSavings = activeMonthsData.reduce((sum, month) => sum + month.savings, 0);
-        const averageSavings = totalSavings / activeMonthsData.length;
-        const positiveMonths = activeMonthsData.filter((month) => month.savings > 0).length;
-        const negativeMonths = activeMonthsData.filter((month) => month.savings < 0).length;
+        const totalSavings: number = activeMonthsData.reduce((sum, month) => sum + month.savings, 0);
+        const averageSavings: number = totalSavings / activeMonthsData.length;
+        const positiveMonths: number = activeMonthsData.filter((month) => month.savings > 0).length;
+        const negativeMonths: number = activeMonthsData.filter((month) => month.savings < 0).length;
 
         // Find best and worst months (only from active months)
-        const bestMonth = activeMonthsData.reduce((best, current) => (current.savings > best.savings ? current : best));
-        const worstMonth = activeMonthsData.reduce((worst, current) =>
+        const bestMonth: MonthlySavingsData = activeMonthsData.reduce((best, current) =>
+            current.savings > best.savings ? current : best
+        );
+        const worstMonth: MonthlySavingsData = activeMonthsData.reduce((worst, current) =>
             current.savings < worst.savings ? current : worst
         );
 
-        res.json({
+        const response: MonthlySavingsTrendResponse = {
             success: true,
             data: {
                 trend: activeMonthsData,
                 summary: {
-                    totalSavings,
+                    totalSavings: totalSavings,
                     averageSavings: Math.round(averageSavings * 100) / 100,
                     positiveMonths,
                     negativeMonths,
@@ -338,8 +365,10 @@ export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response) =>
                     },
                 },
             },
-        });
-    } catch (error) {
+        };
+
+        res.json(response);
+    } catch (error: unknown) {
         res.status(500).json({
             success: false,
             message: "Error fetching monthly savings trend",

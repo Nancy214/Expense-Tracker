@@ -10,10 +10,10 @@ import { useTransactionMutations, useTransactionForm } from "@/hooks/use-transac
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { Transaction } from "@/types/transaction";
 import { TRANSACTION_CONSTANTS } from "@/schemas/transactionSchema";
-import { InputField } from "@/app-components/form-fields/InputField";
-import { SelectField } from "@/app-components/form-fields/SelectField";
-import { DateField } from "@/app-components/form-fields/DateField";
-import { FileUploadField } from "@/app-components/form-fields/FileUploadField";
+import { InputField } from "@/app-components/pages/form-fields/InputField";
+import { SelectField } from "@/app-components/pages/form-fields/SelectField";
+import { DateField } from "@/app-components/pages/form-fields/DateField";
+import { FileUploadField } from "@/app-components/pages/form-fields/FileUploadField";
 import { showSaveError } from "@/utils/toastUtils";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";

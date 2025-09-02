@@ -2,7 +2,7 @@ import { addDays, addWeeks, addMonths, addYears, addQuarters, isAfter } from "da
 
 // Get start of day (midnight) for a given date
 export const getStartOfDay = (date: Date): Date => {
-    const newDate = new Date(date);
+    const newDate: Date = new Date(date);
     newDate.setHours(0, 0, 0, 0);
     return newDate;
 };
@@ -14,7 +14,7 @@ export const getStartOfToday = (): Date => {
 
 // Add time period based on frequency
 export const addTimeByFrequency = (date: Date, frequency: string): Date => {
-    const newDate = new Date(date);
+    const newDate: Date = new Date(date);
 
     switch (frequency) {
         case "daily":
@@ -34,8 +34,8 @@ export const addTimeByFrequency = (date: Date, frequency: string): Date => {
 
 // Check if a date is after another, ignoring time
 export const isDateAfter = (date1: Date, date2: Date): boolean => {
-    const d1 = getStartOfDay(date1);
-    const d2 = getStartOfDay(date2);
+    const d1: Date = getStartOfDay(date1);
+    const d2: Date = getStartOfDay(date2);
     return isAfter(d1, d2);
 };
 

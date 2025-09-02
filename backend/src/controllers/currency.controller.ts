@@ -1,51 +1,60 @@
 import { Request, Response } from "express";
-import Currency from "../models/countries.model";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
+import { ExchangeRateResponse, FxRatesApiResponse, ApiErrorResponse } from "../types/currency";
 
-export const initCurrencies = async (req: Request, res: Response) => {
+/* export const initCurrencies = async (req: Request, res: Response): Promise<void> => {
     try {
-        const response = await axios.get(`https://api.fxratesapi.com/currencies`);
-        const data: any = response.data;
-        const currencies = Object.entries(data).map(([code, name]) => ({
+        const response = await axios.get<Record<string, { name: string }>>("https://api.fxratesapi.com/currencies");
+
+        const currencies: CurrencyData[] = Object.entries(response.data).map(([code, currencyData]) => ({
             code,
-            name: data[code].name,
+            name: currencyData.name,
         }));
-        //console.log(currencies);
 
         if ((await Currency.countDocuments()) === 0) {
             await Currency.insertMany(currencies);
-            res.status(200).json({ message: "Currencies initialized" });
+            const successResponse: CurrencyInitResponse = { message: "Currencies initialized" };
+            res.status(200).json(successResponse);
         } else {
-            res.status(200).json({ message: "Currencies already initialized" });
+            const alreadyInitResponse: CurrencyInitResponse = { message: "Currencies already initialized" };
+            res.status(200).json(alreadyInitResponse);
         }
     } catch (error) {
-        res.status(500).json({ message: "Failed to initialize currencies" });
+        const errorResponse: ApiErrorResponse = { message: "Failed to initialize currencies" };
+        res.status(500).json(errorResponse);
     }
-};
+}; */
 
-export const getExchangeRate = async (req: Request, res: Response) => {
+export const getExchangeRate = async (req: Request, res: Response): Promise<void> => {
     try {
         const { from, to, date } = req.query;
 
-        if (!from || !to) {
-            return res.status(400).json({
-                message: "From currency, to currency, and date are required",
-            });
+        if (!from || !to || typeof from !== "string" || typeof to !== "string") {
+            const errorResponse: ApiErrorResponse = {
+                message: "From currency and to currency are required",
+            };
+            res.status(400).json(errorResponse);
+            return;
         }
 
-        const response = await axios.get(
-            `https://api.fxratesapi.com/convert?from=${from}&to=${to}&date=${date}&amount=1`
+        const dateParam: string = date && typeof date === "string" ? date : new Date().toISOString().split("T")[0];
+
+        const response: AxiosResponse<FxRatesApiResponse> = await axios.get(
+            `https://api.fxratesapi.com/convert?from=${from}&to=${to}&date=${dateParam}&amount=1`
         );
 
-        res.status(200).json({
+        const successResponse: ExchangeRateResponse = {
             success: true,
             rate: response.data.info.rate,
             data: response.data,
-        });
-    } catch (error: any) {
+        };
+
+        res.status(200).json(successResponse);
+    } catch (error: unknown) {
         console.error("Exchange rate error:", error);
-        res.status(500).json({
+        const errorResponse: ApiErrorResponse = {
             message: "Failed to fetch exchange rate. Please try again.",
-        });
+        };
+        res.status(500).json(errorResponse);
     }
 };

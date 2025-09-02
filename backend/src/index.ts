@@ -9,10 +9,10 @@ import expenseRoutes from "./routes/transaction.routes";
 import budgetRoutes from "./routes/budget.routes";
 import profileRoutes from "./routes/profile.routes";
 import analyticsRoutes from "./routes/analytics.routes";
-import axios from "axios";
 import currencyRoutes from "./routes/currency.routes";
 import cron from "node-cron";
 import { TransactionModel } from "./models/transaction.model";
+import { TransactionOrBillDocument } from "./types/transactions";
 
 dotenv.config();
 
@@ -58,23 +58,23 @@ mongoose
 
 // Helper to get today's date in YYYY-MM-DD
 function getToday() {
-    const now = new Date();
+    const now: Date = new Date();
     return now.toISOString().slice(0, 10);
 }
 
 cron.schedule("0 0 * * *", async () => {
     // Recurring Expenses only
-    const recurringExpenses = await TransactionModel.find({ isRecurring: true });
-    const today = getToday();
+    const recurringExpenses: TransactionOrBillDocument[] = await TransactionModel.find({ isRecurring: true });
+    const today: string = getToday();
 
     for (const template of recurringExpenses) {
         // Check if an instance for today exists
-        const exists = await TransactionModel.findOne({
+        const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
             templateId: template._id,
             date: today,
         });
         if (!exists) {
-            await TransactionModel.create({
+            await TransactionModel.create<TransactionOrBillDocument>({
                 ...template.toObject(),
                 _id: undefined,
                 date: today,
@@ -87,14 +87,14 @@ cron.schedule("0 0 * * *", async () => {
 });
 
 // Helper to get next date for a given frequency
-function getNextDate(date: Date, frequency: string) {
+/* function getNextDate(date: Date, frequency: string) {
     const d = new Date(date);
     if (frequency === "daily") d.setDate(d.getDate() + 1);
     else if (frequency === "weekly") d.setDate(d.getDate() + 7);
     else if (frequency === "monthly") d.setMonth(d.getMonth() + 1);
     else if (frequency === "yearly") d.setFullYear(d.getFullYear() + 1);
     return d;
-}
+} */
 
 // Routes
 app.use("/api/auth", authRoutes);

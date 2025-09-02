@@ -2,7 +2,15 @@ import { Response } from "express";
 import { Budget } from "../models/budget.model";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
-import { BudgetRequest } from "../types/budget";
+import {
+    BudgetRequest,
+    BudgetResponse,
+    BudgetDeleteResponse,
+    BudgetProgressResponse,
+    BudgetProgressItem,
+    BudgetType,
+} from "../types/budget";
+import { Transaction } from "../types/transactions";
 import mongoose from "mongoose";
 import {
     startOfDay,
@@ -13,19 +21,23 @@ import {
     endOfMonth,
     startOfYear,
     endOfYear,
-    isWithinInterval,
 } from "date-fns";
 
-export const createBudget = async (req: AuthRequest, res: Response) => {
+export const createBudget = async (
+    req: AuthRequest,
+    res: Response<BudgetResponse | { message: string }>
+): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         const { amount, frequency, startDate, category }: BudgetRequest = req.body;
         if (!amount || !frequency || !startDate || !category) {
-            return res.status(400).json({ message: "Amount, frequency, start date, and category are required." });
+            res.status(400).json({ message: "Amount, frequency, start date, and category are required." });
+            return;
         }
 
         const budget = new Budget({
@@ -36,29 +48,34 @@ export const createBudget = async (req: AuthRequest, res: Response) => {
             category,
         });
 
-        const savedBudget = await budget.save();
+        const savedBudget: BudgetResponse | null = await budget.save();
         res.status(201).json(savedBudget);
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Budget creation error:", error);
         res.status(500).json({ message: "Failed to create budget." });
     }
 };
 
-export const updateBudget = async (req: AuthRequest, res: Response) => {
+export const updateBudget = async (
+    req: AuthRequest,
+    res: Response<BudgetResponse | { message: string }>
+): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         const { id } = req.params;
         const { amount, frequency, startDate, category }: BudgetRequest = req.body;
 
         if (!amount || !frequency || !startDate || !category) {
-            return res.status(400).json({ message: "Amount, frequency, start date, and category are required." });
+            res.status(400).json({ message: "Amount, frequency, start date, and category are required." });
+            return;
         }
 
-        const budget = await Budget.findOneAndUpdate(
+        const budget: BudgetResponse | null = await Budget.findOneAndUpdate(
             {
                 _id: new mongoose.Types.ObjectId(id),
                 userId: new mongoose.Types.ObjectId(userId),
@@ -68,7 +85,8 @@ export const updateBudget = async (req: AuthRequest, res: Response) => {
         );
 
         if (!budget) {
-            return res.status(404).json({ message: "Budget not found." });
+            res.status(404).json({ message: "Budget not found." });
+            return;
         }
 
         res.status(200).json(budget);
@@ -78,99 +96,123 @@ export const updateBudget = async (req: AuthRequest, res: Response) => {
     }
 };
 
-export const deleteBudget = async (req: AuthRequest, res: Response) => {
+export const deleteBudget = async (
+    req: AuthRequest,
+    res: Response<BudgetDeleteResponse | { message: string }>
+): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         const { id } = req.params;
 
-        const budget = await Budget.findOneAndDelete({
+        const budget: BudgetResponse | null = await Budget.findOneAndDelete({
             _id: new mongoose.Types.ObjectId(id),
             userId: new mongoose.Types.ObjectId(userId),
         });
 
         if (!budget) {
-            return res.status(404).json({ message: "Budget not found." });
+            res.status(404).json({ message: "Budget not found." });
+            return;
         }
 
         res.status(200).json({ message: "Budget deleted successfully." });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Budget deletion error:", error);
         res.status(500).json({ message: "Failed to delete budget." });
     }
 };
 
-export const getBudgets = async (req: AuthRequest, res: Response) => {
+export const getBudgets = async (
+    req: AuthRequest,
+    res: Response<BudgetResponse[] | { message: string }>
+): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
-        const budgets = await Budget.find({
+        const budgets: BudgetResponse[] = await Budget.find({
             userId: new mongoose.Types.ObjectId(userId),
         });
         res.status(200).json(budgets);
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Budget fetch error:", error);
         res.status(500).json({ message: "Failed to fetch budgets." });
     }
 };
 
-export const getBudget = async (req: AuthRequest, res: Response) => {
+export const getBudget = async (
+    req: AuthRequest,
+    res: Response<BudgetResponse | { message: string }>
+): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         const { id } = req.params;
 
-        const budget = await Budget.findOne({
+        const budget: BudgetResponse | null = await Budget.findOne({
             _id: new mongoose.Types.ObjectId(id),
             userId: new mongoose.Types.ObjectId(userId),
         });
 
         if (!budget) {
-            return res.status(404).json({ message: "Budget not found." });
+            res.status(404).json({ message: "Budget not found." });
+            return;
         }
 
         res.status(200).json(budget);
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Budget fetch error:", error);
         res.status(500).json({ message: "Failed to fetch budget." });
     }
 };
 
-export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
+export const getBudgetProgress = async (
+    req: AuthRequest,
+    res: Response<BudgetProgressResponse | { message: string }>
+): Promise<void> => {
     try {
         const userId = req.user?.id;
 
         if (!userId) {
-            return res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json({ message: "User not authenticated" });
+            return;
         }
 
         // Get all budgets for the user
-        const budgets = await Budget.find({
+        const budgets: BudgetResponse[] = await Budget.find({
             userId: new mongoose.Types.ObjectId(userId),
         });
 
         if (budgets.length === 0) {
-            return res.status(200).json({ budgets: [], totalProgress: 0 });
+            res.status(200).json({
+                budgets: [],
+                totalProgress: 0,
+                totalBudgetAmount: 0,
+                totalSpent: 0,
+            });
+            return;
         }
 
         // Get all expenses for the user
-        const expenses = await TransactionModel.find({
+        const expenses: Transaction[] = await TransactionModel.find({
             userId: new mongoose.Types.ObjectId(userId),
             type: "expense", // Only consider expenses, not income
         });
 
-        const budgetProgress = budgets.map((budget) => {
-            const now = new Date();
-            const budgetStartDate = new Date(budget.startDate);
+        const budgetProgress: BudgetProgressItem[] = budgets.map((budget: BudgetResponse) => {
+            const now: Date = new Date();
+            const budgetStartDate: Date = new Date(budget.startDate);
 
             // Calculate the current period based on frequency
             let periodStart: Date;
@@ -206,31 +248,32 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
 
             // Filter expenses from the budget start date to now (not just current period)
             // and match the budget category
-            const budgetExpenses = expenses.filter((expense) => {
-                const expenseDate = new Date(expense.date);
+            const budgetExpenses: Transaction[] = expenses.filter((expense: Transaction) => {
+                const expenseDate: Date = new Date(expense.date);
                 // Set time to start of day for consistent comparison
-                const expenseDateStart = new Date(
+                const expenseDateStart: Date = new Date(
                     expenseDate.getFullYear(),
                     expenseDate.getMonth(),
                     expenseDate.getDate()
                 );
-                const budgetStartDateStart = new Date(
+                const budgetStartDateStart: Date = new Date(
                     budgetStartDate.getFullYear(),
                     budgetStartDate.getMonth(),
                     budgetStartDate.getDate()
                 );
-                const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const nowStart: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-                const isInRange = expenseDateStart >= budgetStartDateStart && expenseDateStart <= nowStart;
-                const matchesCategory = budget.category === "All Categories" || expense.category === budget.category;
+                const isInRange: boolean = expenseDateStart >= budgetStartDateStart && expenseDateStart <= nowStart;
+                const matchesCategory: boolean =
+                    budget.category === "All Categories" || expense.category === budget.category;
 
                 return isInRange && matchesCategory;
             });
 
             // Calculate total spent from budget start date
-            const totalSpent = budgetExpenses.reduce((sum, expense) => {
+            const totalSpent: number = budgetExpenses.reduce((sum: number, expense: Transaction) => {
                 // Convert to user's currency if different
-                let amount = expense.amount;
+                let amount: number = expense.amount;
                 if (expense.currency !== "INR") {
                     // Use exchange rates if available, otherwise assume 1:1
                     if (expense.fromRate && expense.toRate) {
@@ -240,9 +283,9 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
                 return sum + amount;
             }, 0);
 
-            const progress = (totalSpent / budgetAmount) * 100;
-            const remaining = budgetAmount - totalSpent;
-            const isOverBudget = totalSpent > budgetAmount;
+            const progress: number = (totalSpent / budgetAmount) * 100;
+            const remaining: number = budgetAmount - totalSpent;
+            const isOverBudget: boolean = totalSpent > budgetAmount;
 
             return {
                 _id: budget._id,
@@ -262,9 +305,15 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
         });
 
         // Calculate overall progress
-        const totalBudgetAmount = budgetProgress.reduce((sum, budget) => sum + budget.amount, 0);
-        const totalSpent = budgetProgress.reduce((sum, budget) => sum + budget.totalSpent, 0);
-        const totalProgress = totalBudgetAmount > 0 ? (totalSpent / totalBudgetAmount) * 100 : 0;
+        const totalBudgetAmount: number = budgetProgress.reduce(
+            (sum: number, budget: BudgetProgressItem) => sum + budget.amount,
+            0
+        );
+        const totalSpent: number = budgetProgress.reduce(
+            (sum: number, budget: BudgetProgressItem) => sum + budget.totalSpent,
+            0
+        );
+        const totalProgress: number = totalBudgetAmount > 0 ? (totalSpent / totalBudgetAmount) * 100 : 0;
 
         res.status(200).json({
             budgets: budgetProgress,
@@ -272,7 +321,7 @@ export const getBudgetProgress = async (req: AuthRequest, res: Response) => {
             totalBudgetAmount,
             totalSpent,
         });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Budget progress fetch error:", error);
         res.status(500).json({ message: "Failed to fetch budget progress." });
     }

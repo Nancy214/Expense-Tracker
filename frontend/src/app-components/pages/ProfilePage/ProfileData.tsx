@@ -4,9 +4,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Camera, Save, Edit3 } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import { InputField } from "@/app-components/form-fields/InputField";
-import { SelectField } from "@/app-components/form-fields/SelectField";
-import { DateField } from "@/app-components/form-fields/DateField";
+import { InputField } from "@/app-components/pages/form-fields/InputField";
+import { SelectField } from "@/app-components/pages/form-fields/SelectField";
+import { DateField } from "@/app-components/pages/form-fields/DateField";
 import { useProfileForm, useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useEffect, useMemo, useCallback } from "react";
 
