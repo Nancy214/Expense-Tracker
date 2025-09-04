@@ -7,6 +7,7 @@ import { useStats } from "@/context/StatsContext";
 import { BudgetResponse } from "@/types/budget";
 import { budgetSchema, BudgetFormData, getDefaultValues } from "@/schemas/budgetSchema";
 import { useBudgets } from "@/hooks/use-budgets";
+import { BudgetFormError } from "@/types/error";
 
 interface UseBudgetFormProps {
     editingBudget?: BudgetResponse | null;
@@ -52,10 +53,6 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
 
             if (editingBudget) {
                 await updateBudget({ id: editingBudget._id, budgetData });
-                toast({
-                    title: "Success",
-                    description: "Budget updated successfully!",
-                });
             } else {
                 await createBudget(budgetData);
                 toast({
@@ -68,11 +65,15 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
             form.reset(getDefaultValues());
             onOpenChange?.(false);
             onSuccess?.();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error saving budget:", error);
+            const errorMessage =
+                error && typeof error === "object" && "response" in error
+                    ? (error as BudgetFormError).response?.data?.message
+                    : "Failed to save budget";
             toast({
                 title: "Error",
-                description: error.response?.data?.message || "Failed to save budget",
+                description: errorMessage,
                 variant: "destructive",
             });
         } finally {

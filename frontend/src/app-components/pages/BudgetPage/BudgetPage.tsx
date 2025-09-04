@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BudgetFrequency, BudgetResponse } from "@/types/budget";
+import {
+    BudgetFrequency,
+    BudgetResponse,
+    BudgetProgress,
+    BudgetReminder,
+    BudgetPageState,
+    ProgressColor,
+} from "@/types/budget";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -13,9 +20,12 @@ import { DeleteConfirmationDialog } from "@/app-components/utility-components/de
 import { useBudgets } from "@/hooks/use-budgets";
 
 const BudgetPage: React.FC = () => {
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingBudget, setEditingBudget] = useState<BudgetResponse | null>(null);
-    const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
+    const [pageState, setPageState] = useState<BudgetPageState>({
+        isDialogOpen: false,
+        editingBudget: null,
+        dismissedReminders: new Set(),
+    });
+
     const { toast } = useToast();
     const { user } = useAuth();
     const {
@@ -45,7 +55,7 @@ const BudgetPage: React.FC = () => {
         },
     });
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = (): void => {
         confirmDelete();
         if (budgetToDelete) {
             toast({
@@ -64,52 +74,56 @@ const BudgetPage: React.FC = () => {
         });
     }
 
-    const dismissReminder = (reminderId: string) => {
-        setDismissedReminders((prev) => new Set([...prev, reminderId]));
+    const dismissReminder = (reminderId: string): void => {
+        setPageState((prev) => ({
+            ...prev,
+            dismissedReminders: new Set([...prev.dismissedReminders, reminderId]),
+        }));
         toast({
             title: "Reminder dismissed",
             description: "Budget reminder has been dismissed.",
         });
     };
 
-    const activeReminders = budgetReminders.filter((reminder) => !dismissedReminders.has(reminder.id));
+    const activeReminders: BudgetReminder[] = budgetReminders.filter(
+        (reminder) => !pageState.dismissedReminders.has(reminder.id)
+    );
 
-    const handleEdit = (budget: BudgetResponse) => {
-        setEditingBudget(budget);
-        setIsDialogOpen(true);
-        toast({
-            title: "Edit budget",
-            description: `Editing ${budget.category} budget`,
-        });
+    const handleEdit = (budget: BudgetResponse): void => {
+        setPageState((prev: BudgetPageState) => ({
+            ...prev,
+            editingBudget: budget,
+            isDialogOpen: true,
+        }));
     };
 
-    const handleAddBudget = () => {
-        setIsDialogOpen(true);
-        toast({
-            title: "Add budget",
-            description: "Creating a new budget",
-        });
+    const handleAddBudget = (): void => {
+        setPageState((prev: BudgetPageState) => ({
+            ...prev,
+            editingBudget: null,
+            isDialogOpen: true,
+        }));
     };
 
-    const formatFrequency = (freq: BudgetFrequency) => {
+    const formatFrequency = (freq: BudgetFrequency): string => {
         return freq.charAt(0).toUpperCase() + freq.slice(1);
     };
 
-    const formatAmount = (amount: number) => {
+    const formatAmount = (amount: number): string => {
         return new Intl.NumberFormat("en-IN", {
             style: "currency",
             currency: "INR",
         }).format(amount);
     };
 
-    const getProgressColor = (progress: number, isOverBudget: boolean) => {
+    const getProgressColor = (progress: number, isOverBudget: boolean): ProgressColor => {
         if (isOverBudget) return "danger";
         if (progress >= 80) return "warning";
         if (progress >= 60) return "default";
         return "success";
     };
 
-    const getProgressIcon = (progress: number, isOverBudget: boolean) => {
+    const getProgressIcon = (progress: number, isOverBudget: boolean): React.ReactElement => {
         if (isOverBudget) return <AlertTriangle className="h-4 w-4 text-red-500" />;
         if (progress >= 80) return <TrendingUp className="h-4 w-4 text-yellow-500" />;
         if (progress >= 60) return <TrendingUp className="h-4 w-4 text-blue-500" />;
@@ -194,17 +208,17 @@ const BudgetPage: React.FC = () => {
 
                 {/* Add/Edit Budget Dialog */}
                 <AddBudgetDialog
-                    open={isDialogOpen}
-                    onOpenChange={setIsDialogOpen}
-                    editingBudget={editingBudget}
+                    open={pageState.isDialogOpen}
+                    onOpenChange={(open: boolean) =>
+                        setPageState((prev: BudgetPageState) => ({
+                            ...prev,
+                            isDialogOpen: open,
+                            editingBudget: open ? prev.editingBudget : null,
+                        }))
+                    }
+                    editingBudget={pageState.editingBudget}
                     onSuccess={() => {
-                        setEditingBudget(null);
-                        toast({
-                            title: editingBudget ? "Budget updated" : "Budget created",
-                            description: editingBudget
-                                ? "Your budget has been updated successfully."
-                                : "Your new budget has been created successfully.",
-                        });
+                        setPageState((prev: BudgetPageState) => ({ ...prev, editingBudget: null }));
                     }}
                 />
 
@@ -219,8 +233,10 @@ const BudgetPage: React.FC = () => {
                     </Card>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {budgets.map((budget) => {
-                            const progress = budgetProgress.budgets.find((p) => p._id === budget._id);
+                        {budgets.map((budget: BudgetResponse) => {
+                            const progress: BudgetProgress | undefined = budgetProgress.budgets.find(
+                                (p: BudgetProgress) => p._id === budget._id
+                            );
                             return (
                                 <Card key={budget._id}>
                                     <CardHeader>

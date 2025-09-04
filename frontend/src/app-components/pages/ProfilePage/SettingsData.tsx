@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Settings, Save, Shield, LogOut } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useSettings, useProfileMutations } from "@/hooks/use-profile";
-import { User as AuthUser } from "@/types/auth";
+import { UserSettings } from "@/types/profile";
+import { User } from "@/types/auth";
 import { useNavigate } from "react-router-dom";
 
 interface SettingsDataProps {
@@ -25,12 +26,12 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
     const { updateSettings: updateSettingsMutation, isUpdatingSettings } = useProfileMutations();
 
     // Track if we've initialized the state
-    const hasInitialized = useRef(false);
+    const hasInitialized = useRef<boolean>(false);
 
     // Initialize settings state with defaults or localStorage backup
-    const getInitialSettings = () => {
+    const getInitialSettings = (): UserSettings => {
         try {
-            const storedSettings = localStorage.getItem("userSettings");
+            const storedSettings: string | null = localStorage.getItem("userSettings");
             if (storedSettings) {
                 const parsed = JSON.parse(storedSettings);
                 return {
@@ -40,7 +41,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
                     expenseReminderTime: parsed.expenseReminderTime || "18:00",
                 };
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Error parsing stored settings:", error);
         }
         return {
@@ -51,13 +52,13 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
         };
     };
 
-    const [settings, setSettings] = useState(getInitialSettings);
+    const [settings, setSettings] = useState<UserSettings>(getInitialSettings);
     const [expenseReminderTime, setExpenseReminderTime] = useState<string>(getInitialSettings().expenseReminderTime);
 
     // Update local state when settings data is loaded
     useEffect(() => {
         if (settingsData && !isInitialLoading && !hasInitialized.current) {
-            const newSettings = {
+            const newSettings: UserSettings = {
                 monthlyReports: settingsData.monthlyReports ?? false,
                 expenseReminders: settingsData.expenseReminders ?? false,
                 billsAndBudgetsAlert: settingsData.billsAndBudgetsAlert ?? false,
@@ -90,7 +91,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
         hasInitialized.current = false;
     }, [user?.id]);
 
-    const handleSettingsChange = (field: keyof typeof settings, value: boolean | string) => {
+    const handleSettingsChange = (field: keyof UserSettings, value: boolean | string): void => {
         setSettings({
             ...settings,
             [field]: value,
@@ -101,9 +102,9 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
     };
 
     // When saving, convert to 24h
-    const handleSaveSettings = async () => {
+    const handleSaveSettings = async (): Promise<void> => {
         try {
-            const updatedSettings = await updateSettingsMutation({
+            const updatedSettings: UserSettings = await updateSettingsMutation({
                 settings: {
                     ...settings,
                     expenseReminderTime: expenseReminderTime,
@@ -111,21 +112,25 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
                 userId: user?.id || "",
             });
 
+            if (!updatedSettings) {
+                throw new Error("Failed to update settings");
+            }
+
             // Update local state with the response
-            const newSettings = {
-                monthlyReports: updatedSettings?.monthlyReports ?? false,
-                expenseReminders: updatedSettings?.expenseReminders ?? false,
-                billsAndBudgetsAlert: updatedSettings?.billsAndBudgetsAlert ?? false,
-                expenseReminderTime: updatedSettings?.expenseReminderTime || "18:00",
+            const newSettings: UserSettings = {
+                monthlyReports: updatedSettings.monthlyReports ?? false,
+                expenseReminders: updatedSettings.expenseReminders ?? false,
+                billsAndBudgetsAlert: updatedSettings.billsAndBudgetsAlert ?? false,
+                expenseReminderTime: updatedSettings.expenseReminderTime || "18:00",
             };
             setSettings(newSettings);
-            setExpenseReminderTime(updatedSettings?.expenseReminderTime || "18:00");
+            setExpenseReminderTime(updatedSettings.expenseReminderTime || "18:00");
 
             // Store updated settings in localStorage
             localStorage.setItem("userSettings", JSON.stringify(newSettings));
 
             // Update user context and localStorage with new settings
-            const updatedUser: AuthUser & { settings: any } = {
+            const updatedUser: User = {
                 id: String(user?.id ?? ""),
                 email: String(user?.email ?? ""),
                 name: String(user?.name ?? ""),
@@ -135,9 +140,9 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
                 currency: String(user?.currency ?? ""),
                 country: String(user?.country ?? ""),
                 settings: {
-                    ...(user as any)?.settings,
+                    ...(user as User)?.settings,
                     ...updatedSettings,
-                    expenseReminderTime: updatedSettings?.expenseReminderTime || "18:00",
+                    expenseReminderTime: updatedSettings.expenseReminderTime || "18:00",
                 },
             };
             localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -147,7 +152,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
                 title: "Settings Saved",
                 description: "Your settings have been updated successfully.",
             });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Error updating settings:", error);
             toast({
                 title: "Error",
@@ -190,7 +195,9 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
                         </div>
                         <Switch
                             checked={settings.billsAndBudgetsAlert}
-                            onCheckedChange={(checked) => handleSettingsChange("billsAndBudgetsAlert", checked)}
+                            onCheckedChange={(checked: boolean) =>
+                                handleSettingsChange("billsAndBudgetsAlert", checked)
+                            }
                         />
                     </div>
 
@@ -201,7 +208,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
                         </div>
                         <Switch
                             checked={settings.monthlyReports}
-                            onCheckedChange={(checked) => handleSettingsChange("monthlyReports", checked)}
+                            onCheckedChange={(checked: boolean) => handleSettingsChange("monthlyReports", checked)}
                         />
                     </div>
 
@@ -212,7 +219,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
                         </div>
                         <Switch
                             checked={settings.expenseReminders}
-                            onCheckedChange={(checked) => handleSettingsChange("expenseReminders", checked)}
+                            onCheckedChange={(checked: boolean) => handleSettingsChange("expenseReminders", checked)}
                         />
                     </div>
                     {settings.expenseReminders && (

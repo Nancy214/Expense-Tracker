@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-
 import { useAuth } from "@/context/AuthContext";
 import { useExpenses, useAllTransactionsForAnalytics } from "@/hooks/use-transactions";
 import {
@@ -11,13 +10,21 @@ import {
     useMonthlySavingsTrend,
     transformExpensesToHeatmapData,
 } from "@/hooks/use-analytics";
-
 import "react-calendar-heatmap/dist/styles.css";
-
 import PieChartComponent from "./PieChart";
 import BarChartComponent from "./BarChart";
 import AreaChartComponent from "./AreaChart";
 import CalendarHeatmapComponent from "./CalendarHeatmap";
+import type {
+    ExpenseCategoryData,
+    BillsCategoryData,
+    AnalyticsMonthData as MonthData,
+    SavingsTrendItem,
+    AnalyticsTransaction as Transaction,
+    HeatmapData,
+    AreaChartData,
+    BarChartData,
+} from "@/types/analytics";
 
 const AnalyticsPage = () => {
     const { user } = useAuth();
@@ -50,22 +57,23 @@ const AnalyticsPage = () => {
     } = useMonthlySavingsTrend();
 
     // Check for any errors
-    const hasErrors = expenseBreakdownError || billsBreakdownError || incomeExpenseError || savingsTrendError;
+    const hasErrors: Error | null =
+        expenseBreakdownError || billsBreakdownError || incomeExpenseError || savingsTrendError;
 
     // Transform data for charts
-    const expenseCategoryData = expenseBreakdown?.data || [];
-    const billsCategoryData = billsBreakdown?.data || [];
+    const expenseCategoryData: ExpenseCategoryData[] = expenseBreakdown?.data || [];
+    const billsCategoryData: BillsCategoryData[] = billsBreakdown?.data || [];
 
     // Transform income/expense data for bar chart
-    const incomeExpenseData =
-        incomeExpenseResponse?.data?.months?.flatMap((monthData) => [
+    const incomeExpenseData: BarChartData[] =
+        incomeExpenseResponse?.data?.months?.flatMap((monthData: MonthData) => [
             { name: monthData.month, value: monthData.income, category: "Income" },
             { name: monthData.month, value: monthData.expenses, category: "Expense" },
         ]) || [];
 
     // Transform savings trend data for area chart
-    const savingsTrendData =
-        savingsTrendResponse?.data?.trend?.map((item) => ({
+    const savingsTrendData: AreaChartData[] =
+        savingsTrendResponse?.data?.trend?.map((item: SavingsTrendItem) => ({
             name: item.month,
             savings: item.savings,
             income: item.income,
@@ -74,15 +82,15 @@ const AnalyticsPage = () => {
         })) || [];
 
     // Transform expenses for heatmap using all transactions
-    const expenseHeatmapData =
+    const expenseHeatmapData: HeatmapData[] =
         allTransactions.length > 0
             ? transformExpensesToHeatmapData(
-                  allTransactions.filter((t: any) => t.type === "expense") // Only include expenses for the heatmap
+                  allTransactions.filter((t: Transaction) => t.type === "expense") // Only include expenses for the heatmap
               )
             : [];
 
     // Combined loading state
-    const isLoading =
+    const isLoading: boolean =
         expenseBreakdownLoading ||
         billsBreakdownLoading ||
         incomeExpenseLoading ||

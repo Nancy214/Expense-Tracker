@@ -5,31 +5,7 @@ import { PaginationWrapper } from "@/components/ui/pagination";
 import { AllTransactionsTab } from "./AllTransactionsTab";
 import { RecurringTransactionsTab } from "./RecurringTransactionsTab";
 import { BillsTab } from "./BillsTab";
-
-interface DataTableProps {
-    data: TransactionWithId[];
-    onEdit: (expense: TransactionWithId) => void;
-    onDelete: (expenseId: string) => void;
-    showRecurringIcon?: boolean;
-    showRecurringBadge?: boolean;
-    isRecurringTab?: boolean;
-    parse?: (date: string, format: string, baseDate: Date) => Date;
-    // Props for tabs and functionality
-    onRefresh?: () => void;
-    setAllExpenses?: (expenses: TransactionWithId[]) => void;
-    setAvailableMonths?: (months: { label: string; value: { year: number; month: number } }[]) => void;
-    recurringTransactions?: TransactionWithId[];
-    totalExpensesByCurrency?: { [key: string]: { income: number; expense: number; net: number } };
-    refreshAllTransactions?: () => void;
-    activeTab?: "all" | "recurring" | "bills";
-    setActiveTab?: (tab: "all" | "recurring" | "bills") => void;
-    // Pagination props
-    currentPage?: number;
-    totalPages?: number;
-    onPageChange?: (page: number) => void;
-    totalItems?: number;
-    itemsPerPage?: number;
-}
+import { DataTableProps } from "@/types/transaction";
 
 export function DataTable({
     data,
@@ -42,7 +18,6 @@ export function DataTable({
     refreshAllTransactions,
     activeTab = "all",
     setActiveTab,
-    // Pagination props
     currentPage = 1,
     totalPages = 1,
     onPageChange,
@@ -133,7 +108,7 @@ export function DataTable({
                 <span className="font-medium">Transaction Summary</span>
                 <div className="text-right space-y-1">
                     {Object.entries(totalExpensesByCurrency).map(([currency, totals]) => {
-                        const currencySymbols: { [key: string]: string } = {
+                        const currencySymbols: Record<string, string> = {
                             INR: "₹",
                             EUR: "€",
                             GBP: "£",

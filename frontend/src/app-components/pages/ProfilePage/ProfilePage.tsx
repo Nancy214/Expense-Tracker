@@ -9,7 +9,7 @@ const ProfilePage: React.FC = () => {
     const { toast } = useToast();
     const navigate = useNavigate();
 
-    const handleLogout = async () => {
+    const handleLogout = async (): Promise<void> => {
         try {
             await logout();
             navigate("/login", { replace: true });
@@ -17,7 +17,8 @@ const ProfilePage: React.FC = () => {
                 title: "Logged out successfully",
                 description: "You have been logged out of your account.",
             });
-        } catch (error) {
+        } catch (error: unknown) {
+            console.error("Logout error:", error);
             toast({
                 title: "Error",
                 description: "Failed to log out. Please try again.",

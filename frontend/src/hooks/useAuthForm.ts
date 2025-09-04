@@ -14,12 +14,13 @@ import {
     ResetPasswordFormData,
     ForgotPasswordFormData,
 } from "@/schemas/authSchema";
+import { ApiErrorResponse } from "@/types/auth";
 
 // Login hook
 export const useLoginForm = () => {
     const navigate = useNavigate();
     const { login: authLogin } = useAuth();
-    const [error, setError] = useState("");
+    const [error, setError] = useState<string>("");
 
     const form = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
@@ -29,14 +30,15 @@ export const useLoginForm = () => {
         },
     });
 
-    const onSubmit = async (data: LoginFormData) => {
+    const onSubmit = async (data: LoginFormData): Promise<void> => {
         setError("");
 
         try {
             await authLogin(data);
             navigate("/");
-        } catch (error: any) {
-            setError(error.response?.data?.message || "Failed to login. Please check your credentials.");
+        } catch (error: unknown) {
+            const apiError = error as ApiErrorResponse;
+            setError(apiError.response?.data?.message || "Failed to login. Please check your credentials.");
         }
     };
 
@@ -50,7 +52,7 @@ export const useLoginForm = () => {
 // Register hook
 export const useRegisterForm = () => {
     const navigate = useNavigate();
-    const [error, setError] = useState("");
+    const [error, setError] = useState<string>("");
 
     const form = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
@@ -62,14 +64,15 @@ export const useRegisterForm = () => {
         },
     });
 
-    const onSubmit = async (data: RegisterFormData) => {
+    const onSubmit = async (data: RegisterFormData): Promise<void> => {
         setError("");
 
         try {
             await register(data);
             navigate("/login");
-        } catch (error: any) {
-            setError(error.response?.data?.message || "Failed to register. Please try again.");
+        } catch (error: unknown) {
+            const apiError = error as ApiErrorResponse;
+            setError(apiError.response?.data?.message || "Failed to register. Please try again.");
         }
     };
 
@@ -83,9 +86,9 @@ export const useRegisterForm = () => {
 // Reset password hook
 export const useResetPasswordForm = () => {
     const navigate = useNavigate();
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
-    const [token, setToken] = useState("");
+    const [error, setError] = useState<string>("");
+    const [success, setSuccess] = useState<string>("");
+    const [token, setToken] = useState<string>("");
 
     const form = useForm<ResetPasswordFormData>({
         resolver: zodResolver(resetPasswordSchema),
@@ -95,7 +98,7 @@ export const useResetPasswordForm = () => {
         },
     });
 
-    const onSubmit = async (data: ResetPasswordFormData) => {
+    const onSubmit = async (data: ResetPasswordFormData): Promise<void> => {
         if (!token) {
             setError("Invalid reset link. Please request a new password reset.");
             return;
@@ -110,8 +113,9 @@ export const useResetPasswordForm = () => {
             setTimeout(() => {
                 navigate("/login");
             }, 2000);
-        } catch (error: any) {
-            setError(error.response?.data?.message || "Failed to reset password.");
+        } catch (error: unknown) {
+            const apiError = error as ApiErrorResponse;
+            setError(apiError.response?.data?.message || "Failed to reset password.");
         }
     };
 
@@ -127,8 +131,8 @@ export const useResetPasswordForm = () => {
 
 // Forgot password hook
 export const useForgotPasswordForm = () => {
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+    const [error, setError] = useState<string>("");
+    const [success, setSuccess] = useState<string>("");
 
     const form = useForm<ForgotPasswordFormData>({
         resolver: zodResolver(forgotPasswordSchema),
@@ -137,15 +141,16 @@ export const useForgotPasswordForm = () => {
         },
     });
 
-    const onSubmit = async (data: ForgotPasswordFormData) => {
+    const onSubmit = async (data: ForgotPasswordFormData): Promise<void> => {
         setError("");
         setSuccess("");
 
         try {
             await forgotPassword(data.email);
             setSuccess("Password reset email sent successfully. Please check your email.");
-        } catch (error: any) {
-            setError(error.response?.data?.message || "Failed to send reset email.");
+        } catch (error: unknown) {
+            const apiError = error as ApiErrorResponse;
+            setError(apiError.response?.data?.message || "Failed to send reset email.");
         }
     };
 

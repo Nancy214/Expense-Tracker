@@ -19,10 +19,44 @@ export interface User {
     currency?: string;
     country?: string;
     timezone?: string;
+    settings?: {
+        monthlyReports: boolean;
+        expenseReminders: boolean;
+        billsAndBudgetsAlert: boolean;
+        expenseReminderTime: string;
+    };
 }
 
 export interface AuthResponse {
     accessToken: string;
     refreshToken: string;
     user: User;
+}
+
+// New types for auth pages
+export interface ChangePasswordFormData {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+export interface ChangePasswordErrors {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+export interface GoogleCallbackTokens {
+    accessToken: string;
+    refreshToken: string;
+    user: User;
+}
+
+export interface ApiErrorResponse {
+    response?: {
+        data?: {
+            message?: string;
+        };
+    };
+    message?: string;
 }

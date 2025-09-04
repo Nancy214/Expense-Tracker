@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { parse, isAfter } from "date-fns";
+import { parse } from "date-fns";
 import { Plus, TrendingUp } from "lucide-react";
 import { TransactionWithId } from "@/types/transaction";
 import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
@@ -11,22 +11,14 @@ import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpense
 import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";
-import { useExpenses, useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
+import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 import { useBills } from "@/hooks/use-bills";
 import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
-import { useSettings } from "@/hooks/use-profile";
+import { MonthFilter, TotalExpensesByCurrency } from "@/types/transaction";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
-
-    // Load user settings properly
-    const { data: settingsData } = useSettings(user?.id || "");
-
-    // Use settings from the API if available, otherwise fall back to user context
-    const billsAndBudgetsAlertEnabled = !!(
-        (settingsData?.billsAndBudgetsAlert ?? (user as any)?.settings?.billsAndBudgetsAlert ?? true) // Default to true if no settings found
-    );
 
     // Separate pagination state for each tab
     const [allTransactionsPage, setAllTransactionsPage] = useState(1);
@@ -41,16 +33,10 @@ const TransactionsPage = () => {
         isLoading: isLoadingAllTransactions,
         invalidateAllTransactions,
     } = useAllTransactions(allTransactionsPage, itemsPerPage);
-    const {
-        bills,
-        pagination: billsPagination,
-        isLoading: isLoadingBills,
-        invalidateBills,
-    } = useBills(billsPage, itemsPerPage);
+    const { bills, pagination: billsPagination, invalidateBills } = useBills(billsPage, itemsPerPage);
     const {
         recurringTemplates: apiRecurringTemplates,
         pagination: recurringPagination,
-        isLoading: isLoadingRecurring,
         invalidateRecurringTemplates,
     } = useRecurringTemplates(recurringTransactionsPage, itemsPerPage);
     const { summary } = useTransactionSummary();
@@ -62,7 +48,7 @@ const TransactionsPage = () => {
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
 
     // Get current page based on active tab
-    const getCurrentPage = () => {
+    const getCurrentPage = (): number => {
         switch (activeTab) {
             case "all":
                 return allTransactionsPage;
@@ -78,7 +64,7 @@ const TransactionsPage = () => {
     const { budgetReminders = [] } = useBudgets();
 
     // Combined refresh function that invalidates both all transactions and bills
-    const refreshAllTransactions = () => {
+    const refreshAllTransactions = (): void => {
         invalidateAllTransactions();
         invalidateBills();
         invalidateRecurringTemplates();
@@ -117,12 +103,12 @@ const TransactionsPage = () => {
 
     const activeReminders = budgetReminders.filter((reminder) => !dismissedReminders.has(reminder.id));
 
-    const dismissReminder = (reminderId: string) => {
+    const dismissReminder = (reminderId: string): void => {
         setDismissedReminders((prev) => new Set([...prev, reminderId]));
     };
 
     // Helper to get a Date object from transaction.date
-    const getTransactionDate = (t: TransactionWithId) => {
+    const getTransactionDate = (t: TransactionWithId): Date => {
         if (typeof t.date === "string") {
             // Try dd/MM/yyyy first, fallback to ISO
             const parsed = parse(t.date, "dd/MM/yyyy", new Date());
@@ -140,7 +126,7 @@ const TransactionsPage = () => {
     const recurringTemplates = apiRecurringTemplates;
 
     // Get the appropriate data based on active tab
-    const getCurrentData = () => {
+    const getCurrentData = (): TransactionWithId[] => {
         switch (activeTab) {
             case "all":
                 return allTransactions;
@@ -155,11 +141,8 @@ const TransactionsPage = () => {
 
     const currentData = getCurrentData();
 
-    // Filter for recurring instances (for all transactions tab)
-    const recurringInstances = allTransactions.filter((t) => t.templateId && !t.isRecurring);
-
     // Calculate total expenses by currency
-    const totalExpensesByCurrency = currentData.reduce((acc, transaction) => {
+    const totalExpensesByCurrency: TotalExpensesByCurrency = currentData.reduce((acc, transaction) => {
         const currency = transaction.currency || "INR";
         const amount = transaction.amount;
         const type = transaction.type || "expense";
@@ -196,10 +179,10 @@ const TransactionsPage = () => {
         }
 
         return acc;
-    }, {} as { [key: string]: { income: number; expense: number; net: number } });
+    }, {} as TotalExpensesByCurrency);
 
     // Handle page change for different tabs
-    const handlePageChange = (page: number) => {
+    const handlePageChange = (page: number): void => {
         switch (activeTab) {
             case "all":
                 setAllTransactionsPage(page);
@@ -214,7 +197,7 @@ const TransactionsPage = () => {
     };
 
     // Get available months for filtering
-    const availableMonths = useMemo(() => {
+    const availableMonths: MonthFilter[] = useMemo(() => {
         const monthSet = new Set<string>();
         allTransactions.forEach((expense) => {
             const date = getTransactionDate(expense);
@@ -239,7 +222,7 @@ const TransactionsPage = () => {
     }, [allTransactions]);
 
     // Download statement for a specific month
-    const downloadMonthlyStatementForMonth = ({ year, month }: { year: number; month: number }) => {
+    const downloadMonthlyStatementForMonth = ({ year, month }: { year: number; month: number }): void => {
         const now = new Date(year, month, 1);
         const monthName = now.toLocaleString("default", { month: "long" });
         const currentYear = year;
@@ -261,7 +244,7 @@ const TransactionsPage = () => {
             totalTransactions > 0
                 ? monthlyTransactions.reduce((sum, expense) => sum + (expense.amount || 0), 0) / totalTransactions
                 : 0;
-        const expenseByCategory: { [cat: string]: number } = {};
+        const expenseByCategory: Record<string, number> = {};
         monthlyTransactions.forEach((expense) => {
             if (expense.type === "expense") {
                 expenseByCategory[expense.category] = (expenseByCategory[expense.category] || 0) + expense.amount;
@@ -287,7 +270,7 @@ const TransactionsPage = () => {
         });
     };
 
-    const currencySymbols: { [key: string]: string } = {
+    const currencySymbols: Record<string, string> = {
         INR: "₹",
         USD: "$",
         EUR: "€",
@@ -450,7 +433,7 @@ const TransactionsPage = () => {
             <AddExpenseDialog
                 open={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
-                editingExpense={editingExpense as any}
+                editingExpense={editingExpense}
                 preselectedCategory={preselectedCategory}
                 onSuccess={() => {
                     refreshAllTransactions();

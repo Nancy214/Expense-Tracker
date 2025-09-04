@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { login, logout } from "@/services/auth.service";
-import { LoginCredentials, AuthResponse } from "@/types/auth";
+import { LoginCredentials, AuthResponse, User } from "@/types/auth";
 import { removeTokens } from "@/utils/authUtils";
 
 interface AuthContextType {
     isAuthenticated: boolean;
     user: AuthResponse["user"] | null;
     login: (credentials: LoginCredentials) => Promise<void>;
-    loginWithGoogle: (userData: any) => void;
+    loginWithGoogle: (userData: User) => void;
     logout: () => Promise<void>;
     updateUser: (userData: AuthResponse["user"]) => void;
     //register: (credentials: LoginCredentials) => Promise<void>;
@@ -19,10 +19,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [user, setUser] = useState<AuthResponse["user"] | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        const checkAuth = () => {
+        const checkAuth = (): void => {
             try {
                 const accessToken = localStorage.getItem("accessToken");
                 const userData = localStorage.getItem("user");
@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         checkAuth();
     }, []);
 
-    const handleLogin = async (credentials: LoginCredentials) => {
+    const handleLogin = async (credentials: LoginCredentials): Promise<void> => {
         try {
             const response = await login(credentials);
             localStorage.setItem("user", JSON.stringify(response.user));
@@ -60,12 +60,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const handleGoogleLogin = (userData: any) => {
+    const handleGoogleLogin = (userData: User): void => {
         setUser(userData);
         setIsAuthenticated(true);
     };
 
-    const handleLogout = async () => {
+    const handleLogout = async (): Promise<void> => {
         try {
             await logout();
             removeTokens();
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error("useAuth must be used within an AuthProvider");

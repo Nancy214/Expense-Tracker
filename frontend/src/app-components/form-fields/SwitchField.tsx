@@ -3,6 +3,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useFormContext } from "react-hook-form";
 import { cn } from "@/lib/utils";
+import { motion } from "motion/react";
 
 interface SwitchFieldProps {
     name: string;
@@ -55,7 +56,13 @@ export const SwitchField: React.FC<SwitchFieldProps> = ({
                     {description && <p className="text-xs text-muted-foreground">{description}</p>}
                 </div>
             </div>
-            {error && <p className="text-xs text-red-500">{error.message as string}</p>}
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: error ? 1 : 0, y: error ? 0 : -10 }}
+                transition={{ duration: 0.3 }}
+            >
+                {error && <p className="text-xs text-red-500">{error.message as string}</p>}
+            </motion.div>
         </div>
     );
 };

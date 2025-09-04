@@ -7,6 +7,7 @@ import { CalendarIcon } from "lucide-react";
 import { useFormContext } from "react-hook-form";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
+import { motion } from "motion/react";
 
 interface DateFieldProps {
     name: string;
@@ -90,7 +91,13 @@ export const DateField: React.FC<DateFieldProps> = ({
                     />
                 </PopoverContent>
             </Popover>
-            {error && <p className="text-xs text-red-500">{error.message as string}</p>}
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: error ? 1 : 0, y: error ? 0 : -10 }}
+                transition={{ duration: 0.3 }}
+            >
+                {error && <p className="text-xs text-red-500">{error.message as string}</p>}
+            </motion.div>
         </div>
     );
 };

@@ -4,16 +4,8 @@ import { TrendingUp } from "lucide-react";
 import { getExpenses } from "@/services/transaction.service";
 import { getBudgets } from "@/services/budget.service";
 import { useAuth } from "@/context/AuthContext";
-
-interface AccountStats {
-    totalExpenses: number;
-    totalAmount: number;
-    budgetsCount: number;
-    daysActive: number;
-    averageExpense: number;
-    largestExpense: number;
-    recurringExpenses: number;
-}
+import type { AccountStats, AnalyticsExpense as Expense, ExpensesResponse } from "@/types/analytics";
+import { BudgetResponse } from "@/types/budget";
 
 const AccountStatistics = () => {
     const [stats, setStats] = useState<AccountStats>({
@@ -25,12 +17,12 @@ const AccountStatistics = () => {
         largestExpense: 0,
         recurringExpenses: 0,
     });
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState<boolean>(true);
     const { user } = useAuth();
 
     // Currency formatting function
-    const formatAmount = (amount: number) => {
-        const currencySymbols: { [key: string]: string } = {
+    const formatAmount = (amount: number): string => {
+        const currencySymbols: Record<string, string> = {
             INR: "₹",
             EUR: "€",
             GBP: "£",
@@ -50,21 +42,26 @@ const AccountStatistics = () => {
         fetchStatsData();
     }, []);
 
-    const fetchStatsData = async () => {
+    const fetchStatsData = async (): Promise<void> => {
         setLoading(true);
         try {
             // Fetch expenses and budgets in parallel
-            const [expensesResponse, budgets] = await Promise.all([getExpenses(), getBudgets()]);
+            const [expensesResponse, budgets] = (await Promise.all([getExpenses(), getBudgets()])) as [
+                ExpensesResponse,
+                BudgetResponse[]
+            ];
 
             // Calculate stats
-            const totalAmount = expensesResponse.expenses.reduce(
-                (sum: number, expense: any) => sum + expense.amount,
+            const totalAmount: number = expensesResponse.expenses.reduce(
+                (sum: number, expense: Expense) => sum + expense.amount,
                 0
             );
-            const recurringExpenses = expensesResponse.expenses.filter((expense: any) => expense.isRecurring).length;
+            const recurringExpenses: number = expensesResponse.expenses.filter(
+                (expense: Expense) => expense.isRecurring
+            ).length;
             const largestExpense =
                 expensesResponse.expenses.length > 0
-                    ? Math.max(...expensesResponse.expenses.map((e: any) => e.amount))
+                    ? Math.max(...expensesResponse.expenses.map((e: Expense) => e.amount))
                     : 0;
 
             setStats({
@@ -77,7 +74,7 @@ const AccountStatistics = () => {
                 largestExpense,
                 recurringExpenses,
             });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Error fetching stats data:", error);
         } finally {
             setLoading(false);

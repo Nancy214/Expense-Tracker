@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useFormContext } from "react-hook-form";
 import { cn } from "@/lib/utils";
+import { motion } from "motion/react";
 
 interface FileUploadFieldProps {
     name: string;
@@ -265,7 +266,13 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                     </div>
                 )}
             </div>
-            {error && <p className="text-xs text-red-500">{error.message as string}</p>}
+            <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: error ? 1 : 0, y: error ? 0 : -10 }}
+                transition={{ duration: 0.3 }}
+            >
+                {error && <p className="text-xs text-red-500">{error.message as string}</p>}
+            </motion.div>
         </div>
     );
 };

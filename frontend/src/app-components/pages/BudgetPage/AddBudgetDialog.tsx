@@ -1,20 +1,19 @@
 import { Button } from "@/components/ui/button";
-import { BudgetResponse } from "@/types/budget";
+import { AddBudgetDialogProps, BudgetFrequencyOption, BudgetCategoryOption } from "@/types/budget";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { FormProvider } from "react-hook-form";
-import { InputField } from "@/app-components/pages/form-fields/InputField";
-import { SelectField } from "@/app-components/pages/form-fields/SelectField";
-import { DateField } from "@/app-components/pages/form-fields/DateField";
+import { InputField } from "@/app-components/form-fields/InputField";
+import { SelectField } from "@/app-components/form-fields/SelectField";
+import { DateField } from "@/app-components/form-fields/DateField";
 import { useBudgetForm } from "@/hooks/useBudgetForm";
 import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
 
-interface AddBudgetDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    editingBudget?: BudgetResponse | null;
-    onSuccess?: () => void;
-    triggerButton?: React.ReactNode;
-}
+const FREQUENCY_OPTIONS: BudgetFrequencyOption[] = [
+    { value: "daily", label: "Daily" },
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
+    { value: "yearly", label: "Yearly" },
+];
 
 const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
     open,
@@ -28,6 +27,11 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
         onSuccess,
         onOpenChange,
     });
+
+    const categoryOptions: BudgetCategoryOption[] = BUDGET_CATEGORIES.map((category: string) => ({
+        value: category,
+        label: category === "Bill" ? "Bills" : category,
+    }));
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -56,12 +60,7 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
                                 name="frequency"
                                 label="Budget Frequency"
                                 placeholder="Select frequency"
-                                options={[
-                                    { value: "daily", label: "Daily" },
-                                    { value: "weekly", label: "Weekly" },
-                                    { value: "monthly", label: "Monthly" },
-                                    { value: "yearly", label: "Yearly" },
-                                ]}
+                                options={FREQUENCY_OPTIONS}
                                 required
                             />
 
@@ -69,10 +68,7 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
                                 name="category"
                                 label="Category"
                                 placeholder="Select a category"
-                                options={BUDGET_CATEGORIES.map((category) => ({
-                                    value: category,
-                                    label: category === "Bill" ? "Bills" : category,
-                                }))}
+                                options={categoryOptions}
                                 required
                             />
 

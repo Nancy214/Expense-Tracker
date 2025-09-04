@@ -51,3 +51,59 @@ export interface BudgetReminder {
     remaining: number;
     isOverBudget: boolean;
 }
+
+// Additional types for BudgetPage components
+export interface BudgetPageState {
+    isDialogOpen: boolean;
+    editingBudget: BudgetResponse | null;
+    dismissedReminders: Set<string>;
+}
+
+export interface BudgetPageHandlers {
+    handleEdit: (budget: BudgetResponse) => void;
+    handleAddBudget: () => void;
+    dismissReminder: (reminderId: string) => void;
+}
+
+export interface BudgetCardProps {
+    budget: BudgetResponse;
+    progress?: BudgetProgress;
+    onEdit: (budget: BudgetResponse) => void;
+    onDelete: (budget: BudgetResponse) => void;
+}
+
+export interface BudgetOverviewProps {
+    budgets: BudgetResponse[];
+    budgetProgress: BudgetProgressResponse;
+}
+
+export interface BudgetRemindersSectionProps {
+    user: { id: string; name: string; email: string } | null;
+    activeReminders: BudgetReminder[];
+    onDismiss: (reminderId: string) => void;
+}
+
+export type ProgressColor = "success" | "default" | "warning" | "danger";
+
+export interface ProgressIndicatorProps {
+    progress: number;
+    isOverBudget: boolean;
+}
+
+export interface AddBudgetDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    editingBudget?: BudgetResponse | null;
+    onSuccess?: () => void;
+    triggerButton?: React.ReactNode;
+}
+
+export interface BudgetFrequencyOption {
+    value: "daily" | "weekly" | "monthly" | "yearly";
+    label: string;
+}
+
+export interface BudgetCategoryOption {
+    value: string;
+    label: string;
+}

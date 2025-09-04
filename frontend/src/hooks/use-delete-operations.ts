@@ -5,6 +5,7 @@ import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.se
 import { TransactionWithId } from "@/types/transaction";
 import { BudgetResponse } from "@/types/budget";
 import { useBudgets } from "@/hooks/use-budgets";
+import { ApiError } from "@/types/error";
 
 // Query keys for invalidation - matching use-transactions.ts
 const EXPENSES_QUERY_KEY = ["expenses"] as const;
@@ -168,11 +169,15 @@ export function useDeleteOperations({
             if (onBudgetRemindersRefresh) {
                 onBudgetRemindersRefresh();
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error deleting budget:", error);
+            const errorMessage =
+                error && typeof error === "object" && "response" in error
+                    ? (error as ApiError).response?.data?.message
+                    : "Failed to delete budget";
             toast({
                 title: "Error",
-                description: "Failed to delete budget",
+                description: errorMessage,
                 variant: "destructive",
             });
         } finally {

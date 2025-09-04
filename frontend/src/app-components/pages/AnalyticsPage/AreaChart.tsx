@@ -9,30 +9,7 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-
-interface AreaChartData {
-    name: string;
-    savings: number;
-    income?: number;
-    expenses?: number;
-    category?: string;
-}
-
-interface AreaChartProps {
-    title: string;
-    description?: string;
-    data?: AreaChartData[];
-    colors?: {
-        savings: string;
-        gradient: string;
-    };
-    showInsights?: boolean;
-    currency?: string;
-    xAxisLabel?: string;
-    yAxisLabel?: string;
-    showGrid?: boolean;
-    showLegend?: boolean;
-}
+import type { AreaChartData, AreaChartProps, AreaChartTooltipProps as TooltipProps } from "@/types/analytics";
 
 const COLORS = {
     savings: "#10b981", // Green for savings
@@ -50,13 +27,13 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     showLegend = true,
 }) => {
     // Format amount with currency
-    const formatAmount = (amount: number) => {
+    const formatAmount = (amount: number): string => {
         if (amount === undefined || amount === null || isNaN(amount)) {
             return `${currency}0.00`;
         }
 
         // Currency symbol mapping
-        const currencySymbols: { [key: string]: string } = {
+        const currencySymbols: Record<string, string> = {
             INR: "₹",
             EUR: "€",
             GBP: "£",
@@ -69,26 +46,26 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
             KRW: "₩",
         };
 
-        const symbol = currencySymbols[currency] || currency;
+        const symbol: string = currencySymbols[currency] || currency;
         return `${symbol}${amount.toFixed(2)}`;
     };
 
     // Generate insights based on savings data
-    const generateInsights = (data: AreaChartData[]) => {
-        const insights = [];
+    const generateInsights = (data: AreaChartData[]): string[] => {
+        const insights: string[] = [];
 
         if (data.length === 0) return [];
 
-        const savingsValues = data.map((item) => item.savings);
-        const incomeValues = data.map((item) => item.income || 0);
-        const expenseValues = data.map((item) => item.expenses || 0);
+        const savingsValues: number[] = data.map((item) => item.savings);
+        const incomeValues: number[] = data.map((item) => item.income || 0);
+        const expenseValues: number[] = data.map((item) => item.expenses || 0);
 
         // Calculate totals and averages
-        const totalSavings = savingsValues.reduce((sum, val) => sum + val, 0);
-        const totalIncome = incomeValues.reduce((sum, val) => sum + val, 0);
-        const totalExpenses = expenseValues.reduce((sum, val) => sum + val, 0);
-        const avgSavings = totalSavings / data.length;
-        const monthCount = data.length;
+        const totalSavings: number = savingsValues.reduce((sum, val) => sum + val, 0);
+        const totalIncome: number = incomeValues.reduce((sum, val) => sum + val, 0);
+        const totalExpenses: number = expenseValues.reduce((sum, val) => sum + val, 0);
+        const avgSavings: number = totalSavings / data.length;
+        const monthCount: number = data.length;
 
         // Overall performance
         if (totalSavings > 0) {
@@ -117,8 +94,12 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
         }
 
         // Find best and worst months
-        const bestMonth = data.reduce((best, current) => (current.savings > best.savings ? current : best));
-        const worstMonth = data.reduce((worst, current) => (current.savings < worst.savings ? current : worst));
+        const bestMonth: AreaChartData = data.reduce((best, current) =>
+            current.savings > best.savings ? current : best
+        );
+        const worstMonth: AreaChartData = data.reduce((worst, current) =>
+            current.savings < worst.savings ? current : worst
+        );
 
         if (bestMonth.savings > 0) {
             insights.push(`📈 "${bestMonth.name}" was your best month with ${formatAmount(bestMonth.savings)} saved.`);
@@ -129,8 +110,8 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
         }
 
         // Trend analysis
-        const recentMonths = data.slice(-3);
-        const recentAvg = recentMonths.reduce((sum, item) => sum + item.savings, 0) / recentMonths.length;
+        const recentMonths: AreaChartData[] = data.slice(-3);
+        const recentAvg: number = recentMonths.reduce((sum, item) => sum + item.savings, 0) / recentMonths.length;
 
         if (recentAvg > avgSavings) {
             insights.push(
@@ -148,7 +129,7 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
 
         // Income vs Expenses analysis
         if (totalIncome > 0 && totalExpenses > 0) {
-            const savingsRate = (totalSavings / totalIncome) * 100;
+            const savingsRate: number = (totalSavings / totalIncome) * 100;
             if (savingsRate > 20) {
                 insights.push(`🎯 Excellent! You're saving ${savingsRate.toFixed(1)}% of your income.`);
             } else if (savingsRate > 10) {
@@ -161,8 +142,8 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
         }
 
         // Positive vs Negative months
-        const positiveMonths = data.filter((item) => item.savings > 0).length;
-        const negativeMonths = data.filter((item) => item.savings < 0).length;
+        const positiveMonths: number = data.filter((item) => item.savings > 0).length;
+        const negativeMonths: number = data.filter((item) => item.savings < 0).length;
 
         if (positiveMonths > negativeMonths) {
             insights.push(
@@ -178,9 +159,9 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     };
 
     // Custom tooltip formatter
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload;
+    const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
+        if (active && payload && payload.length > 0) {
+            const data: AreaChartData = payload[0].payload;
             return (
                 <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
                     <p className="font-semibold text-gray-800 dark:text-gray-100">{label}</p>
@@ -244,12 +225,12 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                     <h3 className="text-sm font-semibold mb-2 text-center">Current Month Summary</h3>
                     <ul className="divide-y divide-muted-foreground/10">
                         {(() => {
-                            const currentMonthData = data[data.length - 1];
+                            const currentMonthData: AreaChartData = data[data.length - 1];
                             if (!currentMonthData) return null;
 
-                            const savings = currentMonthData.savings || 0;
-                            const income = currentMonthData.income;
-                            const expenses = currentMonthData.expenses;
+                            const savings: number = currentMonthData.savings || 0;
+                            const income: number = currentMonthData.income || 0;
+                            const expenses: number = currentMonthData.expenses || 0;
 
                             return (
                                 <li className="flex items-center justify-between py-2 px-2">
@@ -274,9 +255,9 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                 <div className="mt-2 mb-2 text-sm text-muted-foreground text-center">
                     {data.length > 0
                         ? (() => {
-                              const totalSavings = data.reduce((sum, item) => sum + item.savings, 0);
-                              const avgSavings = totalSavings / data.length;
-                              const positiveMonths = data.filter((item) => item.savings > 0).length;
+                              const totalSavings: number = data.reduce((sum, item) => sum + item.savings, 0);
+                              const avgSavings: number = totalSavings / data.length;
+                              const positiveMonths: number = data.filter((item) => item.savings > 0).length;
                               return `Total Savings: ${formatAmount(totalSavings)} | Avg Monthly: ${formatAmount(
                                   avgSavings
                               )} | Positive Months: ${positiveMonths}/${data.length}`;

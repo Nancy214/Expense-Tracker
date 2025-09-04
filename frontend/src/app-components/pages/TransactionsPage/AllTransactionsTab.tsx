@@ -4,28 +4,21 @@ import {
     flexRender,
     getCoreRowModel,
     getSortedRowModel,
+    HeaderGroup,
     Row,
     useReactTable,
 } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Repeat, Pencil, Trash, Receipt, CheckCircle, Clock } from "lucide-react";
-import { TransactionWithId } from "@/types/transaction";
+import { TransactionWithId, BillStatus } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
-import { BillStatus } from "@/types/transaction";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
-
-interface AllTransactionsTabProps {
-    data: TransactionWithId[];
-    onEdit: (expense: TransactionWithId) => void;
-    showRecurringIcon?: boolean;
-    showRecurringBadge?: boolean;
-    refreshAllTransactions?: () => void;
-}
+import { TabComponentProps } from "@/types/transaction";
 
 export function AllTransactionsTab({
     data,
@@ -33,7 +26,7 @@ export function AllTransactionsTab({
     showRecurringIcon = false,
     showRecurringBadge = false,
     refreshAllTransactions,
-}: AllTransactionsTabProps) {
+}: TabComponentProps) {
     const { toast } = useToast();
 
     const {
@@ -62,7 +55,7 @@ export function AllTransactionsTab({
             if (refreshAllTransactions) {
                 refreshAllTransactions();
             }
-        } catch (error) {
+        } catch (error: unknown) {
             toast({
                 title: "Error",
                 description: "Failed to update bill status",
@@ -193,10 +186,10 @@ export function AllTransactionsTab({
                     );
                 },
                 cell: ({ row }: { row: Row<TransactionWithId> }) => {
-                    const amount = parseFloat(row.getValue("amount"));
-                    const currency = row.original.currency || "INR";
-                    const type = row.original.type || "expense";
-                    const currencySymbols: { [key: string]: string } = {
+                    const amount: number = parseFloat(row.getValue("amount") as string);
+                    const currency: string = row.original.currency || "INR";
+                    const type: string = row.original.type || "expense";
+                    const currencySymbols: Record<string, string> = {
                         INR: "₹",
                         USD: "$",
                         EUR: "€",
@@ -208,7 +201,7 @@ export function AllTransactionsTab({
                         CNY: "¥",
                         KRW: "₩",
                     };
-                    const symbol = currencySymbols[currency] || currency;
+                    const symbol: string = currencySymbols[currency] || currency;
                     return (
                         <div
                             className={`text-right font-medium ${
@@ -226,8 +219,8 @@ export function AllTransactionsTab({
                 id: "actions",
                 header: "Actions",
                 cell: ({ row }: { row: Row<TransactionWithId> }) => {
-                    const expense = row.original;
-                    const isBill = expense.category === "Bill";
+                    const expense: TransactionWithId = row.original;
+                    const isBill: boolean = expense.category === "Bill";
 
                     return (
                         <div className="flex gap-2">
@@ -301,7 +294,7 @@ export function AllTransactionsTab({
                 <div className="rounded-md border w-full overflow-hidden">
                     <Table>
                         <TableHeader>
-                            {table.getHeaderGroups().map((headerGroup) => (
+                            {table.getHeaderGroups().map((headerGroup: HeaderGroup<TransactionWithId>) => (
                                 <TableRow key={headerGroup.id}>
                                     {headerGroup.headers.map((header) => {
                                         return (

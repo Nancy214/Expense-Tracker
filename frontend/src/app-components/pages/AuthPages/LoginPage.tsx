@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useNavigate } from "react-router-dom";
 import { initiateGoogleLogin } from "@/services/auth.service";
 import { FormProvider } from "react-hook-form";
-import { InputField } from "@/app-components/pages/form-fields/InputField";
+import { InputField } from "@/app-components/form-fields/InputField";
 import { useLoginForm } from "@/hooks/useAuthForm";
 
 const LoginPage: React.FC = () => {
@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
         formState: { isSubmitting },
     } = form;
 
-    const handleGoogleLogin = () => {
+    const handleGoogleLogin = (): void => {
         initiateGoogleLogin();
     };
 

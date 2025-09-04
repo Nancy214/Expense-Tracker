@@ -3,10 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LogOut, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const LogoutPage = () => {
+const LogoutPage: React.FC = () => {
     const navigate = useNavigate();
 
-    const handleLogin = () => {
+    const handleLogin = (): void => {
         navigate("/login", { replace: true });
     };
 

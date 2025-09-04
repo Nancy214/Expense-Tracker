@@ -4,18 +4,19 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Camera, Save, Edit3 } from "lucide-react";
 import { FormProvider } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import { InputField } from "@/app-components/pages/form-fields/InputField";
-import { SelectField } from "@/app-components/pages/form-fields/SelectField";
-import { DateField } from "@/app-components/pages/form-fields/DateField";
+import { InputField } from "@/app-components/form-fields/InputField";
+import { SelectField } from "@/app-components/form-fields/SelectField";
+import { DateField } from "@/app-components/form-fields/DateField";
 import { useProfileForm, useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useEffect, useMemo, useCallback } from "react";
+import { CountryData, CurrencyOption, TimezoneOption } from "@/types/profile";
 
 const ProfileData: React.FC = () => {
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
 
     // Extract currencies and countries from the query data
-    const currencies = countryTimezoneData?.map((item) => item.currency) || [];
-    const countryList = countryTimezoneData?.map((item) => item.country) || [];
+    const currencies = countryTimezoneData?.map((item: CountryData) => item.currency) || [];
+    const countryList = countryTimezoneData?.map((item: CountryData) => item.country) || [];
     const {
         form,
         isEditing,
@@ -30,28 +31,34 @@ const ProfileData: React.FC = () => {
     } = useProfileForm();
 
     // Get the currently selected country
-    const selectedCountry = form.watch("country");
+    const selectedCountry: string = form.watch("country") || "";
 
     // Filter currencies based on selected country
     const getCurrenciesForCountry = useCallback(
-        (country: string) => {
+        (country: string): Array<{ code: string; name: string }> => {
             if (!country || !countryTimezoneData) return [];
 
-            const countryData = countryTimezoneData.find((item) => item.country === country);
+            const countryData: CountryData | undefined = countryTimezoneData.find(
+                (item: CountryData) => item.country === country
+            );
             if (!countryData) return [];
 
             // Return the currency for this country
-            return [countryData.currency].filter((currency) => currency && currency.code);
+            return [countryData.currency].filter(
+                (currency: { code: string; name: string } | undefined) => currency && currency.code
+            );
         },
         [countryTimezoneData]
     );
 
     // Get timezones for selected country
     const getTimezonesForCountry = useCallback(
-        (country: string) => {
+        (country: string): string[] => {
             if (!country || !countryTimezoneData) return [];
 
-            const countryData = countryTimezoneData.find((item) => item.country === country);
+            const countryData: CountryData | undefined = countryTimezoneData.find(
+                (item: CountryData) => item.country === country
+            );
             if (!countryData) return [];
 
             // Return the timezones for this country
@@ -61,56 +68,56 @@ const ProfileData: React.FC = () => {
     );
 
     // Get available currencies for the selected country
-    const availableCurrencies = useMemo(() => {
+    const availableCurrencies = useMemo((): CurrencyOption[] => {
         if (!selectedCountry) {
             // If no country is selected, return all currencies
             return currencies
-                .filter((currency) => currency.code !== "")
+                .filter((currency: { code: string; name: string }) => currency.code !== "")
                 .sort((a, b) => a.name.localeCompare(b.name))
-                .reduce((acc, currency) => {
-                    if (!acc.some((c: any) => c.code === currency.code)) {
+                .reduce((acc: Array<{ code: string; name: string }>, currency) => {
+                    if (!acc.some((c: { code: string; name: string }) => c.code === currency.code)) {
                         acc.push(currency);
                     }
                     return acc;
-                }, [] as any[])
-                .map((currency) => ({
+                }, [])
+                .map((currency: { code: string; name: string }) => ({
                     value: currency.code || "Not Defined",
                     label: `${currency.name} (${currency.code})`,
                 }));
         }
 
         // Return currencies for the selected country
-        return getCurrenciesForCountry(selectedCountry).map((currency) => ({
+        return getCurrenciesForCountry(selectedCountry).map((currency: { code: string; name: string }) => ({
             value: currency.code || "Not Defined",
             label: `${currency.name} (${currency.code})`,
         }));
-    }, [selectedCountry, countryTimezoneData, currencies]);
+    }, [selectedCountry, countryTimezoneData, currencies, getCurrenciesForCountry]);
 
     // Get available timezones for the selected country
-    const availableTimezones = useMemo(() => {
+    const availableTimezones: TimezoneOption[] = useMemo((): TimezoneOption[] => {
         if (!selectedCountry) {
             return [];
         }
 
-        const timezones = getTimezonesForCountry(selectedCountry);
-        return timezones.map((timezone) => ({
+        const timezones: string[] = getTimezonesForCountry(selectedCountry);
+        return timezones.map((timezone: string) => ({
             value: timezone,
             label: timezone,
         }));
-    }, [selectedCountry, countryTimezoneData]);
+    }, [selectedCountry, getTimezonesForCountry]);
 
     // Auto-select currency and timezone when country changes
     useEffect(() => {
         if (selectedCountry && isEditing) {
             // Auto-select currency
-            const countryCurrencies = getCurrenciesForCountry(selectedCountry);
+            const countryCurrencies: { code: string; name: string }[] = getCurrenciesForCountry(selectedCountry);
             if (countryCurrencies.length > 0) {
                 const defaultCurrency = countryCurrencies[0];
                 form.setValue("currency", defaultCurrency.code);
             }
 
             // Auto-select timezone
-            const countryTimezones = getTimezonesForCountry(selectedCountry);
+            const countryTimezones: string[] = getTimezonesForCountry(selectedCountry);
             if (countryTimezones.length > 0) {
                 const defaultTimezone = countryTimezones[0];
                 form.setValue("timezone", defaultTimezone);
@@ -140,7 +147,8 @@ const ProfileData: React.FC = () => {
         );
     }
 
-    const getInitials = (name: string) => {
+    const getInitials = (name: string): string => {
+        if (!name) return "";
         return name
             .split(" ")
             .map((n) => n[0])
@@ -261,7 +269,7 @@ const ProfileData: React.FC = () => {
                                 placeholder="Select a country"
                                 options={
                                     countryList.length > 0
-                                        ? countryList.map((country) => ({
+                                        ? countryList.map((country: string) => ({
                                               value: country,
                                               label: country,
                                           }))
@@ -311,8 +319,6 @@ const ProfileData: React.FC = () => {
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                console.log("Edit Profile clicked, current isEditing:", isEditing);
-                                console.log("Form values:", form.getValues());
                                 setIsEditing(true);
                             }}
                         >

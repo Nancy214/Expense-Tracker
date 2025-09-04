@@ -9,25 +9,13 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-
-interface BarChartData {
-    name: string;
-    value: number;
-    category?: string;
-}
-
-interface BarChartProps {
-    title: string;
-    description?: string;
-    data: BarChartData[];
-    colors?: string[];
-    showInsights?: boolean;
-    currency?: string;
-    xAxisLabel?: string;
-    yAxisLabel?: string;
-    showGrid?: boolean;
-    showLegend?: boolean;
-}
+import type {
+    BarChartData,
+    BarChartProps,
+    TransformedBarData,
+    BarChartMonthNetData as MonthData,
+    BarChartTooltipProps as TooltipProps,
+} from "@/types/analytics";
 
 const COLORS = [
     "#10b981", // Green for Income
@@ -45,13 +33,13 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     showLegend = true,
 }) => {
     // Format amount with currency
-    const formatAmount = (amount: number) => {
+    const formatAmount = (amount: number): string => {
         if (amount === undefined || amount === null || isNaN(amount)) {
             return `${currency}0.00`;
         }
 
         // Currency symbol mapping
-        const currencySymbols: { [key: string]: string } = {
+        const currencySymbols: Record<string, string> = {
             INR: "₹",
             EUR: "€",
             GBP: "£",
@@ -64,30 +52,38 @@ const BarChartComponent: React.FC<BarChartProps> = ({
             KRW: "₩",
         };
 
-        const symbol = currencySymbols[currency] || currency;
+        const symbol: string = currencySymbols[currency] || currency;
         return `${symbol}${amount.toFixed(2)}`;
     };
 
     // Transform data for grouped bar chart (income vs expenses over time)
-    const transformDataForGroupedBars = (data: BarChartData[]) => {
+    const transformDataForGroupedBars = (data: BarChartData[]): TransformedBarData[] => {
         if (!data || data.length === 0) return [];
 
-        const timePeriods = [...new Set(data.map((item) => item.name))];
-        const categories = [...new Set(data.map((item) => item.category))];
+        const timePeriods: string[] = [...new Set(data.map((item) => item.name))];
+        const categories: string[] = [...new Set(data.map((item) => item.category || ""))];
 
-        return timePeriods.map((period) => {
-            const periodData: any = { name: period };
-            categories.forEach((category) => {
-                const item = data.find((d) => d.name === period && d.category === category);
-                periodData[category || "value"] = item ? item.value || 0 : 0;
+        return timePeriods.map((period: string) => {
+            const periodData: TransformedBarData = { name: period, Income: 0, Expense: 0 };
+            categories.forEach((category: string) => {
+                const item: BarChartData = data.find((d) => d.name === period && d.category === category) || {
+                    name: period,
+                    value: 0,
+                    category: category,
+                };
+                if (item && item.category === "Income") {
+                    periodData.Income = item.value || 0;
+                } else if (item && item.category === "Expense") {
+                    periodData.Expense = item.value || 0;
+                }
             });
             return periodData;
         });
     };
 
     // Generate insights based on data
-    const generateInsights = (data: BarChartData[]) => {
-        const insights = [];
+    const generateInsights = (data: BarChartData[]): string[] => {
+        const insights: string[] = [];
 
         if (data.length === 0) return [];
 
@@ -105,9 +101,9 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         }, {} as Record<string, { income: number; expense: number }>);
 
         // Calculate overall totals
-        const totalIncome = Object.values(monthData).reduce((sum, month) => sum + month.income, 0);
-        const totalExpense = Object.values(monthData).reduce((sum, month) => sum + month.expense, 0);
-        const netIncome = totalIncome - totalExpense;
+        const totalIncome: number = Object.values(monthData).reduce((sum, month) => sum + month.income, 0);
+        const totalExpense: number = Object.values(monthData).reduce((sum, month) => sum + month.expense, 0);
+        const netIncome: number = totalIncome - totalExpense;
 
         // Overall financial health
         if (netIncome > 0) {
@@ -121,7 +117,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         }
 
         if (totalIncome > 0 && totalExpense > 0) {
-            const incomeExpenseRatio = totalIncome / totalExpense;
+            const incomeExpenseRatio: number = totalIncome / totalExpense;
             if (incomeExpenseRatio < 1.2) {
                 insights.push(
                     `📊 Your income is only ${(incomeExpenseRatio * 100).toFixed(
@@ -138,15 +134,17 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         }
 
         // Find best and worst months
-        const monthsWithNet = Object.entries(monthData).map(([month, data]) => ({
+        const monthsWithNet: MonthData[] = Object.entries(monthData).map(([month, data]) => ({
             month,
             net: data.income - data.expense,
             income: data.income,
             expense: data.expense,
         }));
 
-        const bestMonth = monthsWithNet.reduce((best, current) => (current.net > best.net ? current : best));
-        const worstMonth = monthsWithNet.reduce((worst, current) => (current.net < worst.net ? current : worst));
+        const bestMonth: MonthData = monthsWithNet.reduce((best, current) => (current.net > best.net ? current : best));
+        const worstMonth: MonthData = monthsWithNet.reduce((worst, current) =>
+            current.net < worst.net ? current : worst
+        );
 
         if (bestMonth.income > 0 || bestMonth.expense > 0) {
             insights.push(
@@ -159,10 +157,10 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         }
 
         // Monthly trends
-        const months = Object.keys(monthData);
+        const months: string[] = Object.keys(monthData);
         if (months.length > 1) {
-            const avgIncome = totalIncome / months.length;
-            const avgExpense = totalExpense / months.length;
+            const avgIncome: number = totalIncome / months.length;
+            const avgExpense: number = totalExpense / months.length;
             insights.push(
                 `📊 Average monthly income: ${formatAmount(avgIncome)}, Average monthly expenses: ${formatAmount(
                     avgExpense
@@ -174,14 +172,14 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     };
 
     // Custom tooltip formatter
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload;
+    const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
+        if (active && payload && payload.length > 0) {
+            const data: TransformedBarData = payload[0].payload;
 
             // For grouped bar chart, we need to show both income and expense for the month
-            const income = data.Income || 0;
-            const expense = data.Expense || 0;
-            const net = income - expense;
+            const income: number = data.Income || 0;
+            const expense: number = data.Expense || 0;
+            const net: number = income - expense;
 
             return (
                 <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
@@ -200,7 +198,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         return null;
     };
 
-    const transformedData = transformDataForGroupedBars(data);
+    const transformedData: TransformedBarData[] = transformDataForGroupedBars(data);
 
     return (
         <div className="bg-white dark:bg-slate-900/80 rounded-2xl shadow-lg p-6 transition hover:shadow-2xl">
@@ -244,12 +242,13 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                         <ul className="divide-y divide-muted-foreground/10">
                             {(() => {
                                 // Get only the current month data (last month in the array)
-                                const currentMonthData = transformedData[transformedData.length - 1];
+                                const currentMonthData: TransformedBarData =
+                                    transformedData[transformedData.length - 1];
                                 if (!currentMonthData) return null;
 
-                                const income = currentMonthData.Income || 0;
-                                const expense = currentMonthData.Expense || 0;
-                                const net = income - expense;
+                                const income: number = currentMonthData.Income || 0;
+                                const expense: number = currentMonthData.Expense || 0;
+                                const net: number = income - expense;
 
                                 return (
                                     <li className="flex items-center justify-between py-2 px-2">
@@ -277,12 +276,12 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                     {data.length > 0
                         ? (() => {
                               // Get only current month data (last month in the array)
-                              const currentMonthData = transformedData[transformedData.length - 1];
+                              const currentMonthData: TransformedBarData = transformedData[transformedData.length - 1];
                               if (!currentMonthData) return "No data available.";
 
-                              const totalIncome = currentMonthData.Income || 0;
-                              const totalExpense = currentMonthData.Expense || 0;
-                              const netIncome = totalIncome - totalExpense;
+                              const totalIncome: number = currentMonthData.Income || 0;
+                              const totalExpense: number = currentMonthData.Expense || 0;
+                              const netIncome: number = totalIncome - totalExpense;
                               return `Current Month Income: ${formatAmount(
                                   totalIncome
                               )} | Current Month Expenses: ${formatAmount(totalExpense)} | Net: ${formatAmount(
@@ -297,7 +296,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                     <div className="p-4 bg-muted/100 rounded-lg w-full">
                         <h4 className="text-sm mb-2 font-semibold text-gray-800 dark:text-gray-100">Smart Insights</h4>
                         <div className="space-y-2">
-                            {generateInsights(data).map((insight, index) => (
+                            {generateInsights(data).map((insight: string, index: number) => (
                                 <div key={index} className="text-xs text-muted-foreground rounded">
                                     {insight}
                                 </div>

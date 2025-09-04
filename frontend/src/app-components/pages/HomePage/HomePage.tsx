@@ -11,17 +11,10 @@ import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "luci
 import { useBudgets } from "@/hooks/use-budgets";
 import { useSettings } from "@/hooks/use-profile";
 import AddExpenseDialog from "../TransactionsPage/AddExpenseDialog";
+import { BudgetReminder } from "@/types/budget";
+import { FinancialOverviewData } from "@/types/transaction";
 
-interface FinancialOverviewData {
-    savingsRate: number;
-    expenseRate: number;
-    totalBudgets: number;
-    overBudgetCount: number;
-    warningBudgetCount: number;
-    onTrackBudgetCount: number;
-    averageBudgetProgress: number;
-}
-
+// Home page component
 const HomePage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -30,13 +23,13 @@ const HomePage = () => {
     const { data: settingsData } = useSettings(user?.id || "");
 
     // Use settings from the API if available, otherwise fall back to user context
-    const billsAndBudgetsAlertEnabled = !!(
+    const billsAndBudgetsAlertEnabled: boolean = !!(
         (settingsData?.billsAndBudgetsAlert ?? (user as any)?.settings?.billsAndBudgetsAlert ?? true) // Default to true if no settings found
     );
 
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
-    const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
-    const [isAddBudgetDialogOpen, setIsAddBudgetDialogOpen] = useState(false);
+    const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState<boolean>(false);
+    const [isAddBudgetDialogOpen, setIsAddBudgetDialogOpen] = useState<boolean>(false);
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
 
     const { monthlyStats } = useExpensesSelector();
@@ -78,19 +71,19 @@ const HomePage = () => {
     };
 
     // Financial Overview helper functions
-    const getSavingsRateColor = (rate: number) => {
+    const getSavingsRateColor = (rate: number): string => {
         if (rate >= 20) return "text-green-600";
         if (rate >= 10) return "text-yellow-600";
         return "text-red-600";
     };
 
-    const getExpenseRateColor = (rate: number) => {
+    const getExpenseRateColor = (rate: number): string => {
         if (rate <= 70) return "text-green-600";
         if (rate <= 90) return "text-yellow-600";
         return "text-red-600";
     };
 
-    const getBudgetRateColor = (onTrack: number, total: number) => {
+    const getBudgetRateColor = (onTrack: number, total: number): string => {
         if (total === 0) return "text-gray-600";
         const percentage = (onTrack / total) * 100;
         if (percentage >= 80) return "text-green-600";
@@ -98,7 +91,7 @@ const HomePage = () => {
         return "text-red-600";
     };
 
-    const getBudgetMessage = (onTrack: number, total: number) => {
+    const getBudgetMessage = (onTrack: number, total: number): string => {
         if (total === 0) return "No active budgets";
         const percentage = (onTrack / total) * 100;
         if (percentage >= 80) return "You're managing budgets well!";
@@ -118,7 +111,9 @@ const HomePage = () => {
                 <BudgetRemindersUI
                     user={user}
                     activeReminders={
-                        budgetRemindersData?.filter((reminder) => !dismissedReminders.has(reminder.id)) || []
+                        budgetRemindersData?.filter(
+                            (reminder: BudgetReminder) => !dismissedReminders.has(reminder.id)
+                        ) || []
                     }
                     dismissReminder={dismissReminder}
                 />

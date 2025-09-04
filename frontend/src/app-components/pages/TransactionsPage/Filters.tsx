@@ -21,6 +21,7 @@ import { DateRange } from "react-day-picker";
 import { TransactionWithId } from "@/types/transaction";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { downloadCSV, downloadExcel } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
+import { FiltersSectionProps, User } from "@/types/transaction";
 
 const EXPENSE_CATEGORIES: string[] = [
     "Food & Dining",
@@ -45,40 +46,11 @@ const INCOME_CATEGORIES: string[] = [
     "Other Income",
 ];
 
-interface FiltersSectionProps {
-    filteredTransactions: TransactionWithId[];
-    handleEdit: (expense: TransactionWithId) => void;
-    handleDelete: (id: string) => void;
-    handleDeleteRecurring: (templateId: string) => void;
-    recurringTransactions: TransactionWithId[];
-    totalExpensesByCurrency: { [key: string]: { income: number; expense: number; net: number } };
-    parse?: (date: string, format: string, baseDate: Date) => Date;
-    loadingMonths?: boolean;
-    availableMonths?: { label: string; value: { year: number; month: number } }[];
-    downloadMonthlyStatementForMonth?: (month: { year: number; month: number }) => void;
-    user?: any;
-    activeTab?: "all" | "recurring" | "bills";
-    setActiveTab?: (tab: "all" | "recurring" | "bills") => void;
-    // Additional props
-    onRefresh?: () => void;
-    setAllExpenses?: (expenses: TransactionWithId[]) => void;
-    setAvailableMonths?: (months: { label: string; value: { year: number; month: number } }[]) => void;
-    refreshAllTransactions?: () => void;
-    // Pagination props - now handled internally
-    currentPage?: number;
-    totalPages?: number;
-    onPageChange?: (page: number) => void;
-    totalItems?: number;
-    itemsPerPage?: number;
-    // Recurring templates from API
-    apiRecurringTemplates?: TransactionWithId[];
-}
-
 export function FiltersSection({
     filteredTransactions,
     handleEdit,
     handleDelete,
-    recurringTransactions,
+    recurringTransactions = [],
     totalExpensesByCurrency,
     onRefresh,
     setAllExpenses,
@@ -91,14 +63,13 @@ export function FiltersSection({
     refreshAllTransactions,
     activeTab = "all",
     setActiveTab,
-    // Pagination props
     currentPage = 1,
     totalPages = 1,
     onPageChange,
     totalItems = 0,
     itemsPerPage = 20,
-}: // Recurring templates from API
-FiltersSectionProps) {
+    apiRecurringTemplates,
+}: FiltersSectionProps) {
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
     const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
@@ -108,7 +79,7 @@ FiltersSectionProps) {
 
     // For now, use the data directly from the backend since it's already paginated
     // In the future, we can implement server-side filtering
-    let localFilteredTransactions: TransactionWithId[] = filteredTransactions;
+    const localFilteredTransactions: TransactionWithId[] = filteredTransactions;
 
     // Use the data directly from backend pagination
     const paginatedData = localFilteredTransactions;
@@ -118,7 +89,7 @@ FiltersSectionProps) {
         if (onPageChange) {
             onPageChange(1);
         }
-    }, [selectedCategories, selectedTypes, selectedStatuses, searchQuery, dateRangeForFilter, activeTab]);
+    }, [selectedCategories, selectedTypes, selectedStatuses, searchQuery, dateRangeForFilter, activeTab, onPageChange]);
 
     const handleCategoryFilterChange = (category: string, checked: boolean) => {
         let newCategories: string[];
@@ -147,18 +118,6 @@ FiltersSectionProps) {
         }
         setSelectedTypes(newTypes.length ? newTypes : ["all"]);
     };
-
-    /*   const handleStatusFilterChange = (status: string, checked: boolean) => {
-        let newStatuses: string[];
-        if (status === "all") {
-            newStatuses = ["all"];
-        } else if (checked) {
-            newStatuses = [...selectedStatuses.filter((s) => s !== "all"), status];
-        } else {
-            newStatuses = selectedStatuses.filter((s) => s !== status);
-        }
-        setSelectedStatuses(newStatuses.length ? newStatuses : ["all"]);
-    }; */
 
     return (
         <Card>
@@ -247,56 +206,6 @@ FiltersSectionProps) {
                             </DropdownMenuCheckboxItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    {/* Status filter - only show for bills tab */}
-                    {/* {activeTab === "bills" && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-[140px] justify-between">
-                                    <span className="truncate">
-                                        {selectedStatuses.includes("all")
-                                            ? "All Statuses"
-                                            : `${selectedStatuses.length} selected`}
-                                    </span>
-                                    <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-[140px]">
-                                <DropdownMenuLabel>Bill Status</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuCheckboxItem
-                                    checked={selectedStatuses.includes("all")}
-                                    onCheckedChange={(checked) => handleStatusFilterChange("all", checked)}
-                                >
-                                    All Statuses
-                                </DropdownMenuCheckboxItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuCheckboxItem
-                                    checked={selectedStatuses.includes("unpaid")}
-                                    onCheckedChange={(checked) => handleStatusFilterChange("unpaid", checked)}
-                                >
-                                    Unpaid
-                                </DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem
-                                    checked={selectedStatuses.includes("overdue")}
-                                    onCheckedChange={(checked) => handleStatusFilterChange("overdue", checked)}
-                                >
-                                    Overdue
-                                </DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem
-                                    checked={selectedStatuses.includes("pending")}
-                                    onCheckedChange={(checked) => handleStatusFilterChange("pending", checked)}
-                                >
-                                    Pending
-                                </DropdownMenuCheckboxItem>
-                                <DropdownMenuCheckboxItem
-                                    checked={selectedStatuses.includes("paid")}
-                                    onCheckedChange={(checked) => handleStatusFilterChange("paid", checked)}
-                                >
-                                    Paid
-                                </DropdownMenuCheckboxItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )} */}
                     <div className="flex items-center gap-2">
                         <Popover>
                             <PopoverTrigger asChild>
@@ -330,7 +239,7 @@ FiltersSectionProps) {
                     <TooltipProvider>
                         {!!loadingMonths ||
                         availableMonths?.length === 0 ||
-                        !!(user && (user as any)?.settings?.monthlyReports === false) ? (
+                        !!(user && (user as User)?.settings?.monthlyReports === false) ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <span>
@@ -425,7 +334,7 @@ FiltersSectionProps) {
 
                 <div className="mt-6">
                     <DataTable
-                        data={paginatedData as any}
+                        data={paginatedData}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         showRecurringIcon={true}
@@ -438,12 +347,12 @@ FiltersSectionProps) {
                         refreshAllTransactions={refreshAllTransactions}
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
-                        // Pagination props - use values from parent component
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={onPageChange}
                         totalItems={totalItems}
                         itemsPerPage={itemsPerPage}
+                        apiRecurringTemplates={apiRecurringTemplates}
                     />
                 </div>
             </CardContent>

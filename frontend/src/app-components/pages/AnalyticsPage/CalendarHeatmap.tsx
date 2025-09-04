@@ -5,26 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-
-interface HeatmapData {
-    date: string;
-    count: number;
-    amount?: number;
-    category?: string;
-}
-
-interface CalendarHeatmapProps {
-    title: string;
-    description?: string;
-    data: HeatmapData[];
-    showInsights?: boolean;
-    currency?: string;
-    colorScale?: string[];
-    showLegend?: boolean;
-    maxValue?: number;
-    minValue?: number;
-    year?: number; // Optional year to display
-}
+import type { HeatmapData, CalendarHeatmapProps, Insight } from "@/types/analytics";
 
 const DEFAULT_COLORS = [
     "#ebedf0", // No data
@@ -46,10 +27,10 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
     year,
 }) => {
     // Get all available years from the data
-    const availableYears = useMemo(() => {
+    const availableYears: number[] = useMemo(() => {
         if (data.length === 0) return [new Date().getFullYear()];
 
-        const years = new Set<number>();
+        const years: Set<number> = new Set<number>();
         data.forEach((item) => {
             const itemYear = new Date(item.date).getFullYear();
             years.add(itemYear);
@@ -84,46 +65,49 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
             KRW: "₩",
         };
 
-        const symbol = currencySymbols[currency] || currency;
+        const symbol: string = currencySymbols[currency] || currency;
         return `${symbol}${amount.toFixed(2)}`;
     };
 
     // Determine the year to display
-    const getDisplayYear = () => {
+    const getDisplayYear = (): number => {
         return selectedYear;
     };
 
-    const displayYear = getDisplayYear();
-    const startDate = new Date(displayYear, 0, 1); // January 1st of the year
-    const endDate = new Date(displayYear, 11, 31); // December 31st of the year
+    const displayYear: number = getDisplayYear();
+    const startDate: Date = new Date(displayYear, 0, 1); // January 1st of the year
+    const endDate: Date = new Date(displayYear, 11, 31); // December 31st of the year
 
     // Filter data for the specific year
-    const yearData = data.filter((item) => {
-        const itemYear = new Date(item.date).getFullYear();
+    const yearData: HeatmapData[] = data.filter((item) => {
+        const itemYear: number = new Date(item.date).getFullYear();
         return itemYear === displayYear;
     });
 
     // Calculate max value if not provided
-    const calculatedMaxValue = maxValue || Math.max(...yearData.map((d) => d.count), 1);
+    const calculatedMaxValue: number = maxValue || Math.max(...yearData.map((d) => d.count), 1);
 
     // Generate insights based on data
     const generateInsights = (data: HeatmapData[]) => {
-        const insights = [];
+        const insights: Insight[] = [];
 
         if (data.length === 0) return [];
 
-        const totalDays = data.length;
-        const activeDays = data.filter((d) => d.count > 0).length;
+        const totalDays: number = data.length;
+        const activeDays: number = data.filter((d) => d.count > 0).length;
 
         // Most active day
-        const mostActiveDay = data.reduce((max, current) => (current.count > max.count ? current : max), data[0]);
+        const mostActiveDay: HeatmapData = data.reduce(
+            (max, current) => (current.count > max.count ? current : max),
+            data[0]
+        );
 
         // Streak analysis
-        let currentStreak = 0;
-        let maxStreak = 0;
-        let tempStreak = 0;
+        let currentStreak: number = 0;
+        let maxStreak: number = 0;
+        let tempStreak: number = 0;
 
-        data.forEach((day) => {
+        data.forEach((day: HeatmapData) => {
             if (day.count > 0) {
                 tempStreak++;
                 maxStreak = Math.max(maxStreak, tempStreak);
@@ -141,6 +125,11 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
             }
         }
 
+        insights.push({
+            label: "Total Days",
+            value: totalDays.toString(),
+            type: "info",
+        });
         insights.push({
             label: "Total Days",
             value: totalDays.toString(),
@@ -186,7 +175,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
         return insights;
     };
 
-    const insights = showInsights ? generateInsights(yearData) : [];
+    const insights: Insight[] = showInsights ? generateInsights(yearData) : [];
 
     // Custom tooltip content
     const getTooltipContent = (value: any) => {
@@ -194,12 +183,12 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
             return "No data";
         }
 
-        const date = new Date(value.date).toLocaleDateString();
-        const count = value.count || 0;
-        const amount = value.amount || 0;
-        const category = value.category || "";
+        const date: string = new Date(value.date).toLocaleDateString();
+        const count: number = value.count || 0;
+        const amount: number = value.amount || 0;
+        const category: string = value.category || "";
 
-        let tooltipContent = `${date}: ${count} activity`;
+        let tooltipContent: string = `${date}: ${count} activity`;
         if (amount > 0) {
             tooltipContent += ` (${formatAmount(amount)})`;
         }
@@ -216,7 +205,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
             return "color-empty";
         }
 
-        const percentage = value.count / calculatedMaxValue;
+        const percentage: number = value.count / calculatedMaxValue;
 
         if (percentage <= 0.2) return "color-scale-1";
         if (percentage <= 0.4) return "color-scale-2";
@@ -239,13 +228,13 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                         {availableYears.length > 1 && (
                             <Select
                                 value={selectedYear.toString()}
-                                onValueChange={(value) => setSelectedYear(parseInt(value))}
+                                onValueChange={(value: string) => setSelectedYear(parseInt(value))}
                             >
                                 <SelectTrigger className="w-[120px]">
                                     <SelectValue placeholder="Select Year" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableYears.map((year) => (
+                                    {availableYears.map((year: number) => (
                                         <SelectItem key={year} value={year.toString()}>
                                             {year}
                                         </SelectItem>
@@ -284,7 +273,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                     {showLegend && (
                         <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
                             <span>Less</span>
-                            {colorScale.slice(1).map((color, index) => (
+                            {colorScale.slice(1).map((color: string, index: number) => (
                                 <div key={index} className="w-4 h-4 rounded-sm" style={{ backgroundColor: color }} />
                             ))}
                             <span>More</span>
@@ -293,7 +282,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
 
                     {insights.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
-                            {insights.map((insight, index) => (
+                            {insights.map((insight: Insight, index: number) => (
                                 <div key={index} className="text-center p-2 bg-muted rounded-lg">
                                     <div className="text-xs text-muted-foreground">{insight.label}</div>
                                     <div

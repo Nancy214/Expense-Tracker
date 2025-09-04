@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useExpenses } from "@/hooks/use-transactions";
-
 // FullCalendar components
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { TransactionResponse } from "@/types/transaction";
+import { CalendarEvent } from "@/types/calendar";
 
 // Separate color mappings for expense and income categories
 const expenseColors: { [key: string]: string } = {
@@ -37,9 +38,86 @@ const CalendarPage: React.FC = () => {
     const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
     const { expenses = [], isLoading } = useExpenses();
 
+    // Inject custom styles for FullCalendar
+    useEffect(() => {
+        const styleElement = document.createElement("style");
+        styleElement.textContent = `
+            .fc-button {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 0.475rem !important;
+                font-weight: 500 !important;
+                font-size: 0.8rem !important;
+                padding: 0.5rem 0.75rem !important;
+                text-transform: capitalize !important;
+                transition-property: color, background-color, border-color, text-decoration-color, fill, stroke !important;
+                transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+                transition-duration: 150ms !important;
+            }
+            .fc-button-primary {
+                background-color: hsl(var(--primary)) !important;
+                color: hsl(var(--primary-foreground)) !important;
+            }
+            .fc-button-group {
+                border-radius: 0.475rem !important;
+            }
+            .fc-prev-button {
+                border-radius: 0.475rem 0 0 0.475rem !important;
+                background-color: hsl(var(--dark-primary)) !important;
+                color: black !important;
+            }
+            .fc-prev-button:hover {
+                background-color: black !important;
+                color: white !important;
+            }
+            .fc-next-button {
+                border-radius: 0 0.475rem 0.475rem 0 !important;
+                background-color: hsl(var(--dark-primary)) !important;
+                color: black !important;
+            }
+            .fc-next-button:hover {
+                background-color: black !important;
+                color: white !important;
+            }
+            .fc-dayGridMonth-button {
+                border-radius: 0.475rem 0 0 0.475rem !important;
+            }
+            .fc-dayGridWeek-button {
+                border-radius: 0 0.475rem 0.475rem 0 !important;
+            }
+            .fc-button-active {
+                background-color: hsl(var(--dark-secondary)) !important;
+                color: black !important;
+            }
+            .fc-toolbar-title {
+                font-weight: 600 !important;
+                font-size: 1.2rem !important;
+            }
+            .fc-toolbar-chunk {
+                padding: 0 0.5rem !important;
+            }
+            .fc-col-header-cell {
+                font-weight: 700 !important;
+                font-size: 0.8rem !important;
+            }
+            .fc-daygrid-day-top {
+                font-weight: 500 !important;
+                font-size: 0.85rem !important;
+            }
+        `;
+
+        document.head.appendChild(styleElement);
+
+        // Cleanup function to remove styles when component unmounts
+        return () => {
+            document.head.removeChild(styleElement);
+        };
+    }, []);
+
     // Convert expenses to FullCalendar events
-    const calendarEvents = expenses.map((expense) => {
-        const currency = expense.currency || "INR";
+    const calendarEvents: CalendarEvent[] = expenses.map((expense: TransactionResponse) => {
+        const currency: string = expense.currency || "INR";
         const currencySymbols: { [key: string]: string } = {
             INR: "₹",
             EUR: "€",
@@ -52,10 +130,10 @@ const CalendarPage: React.FC = () => {
             CNY: "¥",
             KRW: "₩",
         };
-        const symbol = currencySymbols[currency] || currency;
+        const symbol: string = currencySymbols[currency] || currency;
 
         // Ensure date is a string before split
-        let dateStr = "";
+        let dateStr: string = "";
         if (typeof expense.date === "string") {
             dateStr = expense.date;
         } else if (expense.date instanceof Date) {
@@ -64,7 +142,7 @@ const CalendarPage: React.FC = () => {
         }
 
         return {
-            id: expense._id,
+            id: expense._id || "",
             title: `${expense.title} - ${symbol}${expense.amount}`,
             date: new Date(dateStr.split("/").reverse().join("-")).toISOString(), // Convert dd/MM/yyyy to ISO format
             backgroundColor: getCategoryColor(expense.category),
@@ -83,14 +161,14 @@ const CalendarPage: React.FC = () => {
 
     // Handle calendar view changes to update visible categories
     const handleDatesSet = (dateInfo: any) => {
-        const visibleEvents = calendarEvents.filter((event) => {
-            const eventDate = new Date(event.date);
-            const startDate = new Date(dateInfo.start);
-            const endDate = new Date(dateInfo.end);
+        const visibleEvents: CalendarEvent[] = calendarEvents.filter((event) => {
+            const eventDate: Date = new Date(event.date);
+            const startDate: Date = new Date(dateInfo.start);
+            const endDate: Date = new Date(dateInfo.end);
             return eventDate >= startDate && eventDate < endDate;
         });
 
-        const categories = new Set(visibleEvents.map((event) => event.extendedProps.category));
+        const categories: Set<string> = new Set(visibleEvents.map((event) => event.extendedProps.category));
         setVisibleCategories(categories);
     };
 
@@ -110,7 +188,7 @@ const CalendarPage: React.FC = () => {
 
     // Custom event renderer with tooltip
     const renderEventContent = (eventInfo: any) => {
-        const expense = eventInfo.event.extendedProps;
+        const expense: CalendarEvent["extendedProps"] = eventInfo.event.extendedProps;
 
         return (
             <TooltipProvider>
@@ -122,13 +200,13 @@ const CalendarPage: React.FC = () => {
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
                         <div className="space-y-2">
-                            <div className="font-semibold text-sm">{expense.title || eventInfo.event.title}</div>
+                            <div className="font-semibold text-sm">{eventInfo.event.title}</div>
                             <div className="space-y-1 text-xs">
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Amount:</span>
                                     <span className="font-medium">
                                         {(() => {
-                                            const currency = expense.currency || "INR";
+                                            const currency: string = expense.currency || "INR";
                                             const currencySymbols: { [key: string]: string } = {
                                                 INR: "₹",
                                                 EUR: "€",
@@ -141,7 +219,7 @@ const CalendarPage: React.FC = () => {
                                                 CNY: "¥",
                                                 KRW: "₩",
                                             };
-                                            const symbol = currencySymbols[currency] || currency;
+                                            const symbol: string = currencySymbols[currency] || currency;
                                             return `${symbol}${expense.amount.toFixed(2)} ${currency}`;
                                         })()}
                                     </span>
@@ -178,11 +256,11 @@ const CalendarPage: React.FC = () => {
 
     // Get filtered categories based on what's visible
     const getVisibleExpenseCategories = () => {
-        return Object.entries(expenseColors).filter(([category]) => visibleCategories.has(category));
+        return Object.entries(expenseColors).filter(([category]: [string, string]) => visibleCategories.has(category));
     };
 
     const getVisibleIncomeCategories = () => {
-        return Object.entries(incomeColors).filter(([category]) => visibleCategories.has(category));
+        return Object.entries(incomeColors).filter(([category]: [string, string]) => visibleCategories.has(category));
     };
 
     if (isLoading) {
@@ -208,11 +286,8 @@ const CalendarPage: React.FC = () => {
                     {/* Calendar Section */}
                     <div className="flex-1">
                         <Card className="flex flex-col">
-                            <CardHeader className="pb-1 flex-shrink-0">
-                                <CardTitle className="text-base">Calendar View</CardTitle>
-                            </CardHeader>
                             <CardContent className="p-1 md:p-2 flex-1 min-h-0">
-                                <div className="w-full">
+                                <div className="w-full mt-2 p-2">
                                     <FullCalendar
                                         plugins={[dayGridPlugin, interactionPlugin]}
                                         initialView="dayGridMonth"
@@ -220,9 +295,8 @@ const CalendarPage: React.FC = () => {
                                         eventContent={renderEventContent}
                                         contentHeight="auto"
                                         headerToolbar={{
-                                            left: "prev,next today",
-                                            center: "title",
-                                            right: "dayGridMonth,dayGridWeek",
+                                            left: "title",
+                                            right: "dayGridMonth,dayGridWeek today prev,next",
                                         }}
                                         editable={false}
                                         selectable={true}
@@ -254,15 +328,17 @@ const CalendarPage: React.FC = () => {
                                                 Expense Categories
                                             </h3>
                                             <div className="space-y-2">
-                                                {getVisibleExpenseCategories().map(([category, color]) => (
-                                                    <div key={category} className="flex items-center gap-2">
-                                                        <div
-                                                            className="w-3 h-3 rounded-full"
-                                                            style={{ backgroundColor: color }}
-                                                        ></div>
-                                                        <span className="text-sm">{category}</span>
-                                                    </div>
-                                                ))}
+                                                {getVisibleExpenseCategories().map(
+                                                    ([category, color]: [string, string]) => (
+                                                        <div key={category} className="flex items-center gap-2">
+                                                            <div
+                                                                className="w-3 h-3 rounded-full"
+                                                                style={{ backgroundColor: color }}
+                                                            ></div>
+                                                            <span className="text-sm">{category}</span>
+                                                        </div>
+                                                    )
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -272,15 +348,17 @@ const CalendarPage: React.FC = () => {
                                                 Income Categories
                                             </h3>
                                             <div className="space-y-2">
-                                                {getVisibleIncomeCategories().map(([category, color]) => (
-                                                    <div key={category} className="flex items-center gap-2">
-                                                        <div
-                                                            className="w-3 h-3 rounded-full"
-                                                            style={{ backgroundColor: color }}
-                                                        ></div>
-                                                        <span className="text-sm">{category}</span>
-                                                    </div>
-                                                ))}
+                                                {getVisibleIncomeCategories().map(
+                                                    ([category, color]: [string, string]) => (
+                                                        <div key={category} className="flex items-center gap-2">
+                                                            <div
+                                                                className="w-3 h-3 rounded-full"
+                                                                style={{ backgroundColor: color }}
+                                                            ></div>
+                                                            <span className="text-sm">{category}</span>
+                                                        </div>
+                                                    )
+                                                )}
                                             </div>
                                         </div>
                                     )}

@@ -5,7 +5,7 @@ import { removeTokens, handleTokenExpiration } from "@/utils/authUtils";
 const API_URL = "http://localhost:8000/api";
 
 // Store tokens in localStorage
-const storeTokens = (tokens: AuthResponse) => {
+const storeTokens = (tokens: AuthResponse): void => {
     localStorage.setItem("accessToken", tokens.accessToken);
     localStorage.setItem("refreshToken", tokens.refreshToken);
 };
@@ -74,7 +74,7 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
 };
 
 // Initiate Google OAuth flow
-export const initiateGoogleLogin = () => {
+export const initiateGoogleLogin = (): void => {
     window.location.href = `${API_URL}/auth/google`;
 };
 
@@ -134,7 +134,7 @@ export const forgotPassword = async (email: string): Promise<void> => {
     try {
         const response = await authApi.post("/auth/forgot-password", { email });
         return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Forgot password error:", error);
         throw error;
     }
@@ -147,7 +147,7 @@ export const resetPassword = async (token: string, newPassword: string): Promise
             newPassword,
         });
         return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Reset password error:", error);
         throw error;
     }
@@ -157,7 +157,7 @@ export const getProfile = async (): Promise<User> => {
     try {
         const response = await authApi.get("/auth/profile");
         return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Get profile error:", error);
         throw error;
     }
@@ -170,7 +170,7 @@ export const changePassword = async (currentPassword: string, newPassword: strin
             newPassword,
         });
         return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Change password error:", error);
         throw error;
     }

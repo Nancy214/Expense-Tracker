@@ -1,17 +1,22 @@
+import { TransactionWithId } from "@/types/transaction";
+import { MonthlyStatementPDFOptions } from "@/types/transaction";
+
 // Utility to convert array of objects to CSV, excluding _id, userId, templateId
-export function arrayToCSV(data: any[]) {
+export function arrayToCSV(data: TransactionWithId[]): string {
     if (!data.length) return "";
-    const replacer = (_id: string, value: any) => (value === null || value === undefined ? "" : value);
+
+    const replacer = (_key: string, value: unknown) => (value === null || value === undefined ? "" : value);
     const exclude = ["_id", "userId", "templateId"];
+
     // Dynamically determine if fromRate/toRate should be included for each row
     // We'll build a superset of all keys that should be included
-    let headerSet = new Set<string>();
+    const headerSet = new Set<string>();
     data.forEach((row) => {
         Object.keys(row).forEach((key) => {
             if (!exclude.includes(key)) {
                 if (key === "fromRate" || key === "toRate") {
                     // Only include if currency has changed
-                    if (row.fromRate !== 1 || row.toRate !== 1) {
+                    if ((row as any).fromRate !== 1 || (row as any).toRate !== 1) {
                         headerSet.add(key);
                     }
                 } else {
@@ -20,6 +25,7 @@ export function arrayToCSV(data: any[]) {
             }
         });
     });
+
     const header = Array.from(headerSet);
     const csv = [
         header.join(","),
@@ -28,12 +34,12 @@ export function arrayToCSV(data: any[]) {
                 .map((fieldName) => {
                     if (
                         (fieldName === "fromRate" || fieldName === "toRate") &&
-                        row.fromRate === 1 &&
-                        row.toRate === 1
+                        (row as any).fromRate === 1 &&
+                        (row as any).toRate === 1
                     ) {
                         return "";
                     }
-                    return JSON.stringify(row[fieldName], replacer);
+                    return JSON.stringify((row as any)[fieldName], replacer);
                 })
                 .join(",")
         ),
@@ -41,7 +47,7 @@ export function arrayToCSV(data: any[]) {
     return csv;
 }
 
-export function downloadCSV(data: any[], filename = "expenses.csv") {
+export function downloadCSV(data: TransactionWithId[], filename = "expenses.csv"): void {
     const csv = arrayToCSV(data);
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -56,23 +62,25 @@ export function downloadCSV(data: any[], filename = "expenses.csv") {
 
 // Utility to export to Excel using xlsx
 import * as XLSX from "xlsx";
-export function downloadExcel(data: any[], filename = "expenses.xlsx") {
+export function downloadExcel(data: TransactionWithId[], filename = "expenses.xlsx"): void {
     if (!data.length) return;
+
     const exclude = ["_id", "userId", "templateId"];
     // Remove excluded fields and fromRate/toRate if not needed
     const processed = data.map((row) => {
         const copy = { ...row };
-        exclude.forEach((key) => delete copy[key]);
-        if (copy.fromRate === 1 && copy.toRate === 1) {
-            delete copy.fromRate;
-            delete copy.toRate;
+        exclude.forEach((key) => delete (copy as any)[key]);
+        if ((copy as any).fromRate === 1 && (copy as any).toRate === 1) {
+            delete (copy as any).fromRate;
+            delete (copy as any).toRate;
         }
         // Convert receipts array to comma-separated string if present
-        if (Array.isArray(copy.receipts)) {
-            copy.receipts = copy.receipts.join(", ");
+        if (Array.isArray((copy as any).receipts)) {
+            (copy as any).receipts = (copy as any).receipts.join(", ");
         }
         return copy;
     });
+
     const ws = XLSX.utils.json_to_sheet(processed);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Expenses");
@@ -83,23 +91,6 @@ export function downloadExcel(data: any[], filename = "expenses.xlsx") {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { parse, format } from "date-fns";
-
-export interface MonthlyStatementPDFOptions {
-    allExpenses: any[];
-    filteredTransactions: any[];
-    userCurrency: string;
-    now: Date;
-    monthName: string;
-    currentYear: number;
-    totalIncome: number;
-    totalExpenses: number;
-    netBalance: number;
-    savingsRate: number;
-    totalTransactions: number;
-    avgTransaction: number;
-    expenseByCategory: Record<string, number>;
-    totalExpenseForBreakdown: number;
-}
 
 export function generateMonthlyStatementPDF({
     allExpenses,
@@ -115,7 +106,7 @@ export function generateMonthlyStatementPDF({
     avgTransaction,
     expenseByCategory,
     totalExpenseForBreakdown,
-}: MonthlyStatementPDFOptions) {
+}: MonthlyStatementPDFOptions): void {
     // Filter transactions for the current month
     const currentMonth = now.getMonth();
     const monthlyTransactions = allExpenses.filter((t) => {
@@ -153,7 +144,7 @@ export function generateMonthlyStatementPDF({
 
     // Calculate total for transaction details
     const totalAmount = transactionRows.reduce((sum, row) => {
-        const amount = parseFloat(row[3]);
+        const amount = parseFloat(row[3] as string);
         return sum + (isNaN(amount) ? 0 : amount);
     }, 0);
 
@@ -229,7 +220,7 @@ export function generateMonthlyStatementPDF({
             }
 
             // Get status with proper formatting
-            let status = t.billStatus || "unpaid";
+            let status = (t as any).billStatus || "unpaid";
             if (status === "paid") {
                 status = "Paid";
             } else if (status === "unpaid") {
@@ -244,10 +235,12 @@ export function generateMonthlyStatementPDF({
                 format(dateObj, "dd/MM/yyyy"),
                 t.title || "",
                 t.amount !== undefined ? t.amount.toFixed(2) : "",
-                t.billCategory || "-",
+                (t as any).billCategory || "-",
                 status,
                 dueDateStr,
-                t.billFrequency ? t.billFrequency.charAt(0).toUpperCase() + t.billFrequency.slice(1) : "-",
+                (t as any).billFrequency
+                    ? (t as any).billFrequency.charAt(0).toUpperCase() + (t as any).billFrequency.slice(1)
+                    : "-",
             ];
         });
 

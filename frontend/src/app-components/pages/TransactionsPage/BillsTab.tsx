@@ -10,24 +10,17 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Repeat, Pencil, Trash, Calendar, CheckCircle, Clock, Receipt } from "lucide-react";
-import { TransactionWithId } from "@/types/transaction";
+import { TransactionWithId, BillStatus } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
-import { BillStatus } from "@/types/transaction";
 import { format, isBefore, startOfDay } from "date-fns";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
+import { TabComponentProps } from "@/types/transaction";
 
-interface BillsTabProps {
-    data: TransactionWithId[];
-    onEdit: (expense: TransactionWithId) => void;
-    showRecurringIcon?: boolean;
-    refreshAllTransactions?: () => void;
-}
-
-export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTransactions }: BillsTabProps) {
+export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTransactions }: TabComponentProps) {
     const { toast } = useToast();
 
     const {
@@ -56,7 +49,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
             if (refreshAllTransactions) {
                 refreshAllTransactions();
             }
-        } catch (error) {
+        } catch (error: unknown) {
             toast({
                 title: "Error",
                 description: "Failed to update bill status",
@@ -66,9 +59,9 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
     };
 
     const getStatusBadge = (status: string, dueDate: Date) => {
-        const today = startOfDay(new Date());
-        const billDueDate = startOfDay(new Date(dueDate));
-        const isOverdue = isBefore(billDueDate, today) && status !== "paid";
+        const today: Date = startOfDay(new Date());
+        const billDueDate: Date = startOfDay(new Date(dueDate));
+        const isOverdue: boolean = isBefore(billDueDate, today) && status !== "paid";
 
         if (isOverdue) {
             return <Badge variant="destructive">Overdue</Badge>;
@@ -182,10 +175,10 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                     );
                 },
                 cell: ({ row }: { row: Row<TransactionWithId> }) => {
-                    const amount = parseFloat(row.getValue("amount"));
+                    const amount = parseFloat(row.getValue("amount") as string);
                     const currency = row.original.currency || "INR";
                     const type = row.original.type || "expense";
-                    const currencySymbols: { [key: string]: string } = {
+                    const currencySymbols: Record<string, string> = {
                         INR: "₹",
                         USD: "$",
                         EUR: "€",

@@ -8,25 +8,16 @@ import { useToast } from "@/hooks/use-toast";
 import { uploadReceipt } from "@/services/transaction.service";
 import { useTransactionMutations, useTransactionForm } from "@/hooks/use-transactions";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
-import { Transaction } from "@/types/transaction";
 import { TRANSACTION_CONSTANTS } from "@/schemas/transactionSchema";
-import { InputField } from "@/app-components/pages/form-fields/InputField";
-import { SelectField } from "@/app-components/pages/form-fields/SelectField";
-import { DateField } from "@/app-components/pages/form-fields/DateField";
-import { FileUploadField } from "@/app-components/pages/form-fields/FileUploadField";
+import { InputField } from "@/app-components/form-fields/InputField";
+import { SelectField } from "@/app-components/form-fields/SelectField";
+import { DateField } from "@/app-components/form-fields/DateField";
+import { FileUploadField } from "@/app-components/form-fields/FileUploadField";
 import { showSaveError } from "@/utils/toastUtils";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-
-interface AddExpenseDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    editingExpense?: Transaction | null;
-    onSuccess?: () => void;
-    triggerButton?: React.ReactNode;
-    preselectedCategory?: string;
-    isAddBill?: boolean;
-}
+import { AddExpenseDialogProps, TransactionFormData, CurrencyOption, CategoryOption } from "@/types/transaction";
+import { Transaction } from "@/types/transaction";
 
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     open,
@@ -40,7 +31,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const { toast } = useToast();
     const { user } = useAuth();
     const { refreshStats } = useStats();
-    const [showExchangeRate, setShowExchangeRate] = useState(false);
+    const [showExchangeRate, setShowExchangeRate] = useState<boolean>(false);
 
     // Use the cached hook instead of direct API call
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
@@ -69,10 +60,14 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     } = form;
 
     // Use mutation loading states
-    const isSubmittingForm = isSubmitting || isCreating || isUpdating;
+    const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
 
     // Extract currency options from the cached data
-    const currencyOptions = countryTimezoneData?.map((item) => item.currency) || [];
+    const currencyOptions: CurrencyOption[] =
+        countryTimezoneData?.map((item) => ({
+            value: item.currency.code,
+            label: item.currency.code,
+        })) || [];
 
     useEffect(() => {
         if (currency) {
@@ -89,38 +84,35 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         }
     }, [open, resetForm]);
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: TransactionFormData) => {
         try {
             // Upload receipts if any
             let receiptKeys: string[] = [];
             if (data.receipts && data.receipts.length > 0) {
-                const fileReceipts = data.receipts.filter((r: any): r is File => r instanceof File);
+                const fileReceipts = data.receipts.filter((r): r is File => r instanceof File);
                 receiptKeys = await Promise.all(fileReceipts.map(uploadReceipt));
             }
 
-            const transactionData = {
-                ...data,
+            // Convert string dates to Date objects for the Transaction interface
+            const transactionData: Transaction = {
+                title: data.title,
+                type: data.type,
+                amount: data.amount,
+                currency: data.currency,
+                category: data.category,
+                description: data.description || "",
+                userId: user?.id || "",
+                date: new Date(data.date.split("/").reverse().join("-")),
+                fromRate: data.fromRate,
+                toRate: data.toRate,
+                isRecurring: data.isRecurring || false,
+                recurringFrequency: data.recurringFrequency as any,
                 receipts: receiptKeys,
-                date: new Date(data.date.split("/").reverse().join("-")).toISOString(),
-                endDate: data.endDate ? new Date(data.endDate.split("/").reverse().join("-")).toISOString() : undefined,
-                dueDate: data.dueDate ? new Date(data.dueDate.split("/").reverse().join("-")).toISOString() : undefined,
-                nextDueDate: data.nextDueDate
-                    ? new Date(data.nextDueDate.split("/").reverse().join("-")).toISOString()
-                    : undefined,
-                lastPaidDate: data.lastPaidDate
-                    ? new Date(data.lastPaidDate.split("/").reverse().join("-")).toISOString()
-                    : undefined,
+                endDate: data.endDate ? new Date(data.endDate.split("/").reverse().join("-")) : undefined,
             };
 
-            // Ensure isRecurring is explicitly set as boolean
-            if (data.isRecurring === true) {
-                transactionData.isRecurring = true;
-            } else {
-                transactionData.isRecurring = false;
-            }
-
-            if (isEditing && editingExpense && (editingExpense as any)._id) {
-                await updateTransaction({ id: (editingExpense as any)._id, data: transactionData });
+            if (isEditing && editingExpense && editingExpense._id) {
+                await updateTransaction({ id: editingExpense._id, data: transactionData });
             } else {
                 await createTransaction(transactionData);
             }
@@ -129,7 +121,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             resetForm();
             onOpenChange(false);
             onSuccess?.();
-        } catch (error) {
+        } catch (error: unknown) {
             showSaveError(toast, "Transaction");
         }
     };
@@ -140,7 +132,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     };
 
     // Get category options based on transaction type
-    const getCategoryOptions = () => {
+    const getCategoryOptions = (): CategoryOption[] => {
         if (type === "expense") {
             return TRANSACTION_CONSTANTS.EXPENSE_CATEGORIES.map((cat) => ({
                 value: cat,
@@ -155,19 +147,19 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     };
 
     // Get currency options
-    const getCurrencyOptions = () => {
+    const getCurrencyOptions = (): CurrencyOption[] => {
         return currencyOptions
-            .filter((currency) => currency.code !== "")
-            .sort((a, b) => a.code.localeCompare(b.code))
+            .filter((currency) => currency.value !== "")
+            .sort((a, b) => a.value.localeCompare(b.value))
             .reduce((acc, currency) => {
-                if (!acc.some((c: any) => c.code === currency.code)) {
+                if (!acc.some((c) => c.value === currency.value)) {
                     acc.push(currency);
                 }
                 return acc;
-            }, [] as any[])
-            .map((currency: any) => ({
-                value: currency.code || "Not Defined",
-                label: currency.code,
+            }, [] as typeof currencyOptions)
+            .map((currency) => ({
+                value: currency.value || "Not Defined",
+                label: currency.value,
             }));
     };
 
@@ -266,7 +258,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     name="billCategory"
                                     label="Category"
                                     placeholder="Select a bill category"
-                                    options={TRANSACTION_CONSTANTS.BILL_CATEGORIES.map((cat) => ({
+                                    options={TRANSACTION_CONSTANTS.BILL_CATEGORIES.map((cat: string) => ({
                                         value: cat,
                                         label: cat,
                                     }))}
@@ -276,7 +268,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     name="paymentMethod"
                                     label="Payment Method"
                                     placeholder="Select payment method"
-                                    options={TRANSACTION_CONSTANTS.PAYMENT_METHODS.map((method) => ({
+                                    options={TRANSACTION_CONSTANTS.PAYMENT_METHODS.map((method: string) => ({
                                         value: method,
                                         label: method
                                             .split("-")
@@ -311,7 +303,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                         name="billFrequency"
                                         label="Bill Frequency"
                                         placeholder="Select bill frequency"
-                                        options={TRANSACTION_CONSTANTS.BILL_FREQUENCIES.map((freq) => ({
+                                        options={TRANSACTION_CONSTANTS.BILL_FREQUENCIES.map((freq: string) => ({
                                             value: freq,
                                             label: freq.charAt(0).toUpperCase() + freq.slice(1),
                                         }))}
@@ -350,7 +342,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     name="recurringFrequency"
                                     label="Frequency"
                                     placeholder="Select frequency"
-                                    options={TRANSACTION_CONSTANTS.RECURRING_FREQUENCIES.map((freq) => ({
+                                    options={TRANSACTION_CONSTANTS.RECURRING_FREQUENCIES.map((freq: string) => ({
                                         value: freq,
                                         label: freq.charAt(0).toUpperCase() + freq.slice(1),
                                     }))}

@@ -1,18 +1,20 @@
 import { Navigate, useLocation, Route, Routes } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import LoginPage from "@/app-components/pages/AuthPages/LoginPage";
-import RegisterPage from "@/app-components/pages/AuthPages/RegisterPage";
-import LogoutPage from "@/app-components/pages/AuthPages/LogoutPage";
-import HomePage from "@/app-components/pages/HomePage/HomePage";
-import BudgetPage from "@/app-components/pages/BudgetPage/BudgetPage";
-import CalendarPage from "@/app-components/pages/CalendarPage/CalendarPage";
-import ProfilePage from "@/app-components/pages/ProfilePage/ProfilePage";
-import ChangePasswordPage from "@/app-components/pages/AuthPages/ChangePasswordPage";
-import GoogleCallback from "@/app-components/pages/AuthPages/GoogleCallback";
-import ForgotPasswordPage from "@/app-components/pages/AuthPages/ForgotPasswordPage";
-import ResetPasswordPage from "@/app-components/pages/AuthPages/ResetPasswordPage";
-import TransactionsPage from "@/app-components/pages/TransactionsPage/TransactionsPage";
-import AnalyticsPage from "@/app-components/pages/AnalyticsPage/AnalyticsPage";
+import {
+    LoginPage,
+    RegisterPage,
+    LogoutPage,
+    HomePage,
+    BudgetPage,
+    CalendarPage,
+    ProfilePage,
+    ChangePasswordPage,
+    GoogleCallback,
+    ForgotPasswordPage,
+    ResetPasswordPage,
+    TransactionsPage,
+    AnalyticsPage,
+} from "@/app-components/pages";
 
 interface RouteConfig {
     path: string;

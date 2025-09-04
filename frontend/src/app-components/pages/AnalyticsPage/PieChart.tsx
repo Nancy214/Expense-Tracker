@@ -1,19 +1,6 @@
 import React from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
-
-interface PieChartData {
-    name: string;
-    value: number;
-}
-
-interface PieChartProps {
-    title: string;
-    description?: string;
-    data: PieChartData[];
-    colors?: string[];
-    showInsights?: boolean;
-    currency?: string;
-}
+import type { PieChartData, PieChartProps } from "@/types/analytics";
 
 const EXPENSE_COLORS = [
     "#3B82F6", // Muted blue
@@ -60,12 +47,12 @@ const PieChartComponent: React.FC<PieChartProps> = ({
     currency = "$",
 }) => {
     // Choose colors based on title
-    const chartColors = colors || (title.toLowerCase().includes("bills") ? BILLS_COLORS : EXPENSE_COLORS);
+    const chartColors: string[] = colors || (title.toLowerCase().includes("bills") ? BILLS_COLORS : EXPENSE_COLORS);
 
     // Format amount with currency
-    const formatAmount = (amount: number) => {
+    const formatAmount = (amount: number): string => {
         // Currency symbol mapping
-        const currencySymbols: { [key: string]: string } = {
+        const currencySymbols: Record<string, string> = {
             INR: "₹",
             EUR: "€",
             GBP: "£",
@@ -78,20 +65,20 @@ const PieChartComponent: React.FC<PieChartProps> = ({
             KRW: "₩",
         };
 
-        const symbol = currencySymbols[currency] || currency;
+        const symbol: string = currencySymbols[currency] || currency;
         return `${symbol}${amount.toFixed(2)}`;
     };
 
     // Generate insights based on data
-    const generateInsights = (data: PieChartData[]) => {
-        const insights = [];
-        const total = data.reduce((sum, item) => sum + item.value, 0);
+    const generateInsights = (data: PieChartData[]): string[] => {
+        const insights: string[] = [];
+        const total: number = data.reduce((sum, item) => sum + item.value, 0);
 
         if (data.length === 0) return [];
 
         // Sort by value to get top categories
-        const sortedData = [...data].sort((a, b) => b.value - a.value);
-        const topCategory = sortedData[0];
+        const sortedData: PieChartData[] = [...data].sort((a, b) => b.value - a.value);
+        const topCategory: PieChartData = sortedData[0];
 
         // High concentration warning
         if (topCategory.value / total > 0.4) {
@@ -104,7 +91,7 @@ const PieChartComponent: React.FC<PieChartProps> = ({
         }
 
         // Multiple high categories
-        const highCategories = data.filter((item) => item.value / total > 0.2);
+        const highCategories: PieChartData[] = data.filter((item) => item.value / total > 0.2);
         if (highCategories.length > 2) {
             insights.push(
                 `⚠️ You have ${highCategories.length} categories each representing over 20%. Review your allocation.`

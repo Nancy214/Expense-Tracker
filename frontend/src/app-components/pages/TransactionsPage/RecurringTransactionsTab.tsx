@@ -17,14 +17,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { format } from "date-fns";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
+import { TabComponentProps } from "@/types/transaction";
 
-interface RecurringTransactionsTabProps {
-    data: TransactionWithId[];
-    onEdit: (expense: TransactionWithId) => void;
-    refreshAllTransactions?: () => void;
-}
-
-export function RecurringTransactionsTab({ data, onEdit, refreshAllTransactions }: RecurringTransactionsTabProps) {
+export function RecurringTransactionsTab({ data, onEdit, refreshAllTransactions }: TabComponentProps) {
     const { toast } = useToast();
 
     const {
@@ -42,25 +37,6 @@ export function RecurringTransactionsTab({ data, onEdit, refreshAllTransactions 
     const handleEdit = async (expense: TransactionWithId) => {
         onEdit(expense);
     };
-
-    /*  const handleBillStatusUpdate = async (id: string, newStatus: BillStatus) => {
-        try {
-            await updateTransactionBillStatus(id, newStatus);
-            toast({
-                title: "Success",
-                description: "Bill status updated successfully",
-            });
-            if (refreshAllTransactions) {
-                refreshAllTransactions();
-            }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to update bill status",
-                variant: "destructive",
-            });
-        }
-    }; */
 
     const columns: ColumnDef<TransactionWithId>[] = useMemo(
         () => [
@@ -137,7 +113,7 @@ export function RecurringTransactionsTab({ data, onEdit, refreshAllTransactions 
                     const frequency = row.original.recurringFrequency;
                     if (!frequency) return "-";
 
-                    const frequencyLabels: { [key: string]: string } = {
+                    const frequencyLabels: Record<string, string> = {
                         daily: "Daily",
                         weekly: "Weekly",
                         monthly: "Monthly",
@@ -214,10 +190,10 @@ export function RecurringTransactionsTab({ data, onEdit, refreshAllTransactions 
                     );
                 },
                 cell: ({ row }: { row: Row<TransactionWithId> }) => {
-                    const amount = parseFloat(row.getValue("amount"));
+                    const amount = parseFloat(row.getValue("amount") as string);
                     const currency = row.original.currency || "INR";
                     const type = row.original.type || "expense";
-                    const currencySymbols: { [key: string]: string } = {
+                    const currencySymbols: Record<string, string> = {
                         INR: "₹",
                         USD: "$",
                         EUR: "€",

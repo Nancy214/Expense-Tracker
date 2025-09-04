@@ -192,7 +192,7 @@ interface UseTransactionFormProps {
     isAddBill?: boolean;
 }
 
-export const useTransactionForm = ({ editingExpense, preselectedCategory, isAddBill }: UseTransactionFormProps) => {
+export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseTransactionFormProps) => {
     const { user } = useAuth();
 
     const parseDateToFormat = useCallback((date: string | Date | undefined): string => {
