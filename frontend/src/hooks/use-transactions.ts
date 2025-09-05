@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse, isValid, parseISO } from "date-fns";
 import { useMemo, useCallback } from "react";
@@ -15,7 +15,14 @@ import {
 } from "@/services/transaction.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
-import { Transaction, TransactionWithId } from "@/types/transaction";
+import {
+    Transaction,
+    TransactionWithId,
+    TransactionSummary,
+    PaginationInfo,
+    TransactionResponse,
+    MonthlyStats,
+} from "@/types/transaction";
 import { formatToDisplay, parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 
@@ -30,7 +37,7 @@ const DEFAULT_QUERY_CONFIG = {
     refetchOnWindowFocus: false,
 };
 
-const DEFAULT_SUMMARY = {
+const DEFAULT_SUMMARY: TransactionSummary = {
     totalTransactions: 0,
     totalIncome: 0,
     totalExpenses: 0,
@@ -44,23 +51,47 @@ const DEFAULT_SUMMARY = {
 };
 
 // Helper function to format transaction data
-const formatTransactionData = (data: any[]) =>
-    data.map((item: any) => ({
-        ...item,
-        date: formatToDisplay(item.date),
-        description: item.description ?? "",
-        currency: item.currency ?? "INR",
-    }));
+const formatTransactionData = (data: TransactionResponse[]): TransactionWithId[] =>
+    data.map(
+        (item: TransactionResponse): TransactionWithId => ({
+            ...item,
+            date: formatToDisplay(item.date) as unknown as Date,
+            description: item.description ?? "",
+            currency: item.currency ?? "INR",
+        })
+    );
+
+// Query response types
+interface ExpensesQueryResponse {
+    expenses: TransactionWithId[];
+    pagination: PaginationInfo | null;
+}
+
+interface AllTransactionsQueryResponse {
+    transactions: TransactionWithId[];
+    pagination: PaginationInfo | null;
+}
+
+interface AnalyticsQueryResponse {
+    transactions: TransactionWithId[];
+}
 
 // Query Hooks
-export function useExpenses(page: number = 1, limit: number = 20) {
+export function useExpenses(
+    page: number = 1,
+    limit: number = 20
+): UseQueryResult<ExpensesQueryResponse> & {
+    expenses: TransactionWithId[];
+    pagination: PaginationInfo | null;
+    invalidateExpenses: () => void;
+} {
     const { isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
 
-    const query = useQuery({
+    const query = useQuery<ExpensesQueryResponse>({
         queryKey: [...QUERY_KEYS.expenses, page, limit],
         ...DEFAULT_QUERY_CONFIG,
-        queryFn: async () => {
+        queryFn: async (): Promise<ExpensesQueryResponse> => {
             if (!isAuthenticated) return { expenses: [], pagination: null };
             const response = await getExpenses(page, limit);
             return {
@@ -79,14 +110,21 @@ export function useExpenses(page: number = 1, limit: number = 20) {
     };
 }
 
-export function useAllTransactions(page: number = 1, limit: number = 20) {
+export function useAllTransactions(
+    page: number = 1,
+    limit: number = 20
+): UseQueryResult<AllTransactionsQueryResponse> & {
+    transactions: TransactionWithId[];
+    pagination: PaginationInfo | null;
+    invalidateAllTransactions: () => void;
+} {
     const { isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
 
-    const query = useQuery({
+    const query = useQuery<AllTransactionsQueryResponse>({
         queryKey: [...QUERY_KEYS.allTransactions, page, limit],
         ...DEFAULT_QUERY_CONFIG,
-        queryFn: async () => {
+        queryFn: async (): Promise<AllTransactionsQueryResponse> => {
             if (!isAuthenticated) return { transactions: [], pagination: null };
             const response = await getAllTransactions(page, limit);
             return {
@@ -105,14 +143,17 @@ export function useAllTransactions(page: number = 1, limit: number = 20) {
     };
 }
 
-export function useAllTransactionsForAnalytics() {
+export function useAllTransactionsForAnalytics(): UseQueryResult<AnalyticsQueryResponse> & {
+    transactions: TransactionWithId[];
+    invalidateAnalytics: () => void;
+} {
     const { isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
 
-    const query = useQuery({
+    const query = useQuery<AnalyticsQueryResponse>({
         queryKey: [...QUERY_KEYS.allTransactions, "analytics"],
         ...DEFAULT_QUERY_CONFIG,
-        queryFn: async () => {
+        queryFn: async (): Promise<AnalyticsQueryResponse> => {
             if (!isAuthenticated) return { transactions: [] };
             const response = await getAllTransactionsForAnalytics();
             return { transactions: formatTransactionData(response?.transactions || []) };
@@ -128,13 +169,19 @@ export function useAllTransactionsForAnalytics() {
     };
 }
 
-export function useTransactionSummary() {
+interface TransactionSummaryQueryResponse {
+    summary: TransactionSummary;
+}
+
+export function useTransactionSummary(): UseQueryResult<TransactionSummaryQueryResponse> & {
+    summary: TransactionSummary;
+} {
     const { isAuthenticated } = useAuth();
 
-    const query = useQuery({
+    const query = useQuery<TransactionSummaryQueryResponse>({
         queryKey: [...QUERY_KEYS.expenses, "summary"],
         ...DEFAULT_QUERY_CONFIG,
-        queryFn: async () => {
+        queryFn: async (): Promise<TransactionSummaryQueryResponse> => {
             if (!isAuthenticated) return { summary: DEFAULT_SUMMARY };
             return await getTransactionSummary();
         },
@@ -147,17 +194,32 @@ export function useTransactionSummary() {
     };
 }
 
+// Mutation types
+interface UpdateTransactionParams {
+    id: string;
+    data: Transaction;
+}
+
+interface TransactionMutationsReturn {
+    createTransaction: (data: Transaction) => Promise<TransactionResponse>;
+    updateTransaction: (params: UpdateTransactionParams) => Promise<TransactionResponse>;
+    isCreating: boolean;
+    isUpdating: boolean;
+    createError: Error | null;
+    updateError: Error | null;
+}
+
 // Mutation Hooks
-export function useTransactionMutations() {
+export function useTransactionMutations(): TransactionMutationsReturn {
     const queryClient = useQueryClient();
     const { toast } = useToast();
 
-    const invalidateQueries = () => {
+    const invalidateQueries = (): void => {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses });
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.allTransactions });
     };
 
-    const createMutation = useMutation({
+    const createMutation = useMutation<TransactionResponse, Error, Transaction>({
         mutationFn: createExpense,
         onSuccess: () => {
             showCreateSuccess(toast, "Transaction");
@@ -166,8 +228,8 @@ export function useTransactionMutations() {
         onError: () => showSaveError(toast, "Transaction"),
     });
 
-    const updateMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Transaction }) => updateExpense(id, data),
+    const updateMutation = useMutation<TransactionResponse, Error, UpdateTransactionParams>({
+        mutationFn: ({ id, data }: UpdateTransactionParams) => updateExpense(id, data),
         onSuccess: () => {
             showUpdateSuccess(toast, "Transaction");
             invalidateQueries();
@@ -185,14 +247,29 @@ export function useTransactionMutations() {
     };
 }
 
-// Form Hook
+// Form Hook types
 interface UseTransactionFormProps {
     editingExpense?: TransactionWithId | null;
     preselectedCategory?: string;
     isAddBill?: boolean;
 }
 
-export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseTransactionFormProps) => {
+interface TransactionFormReturn {
+    form: UseFormReturn<any>;
+    category: string;
+    type: "expense" | "income";
+    isRecurring: boolean;
+    currency: string;
+    isEditing: boolean;
+    resetForm: () => void;
+    handleCurrencyChange: (newCurrency: string) => Promise<void>;
+    handleRecurringToggle: (checked: boolean) => void;
+}
+
+export const useTransactionForm = ({
+    editingExpense,
+    preselectedCategory,
+}: UseTransactionFormProps): TransactionFormReturn => {
     const { user } = useAuth();
 
     const parseDateToFormat = useCallback((date: string | Date | undefined): string => {
@@ -206,27 +283,27 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseT
         return date instanceof Date && isValid(date) ? format(date, "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy");
     }, []);
 
-    const getDefaultValues = useCallback(() => {
+    const getDefaultValues = useCallback((): any => {
         if (editingExpense) {
             return {
                 title: editingExpense.title,
-                category: editingExpense.category,
+                category: editingExpense.category as any,
                 description: editingExpense.description || "",
                 amount: editingExpense.amount,
                 date: parseDateToFormat(editingExpense.date),
                 currency: editingExpense.currency,
                 type: editingExpense.type,
-                isRecurring: editingExpense.isRecurring,
-                recurringFrequency: editingExpense.recurringFrequency,
+                isRecurring: editingExpense.isRecurring ?? false,
+                recurringFrequency: editingExpense.recurringFrequency as any,
                 fromRate: editingExpense.fromRate || 1,
                 toRate: editingExpense.toRate || 1,
                 endDate: editingExpense.endDate ? parseDateToFormat(editingExpense.endDate) : undefined,
                 dueDate: editingExpense.dueDate ? parseDateToFormat(editingExpense.dueDate) : undefined,
                 nextDueDate: editingExpense.nextDueDate ? parseDateToFormat(editingExpense.nextDueDate) : undefined,
                 lastPaidDate: editingExpense.lastPaidDate ? parseDateToFormat(editingExpense.lastPaidDate) : undefined,
-                billCategory: editingExpense.billCategory || "",
-                paymentMethod: editingExpense.paymentMethod || "",
-                billFrequency: editingExpense.billFrequency || "",
+                billCategory: (editingExpense.billCategory as any) || undefined,
+                paymentMethod: (editingExpense.paymentMethod as any) || undefined,
+                billFrequency: (editingExpense.billFrequency as any) || undefined,
                 reminderDays: editingExpense.reminderDays || 0,
                 receipts: editingExpense.receipts || [],
             };
@@ -234,7 +311,7 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseT
 
         return {
             title: "",
-            category: preselectedCategory || "Food & Dining",
+            category: (preselectedCategory || "Food & Dining") as any,
             description: "",
             amount: 0,
             date: format(new Date(), "dd/MM/yyyy"),
@@ -248,9 +325,9 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseT
             dueDate: undefined,
             nextDueDate: undefined,
             lastPaidDate: undefined,
-            billCategory: "",
-            paymentMethod: "",
-            billFrequency: "",
+            billCategory: undefined,
+            paymentMethod: undefined,
+            billFrequency: undefined,
             reminderDays: 0,
             receipts: [],
         };
@@ -260,12 +337,12 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseT
 
     const form = useForm({
         resolver: zodResolver(transactionFormSchema),
-        defaultValues: defaultValues as any,
+        defaultValues: defaultValues,
         mode: "onSubmit",
     });
 
     const handleCurrencyChange = useCallback(
-        async (newCurrency: string) => {
+        async (newCurrency: string): Promise<void> => {
             if (newCurrency !== user?.currency) {
                 try {
                     const rate = await getExchangeRate(
@@ -289,7 +366,7 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseT
     );
 
     const handleRecurringToggle = useCallback(
-        (checked: boolean) => {
+        (checked: boolean): void => {
             form.setValue("isRecurring", checked);
             if (!checked) {
                 form.setValue("recurringFrequency", undefined);
@@ -306,29 +383,37 @@ export const useTransactionForm = ({ editingExpense, preselectedCategory }: UseT
         isRecurring: form.watch("isRecurring"),
         currency: form.watch("currency"),
         isEditing: !!editingExpense,
-        resetForm: useCallback(() => form.reset(defaultValues as any), [form, defaultValues]),
+        resetForm: useCallback((): void => form.reset(defaultValues), [form, defaultValues]),
         handleCurrencyChange,
         handleRecurringToggle,
     };
 };
 
+// Derived Data Hook types
+interface ExpensesSelectorReturn {
+    expenses: TransactionWithId[];
+    isLoading: boolean;
+    invalidateExpenses: () => void;
+    monthlyStats: MonthlyStats;
+}
+
 // Derived Data Hook
-export function useExpensesSelector() {
+export function useExpensesSelector(): ExpensesSelectorReturn {
     const { expenses, isLoading, invalidateExpenses } = useExpenses();
 
-    const monthlyStats = useMemo(() => {
-        const currentMonthTransactions = expenses.filter((t: any) => {
+    const monthlyStats = useMemo((): MonthlyStats => {
+        const currentMonthTransactions = expenses.filter((t: TransactionWithId) => {
             if (t.templateId) return false;
-            return isInCurrentMonth(parseFromDisplay(t.date));
+            return isInCurrentMonth(parseFromDisplay(t.date as unknown as string));
         });
 
         const totalIncome = currentMonthTransactions
-            .filter((t: any) => t.type === "income")
-            .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+            .filter((t: TransactionWithId) => t.type === "income")
+            .reduce((sum: number, t: TransactionWithId) => sum + (t.amount || 0), 0);
 
         const totalExpenses = currentMonthTransactions
-            .filter((t: any) => t.type === "expense")
-            .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+            .filter((t: TransactionWithId) => t.type === "expense")
+            .reduce((sum: number, t: TransactionWithId) => sum + (t.amount || 0), 0);
 
         return {
             totalIncome,
@@ -341,9 +426,24 @@ export function useExpensesSelector() {
     return { expenses, isLoading, invalidateExpenses, monthlyStats };
 }
 
+// Heatmap data types
+interface HeatmapDataPoint {
+    date: string;
+    count: number;
+    amount: number;
+    category: string;
+}
+
+interface GroupedHeatmapData {
+    date: string;
+    count: number;
+    amount: number;
+    categories: Set<string>;
+}
+
 // Utility function for heatmap data
-export const transformExpensesToHeatmapData = (expenses: Transaction[]) => {
-    const groupedByDate = expenses.reduce((acc, expense) => {
+export const transformExpensesToHeatmapData = (expenses: Transaction[]): HeatmapDataPoint[] => {
+    const groupedByDate = expenses.reduce((acc: Record<string, GroupedHeatmapData>, expense: Transaction) => {
         let dateStr: string;
         const expenseDate = expense.date as string | Date;
 
@@ -370,14 +470,16 @@ export const transformExpensesToHeatmapData = (expenses: Transaction[]) => {
         acc[dateStr].amount += expense.amount;
         acc[dateStr].categories.add(expense.category || "Uncategorized");
         return acc;
-    }, {} as Record<string, { date: string; count: number; amount: number; categories: Set<string> }>);
+    }, {} as Record<string, GroupedHeatmapData>);
 
     return Object.values(groupedByDate)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        .map((day) => ({
-            date: day.date,
-            count: day.count,
-            amount: day.amount,
-            category: Array.from(day.categories).join(", "),
-        }));
+        .sort((a: GroupedHeatmapData, b: GroupedHeatmapData) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .map(
+            (day: GroupedHeatmapData): HeatmapDataPoint => ({
+                date: day.date,
+                count: day.count,
+                amount: day.amount,
+                category: Array.from(day.categories).join(", "),
+            })
+        );
 };

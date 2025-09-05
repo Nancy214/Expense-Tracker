@@ -1,6 +1,38 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { ProfileData, ProfileResponse, SettingsData } from "@/types/profile";
 import { handleTokenExpiration } from "@/utils/authUtils";
+
+// API Response Types
+interface ApiResponse<T> {
+    success: boolean;
+    message?: string;
+    data?: T;
+}
+
+interface ProfileApiResponse extends ApiResponse<{ user: ProfileResponse }> {
+    user: ProfileResponse;
+}
+
+interface SettingsApiResponse extends ApiResponse<{ settings: SettingsData }> {
+    settings: SettingsData;
+}
+
+interface DeleteProfilePictureResponse extends ApiResponse<void> {
+    message: string;
+}
+
+interface CountryTimezoneCurrencyResponse {
+    _id: string;
+    country: string;
+    currency: {
+        code: string;
+        symbol: string;
+        name: string;
+    };
+    dateFormat: string;
+    timeFormat: string;
+    timezones: string[];
+}
 
 const API_URL = "http://localhost:8000/api/profile";
 
@@ -50,16 +82,15 @@ profileApi.interceptors.response.use(
 
 export const getProfile = async (): Promise<ProfileResponse> => {
     try {
-        const response = await profileApi.get("/");
-        return response.data.user || response.data;
+        const response: AxiosResponse<ProfileApiResponse> = await profileApi.get("/");
+        return response.data.user;
     } catch (error) {
         console.error("Error fetching profile:", error);
         throw error;
     }
 };
 
-export const updateProfile = async (profileData: ProfileData): Promise<any> => {
-    // Use 'any' for now to match backend response structure
+export const updateProfile = async (profileData: ProfileData): Promise<ProfileResponse> => {
     try {
         const formData = new FormData();
 
@@ -77,13 +108,13 @@ export const updateProfile = async (profileData: ProfileData): Promise<any> => {
             formData.append("profilePicture", profileData.profilePicture);
         }
 
-        const response = await profileApi.put("/", formData, {
+        const response: AxiosResponse<ProfileApiResponse> = await profileApi.put("/", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
         });
 
-        return response.data; // Return the full backend response (with 'user' property)
+        return response.data.user;
     } catch (error) {
         console.error("Error updating profile:", error);
         throw error;
@@ -92,8 +123,8 @@ export const updateProfile = async (profileData: ProfileData): Promise<any> => {
 
 export const updateSettings = async (settings: SettingsData): Promise<SettingsData> => {
     try {
-        const response = await profileApi.put("/settings", settings);
-        return response.data.settings || response.data;
+        const response: AxiosResponse<SettingsApiResponse> = await profileApi.put("/settings", settings);
+        return response.data.settings;
     } catch (error) {
         console.error("Error updating settings:", error);
         throw error;
@@ -102,8 +133,8 @@ export const updateSettings = async (settings: SettingsData): Promise<SettingsDa
 
 export const getSettings = async (userId: string): Promise<SettingsData> => {
     try {
-        const response = await profileApi.get(`/settings/${userId}`);
-        return response.data.settings || response.data;
+        const response: AxiosResponse<SettingsApiResponse> = await profileApi.get(`/settings/${userId}`);
+        return response.data.settings;
     } catch (error) {
         console.error("Error fetching settings:", error);
         throw error;
@@ -111,26 +142,16 @@ export const getSettings = async (userId: string): Promise<SettingsData> => {
 };
 
 // Remove profile picture
-export const removeProfilePicture = async (): Promise<void> => {
-    await profileApi.delete("/picture");
+export const removeProfilePicture = async (): Promise<DeleteProfilePictureResponse> => {
+    const response: AxiosResponse<DeleteProfilePictureResponse> = await profileApi.delete("/picture");
+    return response.data;
 };
 
-export interface CountryTimezoneCurrency {
-    _id: string;
-    country: string;
-    currency: {
-        code: string;
-        symbol: string;
-        name: string;
-    };
-    dateFormat: string;
-    timeFormat: string;
-    timezones: string[];
-}
-
-export const getCountryTimezoneCurrency = async (): Promise<CountryTimezoneCurrency[]> => {
+export const getCountryTimezoneCurrency = async (): Promise<CountryTimezoneCurrencyResponse[]> => {
     try {
-        const response = await profileApi.get("/country-timezone-currency");
+        const response: AxiosResponse<CountryTimezoneCurrencyResponse[]> = await profileApi.get(
+            "/country-timezone-currency"
+        );
         return response.data;
     } catch (error) {
         console.error("Error fetching country timezone currency:", error);

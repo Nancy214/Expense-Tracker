@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import { LoginCredentials, AuthResponse, RegisterCredentials, User } from "@/types/auth";
 import { removeTokens, handleTokenExpiration } from "@/utils/authUtils";
 
@@ -36,16 +36,16 @@ authApi.interceptors.request.use(
 
 // Add interceptor to handle token refresh
 authApi.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
+    (response: AxiosResponse) => response,
+    async (error: AxiosError) => {
+        const originalRequest = error.config as any;
 
-        if (error.response.status === 403 && !originalRequest._retry) {
+        if (error.response?.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
             const refreshToken = localStorage.getItem("refreshToken");
 
             try {
-                const response = await authApi.post("/auth/refresh-token", {
+                const response: AxiosResponse<{ accessToken: string }> = await authApi.post("/auth/refresh-token", {
                     refreshToken,
                 });
                 const { accessToken } = response.data;
@@ -53,9 +53,9 @@ authApi.interceptors.response.use(
 
                 originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
                 return authApi(originalRequest);
-            } catch (error) {
+            } catch (refreshError) {
                 handleTokenExpiration();
-                return Promise.reject(error);
+                return Promise.reject(refreshError);
             }
         }
         return Promise.reject(error);
@@ -64,11 +64,12 @@ authApi.interceptors.response.use(
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
-        const response = await authApi.post("/auth/login", credentials);
+        const response: AxiosResponse<AuthResponse> = await authApi.post("/auth/login", credentials);
         const tokens = response.data;
         storeTokens(tokens);
         return tokens;
-    } catch (error) {
+    } catch (error: unknown) {
+        console.error("Login error:", error);
         throw error;
     }
 };
@@ -83,14 +84,15 @@ export const logout = async (): Promise<void> => {
         const refreshToken = localStorage.getItem("refreshToken");
         await authApi.post("/auth/logout", { refreshToken });
         removeTokens();
-    } catch (error) {
+    } catch (error: unknown) {
         // Even if the server request fails, we still want to remove tokens
         removeTokens();
+        console.error("Logout error:", error);
         throw error;
     }
 };
 
-export const register = async (credentials: RegisterCredentials): Promise<void> => {
+export const register = async (credentials: RegisterCredentials): Promise<AuthResponse> => {
     try {
         // Create FormData for multipart/form-data
         const formData = new FormData();
@@ -103,19 +105,19 @@ export const register = async (credentials: RegisterCredentials): Promise<void> 
             formData.append("profilePicture", credentials.profilePicture);
         }
 
-        const response = await authApi.post("/auth/register", formData, {
+        const response: AxiosResponse<AuthResponse> = await authApi.post("/auth/register", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
                 withCredentials: true,
             },
         });
-        console.log(response);
-        //const tokens = response.data;
-        //storeTokens(tokens);
-        //return tokens;
-        //return response;
-    } catch (error) {
-        console.log(error);
+
+        const tokens = response.data;
+        storeTokens(tokens);
+        return tokens;
+    } catch (error: unknown) {
+        console.error("Registration error:", error);
+        throw error;
     }
 };
 
@@ -123,17 +125,17 @@ export const uploadProfilePicture = async (profilePicture: File): Promise<string
     try {
         const formData = new FormData();
         formData.append("profilePicture", profilePicture);
-        const response = await authApi.post("/auth/upload-profile-picture", formData);
-        return response.data;
-    } catch (error) {
+        const response: AxiosResponse<{ url: string }> = await authApi.post("/auth/upload-profile-picture", formData);
+        return response.data.url;
+    } catch (error: unknown) {
+        console.error("Upload profile picture error:", error);
         throw error;
     }
 };
 
 export const forgotPassword = async (email: string): Promise<void> => {
     try {
-        const response = await authApi.post("/auth/forgot-password", { email });
-        return response.data;
+        await authApi.post("/auth/forgot-password", { email });
     } catch (error: unknown) {
         console.error("Forgot password error:", error);
         throw error;
@@ -142,11 +144,10 @@ export const forgotPassword = async (email: string): Promise<void> => {
 
 export const resetPassword = async (token: string, newPassword: string): Promise<void> => {
     try {
-        const response = await authApi.post("/auth/reset-password", {
+        await authApi.post("/auth/reset-password", {
             token,
             newPassword,
         });
-        return response.data;
     } catch (error: unknown) {
         console.error("Reset password error:", error);
         throw error;
@@ -155,7 +156,7 @@ export const resetPassword = async (token: string, newPassword: string): Promise
 
 export const getProfile = async (): Promise<User> => {
     try {
-        const response = await authApi.get("/auth/profile");
+        const response: AxiosResponse<User> = await authApi.get("/auth/profile");
         return response.data;
     } catch (error: unknown) {
         console.error("Get profile error:", error);
@@ -165,11 +166,10 @@ export const getProfile = async (): Promise<User> => {
 
 export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
     try {
-        const response = await authApi.put("/auth/change-password", {
+        await authApi.put("/auth/change-password", {
             currentPassword,
             newPassword,
         });
-        return response.data;
     } catch (error: unknown) {
         console.error("Change password error:", error);
         throw error;

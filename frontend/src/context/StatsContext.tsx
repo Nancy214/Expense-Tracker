@@ -34,23 +34,26 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const { budgets, isBudgetsLoading } = useBudgets();
 
     // Then conditionally use the data
-    const monthlyStats = isAuthenticated
-        ? rawStats
-        : {
-              totalIncome: 0,
-              totalExpenses: 0,
-              balance: 0,
-              transactionCount: 0,
-          };
+    const monthlyStats: { totalIncome: number; totalExpenses: number; balance: number; transactionCount: number } =
+        isAuthenticated
+            ? rawStats
+            : {
+                  totalIncome: 0,
+                  totalExpenses: 0,
+                  balance: 0,
+                  transactionCount: 0,
+              };
 
-    const upcomingAndOverdueBills = isAuthenticated ? rawBills : { upcoming: [], overdue: [] };
-    const isLoading = isAuthenticated ? expensesLoading || billsLoading || isBudgetsLoading : false;
+    const upcomingAndOverdueBills: { upcoming: any[]; overdue: any[] } = isAuthenticated
+        ? rawBills
+        : { upcoming: [], overdue: [] };
+    const isLoading: boolean = isAuthenticated ? expensesLoading || billsLoading || isBudgetsLoading : false;
 
     const refreshStats = React.useCallback(async () => {
         // No need to manually refresh as TanStack Query handles this
     }, []);
 
-    const stats = monthlyStats && {
+    const stats: Stats | null = monthlyStats && {
         ...monthlyStats,
         activeBudgetsCount: budgets?.length || 0,
         upcomingBillsCount: upcomingAndOverdueBills.upcoming.length,
@@ -64,7 +67,7 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 };
 
 export const useStats = () => {
-    const ctx = useContext(StatsContext);
+    const ctx: StatsContextType | undefined = useContext(StatsContext);
     if (!ctx) throw new Error("useStats must be used within a StatsProvider");
     return ctx;
 };

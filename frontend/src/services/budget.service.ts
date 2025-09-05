@@ -1,11 +1,21 @@
-import axios from "axios";
+import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from "axios";
 import { BudgetData, BudgetResponse, BudgetProgressResponse, BudgetReminder } from "../types/budget";
+import { ApiError } from "../types/error";
 import { handleTokenExpiration } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 
+// Define API response types
+interface RefreshTokenResponse {
+    accessToken: string;
+}
+
+interface RefreshTokenRequest {
+    refreshToken: string;
+}
+
 // Create axios instance with auth interceptor
-const budgetApi = axios.create({
+const budgetApi: AxiosInstance = axios.create({
     baseURL: API_URL,
     headers: {
         "Content-Type": "application/json",
@@ -13,9 +23,9 @@ const budgetApi = axios.create({
 });
 
 // Add auth token to requests
-budgetApi.interceptors.request.use((config) => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
+budgetApi.interceptors.request.use((config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    const token: string | null = localStorage.getItem("accessToken");
+    if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -23,26 +33,35 @@ budgetApi.interceptors.request.use((config) => {
 
 // Add interceptor to handle token refresh
 budgetApi.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
+    (response: AxiosResponse) => response,
+    async (error: AxiosError) => {
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         if (error.response?.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
-            const refreshToken = localStorage.getItem("refreshToken");
+            const refreshToken: string | null = localStorage.getItem("refreshToken");
+
+            if (!refreshToken) {
+                handleTokenExpiration();
+                return Promise.reject(error);
+            }
 
             try {
-                const response = await axios.post("http://localhost:8000/api/auth/refresh-token", {
-                    refreshToken,
-                });
+                const response: AxiosResponse<RefreshTokenResponse> = await axios.post<
+                    RefreshTokenResponse,
+                    AxiosResponse<RefreshTokenResponse>,
+                    RefreshTokenRequest
+                >("http://localhost:8000/api/auth/refresh-token", { refreshToken });
                 const { accessToken } = response.data;
                 localStorage.setItem("accessToken", accessToken);
 
-                originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+                if (originalRequest.headers) {
+                    originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+                }
                 return budgetApi(originalRequest);
-            } catch (error) {
+            } catch (refreshError: unknown) {
                 handleTokenExpiration();
-                return Promise.reject(error);
+                return Promise.reject(refreshError);
             }
         }
         return Promise.reject(error);
@@ -51,60 +70,76 @@ budgetApi.interceptors.response.use(
 
 export const createBudget = async (budgetData: BudgetData): Promise<BudgetResponse> => {
     try {
-        const response = await budgetApi.post("/budget", budgetData);
+        const response: AxiosResponse<BudgetResponse> = await budgetApi.post<
+            BudgetResponse,
+            AxiosResponse<BudgetResponse>,
+            BudgetData
+        >("/budget", budgetData);
         return response.data;
-    } catch (error: any) {
-        console.error("Budget creation error:", error);
-        throw error;
+    } catch (error: unknown) {
+        const apiError = error as AxiosError<ApiError>;
+        console.error("Budget creation error:", apiError);
+        throw apiError;
     }
 };
 
 export const updateBudget = async (id: string, budgetData: BudgetData): Promise<BudgetResponse> => {
     try {
-        const response = await budgetApi.put(`/budget/${id}`, budgetData);
+        const response: AxiosResponse<BudgetResponse> = await budgetApi.put<
+            BudgetResponse,
+            AxiosResponse<BudgetResponse>,
+            BudgetData
+        >(`/budget/${id}`, budgetData);
         return response.data;
-    } catch (error: any) {
-        console.error("Budget update error:", error);
-        throw error;
+    } catch (error: unknown) {
+        const apiError = error as AxiosError<ApiError>;
+        console.error("Budget update error:", apiError);
+        throw apiError;
     }
 };
 
 export const deleteBudget = async (id: string): Promise<void> => {
     try {
         await budgetApi.delete(`/budget/${id}`);
-    } catch (error: any) {
-        console.error("Budget deletion error:", error);
-        throw error;
+    } catch (error: unknown) {
+        const apiError = error as AxiosError<ApiError>;
+        console.error("Budget deletion error:", apiError);
+        throw apiError;
     }
 };
 
 export const getBudgets = async (): Promise<BudgetResponse[]> => {
     try {
-        const response = await budgetApi.get("/budget");
+        const response: AxiosResponse<BudgetResponse[]> = await budgetApi.get<BudgetResponse[]>("/budget");
         return response.data;
-    } catch (error: any) {
-        console.error("Budget fetch error:", error);
-        throw error;
+    } catch (error: unknown) {
+        const apiError = error as AxiosError<ApiError>;
+        console.error("Budget fetch error:", apiError);
+        throw apiError;
     }
 };
 
 export const getBudget = async (id: string): Promise<BudgetResponse> => {
     try {
-        const response = await budgetApi.get(`/budget/${id}`);
+        const response: AxiosResponse<BudgetResponse> = await budgetApi.get<BudgetResponse>(`/budget/${id}`);
         return response.data;
-    } catch (error) {
-        console.error("Budget fetch error:", error);
-        throw error;
+    } catch (error: unknown) {
+        const apiError = error as AxiosError<ApiError>;
+        console.error("Budget fetch error:", apiError);
+        throw apiError;
     }
 };
 
 export const getBudgetProgress = async (): Promise<BudgetProgressResponse> => {
     try {
-        const response = await budgetApi.get("/budget/progress/track");
+        const response: AxiosResponse<BudgetProgressResponse> = await budgetApi.get<BudgetProgressResponse>(
+            "/budget/progress/track"
+        );
         return response.data;
-    } catch (error) {
-        console.error("Budget progress fetch error:", error);
-        throw error;
+    } catch (error: unknown) {
+        const apiError = error as AxiosError<ApiError>;
+        console.error("Budget progress fetch error:", apiError);
+        throw apiError;
     }
 };
 
@@ -203,10 +238,11 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
 // Keep the old function for backward compatibility, but mark it as deprecated
 export const checkBudgetReminders = async (): Promise<BudgetReminder[]> => {
     try {
-        const progressData = await getBudgetProgress();
+        const progressData: BudgetProgressResponse = await getBudgetProgress();
         return processBudgetReminders(progressData);
-    } catch (error) {
-        console.error("Error checking budget reminders:", error);
+    } catch (error: unknown) {
+        const apiError = error as AxiosError<ApiError>;
+        console.error("Error checking budget reminders:", apiError);
         return [];
     }
 };

@@ -24,18 +24,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const checkAuth = (): void => {
             try {
-                const accessToken = localStorage.getItem("accessToken");
-                const userData = localStorage.getItem("user");
+                const accessToken: string | null = localStorage.getItem("accessToken");
+                const userData: string | null = localStorage.getItem("user");
 
                 if (accessToken && (accessToken !== "undefined" || accessToken !== null) && userData) {
-                    const parsedUser = JSON.parse(userData);
+                    const parsedUser: User = JSON.parse(userData);
                     setUser(parsedUser);
                     setIsAuthenticated(true);
                 } else {
                     setUser(null);
                     setIsAuthenticated(false);
                 }
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error("Error checking auth:", error);
                 setUser(null);
                 setIsAuthenticated(false);
@@ -49,11 +49,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const handleLogin = async (credentials: LoginCredentials): Promise<void> => {
         try {
-            const response = await login(credentials);
+            const response: AuthResponse = await login(credentials);
             localStorage.setItem("user", JSON.stringify(response.user));
             setUser(response.user);
             setIsAuthenticated(true);
-        } catch (error) {
+        } catch (error: unknown) {
             setUser(null);
             setIsAuthenticated(false);
             throw error;
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             removeTokens();
             setUser(null);
             setIsAuthenticated(false);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Logout failed:", error);
             removeTokens();
             setUser(null);
@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = (): AuthContextType => {
-    const context = useContext(AuthContext);
+    const context: AuthContextType | undefined = useContext(AuthContext);
     if (context === undefined) {
         throw new Error("useAuth must be used within an AuthProvider");
     }

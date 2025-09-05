@@ -1,5 +1,12 @@
-import axios from "axios";
+import axios, { AxiosResponse, AxiosError } from "axios";
 import { handleTokenExpiration } from "@/utils/authUtils";
+import type {
+    ExpenseCategoryBreakdownResponse,
+    BillsCategoryBreakdownResponse,
+    IncomeExpenseSummaryResponse,
+    MonthlySavingsTrendResponse,
+    AnalyticsApiError,
+} from "@/types/analytics";
 
 const API_URL = "http://localhost:8000/api/analytics";
 
@@ -20,9 +27,9 @@ analyticsApi.interceptors.request.use((config) => {
 
 // Add interceptor to handle token refresh
 analyticsApi.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
+    (response: AxiosResponse) => response,
+    async (error: AxiosError) => {
+        const originalRequest = error.config as any;
 
         if (error.response?.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
@@ -47,114 +54,45 @@ analyticsApi.interceptors.response.use(
 );
 
 // Get expense category breakdown for pie chart
-export const getExpenseCategoryBreakdown = async (): Promise<{
-    success: boolean;
-    data: Array<{ name: string; value: number }>;
-    totalExpenses: number;
-    totalAmount: number;
-}> => {
+export const getExpenseCategoryBreakdown = async (): Promise<ExpenseCategoryBreakdownResponse> => {
     try {
-        const response = await analyticsApi.get("/expense-breakdown");
+        const response: AxiosResponse<ExpenseCategoryBreakdownResponse> = await analyticsApi.get("/expense-breakdown");
         return response.data;
     } catch (error) {
         console.error("Error fetching expense category breakdown:", error);
-        throw error;
+        throw error as AnalyticsApiError;
     }
 };
 
 // Get bills category breakdown for pie chart
-export const getBillsCategoryBreakdown = async (): Promise<{
-    success: boolean;
-    data: Array<{ name: string; value: number }>;
-    totalBills: number;
-    totalAmount: number;
-}> => {
+export const getBillsCategoryBreakdown = async (): Promise<BillsCategoryBreakdownResponse> => {
     try {
-        const response = await analyticsApi.get("/bills-breakdown");
+        const response: AxiosResponse<BillsCategoryBreakdownResponse> = await analyticsApi.get("/bills-breakdown");
         return response.data;
     } catch (error) {
         console.error("Error fetching bills category breakdown:", error);
-        throw error;
+        throw error as AnalyticsApiError;
     }
 };
 
 // Get income and expense summary for different time periods
-export const getIncomeExpenseSummary = async (): Promise<{
-    success: boolean;
-    data: {
-        months: Array<{
-            month: string;
-            year: number;
-            monthIndex: number;
-            income: number;
-            expenses: number;
-            bills: number;
-            netIncome: number;
-            transactionCount: number;
-        }>;
-        currentMonth: {
-            period: string;
-            startDate: string;
-            endDate: string;
-            income: number;
-            expenses: number;
-            bills: number;
-            netIncome: number;
-            transactionCount: number;
-        };
-    };
-    summary: {
-        totalIncome: number;
-        totalExpenses: number;
-        totalBills: number;
-        netIncome: number;
-        totalTransactions: number;
-    };
-}> => {
+export const getIncomeExpenseSummary = async (): Promise<IncomeExpenseSummaryResponse> => {
     try {
-        const response = await analyticsApi.get("/income-expense-summary");
+        const response: AxiosResponse<IncomeExpenseSummaryResponse> = await analyticsApi.get("/income-expense-summary");
         return response.data;
     } catch (error) {
         console.error("Error fetching income and expense summary:", error);
-        throw error;
+        throw error as AnalyticsApiError;
     }
 };
 
 // Get monthly savings trend data for the last 12 months
-export const getMonthlySavingsTrend = async (): Promise<{
-    success: boolean;
-    data: {
-        trend: Array<{
-            month: string;
-            year: number;
-            monthIndex: number;
-            period: string;
-            income: number;
-            expenses: number;
-            savings: number;
-            transactionCount: number;
-        }>;
-        summary: {
-            totalSavings: number;
-            averageSavings: number;
-            positiveMonths: number;
-            negativeMonths: number;
-            bestMonth: {
-                period: string;
-                savings: number;
-            };
-            worstMonth: {
-                period: string;
-                savings: number;
-            };
-        };
-    };
-}> => {
+export const getMonthlySavingsTrend = async (): Promise<MonthlySavingsTrendResponse> => {
     try {
-        const response = await analyticsApi.get("/monthly-savings-trend");
+        const response: AxiosResponse<MonthlySavingsTrendResponse> = await analyticsApi.get("/monthly-savings-trend");
         return response.data;
     } catch (error) {
         console.error("Error fetching monthly savings trend:", error);
-        throw error;
+        throw error as AnalyticsApiError;
     }
 };

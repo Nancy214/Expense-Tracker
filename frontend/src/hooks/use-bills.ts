@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse, isValid, parseISO } from "date-fns";
 import { useEffect, useMemo, useCallback } from "react";
@@ -8,9 +8,89 @@ import { useToast } from "@/hooks/use-toast";
 import { getBills, createExpense, updateExpense, updateTransactionBillStatus } from "@/services/transaction.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
-import { Transaction } from "@/types/transaction";
+import { Transaction, Bill, BillStatus, BillFrequency, PaymentMethod, TransactionResponse } from "@/types/transaction";
 import { formatToDisplay, parseFromDisplay, getDaysDifference, getStartOfToday } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+// Bill with processed dates for UI display
+interface BillWithProcessedDates extends Omit<Bill, "date" | "dueDate" | "nextDueDate" | "lastPaidDate"> {
+    date: string; // Display format (dd/MM/yyyy)
+    dueDate?: string; // Display format (dd/MM/yyyy)
+    nextDueDate?: string; // Display format (dd/MM/yyyy)
+    lastPaidDate?: string; // Display format (dd/MM/yyyy)
+}
+
+// API response for bills
+interface BillsApiResponse {
+    bills: Bill[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNextPage: boolean;
+        hasPrevPage: boolean;
+    };
+}
+
+// Bills query result
+interface BillsQueryResult {
+    bills: BillWithProcessedDates[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNextPage: boolean;
+        hasPrevPage: boolean;
+    } | null;
+}
+
+// Bill form default values
+interface BillFormDefaultValues {
+    title: string;
+    category: "Bill";
+    description: string;
+    amount: number;
+    date: string;
+    currency: string;
+    type: "expense";
+    isRecurring: boolean;
+    recurringFrequency?: "daily" | "weekly" | "monthly" | "yearly";
+    fromRate: number;
+    toRate: number;
+    endDate?: string;
+    billCategory:
+        | "Rent/Mortgage"
+        | "Electricity"
+        | "Water"
+        | "Gas"
+        | "Internet"
+        | "Phone"
+        | "Insurance"
+        | "Subscriptions"
+        | "Credit Card"
+        | "Loan Payment"
+        | "Property Tax";
+    reminderDays: number;
+    dueDate: string;
+    billStatus: BillStatus;
+    billFrequency: BillFrequency;
+    nextDueDate?: string;
+    lastPaidDate?: string;
+    paymentMethod: PaymentMethod;
+    receipts: string[];
+}
+
+// Upcoming and overdue bills result
+interface UpcomingAndOverdueBills {
+    upcoming: BillWithProcessedDates[];
+    overdue: BillWithProcessedDates[];
+}
 
 // Query keys
 const BILL_QUERY_KEYS = {
@@ -21,26 +101,46 @@ const BILL_QUERY_KEYS = {
 // QUERY HOOKS
 // ============================================================================
 
-export function useBills(page: number = 1, limit: number = 20) {
+interface UseBillsReturn {
+    bills: BillWithProcessedDates[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNextPage: boolean;
+        hasPrevPage: boolean;
+    } | null;
+    isLoading: boolean;
+    isError: boolean;
+    error: Error | null;
+    invalidateBills: () => Promise<void>;
+    refetch: () => Promise<any>;
+}
+
+export function useBills(page: number = 1, limit: number = 20): UseBillsReturn {
     const { isAuthenticated } = useAuth();
 
-    const query = useQuery({
+    const query = useQuery<BillsQueryResult>({
         queryKey: [...BILL_QUERY_KEYS.bills, page, limit],
         staleTime: 30 * 1000, // Consider data fresh for 30 seconds
         gcTime: 5 * 60 * 1000, // Cache for 5 minutes
         refetchOnWindowFocus: false, // Don't refetch on window focus
-        queryFn: async () => {
+        queryFn: async (): Promise<BillsQueryResult> => {
             if (!isAuthenticated) {
                 return { bills: [], pagination: null };
             }
-            const response = await getBills(page, limit);
+            const response: BillsApiResponse = await getBills(page, limit);
 
             const bills = response?.bills || [];
-            const billsWithDates = bills.map((bill: any) => ({
+            const billsWithDates: BillWithProcessedDates[] = bills.map((bill: Bill) => ({
                 ...bill,
                 date: formatToDisplay(bill.date),
                 description: bill.description ?? "",
                 currency: bill.currency ?? "INR",
+                dueDate: bill.dueDate ? formatToDisplay(bill.dueDate) : undefined,
+                nextDueDate: bill.nextDueDate ? formatToDisplay(bill.nextDueDate) : undefined,
+                lastPaidDate: bill.lastPaidDate ? formatToDisplay(bill.lastPaidDate) : undefined,
             }));
 
             return {
@@ -53,15 +153,18 @@ export function useBills(page: number = 1, limit: number = 20) {
 
     const queryClient = useQueryClient();
 
-    const invalidateBills = () => {
+    const invalidateBills = useCallback((): Promise<void> => {
         return queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
-    };
+    }, [queryClient]);
 
     return {
-        ...query,
-        invalidateBills,
         bills: query.data?.bills ?? [],
         pagination: query.data?.pagination ?? null,
+        isLoading: query.isLoading,
+        isError: query.isError,
+        error: query.error,
+        invalidateBills,
+        refetch: query.refetch,
     };
 }
 
@@ -69,11 +172,23 @@ export function useBills(page: number = 1, limit: number = 20) {
 // MUTATION HOOKS
 // ============================================================================
 
-export function useBillMutations() {
+interface UseBillMutationsReturn {
+    createBill: (data: Transaction) => Promise<TransactionResponse>;
+    updateBill: (params: { id: string; data: Transaction }) => Promise<TransactionResponse>;
+    updateBillStatus: (params: { id: string; status: string }) => Promise<TransactionResponse>;
+    isCreating: boolean;
+    isUpdating: boolean;
+    isUpdatingBillStatus: boolean;
+    createError: Error | null;
+    updateError: Error | null;
+    updateBillStatusError: Error | null;
+}
+
+export function useBillMutations(): UseBillMutationsReturn {
     const queryClient = useQueryClient();
     const { toast } = useToast();
 
-    const createBillMutation = useMutation({
+    const createBillMutation = useMutation<TransactionResponse, Error, Transaction>({
         mutationFn: createExpense,
         onSuccess: () => {
             showCreateSuccess(toast, "Bill");
@@ -85,7 +200,7 @@ export function useBillMutations() {
         },
     });
 
-    const updateBillMutation = useMutation({
+    const updateBillMutation = useMutation<TransactionResponse, Error, { id: string; data: Transaction }>({
         mutationFn: ({ id, data }: { id: string; data: Transaction }) => updateExpense(id, data),
         onSuccess: () => {
             showUpdateSuccess(toast, "Bill");
@@ -97,7 +212,7 @@ export function useBillMutations() {
         },
     });
 
-    const updateBillStatusMutation = useMutation({
+    const updateBillStatusMutation = useMutation<TransactionResponse, Error, { id: string; status: string }>({
         mutationFn: ({ id, status }: { id: string; status: string }) => updateTransactionBillStatus(id, status),
         onSuccess: () => {
             toast({
@@ -107,7 +222,7 @@ export function useBillMutations() {
             // Invalidate all related queries to refresh the data
             queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
         },
-        onError: (error, variables) => {
+        onError: (error: Error, variables: { id: string; status: string }) => {
             console.error("Error updating bill status:", { id: variables.id, status: variables.status, error });
             toast({
                 title: "Error",
@@ -135,33 +250,46 @@ export function useBillMutations() {
 // ============================================================================
 
 interface UseBillFormProps {
-    editingBill?: Transaction | null;
+    editingBill?: Bill | null;
 }
 
-export const useBillForm = ({ editingBill }: UseBillFormProps) => {
+interface UseBillFormReturn {
+    form: UseFormReturn<BillFormDefaultValues>;
+    category: string;
+    type: "expense";
+    currency: string;
+    resetForm: () => void;
+    isEditing: boolean;
+    handleCurrencyChange: (newCurrency: string) => Promise<void>;
+}
+
+export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormReturn => {
     const { user } = useAuth();
 
     // Utility function to parse date to format
-    const parseDateToFormat = (date: string | Date | undefined, formatString: string = "dd/MM/yyyy"): string => {
-        if (!date) return format(new Date(), formatString);
+    const parseDateToFormat = useCallback(
+        (date: string | Date | undefined, formatString: string = "dd/MM/yyyy"): string => {
+            if (!date) return format(new Date(), formatString);
 
-        if (typeof date === "string") {
-            const iso = parseISO(date);
-            if (isValid(iso)) return format(iso, formatString);
-            const parsed = parse(date, formatString, new Date());
-            if (isValid(parsed)) return format(parsed, formatString);
+            if (typeof date === "string") {
+                const iso = parseISO(date);
+                if (isValid(iso)) return format(iso, formatString);
+                const parsed = parse(date, formatString, new Date());
+                if (isValid(parsed)) return format(parsed, formatString);
+                return format(new Date(), formatString);
+            }
+
+            if (date instanceof Date && isValid(date)) {
+                return format(date, formatString);
+            }
+
             return format(new Date(), formatString);
-        }
-
-        if (date instanceof Date && isValid(date)) {
-            return format(date, formatString);
-        }
-
-        return format(new Date(), formatString);
-    };
+        },
+        []
+    );
 
     // Default values
-    const getDefaultValues = useCallback(() => {
+    const getDefaultValues = useCallback((): BillFormDefaultValues => {
         if (editingBill) {
             return {
                 title: editingBill.title,
@@ -176,20 +304,28 @@ export const useBillForm = ({ editingBill }: UseBillFormProps) => {
                 fromRate: editingBill.fromRate || 1,
                 toRate: editingBill.toRate || 1,
                 endDate: undefined,
-                billCategory: (editingBill as any).billCategory || "Rent/Mortgage",
-                reminderDays: (editingBill as any).reminderDays || 3,
-                dueDate: (editingBill as any).dueDate
-                    ? parseDateToFormat((editingBill as any).dueDate)
+                billCategory:
+                    (editingBill.billCategory as
+                        | "Rent/Mortgage"
+                        | "Electricity"
+                        | "Water"
+                        | "Gas"
+                        | "Internet"
+                        | "Phone"
+                        | "Insurance"
+                        | "Subscriptions"
+                        | "Credit Card"
+                        | "Loan Payment"
+                        | "Property Tax") || "Rent/Mortgage",
+                reminderDays: editingBill.reminderDays || 3,
+                dueDate: editingBill.dueDate
+                    ? parseDateToFormat(editingBill.dueDate)
                     : format(new Date(), "dd/MM/yyyy"),
-                billStatus: (editingBill as any).billStatus || "unpaid",
-                billFrequency: (editingBill as any).billFrequency || "monthly",
-                nextDueDate: (editingBill as any).nextDueDate
-                    ? parseDateToFormat((editingBill as any).nextDueDate)
-                    : undefined,
-                lastPaidDate: (editingBill as any).lastPaidDate
-                    ? parseDateToFormat((editingBill as any).lastPaidDate)
-                    : undefined,
-                paymentMethod: (editingBill as any).paymentMethod || "manual",
+                billStatus: editingBill.billStatus || "unpaid",
+                billFrequency: editingBill.billFrequency || "monthly",
+                nextDueDate: editingBill.nextDueDate ? parseDateToFormat(editingBill.nextDueDate) : undefined,
+                lastPaidDate: editingBill.lastPaidDate ? parseDateToFormat(editingBill.lastPaidDate) : undefined,
+                paymentMethod: editingBill.paymentMethod || "manual",
                 receipts: editingBill.receipts || [],
             };
         }
@@ -207,7 +343,7 @@ export const useBillForm = ({ editingBill }: UseBillFormProps) => {
             fromRate: 1,
             toRate: 1,
             endDate: undefined,
-            billCategory: "Rent/Mortgage" as any,
+            billCategory: "Rent/Mortgage",
             reminderDays: 3,
             dueDate: format(new Date(), "dd/MM/yyyy"),
             billStatus: "unpaid" as const,
@@ -217,11 +353,11 @@ export const useBillForm = ({ editingBill }: UseBillFormProps) => {
             paymentMethod: "manual" as const,
             receipts: [],
         };
-    }, [editingBill, user?.currency]);
+    }, [editingBill, user?.currency, parseDateToFormat]);
 
-    const form = useForm({
-        resolver: zodResolver(transactionFormSchema),
-        defaultValues: getDefaultValues() as any,
+    const form = useForm<BillFormDefaultValues>({
+        resolver: zodResolver(transactionFormSchema) as any,
+        defaultValues: getDefaultValues(),
         mode: "onSubmit",
     });
 
@@ -257,7 +393,7 @@ export const useBillForm = ({ editingBill }: UseBillFormProps) => {
 
     // Reset form
     const resetForm = useCallback(() => {
-        form.reset(getDefaultValues() as any);
+        form.reset(getDefaultValues());
     }, [form, getDefaultValues]);
 
     // Check if editing
@@ -278,7 +414,15 @@ export const useBillForm = ({ editingBill }: UseBillFormProps) => {
 // DERIVED DATA HOOK
 // ============================================================================
 
-export function useBillsSelector() {
+interface UseBillsSelectorReturn {
+    bills: BillWithProcessedDates[];
+    isLoading: boolean;
+    invalidateBills: () => Promise<void>;
+    upcomingAndOverdueBills: UpcomingAndOverdueBills;
+    billReminders: BillWithProcessedDates[];
+}
+
+export function useBillsSelector(): UseBillsSelectorReturn {
     const { bills, isLoading, invalidateBills } = useBills();
 
     // Listen for bill refresh events
@@ -293,21 +437,19 @@ export function useBillsSelector() {
         };
     }, [invalidateBills]);
 
-    const upcomingAndOverdueBills = useMemo(() => {
+    const upcomingAndOverdueBills = useMemo((): UpcomingAndOverdueBills => {
         const today = getStartOfToday();
-        const upcoming: any[] = [];
-        const overdue: any[] = [];
+        const upcoming: BillWithProcessedDates[] = [];
+        const overdue: BillWithProcessedDates[] = [];
 
-        bills.forEach((bill: any) => {
+        bills.forEach((bill: BillWithProcessedDates) => {
             if (!bill.dueDate || bill.billStatus === "paid") {
                 return;
             }
 
             // Handle different date formats
             let dueDate: Date;
-            if (bill.dueDate instanceof Date) {
-                dueDate = bill.dueDate;
-            } else if (typeof bill.dueDate === "string") {
+            if (typeof bill.dueDate === "string") {
                 // Check if it's an ISO date string
                 if (bill.dueDate.includes("T") || bill.dueDate.includes("-")) {
                     dueDate = new Date(bill.dueDate);
@@ -331,18 +473,16 @@ export function useBillsSelector() {
         return { upcoming, overdue };
     }, [bills]);
 
-    const billReminders = useMemo(() => {
+    const billReminders = useMemo((): BillWithProcessedDates[] => {
         const today = getStartOfToday();
-        const reminders = bills.filter((bill: any) => {
+        const reminders = bills.filter((bill: BillWithProcessedDates) => {
             if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays) {
                 return false;
             }
 
             // Handle different date formats
             let dueDate: Date;
-            if (bill.dueDate instanceof Date) {
-                dueDate = bill.dueDate;
-            } else if (typeof bill.dueDate === "string") {
+            if (typeof bill.dueDate === "string") {
                 // Check if it's an ISO date string
                 if (bill.dueDate.includes("T") || bill.dueDate.includes("-")) {
                     dueDate = new Date(bill.dueDate);

@@ -51,9 +51,13 @@ export interface IncomeExpenseResponse {
 
 export interface SavingsTrendItem {
     month: string;
-    savings: number;
+    year: number;
+    monthIndex: number;
+    period: string;
     income: number;
     expenses: number;
+    savings: number;
+    transactionCount: number;
 }
 
 export interface SavingsTrendResponse {
@@ -188,4 +192,92 @@ export interface PieChartProps {
     colors?: string[];
     showInsights?: boolean;
     currency?: string;
+}
+
+// API Response Types for Analytics Service
+export interface ExpenseCategoryBreakdownResponse {
+    success: boolean;
+    data: Array<{ name: string; value: number }>;
+    totalExpenses: number;
+    totalAmount: number;
+}
+
+export interface BillsCategoryBreakdownResponse {
+    success: boolean;
+    data: Array<{ name: string; value: number }>;
+    totalBills: number;
+    totalAmount: number;
+}
+
+export interface MonthlyData {
+    month: string;
+    year: number;
+    monthIndex: number;
+    income: number;
+    expenses: number;
+    bills: number;
+    netIncome: number;
+    transactionCount: number;
+}
+
+export interface CurrentMonthData {
+    period: string;
+    startDate: string;
+    endDate: string;
+    income: number;
+    expenses: number;
+    bills: number;
+    netIncome: number;
+    transactionCount: number;
+}
+
+export interface IncomeExpenseSummaryData {
+    months: MonthlyData[];
+    currentMonth: CurrentMonthData;
+}
+
+export interface IncomeExpenseSummarySummary {
+    totalIncome: number;
+    totalExpenses: number;
+    totalBills: number;
+    netIncome: number;
+    totalTransactions: number;
+}
+
+export interface IncomeExpenseSummaryResponse {
+    success: boolean;
+    data: IncomeExpenseSummaryData;
+    summary: IncomeExpenseSummarySummary;
+}
+
+export interface SavingsTrendSummary {
+    totalSavings: number;
+    averageSavings: number;
+    positiveMonths: number;
+    negativeMonths: number;
+    bestMonth: {
+        period: string;
+        savings: number;
+    };
+    worstMonth: {
+        period: string;
+        savings: number;
+    };
+}
+
+export interface MonthlySavingsTrendData {
+    trend: SavingsTrendItem[];
+    summary: SavingsTrendSummary;
+}
+
+export interface MonthlySavingsTrendResponse {
+    success: boolean;
+    data: MonthlySavingsTrendData;
+}
+
+// API Error Response Type
+export interface AnalyticsApiError {
+    message: string;
+    status?: number;
+    code?: string;
 }

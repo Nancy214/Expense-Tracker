@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.service";
@@ -21,11 +21,50 @@ interface UseDeleteOperationsProps {
     onBudgetRemindersRefresh?: () => void;
 }
 
+interface DeleteOperationsState {
+    expenseToDelete: string | null;
+    recurringToDelete: TransactionWithId | null;
+    billToDelete: string | null;
+    budgetToDelete: BudgetResponse | null;
+    isDeleteDialogOpen: boolean;
+}
+
+interface DeleteOperationsHandlers {
+    // Expense operations
+    handleExpenseDelete: (expenseId: string) => Promise<void>;
+    confirmExpenseDelete: () => Promise<void>;
+
+    // Recurring operations
+    handleRecurringDelete: (templateId: string) => Promise<void>;
+    setRecurringForDelete: (expense: TransactionWithId | null) => void;
+    clearRecurringDelete: () => void;
+
+    // Bill operations
+    handleBillDelete: (id: string) => void;
+    confirmBillDelete: () => Promise<void>;
+    cancelBillDelete: () => void;
+
+    // Budget operations
+    handleBudgetDelete: (budget: BudgetResponse) => Promise<void>;
+    confirmBudgetDelete: () => Promise<void>;
+
+    // Generic operations
+    cancelDelete: () => void;
+
+    // State setters
+    setIsDeleteDialogOpen: (open: boolean) => void;
+}
+
+interface DeleteOperationsReturn extends DeleteOperationsState, DeleteOperationsHandlers {
+    // Loading states
+    isBudgetDeleting: boolean;
+}
+
 export function useDeleteOperations({
     onRefresh,
     onBudgetProgressRefresh,
     onBudgetRemindersRefresh,
-}: UseDeleteOperationsProps = {}) {
+}: UseDeleteOperationsProps = {}): DeleteOperationsReturn {
     const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
     const [recurringToDelete, setRecurringToDelete] = useState<TransactionWithId | null>(null);
     const [billToDelete, setBillToDelete] = useState<string | null>(null);
@@ -37,12 +76,12 @@ export function useDeleteOperations({
     const { deleteBudget, isDeleting: isBudgetDeleting } = useBudgets();
 
     // Expense delete operations
-    const handleExpenseDelete = async (expenseId: string) => {
+    const handleExpenseDelete = useCallback(async (expenseId: string): Promise<void> => {
         setExpenseToDelete(expenseId);
         setIsDeleteDialogOpen(true);
-    };
+    }, []);
 
-    const confirmExpenseDelete = async () => {
+    const confirmExpenseDelete = useCallback(async (): Promise<void> => {
         if (!expenseToDelete) return;
 
         try {
@@ -57,56 +96,63 @@ export function useDeleteOperations({
                 queryClient.invalidateQueries({ queryKey: ALL_TRANSACTIONS_QUERY_KEY }),
                 queryClient.invalidateQueries({ queryKey: RECURRING_TEMPLATES_QUERY_KEY }),
             ]);
-        } catch (error) {
+        } catch (error: unknown) {
+            console.error("Error deleting expense:", error);
+            const errorMessage = error instanceof Error ? error.message : "Failed to delete expense. Please try again.";
             toast({
                 title: "Error",
-                description: "Failed to delete expense. Please try again.",
+                description: errorMessage,
                 variant: "destructive",
             });
         } finally {
             setIsDeleteDialogOpen(false);
             setExpenseToDelete(null);
         }
-    };
+    }, [expenseToDelete, queryClient, toast]);
 
     // Recurring transaction delete operations
-    const handleRecurringDelete = async (templateId: string) => {
-        try {
-            await deleteRecurringExpense(templateId);
-            toast({
-                title: "Deleted",
-                description: "Recurring transaction and all its instances deleted.",
-                variant: "destructive",
-            });
-            // Invalidate all related queries
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY }),
-                queryClient.invalidateQueries({ queryKey: ALL_TRANSACTIONS_QUERY_KEY }),
-                queryClient.invalidateQueries({ queryKey: RECURRING_TEMPLATES_QUERY_KEY }),
-            ]);
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to delete recurring transaction.",
-                variant: "destructive",
-            });
-        }
-    };
+    const handleRecurringDelete = useCallback(
+        async (templateId: string): Promise<void> => {
+            try {
+                await deleteRecurringExpense(templateId);
+                toast({
+                    title: "Deleted",
+                    description: "Recurring transaction and all its instances deleted.",
+                    variant: "destructive",
+                });
+                // Invalidate all related queries
+                await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY }),
+                    queryClient.invalidateQueries({ queryKey: ALL_TRANSACTIONS_QUERY_KEY }),
+                    queryClient.invalidateQueries({ queryKey: RECURRING_TEMPLATES_QUERY_KEY }),
+                ]);
+            } catch (error: unknown) {
+                console.error("Error deleting recurring transaction:", error);
+                const errorMessage = error instanceof Error ? error.message : "Failed to delete recurring transaction.";
+                toast({
+                    title: "Error",
+                    description: errorMessage,
+                    variant: "destructive",
+                });
+            }
+        },
+        [queryClient, toast]
+    );
 
-    const setRecurringForDelete = (expense: TransactionWithId | null) => {
+    const setRecurringForDelete = useCallback((expense: TransactionWithId | null): void => {
         setRecurringToDelete(expense);
-    };
+    }, []);
 
-    const clearRecurringDelete = () => {
+    const clearRecurringDelete = useCallback((): void => {
         setRecurringToDelete(null);
-    };
+    }, []);
 
     // Bill delete operations
-    const handleBillDelete = (id: string) => {
+    const handleBillDelete = useCallback((id: string): void => {
         setBillToDelete(id);
-    };
+    }, []);
 
-    const confirmBillDelete = async () => {
+    const confirmBillDelete = useCallback(async (): Promise<void> => {
         if (!billToDelete) return;
 
         try {
@@ -124,28 +170,30 @@ export function useDeleteOperations({
             if (onRefresh) {
                 onRefresh();
             }
-        } catch (error) {
+        } catch (error: unknown) {
+            console.error("Error deleting bill:", error);
+            const errorMessage = error instanceof Error ? error.message : "Failed to delete bill";
             toast({
                 title: "Error",
-                description: "Failed to delete bill",
+                description: errorMessage,
                 variant: "destructive",
             });
         } finally {
             setBillToDelete(null);
         }
-    };
+    }, [billToDelete, queryClient, toast, onRefresh]);
 
-    const cancelBillDelete = () => {
+    const cancelBillDelete = useCallback((): void => {
         setBillToDelete(null);
-    };
+    }, []);
 
     // Budget delete operations
-    const handleBudgetDelete = async (budget: BudgetResponse) => {
+    const handleBudgetDelete = useCallback(async (budget: BudgetResponse): Promise<void> => {
         setBudgetToDelete(budget);
         setIsDeleteDialogOpen(true);
-    };
+    }, []);
 
-    const confirmBudgetDelete = async () => {
+    const confirmBudgetDelete = useCallback(async (): Promise<void> => {
         if (!budgetToDelete) return;
 
         try {
@@ -184,14 +232,22 @@ export function useDeleteOperations({
             setIsDeleteDialogOpen(false);
             setBudgetToDelete(null);
         }
-    };
+    }, [
+        budgetToDelete,
+        deleteBudget,
+        queryClient,
+        toast,
+        onRefresh,
+        onBudgetProgressRefresh,
+        onBudgetRemindersRefresh,
+    ]);
 
     // Generic cancel operation
-    const cancelDelete = () => {
+    const cancelDelete = useCallback((): void => {
         setIsDeleteDialogOpen(false);
         setExpenseToDelete(null);
         setBudgetToDelete(null);
-    };
+    }, []);
 
     return {
         // State

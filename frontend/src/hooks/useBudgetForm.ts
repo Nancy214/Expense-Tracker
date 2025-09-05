@@ -1,21 +1,52 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useStats } from "@/context/StatsContext";
-import { BudgetResponse } from "@/types/budget";
+import { BudgetResponse, BudgetData } from "@/types/budget";
 import { budgetSchema, BudgetFormData, getDefaultValues } from "@/schemas/budgetSchema";
 import { useBudgets } from "@/hooks/use-budgets";
 import { BudgetFormError } from "@/types/error";
 
+/**
+ * Props for the useBudgetForm hook
+ */
 interface UseBudgetFormProps {
+    /** The budget being edited, if any */
     editingBudget?: BudgetResponse | null;
+    /** Callback function called when form submission is successful */
     onSuccess?: () => void;
+    /** Callback function called when dialog open state changes */
     onOpenChange?: (open: boolean) => void;
 }
 
-export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBudgetFormProps = {}) => {
+/**
+ * Return type for the useBudgetForm hook
+ */
+interface UseBudgetFormReturn {
+    /** React Hook Form instance */
+    form: UseFormReturn<BudgetFormData>;
+    /** Whether the form is currently being submitted */
+    isSubmitting: boolean;
+    /** Form submission handler */
+    onSubmit: (data: BudgetFormData) => Promise<void>;
+    /** Cancel handler that resets form and closes dialog */
+    handleCancel: () => void;
+    /** Whether the form is in editing mode */
+    isEditing: boolean;
+}
+
+/**
+ * Custom hook for managing budget form state and operations
+ * @param props - Configuration object for the budget form
+ * @returns Object containing form instance, submission state, and handlers
+ */
+export const useBudgetForm = ({
+    editingBudget,
+    onSuccess,
+    onOpenChange,
+}: UseBudgetFormProps = {}): UseBudgetFormReturn => {
     const { toast } = useToast();
     const { refreshStats } = useStats();
     const { createBudget, updateBudget, isCreating, isUpdating } = useBudgets();
@@ -40,11 +71,15 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
         }
     }, [editingBudget, form]);
 
-    const onSubmit = async (data: BudgetFormData) => {
+    /**
+     * Handles form submission for both creating and updating budgets
+     * @param data - The validated form data
+     */
+    const onSubmit = async (data: BudgetFormData): Promise<void> => {
         setIsSubmitting(true);
 
         try {
-            const budgetData = {
+            const budgetData: BudgetData = {
                 amount: data.amount,
                 frequency: data.frequency,
                 startDate: parse(data.startDate, "dd/MM/yyyy", new Date()),
@@ -53,6 +88,10 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
 
             if (editingBudget) {
                 await updateBudget({ id: editingBudget._id, budgetData });
+                toast({
+                    title: "Success",
+                    description: "Budget updated successfully!",
+                });
             } else {
                 await createBudget(budgetData);
                 toast({
@@ -67,10 +106,19 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
             onSuccess?.();
         } catch (error: unknown) {
             console.error("Error saving budget:", error);
-            const errorMessage =
-                error && typeof error === "object" && "response" in error
-                    ? (error as BudgetFormError).response?.data?.message
-                    : "Failed to save budget";
+
+            // Type-safe error handling
+            let errorMessage = "Failed to save budget";
+
+            if (error && typeof error === "object") {
+                if ("response" in error) {
+                    const apiError = error as BudgetFormError;
+                    errorMessage = apiError.response?.data?.message || errorMessage;
+                } else if ("message" in error) {
+                    errorMessage = (error as Error).message;
+                }
+            }
+
             toast({
                 title: "Error",
                 description: errorMessage,
@@ -81,7 +129,10 @@ export const useBudgetForm = ({ editingBudget, onSuccess, onOpenChange }: UseBud
         }
     };
 
-    const handleCancel = () => {
+    /**
+     * Handles form cancellation by resetting form data and closing dialog
+     */
+    const handleCancel = (): void => {
         form.reset(getDefaultValues());
         onOpenChange?.(false);
     };

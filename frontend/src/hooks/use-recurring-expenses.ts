@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse, isValid, parseISO } from "date-fns";
 import { useMemo, useCallback } from "react";
@@ -14,9 +14,90 @@ import {
 } from "@/services/transaction.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
-import { Transaction } from "@/types/transaction";
+import {
+    Transaction,
+    TransactionResponse,
+    RecurringTransactionTemplate,
+    TransactionFormData,
+    RecurringFrequency,
+    TransactionType,
+} from "@/types/transaction";
 import { formatToDisplay, parseFromDisplay } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+interface PaginationInfo {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+}
+
+interface RecurringTemplateWithDisplayDate extends Omit<RecurringTransactionTemplate, "date"> {
+    date: string; // Display formatted date
+    description: string;
+    currency: string;
+}
+
+interface RecurringTemplatesQueryData {
+    recurringTemplates: RecurringTemplateWithDisplayDate[];
+    pagination: PaginationInfo | null;
+}
+
+interface UseRecurringTemplatesReturn {
+    recurringTemplates: RecurringTemplateWithDisplayDate[];
+    pagination: PaginationInfo | null;
+    isLoading: boolean;
+    isError: boolean;
+    error: Error | null;
+    refetch: () => void;
+    invalidateRecurringTemplates: () => void;
+}
+
+interface UseRecurringExpenseMutationsReturn {
+    createRecurringExpense: (data: Transaction) => Promise<TransactionResponse>;
+    updateRecurringExpense: (params: { id: string; data: Transaction }) => Promise<TransactionResponse>;
+    deleteRecurringExpense: (id: string) => Promise<void>;
+    triggerRecurringJob: () => Promise<void>;
+    isCreating: boolean;
+    isUpdating: boolean;
+    isDeleting: boolean;
+    isTriggering: boolean;
+    createError: Error | null;
+    updateError: Error | null;
+    deleteError: Error | null;
+    triggerError: Error | null;
+}
+
+interface UseRecurringExpenseFormReturn {
+    form: UseFormReturn<any>;
+    category: string;
+    type: TransactionType;
+    isRecurring: boolean;
+    currency: string;
+    recurringFrequency: RecurringFrequency;
+    resetForm: () => void;
+    isEditing: boolean;
+    handleCurrencyChange: (newCurrency: string) => Promise<void>;
+}
+
+interface UseRecurringExpensesSelectorReturn {
+    recurringTemplates: RecurringTemplateWithDisplayDate[];
+    isLoading: boolean;
+    invalidateRecurringTemplates: () => void;
+    activeRecurringExpenses: RecurringTemplateWithDisplayDate[];
+    expiredRecurringExpenses: RecurringTemplateWithDisplayDate[];
+    recurringExpensesByFrequency: Record<RecurringFrequency, RecurringTemplateWithDisplayDate[]>;
+}
+
+interface ExchangeRateResponse {
+    rate: number;
+}
 
 // Query keys
 const RECURRING_EXPENSE_QUERY_KEYS = {
@@ -27,7 +108,7 @@ const RECURRING_EXPENSE_QUERY_KEYS = {
 // QUERY HOOKS
 // ============================================================================
 
-export function useRecurringTemplates(page: number = 1, limit: number = 20) {
+export function useRecurringTemplates(page: number = 1, limit: number = 20): UseRecurringTemplatesReturn {
     const { isAuthenticated } = useAuth();
 
     const query = useQuery({
@@ -35,19 +116,21 @@ export function useRecurringTemplates(page: number = 1, limit: number = 20) {
         staleTime: 30 * 1000, // Consider data fresh for 30 seconds
         gcTime: 5 * 60 * 1000, // Cache for 5 minutes
         refetchOnWindowFocus: false, // Don't refetch on window focus
-        queryFn: async () => {
+        queryFn: async (): Promise<RecurringTemplatesQueryData> => {
             if (!isAuthenticated) {
                 return { recurringTemplates: [], pagination: null };
             }
             const response = await getRecurringTemplates(page, limit);
 
             const recurringTemplates = response?.recurringTemplates || [];
-            const templatesWithDates = recurringTemplates.map((template: any) => ({
-                ...template,
-                date: formatToDisplay(template.date),
-                description: template.description ?? "",
-                currency: template.currency ?? "INR",
-            }));
+            const templatesWithDates: RecurringTemplateWithDisplayDate[] = recurringTemplates.map(
+                (template: RecurringTransactionTemplate) => ({
+                    ...template,
+                    date: formatToDisplay(template.date),
+                    description: template.description ?? "",
+                    currency: template.currency ?? "INR",
+                })
+            );
 
             return {
                 recurringTemplates: templatesWithDates,
@@ -59,8 +142,8 @@ export function useRecurringTemplates(page: number = 1, limit: number = 20) {
 
     const queryClient = useQueryClient();
 
-    const invalidateRecurringTemplates = () => {
-        return queryClient.invalidateQueries({ queryKey: RECURRING_EXPENSE_QUERY_KEYS.recurringTemplates });
+    const invalidateRecurringTemplates = (): void => {
+        queryClient.invalidateQueries({ queryKey: RECURRING_EXPENSE_QUERY_KEYS.recurringTemplates });
     };
 
     return {
@@ -75,11 +158,11 @@ export function useRecurringTemplates(page: number = 1, limit: number = 20) {
 // MUTATION HOOKS
 // ============================================================================
 
-export function useRecurringExpenseMutations() {
+export function useRecurringExpenseMutations(): UseRecurringExpenseMutationsReturn {
     const queryClient = useQueryClient();
     const { toast } = useToast();
 
-    const createRecurringExpenseMutation = useMutation({
+    const createRecurringExpenseMutation = useMutation<TransactionResponse, Error, Transaction>({
         mutationFn: createExpense,
         onSuccess: () => {
             showCreateSuccess(toast, "Recurring Expense");
@@ -91,7 +174,7 @@ export function useRecurringExpenseMutations() {
         },
     });
 
-    const updateRecurringExpenseMutation = useMutation({
+    const updateRecurringExpenseMutation = useMutation<TransactionResponse, Error, { id: string; data: Transaction }>({
         mutationFn: ({ id, data }: { id: string; data: Transaction }) => updateExpense(id, data),
         onSuccess: () => {
             showUpdateSuccess(toast, "Recurring Expense");
@@ -103,7 +186,7 @@ export function useRecurringExpenseMutations() {
         },
     });
 
-    const deleteRecurringExpenseMutation = useMutation({
+    const deleteRecurringExpenseMutation = useMutation<void, Error, string>({
         mutationFn: deleteRecurringExpense,
         onSuccess: () => {
             toast({
@@ -122,7 +205,7 @@ export function useRecurringExpenseMutations() {
         },
     });
 
-    const triggerRecurringJobMutation = useMutation({
+    const triggerRecurringJobMutation = useMutation<void, Error, void>({
         mutationFn: triggerRecurringExpensesJob,
         onSuccess: () => {
             toast({
@@ -169,7 +252,7 @@ interface UseRecurringExpenseFormProps {
 export const useRecurringExpenseForm = ({
     editingRecurringExpense,
     preselectedCategory,
-}: UseRecurringExpenseFormProps) => {
+}: UseRecurringExpenseFormProps): UseRecurringExpenseFormReturn => {
     const { user } = useAuth();
 
     // Utility function to parse date to format
@@ -192,7 +275,7 @@ export const useRecurringExpenseForm = ({
     };
 
     // Default values
-    const getDefaultValues = useCallback(() => {
+    const getDefaultValues = useCallback((): TransactionFormData => {
         if (editingRecurringExpense) {
             return {
                 title: editingRecurringExpense.title,
@@ -203,13 +286,13 @@ export const useRecurringExpenseForm = ({
                 currency: editingRecurringExpense.currency,
                 type: editingRecurringExpense.type,
                 isRecurring: true, // Always true for recurring expenses
-                recurringFrequency: editingRecurringExpense.recurringFrequency,
+                recurringFrequency: editingRecurringExpense.recurringFrequency || "monthly",
                 fromRate: editingRecurringExpense.fromRate || 1,
                 toRate: editingRecurringExpense.toRate || 1,
                 endDate: editingRecurringExpense.endDate
                     ? parseDateToFormat(editingRecurringExpense.endDate)
                     : undefined,
-                receipts: editingRecurringExpense.receipts || [],
+                receipts: (editingRecurringExpense.receipts || []) as unknown as File[],
             };
         }
 
@@ -226,29 +309,29 @@ export const useRecurringExpenseForm = ({
             fromRate: 1,
             toRate: 1,
             endDate: undefined,
-            receipts: [],
+            receipts: [] as File[],
         };
     }, [editingRecurringExpense, preselectedCategory, user?.currency]);
 
     const form = useForm({
-        resolver: zodResolver(transactionFormSchema),
-        defaultValues: getDefaultValues() as any,
+        resolver: zodResolver(transactionFormSchema) as any,
+        defaultValues: getDefaultValues(),
         mode: "onChange",
     });
 
     // Watch form values
-    const category = form.watch("category");
-    const type = form.watch("type");
-    const isRecurring = form.watch("isRecurring");
-    const currency = form.watch("currency");
-    const recurringFrequency = form.watch("recurringFrequency");
+    const category = form.watch("category") as string;
+    const type = form.watch("type") as TransactionType;
+    const isRecurring = form.watch("isRecurring") as boolean;
+    const currency = form.watch("currency") as string;
+    const recurringFrequency = form.watch("recurringFrequency") as RecurringFrequency;
 
     // Handle currency change
     const handleCurrencyChange = useCallback(
-        async (newCurrency: string) => {
+        async (newCurrency: string): Promise<void> => {
             if (newCurrency !== user?.currency) {
                 try {
-                    const rate = await getExchangeRate(
+                    const rate: ExchangeRateResponse = await getExchangeRate(
                         user?.currency || "INR",
                         newCurrency,
                         format(new Date(), "yyyy-MM-dd")
@@ -269,8 +352,8 @@ export const useRecurringExpenseForm = ({
     );
 
     // Reset form
-    const resetForm = useCallback(() => {
-        form.reset(getDefaultValues() as any);
+    const resetForm = useCallback((): void => {
+        form.reset(getDefaultValues());
     }, [form, getDefaultValues]);
 
     // Check if editing
@@ -293,14 +376,14 @@ export const useRecurringExpenseForm = ({
 // DERIVED DATA HOOK
 // ============================================================================
 
-export function useRecurringExpensesSelector() {
+export function useRecurringExpensesSelector(): UseRecurringExpensesSelectorReturn {
     const { recurringTemplates, isLoading, invalidateRecurringTemplates } = useRecurringTemplates();
 
-    const activeRecurringExpenses = useMemo(() => {
-        return recurringTemplates.filter((template: any) => {
+    const activeRecurringExpenses = useMemo((): RecurringTemplateWithDisplayDate[] => {
+        return recurringTemplates.filter((template: RecurringTemplateWithDisplayDate) => {
             // Check if the template has an end date and if it's still active
             if (template.endDate) {
-                const endDate = parseFromDisplay(template.endDate);
+                const endDate = parseFromDisplay(template.endDate.toString());
                 const today = new Date();
                 return endDate > today;
             }
@@ -309,10 +392,10 @@ export function useRecurringExpensesSelector() {
         });
     }, [recurringTemplates]);
 
-    const expiredRecurringExpenses = useMemo(() => {
-        return recurringTemplates.filter((template: any) => {
+    const expiredRecurringExpenses = useMemo((): RecurringTemplateWithDisplayDate[] => {
+        return recurringTemplates.filter((template: RecurringTemplateWithDisplayDate) => {
             if (template.endDate) {
-                const endDate = parseFromDisplay(template.endDate);
+                const endDate = parseFromDisplay(template.endDate.toString());
                 const today = new Date();
                 return endDate <= today;
             }
@@ -320,15 +403,21 @@ export function useRecurringExpensesSelector() {
         });
     }, [recurringTemplates]);
 
-    const recurringExpensesByFrequency = useMemo(() => {
-        const grouped = recurringTemplates.reduce((acc: any, template: any) => {
-            const frequency = template.recurringFrequency || "monthly";
-            if (!acc[frequency]) {
-                acc[frequency] = [];
-            }
-            acc[frequency].push(template);
-            return acc;
-        }, {});
+    const recurringExpensesByFrequency = useMemo((): Record<RecurringFrequency, RecurringTemplateWithDisplayDate[]> => {
+        const grouped = recurringTemplates.reduce(
+            (
+                acc: Record<RecurringFrequency, RecurringTemplateWithDisplayDate[]>,
+                template: RecurringTemplateWithDisplayDate
+            ) => {
+                const frequency: RecurringFrequency = template.recurringFrequency || "monthly";
+                if (!acc[frequency]) {
+                    acc[frequency] = [];
+                }
+                acc[frequency].push(template);
+                return acc;
+            },
+            {} as Record<RecurringFrequency, RecurringTemplateWithDisplayDate[]>
+        );
 
         return grouped;
     }, [recurringTemplates]);

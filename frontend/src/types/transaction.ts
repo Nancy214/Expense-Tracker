@@ -95,10 +95,14 @@ export interface FinancialOverviewData {
 
 // Pagination types
 export interface PaginationInfo {
+    page: number;
+    limit: number;
     total: number;
     totalPages: number;
-    currentPage: number;
-    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    currentPage?: number;
+    itemsPerPage?: number;
 }
 
 // Currency summary types
@@ -124,6 +128,7 @@ export interface MonthFilter {
 
 // Transaction summary types
 export interface TransactionSummary {
+    totalTransactions: number;
     totalIncome: number;
     totalExpenses: number;
     totalIncomeAmount: number;
@@ -133,6 +138,14 @@ export interface TransactionSummary {
     totalBills: number;
     totalBillsAmount: number;
     averageTransactionAmount: number;
+}
+
+// Monthly stats interface
+export interface MonthlyStats {
+    totalIncome: number;
+    totalExpenses: number;
+    balance: number;
+    transactionCount: number;
 }
 
 // Monthly statement PDF options

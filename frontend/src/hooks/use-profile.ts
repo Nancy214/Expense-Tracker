@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -11,9 +11,91 @@ import {
     getCountryTimezoneCurrency,
     updateSettings,
     getSettings,
+    CountryTimezoneCurrency,
 } from "@/services/profile.service";
 import { profileSchema, ProfileFormData } from "@/schemas/profileSchema";
-import { SettingsData } from "@/types/profile";
+import { SettingsData, ProfileResponse, ProfileData } from "@/types/profile";
+import { User } from "@/types/auth";
+import { AxiosError } from "axios";
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+// API Response Types
+interface UpdateProfileResponse {
+    user: ProfileResponse;
+    message?: string;
+}
+
+// Mutation Function Types
+type UpdateProfileMutationFn = (data: ProfileData) => Promise<UpdateProfileResponse>;
+type RemoveProfilePictureMutationFn = () => Promise<void>;
+
+// Utility Types
+type ProfileDataUnion = User | ProfileResponse | null;
+type FileValidationResult = {
+    isValid: boolean;
+    errorMessage?: string;
+};
+
+// Hook Return Types
+interface ProfileMutationsReturn {
+    updateProfile: (data: ProfileData) => Promise<UpdateProfileResponse>;
+    removeProfilePicture: () => Promise<void>;
+    updateSettings: (variables: { settings: SettingsData; userId: string }) => Promise<SettingsData>;
+    isUpdatingProfile: boolean;
+    isRemovingPicture: boolean;
+    isUpdatingSettings: boolean;
+    updateProfileError: Error | null;
+    removePictureError: Error | null;
+    updateSettingsError: Error | null;
+}
+
+interface ProfileFormReturn {
+    form: UseFormReturn<ProfileFormData>;
+    error: string;
+    isEditing: boolean;
+    isLoading: boolean;
+    photoRemoved: boolean;
+    handleProfilePictureChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleRemovePhoto: () => void;
+    onSubmit: (data: ProfileFormData) => Promise<void>;
+    handleCancel: () => void;
+    setIsEditing: (editing: boolean) => void;
+    user: ProfileDataUnion;
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Validates a profile picture file
+ * @param file - The file to validate
+ * @returns Validation result with success status and optional error message
+ */
+const validateProfilePictureFile = (file: File): FileValidationResult => {
+    const validTypes: string[] = ["image/jpeg", "image/jpg", "image/png"];
+    const maxSizeInMB: number = 5;
+    const maxSizeInBytes: number = maxSizeInMB * 1024 * 1024;
+
+    if (!validTypes.includes(file.type)) {
+        return {
+            isValid: false,
+            errorMessage: "Please upload a valid image file (JPEG, PNG, or JPG)",
+        };
+    }
+
+    if (file.size > maxSizeInBytes) {
+        return {
+            isValid: false,
+            errorMessage: `File size must be less than ${maxSizeInMB}MB`,
+        };
+    }
+
+    return { isValid: true };
+};
 
 // Query keys
 const PROFILE_QUERY_KEYS = {
@@ -26,10 +108,10 @@ const PROFILE_QUERY_KEYS = {
 // QUERY HOOKS
 // ============================================================================
 
-export function useProfile() {
+export function useProfile(): UseQueryResult<ProfileResponse, AxiosError> {
     const { isAuthenticated } = useAuth();
 
-    return useQuery({
+    return useQuery<ProfileResponse, AxiosError>({
         queryKey: PROFILE_QUERY_KEYS.profile,
         queryFn: getProfile,
         staleTime: 0, // Always consider data stale to ensure fresh profile picture URLs
@@ -39,10 +121,10 @@ export function useProfile() {
     });
 }
 
-export function useCountryTimezoneCurrency() {
+export function useCountryTimezoneCurrency(): UseQueryResult<CountryTimezoneCurrency[], AxiosError> {
     const { isAuthenticated } = useAuth();
 
-    return useQuery({
+    return useQuery<CountryTimezoneCurrency[], AxiosError>({
         queryKey: PROFILE_QUERY_KEYS.countryTimezoneCurrency,
         queryFn: getCountryTimezoneCurrency,
         staleTime: 30 * 60 * 1000, // Consider data fresh for 30 minutes (country data rarely changes)
@@ -52,10 +134,10 @@ export function useCountryTimezoneCurrency() {
     });
 }
 
-export function useSettings(userId: string) {
+export function useSettings(userId: string): UseQueryResult<SettingsData, AxiosError> {
     const { isAuthenticated } = useAuth();
 
-    return useQuery({
+    return useQuery<SettingsData, AxiosError>({
         queryKey: PROFILE_QUERY_KEYS.settings(userId),
         queryFn: () => getSettings(userId),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
@@ -69,14 +151,14 @@ export function useSettings(userId: string) {
 // MUTATION HOOKS
 // ============================================================================
 
-export function useProfileMutations() {
+export function useProfileMutations(): ProfileMutationsReturn {
     const queryClient = useQueryClient();
     const { toast } = useToast();
     const { updateUser } = useAuth();
 
-    const updateProfileMutation = useMutation({
-        mutationFn: updateProfile,
-        onSuccess: (data) => {
+    const updateProfileMutation = useMutation<UpdateProfileResponse, AxiosError, ProfileData>({
+        mutationFn: updateProfile as UpdateProfileMutationFn,
+        onSuccess: (data: UpdateProfileResponse) => {
             toast({
                 title: "Success",
                 description: "Profile updated successfully",
@@ -84,23 +166,39 @@ export function useProfileMutations() {
 
             // Update local storage and auth context
             localStorage.setItem("user", JSON.stringify(data.user));
-            updateUser(data.user);
+            // Convert ProfileResponse to User type for auth context
+            const userForAuth: User = {
+                id: data.user._id,
+                email: data.user.email,
+                name: data.user.name,
+                profilePicture: data.user.profilePicture,
+                phoneNumber: data.user.phoneNumber,
+                dateOfBirth: data.user.dateOfBirth,
+                currency: data.user.currency,
+                country: data.user.country,
+                timezone: data.user.timezone,
+                settings: data.user.settings,
+            };
+            updateUser(userForAuth);
 
             // Invalidate and refetch profile query to ensure fresh data
             queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
             queryClient.refetchQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
         },
-        onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+        onError: (error: AxiosError) => {
+            const errorMessage =
+                (error.response?.data as { message?: string })?.message ||
+                "Failed to update profile. Please try again.";
             toast({
                 title: "Error",
-                description: error.response?.data?.message || "Failed to update profile. Please try again.",
+                description: errorMessage,
                 variant: "destructive",
             });
         },
     });
 
-    const removeProfilePictureMutation = useMutation({
-        mutationFn: removeProfilePicture,
+    const removeProfilePictureMutation = useMutation<void, AxiosError, void>({
+        mutationFn: removeProfilePicture as RemoveProfilePictureMutationFn,
         onSuccess: () => {
             toast({
                 title: "Success",
@@ -111,18 +209,21 @@ export function useProfileMutations() {
             queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
             queryClient.refetchQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
         },
-        onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+        onError: (error: AxiosError) => {
+            const errorMessage =
+                (error.response?.data as { message?: string })?.message ||
+                "Failed to remove profile picture. Please try again.";
             toast({
                 title: "Error",
-                description: error.response?.data?.message || "Failed to remove profile picture. Please try again.",
+                description: errorMessage,
                 variant: "destructive",
             });
         },
     });
 
-    const updateSettingsMutation = useMutation({
+    const updateSettingsMutation = useMutation<SettingsData, AxiosError, { settings: SettingsData; userId: string }>({
         mutationFn: ({ settings }: { settings: SettingsData; userId: string }) => updateSettings(settings),
-        onSuccess: (_, variables) => {
+        onSuccess: (_, variables: { settings: SettingsData; userId: string }) => {
             toast({
                 title: "Success",
                 description: "Settings updated successfully",
@@ -131,10 +232,13 @@ export function useProfileMutations() {
             // Invalidate settings query
             queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.settings(variables.userId) });
         },
-        onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+        onError: (error: AxiosError) => {
+            const errorMessage =
+                (error.response?.data as { message?: string })?.message ||
+                "Failed to update settings. Please try again.";
             toast({
                 title: "Error",
-                description: error.response?.data?.message || "Failed to update settings. Please try again.",
+                description: errorMessage,
                 variant: "destructive",
             });
         },
@@ -157,15 +261,15 @@ export function useProfileMutations() {
 // FORM HOOK
 // ============================================================================
 
-export function useProfileForm() {
+export function useProfileForm(): ProfileFormReturn {
     const { user } = useAuth();
     const { data: profileData } = useProfile();
     const { updateProfile, removeProfilePicture, isUpdatingProfile, isRemovingPicture } = useProfileMutations();
     const { toast } = useToast();
-    const [error, setError] = useState("");
-    const [isEditing, setIsEditing] = useState(false);
-    const [photoRemoved, setPhotoRemoved] = useState(false);
-    const [isUpdatingSuccessfully, setIsUpdatingSuccessfully] = useState(false);
+    const [error, setError] = useState<string>("");
+    const [isEditing, setIsEditing] = useState<boolean>(false);
+    const [photoRemoved, setPhotoRemoved] = useState<boolean>(false);
+    const [isUpdatingSuccessfully, setIsUpdatingSuccessfully] = useState<boolean>(false);
 
     // Use profile data from query if available, otherwise fall back to auth context
     const currentProfileData = profileData || user;
@@ -185,7 +289,7 @@ export function useProfileForm() {
     });
 
     // Reset form when profile data changes, but only when not editing and not in the middle of a successful update
-    useEffect(() => {
+    useEffect((): void => {
         if (currentProfileData && !isEditing && !isUpdatingSuccessfully) {
             form.reset({
                 name: currentProfileData.name || "",
@@ -201,30 +305,30 @@ export function useProfileForm() {
         }
     }, [currentProfileData, form, isEditing, isUpdatingSuccessfully]);
 
-    const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            // Basic validation - you might want to import validateProfilePicture from schema
-            const validTypes = ["image/jpeg", "image/jpg", "image/png"];
-            if (validTypes.includes(file.type)) {
+            const file: File = e.target.files[0];
+            const validation: FileValidationResult = validateProfilePictureFile(file);
+
+            if (validation.isValid) {
                 form.setValue("profilePicture", file, { shouldValidate: true });
                 setError("");
             } else {
-                setError("Please upload a valid image file (JPEG, PNG, or JPG)");
+                setError(validation.errorMessage || "Invalid file");
             }
         }
     };
 
-    const handleRemovePhoto = () => {
+    const handleRemovePhoto = (): void => {
         form.setValue("profilePicture", "", { shouldValidate: true });
         setPhotoRemoved(true);
     };
 
-    const onSubmit = async (data: ProfileFormData) => {
+    const onSubmit = async (data: ProfileFormData): Promise<void> => {
         setError("");
 
         // Check if any changes were made
-        const hasChanges =
+        const hasChanges: boolean =
             data.name !== currentProfileData?.name ||
             data.email !== currentProfileData?.email ||
             data.phoneNumber !== currentProfileData?.phoneNumber ||
@@ -252,7 +356,7 @@ export function useProfileForm() {
                 await removeProfilePicture();
             }
 
-            const response = await updateProfile(data);
+            const response: UpdateProfileResponse = await updateProfile(data);
             setIsEditing(false);
             setPhotoRemoved(false);
 
@@ -277,15 +381,16 @@ export function useProfileForm() {
         } catch (error: unknown) {
             setIsUpdatingSuccessfully(false);
             console.error("Error updating profile:", error);
-            const errorMessage =
+            const errorMessage: string =
                 error && typeof error === "object" && "response" in error
-                    ? (error.response as { data?: { message?: string } })?.data?.message
-                    : undefined;
-            setError(errorMessage || "Failed to update profile. Please try again.");
+                    ? (error.response as { data?: { message?: string } })?.data?.message ||
+                      "Failed to update profile. Please try again."
+                    : "Failed to update profile. Please try again.";
+            setError(errorMessage);
         }
     };
 
-    const handleCancel = () => {
+    const handleCancel = (): void => {
         form.reset({
             name: currentProfileData?.name || "",
             email: currentProfileData?.email || "",

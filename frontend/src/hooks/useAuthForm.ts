@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { register, resetPassword, forgotPassword } from "@/services/auth.service";
@@ -16,13 +16,42 @@ import {
 } from "@/schemas/authSchema";
 import { ApiErrorResponse } from "@/types/auth";
 
+// Return type interfaces for each hook
+interface UseLoginFormReturn {
+    form: UseFormReturn<LoginFormData>;
+    error: string;
+    onSubmit: (data: LoginFormData) => Promise<void>;
+}
+
+interface UseRegisterFormReturn {
+    form: UseFormReturn<RegisterFormData>;
+    error: string;
+    onSubmit: (data: RegisterFormData) => Promise<void>;
+}
+
+interface UseResetPasswordFormReturn {
+    form: UseFormReturn<ResetPasswordFormData>;
+    error: string;
+    success: string;
+    onSubmit: (data: ResetPasswordFormData) => Promise<void>;
+    token: string;
+    setToken: (token: string) => void;
+}
+
+interface UseForgotPasswordFormReturn {
+    form: UseFormReturn<ForgotPasswordFormData>;
+    error: string;
+    success: string;
+    onSubmit: (data: ForgotPasswordFormData) => Promise<void>;
+}
+
 // Login hook
-export const useLoginForm = () => {
+export const useLoginForm = (): UseLoginFormReturn => {
     const navigate = useNavigate();
     const { login: authLogin } = useAuth();
     const [error, setError] = useState<string>("");
 
-    const form = useForm<LoginFormData>({
+    const form: UseFormReturn<LoginFormData> = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
             email: "",
@@ -38,7 +67,11 @@ export const useLoginForm = () => {
             navigate("/");
         } catch (error: unknown) {
             const apiError = error as ApiErrorResponse;
-            setError(apiError.response?.data?.message || "Failed to login. Please check your credentials.");
+            const errorMessage: string =
+                apiError.response?.data?.message ||
+                apiError.message ||
+                "Failed to login. Please check your credentials.";
+            setError(errorMessage);
         }
     };
 
@@ -50,11 +83,11 @@ export const useLoginForm = () => {
 };
 
 // Register hook
-export const useRegisterForm = () => {
+export const useRegisterForm = (): UseRegisterFormReturn => {
     const navigate = useNavigate();
     const [error, setError] = useState<string>("");
 
-    const form = useForm<RegisterFormData>({
+    const form: UseFormReturn<RegisterFormData> = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
             name: "",
@@ -72,7 +105,9 @@ export const useRegisterForm = () => {
             navigate("/login");
         } catch (error: unknown) {
             const apiError = error as ApiErrorResponse;
-            setError(apiError.response?.data?.message || "Failed to register. Please try again.");
+            const errorMessage: string =
+                apiError.response?.data?.message || apiError.message || "Failed to register. Please try again.";
+            setError(errorMessage);
         }
     };
 
@@ -84,13 +119,13 @@ export const useRegisterForm = () => {
 };
 
 // Reset password hook
-export const useResetPasswordForm = () => {
+export const useResetPasswordForm = (): UseResetPasswordFormReturn => {
     const navigate = useNavigate();
     const [error, setError] = useState<string>("");
     const [success, setSuccess] = useState<string>("");
     const [token, setToken] = useState<string>("");
 
-    const form = useForm<ResetPasswordFormData>({
+    const form: UseFormReturn<ResetPasswordFormData> = useForm<ResetPasswordFormData>({
         resolver: zodResolver(resetPasswordSchema),
         defaultValues: {
             newPassword: "",
@@ -110,12 +145,14 @@ export const useResetPasswordForm = () => {
         try {
             await resetPassword(token, data.newPassword);
             setSuccess("Password reset successfully! Redirecting to login...");
-            setTimeout(() => {
+            setTimeout((): void => {
                 navigate("/login");
             }, 2000);
         } catch (error: unknown) {
             const apiError = error as ApiErrorResponse;
-            setError(apiError.response?.data?.message || "Failed to reset password.");
+            const errorMessage: string =
+                apiError.response?.data?.message || apiError.message || "Failed to reset password.";
+            setError(errorMessage);
         }
     };
 
@@ -130,11 +167,11 @@ export const useResetPasswordForm = () => {
 };
 
 // Forgot password hook
-export const useForgotPasswordForm = () => {
+export const useForgotPasswordForm = (): UseForgotPasswordFormReturn => {
     const [error, setError] = useState<string>("");
     const [success, setSuccess] = useState<string>("");
 
-    const form = useForm<ForgotPasswordFormData>({
+    const form: UseFormReturn<ForgotPasswordFormData> = useForm<ForgotPasswordFormData>({
         resolver: zodResolver(forgotPasswordSchema),
         defaultValues: {
             email: "",
@@ -150,7 +187,9 @@ export const useForgotPasswordForm = () => {
             setSuccess("Password reset email sent successfully. Please check your email.");
         } catch (error: unknown) {
             const apiError = error as ApiErrorResponse;
-            setError(apiError.response?.data?.message || "Failed to send reset email.");
+            const errorMessage: string =
+                apiError.response?.data?.message || apiError.message || "Failed to send reset email.";
+            setError(errorMessage);
         }
     };
 

@@ -1,9 +1,88 @@
 import axios from "axios";
-import { Transaction, TransactionResponse } from "@/types/transaction";
+import {
+    Transaction,
+    TransactionResponse,
+    TransactionWithId,
+    PaginationInfo,
+    TransactionSummary,
+    MonthlyStats,
+    BillStatus,
+} from "@/types/transaction";
 import { parse, isValid } from "date-fns";
 import { handleTokenExpiration } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api/expenses";
+
+// API Response interfaces
+interface PaginatedResponse<T> {
+    data: T[];
+    pagination: PaginationInfo;
+}
+
+interface ExpensesResponse extends PaginatedResponse<TransactionWithId> {
+    expenses: TransactionWithId[];
+}
+
+interface TransactionsResponse extends PaginatedResponse<TransactionWithId> {
+    transactions: TransactionWithId[];
+}
+
+interface BillsResponse extends PaginatedResponse<TransactionWithId> {
+    bills: TransactionWithId[];
+}
+
+interface RecurringTemplatesResponse extends PaginatedResponse<TransactionWithId> {
+    recurringTemplates: TransactionWithId[];
+}
+
+interface AnalyticsResponse {
+    transactions: TransactionWithId[];
+}
+
+interface TransactionSummaryResponse {
+    summary: TransactionSummary;
+}
+
+interface ReceiptUploadResponse {
+    key: string;
+}
+
+// Type for expense updates that can include bill-specific fields
+type ExpenseUpdateData = Transaction & {
+    dueDate?: string | Date;
+    nextDueDate?: string | Date;
+    lastPaidDate?: string | Date;
+    billStatus?: BillStatus;
+    billCategory?: string;
+    billFrequency?: string;
+    paymentMethod?: string;
+    reminderDays?: number;
+};
+
+// Helper function for safe date conversion
+const convertToISOString = (dateValue: string | Date | undefined): string | undefined => {
+    if (!dateValue) return undefined;
+
+    if (typeof dateValue === "string") {
+        // Check if it's already in ISO format (contains 'T' or 'Z')
+        if (dateValue.includes("T") || dateValue.includes("Z")) {
+            return dateValue;
+        } else {
+            // Assume it's in dd/MM/yyyy format and convert
+            const parsedDate = parse(dateValue, "dd/MM/yyyy", new Date());
+            if (!isValid(parsedDate)) {
+                throw new Error(`Invalid date format: ${dateValue}`);
+            }
+            return parsedDate.toISOString();
+        }
+    }
+
+    if (dateValue instanceof Date) {
+        return dateValue.toISOString();
+    }
+
+    return undefined;
+};
 
 const expenseApi = axios.create({
     baseURL: API_URL,
@@ -48,20 +127,7 @@ expenseApi.interceptors.response.use(
     }
 );
 
-export const getExpenses = async (
-    page: number = 1,
-    limit: number = 20
-): Promise<{
-    expenses: any[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNextPage: boolean;
-        hasPrevPage: boolean;
-    };
-}> => {
+export const getExpenses = async (page: number = 1, limit: number = 20): Promise<ExpensesResponse> => {
     try {
         const response = await expenseApi.get(`/get-expenses?page=${page}&limit=${limit}`);
         return response.data;
@@ -71,20 +137,7 @@ export const getExpenses = async (
     }
 };
 
-export const getAllTransactions = async (
-    page: number = 1,
-    limit: number = 20
-): Promise<{
-    transactions: any[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNextPage: boolean;
-        hasPrevPage: boolean;
-    };
-}> => {
+export const getAllTransactions = async (page: number = 1, limit: number = 20): Promise<TransactionsResponse> => {
     try {
         const response = await expenseApi.get(`/get-all-transactions?page=${page}&limit=${limit}`);
         return response.data;
@@ -94,9 +147,7 @@ export const getAllTransactions = async (
     }
 };
 
-export const getAllTransactionsForAnalytics = async (): Promise<{
-    transactions: any[];
-}> => {
+export const getAllTransactionsForAnalytics = async (): Promise<AnalyticsResponse> => {
     try {
         const response = await expenseApi.get(`/get-all-transactions-analytics`);
         return response.data;
@@ -106,20 +157,7 @@ export const getAllTransactionsForAnalytics = async (): Promise<{
     }
 };
 
-export const getBills = async (
-    page: number = 1,
-    limit: number = 20
-): Promise<{
-    bills: any[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNextPage: boolean;
-        hasPrevPage: boolean;
-    };
-}> => {
+export const getBills = async (page: number = 1, limit: number = 20): Promise<BillsResponse> => {
     try {
         const response = await expenseApi.get(`/get-bills?page=${page}&limit=${limit}`);
         return response.data;
@@ -132,17 +170,7 @@ export const getBills = async (
 export const getRecurringTemplates = async (
     page: number = 1,
     limit: number = 20
-): Promise<{
-    recurringTemplates: any[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNextPage: boolean;
-        hasPrevPage: boolean;
-    };
-}> => {
+): Promise<RecurringTemplatesResponse> => {
     try {
         const response = await expenseApi.get(`/get-recurring-templates?page=${page}&limit=${limit}`);
         return response.data;
@@ -152,20 +180,7 @@ export const getRecurringTemplates = async (
     }
 };
 
-export const getTransactionSummary = async (): Promise<{
-    summary: {
-        totalTransactions: number;
-        totalIncome: number;
-        totalExpenses: number;
-        totalBills: number;
-        totalRecurringTemplates: number;
-        totalIncomeAmount: number;
-        totalExpenseAmount: number;
-        totalBillsAmount: number;
-        totalRecurringAmount: number;
-        averageTransactionAmount: number;
-    };
-}> => {
+export const getTransactionSummary = async (): Promise<TransactionSummaryResponse> => {
     try {
         const response = await expenseApi.get("/transaction-summary");
         return response.data;
@@ -185,96 +200,19 @@ export const createExpense = async (expense: Transaction): Promise<TransactionRe
     }
 };
 
-export const updateExpense = async (id: string, expense: Transaction): Promise<TransactionResponse> => {
+export const updateExpense = async (id: string, expense: ExpenseUpdateData): Promise<TransactionResponse> => {
     try {
-        // Handle date conversion - check if it's already in ISO format or dd/MM/yyyy
-        if (expense.date) {
-            if (typeof expense.date === "string") {
-                // Check if it's already in ISO format (contains 'T' or 'Z')
-                if ((expense.date as string).includes("T") || (expense.date as string).includes("Z")) {
-                    // Already in ISO format, use as is
-                    (expense as any).date = expense.date;
-                } else {
-                    // Assume it's in dd/MM/yyyy format and convert
-                    const parsedDate = parse(expense.date, "dd/MM/yyyy", new Date());
-                    if (!isValid(parsedDate)) {
-                        throw new Error("Invalid date format for expense.date");
-                    }
-                    (expense as any).date = parsedDate.toISOString();
-                }
-            }
-        }
+        // Create a copy of the expense to avoid mutating the original
+        const expenseToUpdate: any = { ...expense };
 
-        // Handle endDate conversion
-        if (expense.endDate && typeof expense.endDate === "string") {
-            if ((expense.endDate as string).includes("T") || (expense.endDate as string).includes("Z")) {
-                // Already in ISO format, use as is
-                (expense as any).endDate = expense.endDate;
-            } else {
-                // Assume it's in dd/MM/yyyy format and convert
-                const parsedEndDate = parse(expense.endDate, "dd/MM/yyyy", new Date());
-                if (!isValid(parsedEndDate)) {
-                    throw new Error("Invalid date format for expense.endDate");
-                }
-                (expense as any).endDate = parsedEndDate.toISOString();
-            }
-        }
+        // Handle date conversion using the helper function
+        expenseToUpdate.date = convertToISOString(expense.date);
+        expenseToUpdate.endDate = convertToISOString(expense.endDate);
+        expenseToUpdate.dueDate = convertToISOString(expense.dueDate);
+        expenseToUpdate.nextDueDate = convertToISOString(expense.nextDueDate);
+        expenseToUpdate.lastPaidDate = convertToISOString(expense.lastPaidDate);
 
-        // Handle dueDate conversion for bill transactions
-        if ((expense as any).dueDate && typeof (expense as any).dueDate === "string") {
-            if (
-                ((expense as any).dueDate as string).includes("T") ||
-                ((expense as any).dueDate as string).includes("Z")
-            ) {
-                // Already in ISO format, use as is
-                (expense as any).dueDate = (expense as any).dueDate;
-            } else {
-                // Assume it's in dd/MM/yyyy format and convert
-                const parsedDueDate = parse((expense as any).dueDate, "dd/MM/yyyy", new Date());
-                if (!isValid(parsedDueDate)) {
-                    throw new Error("Invalid date format for expense.dueDate");
-                }
-                (expense as any).dueDate = parsedDueDate.toISOString();
-            }
-        }
-
-        // Handle nextDueDate conversion
-        if ((expense as any).nextDueDate && typeof (expense as any).nextDueDate === "string") {
-            if (
-                ((expense as any).nextDueDate as string).includes("T") ||
-                ((expense as any).nextDueDate as string).includes("Z")
-            ) {
-                // Already in ISO format, use as is
-                (expense as any).nextDueDate = (expense as any).nextDueDate;
-            } else {
-                // Assume it's in dd/MM/yyyy format and convert
-                const parsedNextDueDate = parse((expense as any).nextDueDate, "dd/MM/yyyy", new Date());
-                if (!isValid(parsedNextDueDate)) {
-                    throw new Error("Invalid date format for expense.nextDueDate");
-                }
-                (expense as any).nextDueDate = parsedNextDueDate.toISOString();
-            }
-        }
-
-        // Handle lastPaidDate conversion
-        if ((expense as any).lastPaidDate && typeof (expense as any).lastPaidDate === "string") {
-            if (
-                ((expense as any).lastPaidDate as string).includes("T") ||
-                ((expense as any).lastPaidDate as string).includes("Z")
-            ) {
-                // Already in ISO format, use as is
-                (expense as any).lastPaidDate = (expense as any).lastPaidDate;
-            } else {
-                // Assume it's in dd/MM/yyyy format and convert
-                const parsedLastPaidDate = parse((expense as any).lastPaidDate, "dd/MM/yyyy", new Date());
-                if (!isValid(parsedLastPaidDate)) {
-                    throw new Error("Invalid date format for expense.lastPaidDate");
-                }
-                (expense as any).lastPaidDate = parsedLastPaidDate.toISOString();
-            }
-        }
-
-        const response = await expenseApi.put(`/${id}`, expense);
+        const response = await expenseApi.put(`/${id}`, expenseToUpdate);
         return response.data;
     } catch (error) {
         console.error("Error updating expense:", error);
@@ -291,7 +229,7 @@ export const deleteExpense = async (id: string): Promise<void> => {
     }
 };
 
-export const getMonthlyStats = async () => {
+export const getMonthlyStats = async (): Promise<MonthlyStats> => {
     try {
         // Fetch all expenses for stats
         const response = await getExpenses();
@@ -302,19 +240,19 @@ export const getMonthlyStats = async () => {
         const currentYear = now.getFullYear();
 
         // Filter expenses for current month
-        const monthlyExpenses = expenses.filter((expense: any) => {
+        const monthlyExpenses = expenses.filter((expense: TransactionWithId) => {
             const expenseDate = new Date(expense.date);
             return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
         });
 
         // Calculate totals
         const totalIncome = monthlyExpenses
-            .filter((expense: any) => expense.type === "income")
-            .reduce((sum: number, expense: any) => sum + expense.amount, 0);
+            .filter((expense: TransactionWithId) => expense.type === "income")
+            .reduce((sum: number, expense: TransactionWithId) => sum + expense.amount, 0);
 
         const totalExpenses = monthlyExpenses
-            .filter((expense: any) => expense.type === "expense")
-            .reduce((sum: number, expense: any) => sum + expense.amount, 0);
+            .filter((expense: TransactionWithId) => expense.type === "expense")
+            .reduce((sum: number, expense: TransactionWithId) => sum + expense.amount, 0);
 
         const balance = totalIncome - totalExpenses;
 
@@ -343,7 +281,7 @@ export const triggerRecurringExpensesJob = async (): Promise<void> => {
 export const uploadReceipt = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await expenseApi.post("/upload-receipt", formData, {
+    const response = await expenseApi.post<ReceiptUploadResponse>("/upload-receipt", formData, {
         headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data.key;
@@ -359,7 +297,7 @@ export const deleteRecurringExpense = async (id: string): Promise<void> => {
 };
 
 // Update bill status for transactions
-export const updateTransactionBillStatus = async (id: string, status: string): Promise<TransactionResponse> => {
+export const updateTransactionBillStatus = async (id: string, status: BillStatus): Promise<TransactionResponse> => {
     try {
         const response = await expenseApi.patch(`/${id}/bill-status`, { billStatus: status });
         return response.data;
