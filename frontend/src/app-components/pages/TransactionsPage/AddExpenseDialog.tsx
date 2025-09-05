@@ -184,7 +184,13 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         <p className="text-sm text-gray-500">
                             <span className="text-red-500">*</span> Required fields
                         </p>
-                        <InputField name="title" label="Title" placeholder="Transaction Title" required />
+                        <InputField
+                            name="title"
+                            label="Title"
+                            placeholder="Transaction Title"
+                            maxLength={50}
+                            required
+                        />
 
                         <div className="grid grid-cols-2 gap-4">
                             <SelectField
@@ -321,7 +327,12 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </>
                         )}
 
-                        <InputField name="description" label="Description" placeholder="Description (Optional)" />
+                        <InputField
+                            name="description"
+                            label="Description"
+                            placeholder="Description (Optional)"
+                            maxLength={200}
+                        />
 
                         {/* Recurring Transaction - only show if not Bill */}
                         {category !== "Bill" && (

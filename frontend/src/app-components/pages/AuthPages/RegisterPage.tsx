@@ -27,6 +27,7 @@ const RegisterPage: React.FC = () => {
                                         label="Name"
                                         type="text"
                                         placeholder="Enter your name"
+                                        maxLength={100}
                                         required
                                         autoComplete="name"
                                     />
@@ -35,6 +36,7 @@ const RegisterPage: React.FC = () => {
                                         label="Email"
                                         type="email"
                                         placeholder="m@example.com"
+                                        maxLength={255}
                                         required
                                         autoComplete="email"
                                     />
@@ -42,6 +44,7 @@ const RegisterPage: React.FC = () => {
                                         name="password"
                                         label="Password"
                                         type="password"
+                                        maxLength={128}
                                         required
                                         autoComplete="new-password"
                                     />
@@ -49,6 +52,7 @@ const RegisterPage: React.FC = () => {
                                         name="confirmPassword"
                                         label="Confirm Password"
                                         type="password"
+                                        maxLength={128}
                                         required
                                         autoComplete="new-password"
                                     />

@@ -36,6 +36,7 @@ const LoginPage: React.FC = () => {
                                         label="Email"
                                         type="email"
                                         placeholder="m@example.com"
+                                        maxLength={255}
                                         required
                                         autoComplete="email"
                                     />
@@ -44,6 +45,7 @@ const LoginPage: React.FC = () => {
                                             name="password"
                                             label="Password"
                                             type="password"
+                                            maxLength={128}
                                             required
                                             autoComplete="current-password"
                                         />

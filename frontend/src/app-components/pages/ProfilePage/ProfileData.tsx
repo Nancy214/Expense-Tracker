@@ -245,13 +245,20 @@ const ProfileData: React.FC = () => {
                         className="space-y-6"
                     >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputField name="name" label="Name" disabled={!isEditing} />
-                            <InputField name="email" label="Email Address" type="email" disabled={!isEditing} />
+                            <InputField name="name" label="Name" maxLength={100} disabled={!isEditing} />
+                            <InputField
+                                name="email"
+                                label="Email Address"
+                                type="email"
+                                maxLength={255}
+                                disabled={!isEditing}
+                            />
                             <InputField
                                 name="phoneNumber"
                                 label="Phone Number"
                                 type="tel"
                                 placeholder="+1 (555) 123-4567"
+                                maxLength={20}
                                 disabled={!isEditing}
                             />
                             <DateField
