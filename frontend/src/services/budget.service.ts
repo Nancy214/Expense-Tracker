@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from "axios";
 import { BudgetData, BudgetResponse, BudgetProgressResponse, BudgetReminder } from "../types/budget";
 import { ApiError } from "../types/error";
-import { handleTokenExpiration } from "@/utils/authUtils";
+import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -39,29 +39,13 @@ budgetApi.interceptors.response.use(
 
         if (error.response?.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
-            const refreshToken: string | null = localStorage.getItem("refreshToken");
 
-            if (!refreshToken) {
-                handleTokenExpiration();
-                return Promise.reject(error);
-            }
-
-            try {
-                const response: AxiosResponse<RefreshTokenResponse> = await axios.post<
-                    RefreshTokenResponse,
-                    AxiosResponse<RefreshTokenResponse>,
-                    RefreshTokenRequest
-                >("http://localhost:8000/api/auth/refresh-token", { refreshToken });
-                const { accessToken } = response.data;
-                localStorage.setItem("accessToken", accessToken);
-
+            const newTokens = await refreshAuthTokens();
+            if (newTokens) {
                 if (originalRequest.headers) {
-                    originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+                    originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
                 }
                 return budgetApi(originalRequest);
-            } catch (refreshError: unknown) {
-                handleTokenExpiration();
-                return Promise.reject(refreshError);
             }
         }
         return Promise.reject(error);

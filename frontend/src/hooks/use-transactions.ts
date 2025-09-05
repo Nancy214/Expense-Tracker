@@ -95,7 +95,7 @@ export function useExpenses(
             if (!isAuthenticated) return { expenses: [], pagination: null };
             const response = await getExpenses(page, limit);
             return {
-                expenses: formatTransactionData(response?.expenses || []),
+                expenses: response?.expenses || [],
                 pagination: response?.pagination || null,
             };
         },
@@ -128,7 +128,7 @@ export function useAllTransactions(
             if (!isAuthenticated) return { transactions: [], pagination: null };
             const response = await getAllTransactions(page, limit);
             return {
-                transactions: formatTransactionData(response?.transactions || []),
+                transactions: response?.transactions || [],
                 pagination: response?.pagination || null,
             };
         },
@@ -156,7 +156,7 @@ export function useAllTransactionsForAnalytics(): UseQueryResult<AnalyticsQueryR
         queryFn: async (): Promise<AnalyticsQueryResponse> => {
             if (!isAuthenticated) return { transactions: [] };
             const response = await getAllTransactionsForAnalytics();
-            return { transactions: formatTransactionData(response?.transactions || []) };
+            return { transactions: response?.transactions || [] };
         },
         enabled: isAuthenticated,
     });

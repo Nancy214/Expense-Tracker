@@ -1,4 +1,5 @@
 // Utility functions for authentication
+import axios, { AxiosResponse } from "axios";
 
 /**
  * Removes authentication tokens and user data from localStorage
@@ -32,5 +33,36 @@ export const isTokenExpired = (token: string): boolean => {
         return payload.exp < currentTime;
     } catch (error) {
         return true;
+    }
+};
+
+/**
+ * Refreshes authentication tokens
+ * @returns Promise with new tokens or null if refresh fails
+ */
+export const refreshAuthTokens = async (): Promise<{ accessToken: string; refreshToken: string } | null> => {
+    const refreshToken = localStorage.getItem("refreshToken");
+
+    if (!refreshToken) {
+        handleTokenExpiration();
+        return null;
+    }
+
+    try {
+        const response: AxiosResponse<{ accessToken: string; refreshToken: string }> = await axios.post(
+            "http://localhost:8000/api/auth/refresh-token",
+            { refreshToken }
+        );
+
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+
+        // Store both new tokens
+        localStorage.setItem("accessToken", newAccessToken);
+        localStorage.setItem("refreshToken", newRefreshToken);
+
+        return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    } catch (error) {
+        handleTokenExpiration();
+        return null;
     }
 };

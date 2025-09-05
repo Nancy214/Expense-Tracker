@@ -1,5 +1,5 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from "axios";
-import { handleTokenExpiration } from "@/utils/authUtils";
+import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -42,22 +42,12 @@ currencyApi.interceptors.response.use(
 
         if (error.response?.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
-            const refreshToken = localStorage.getItem("refreshToken");
 
-            try {
-                const response: AxiosResponse<RefreshTokenResponse> = await axios.post(
-                    "http://localhost:8000/api/auth/refresh-token",
-                    { refreshToken }
-                );
-                const { accessToken } = response.data;
-                localStorage.setItem("accessToken", accessToken);
-
+            const newTokens = await refreshAuthTokens();
+            if (newTokens) {
                 originalRequest.headers = originalRequest.headers || {};
-                originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+                originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
                 return currencyApi(originalRequest);
-            } catch (refreshError) {
-                handleTokenExpiration();
-                return Promise.reject(refreshError);
             }
         }
         return Promise.reject(error);

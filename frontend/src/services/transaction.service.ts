@@ -9,7 +9,7 @@ import {
     BillStatus,
 } from "@/types/transaction";
 import { parse, isValid } from "date-fns";
-import { handleTokenExpiration } from "@/utils/authUtils";
+import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api/expenses";
 
@@ -107,20 +107,11 @@ expenseApi.interceptors.response.use(
 
         if (error.response?.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
-            const refreshToken = localStorage.getItem("refreshToken");
 
-            try {
-                const response = await axios.post("http://localhost:8000/api/auth/refresh-token", {
-                    refreshToken,
-                });
-                const { accessToken } = response.data;
-                localStorage.setItem("accessToken", accessToken);
-
-                originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+            const newTokens = await refreshAuthTokens();
+            if (newTokens) {
+                originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
                 return expenseApi(originalRequest);
-            } catch (error) {
-                handleTokenExpiration();
-                return Promise.reject(error);
             }
         }
         return Promise.reject(error);

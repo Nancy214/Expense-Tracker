@@ -9,6 +9,7 @@ import {
     forgotPassword,
     resetPassword,
     changePassword,
+    refreshToken,
 } from "../controllers/auth.controller";
 import { upload } from "../config/multer";
 
@@ -27,6 +28,7 @@ router.get(
 
 router.post("/register", upload.single("profilePicture"), register as RequestHandler);
 router.post("/login", login as RequestHandler);
+router.post("/refresh-token", refreshToken as RequestHandler);
 router.post("/logout", logout as RequestHandler);
 router.post("/forgot-password", forgotPassword as RequestHandler);
 router.post("/reset-password", resetPassword as RequestHandler);

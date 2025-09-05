@@ -44,7 +44,7 @@ export const generateTokens = (user: MongooseUserDocument): { accessToken: strin
     const refreshToken = jwt.sign(
         { id: user._id.toString() },
         process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key",
-        { expiresIn: "7d" }
+        { expiresIn: "1h" }
     );
 
     return { accessToken, refreshToken };

@@ -229,12 +229,20 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                         return "-";
                     }
 
-                    return (
-                        <div className="flex items-center gap-2 text-gray-700">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            {format(new Date(expense.dueDate), "dd/MM/yyyy")}
-                        </div>
-                    );
+                    try {
+                        const date = new Date(expense.dueDate);
+                        if (isNaN(date.getTime())) {
+                            return "-";
+                        }
+                        return (
+                            <div className="flex items-center gap-2 text-gray-700">
+                                <Calendar className="h-4 w-4 text-gray-400" />
+                                {format(date, "dd/MM/yyyy")}
+                            </div>
+                        );
+                    } catch (error) {
+                        return "-";
+                    }
                 },
                 size: 120,
             },

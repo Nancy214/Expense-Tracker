@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { LoginCredentials, AuthResponse, RegisterCredentials, User } from "@/types/auth";
-import { removeTokens, handleTokenExpiration } from "@/utils/authUtils";
+import { removeTokens, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -42,20 +42,11 @@ authApi.interceptors.response.use(
 
         if (error.response?.status === 403 && !originalRequest._retry) {
             originalRequest._retry = true;
-            const refreshToken = localStorage.getItem("refreshToken");
 
-            try {
-                const response: AxiosResponse<{ accessToken: string }> = await authApi.post("/auth/refresh-token", {
-                    refreshToken,
-                });
-                const { accessToken } = response.data;
-                localStorage.setItem("accessToken", accessToken);
-
-                originalRequest.headers["Authorization"] = `Bearer ${accessToken}`;
+            const newTokens = await refreshAuthTokens();
+            if (newTokens) {
+                originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
                 return authApi(originalRequest);
-            } catch (refreshError) {
-                handleTokenExpiration();
-                return Promise.reject(refreshError);
             }
         }
         return Promise.reject(error);
