@@ -177,6 +177,7 @@ const ChangePasswordPage: React.FC = () => {
                                         onChange={(e) => handleInputChange("newPassword", e.target.value)}
                                         placeholder="Enter your new password"
                                         className={errors.newPassword ? "border-red-500" : ""}
+                                        maxLength={20}
                                     />
                                     <Button
                                         type="button"
@@ -203,6 +204,7 @@ const ChangePasswordPage: React.FC = () => {
                                         onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                                         placeholder="Confirm your new password"
                                         className={errors.confirmPassword ? "border-red-500" : ""}
+                                        maxLength={20}
                                     />
                                     <Button
                                         type="button"

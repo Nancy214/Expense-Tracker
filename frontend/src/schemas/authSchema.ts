@@ -5,14 +5,14 @@ const emailValidation = z
     .string()
     .min(1, "Email is required")
     .email("Invalid email address")
-    .max(255, "Email must be less than 255 characters")
+    .max(30, "Email must be less than 30 characters")
     .toLowerCase()
     .trim();
 
 const passwordValidation = z
     .string()
     .min(6, "Password must be at least 6 characters long")
-    .max(128, "Password must be less than 128 characters")
+    .max(20, "Password must be less than 20 characters")
     .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
         "Password must contain at least one lowercase letter, one uppercase letter, and one number"

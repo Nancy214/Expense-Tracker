@@ -51,6 +51,7 @@ export const InputField: React.FC<InputFieldProps> = ({
         if (maxLength && fieldValue) {
             setIsAtLimit(fieldValue.length >= maxLength);
         }
+        console.log(maxLength);
     }, [fieldValue, maxLength]);
 
     return (

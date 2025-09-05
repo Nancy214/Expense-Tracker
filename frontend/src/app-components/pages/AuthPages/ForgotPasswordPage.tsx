@@ -33,7 +33,7 @@ const ForgotPasswordPage: React.FC = () => {
                                         label="Email"
                                         type="email"
                                         placeholder="Enter your email"
-                                        maxLength={255}
+                                        maxLength={30}
                                         required
                                         autoComplete="email"
                                     />

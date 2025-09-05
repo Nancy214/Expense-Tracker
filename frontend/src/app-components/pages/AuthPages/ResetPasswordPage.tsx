@@ -64,7 +64,7 @@ const ResetPasswordPage: React.FC = () => {
                                         label="New Password"
                                         type="password"
                                         placeholder="Enter new password"
-                                        maxLength={128}
+                                        maxLength={20}
                                         required
                                         autoComplete="new-password"
                                     />
@@ -73,7 +73,7 @@ const ResetPasswordPage: React.FC = () => {
                                         label="Confirm Password"
                                         type="password"
                                         placeholder="Confirm new password"
-                                        maxLength={128}
+                                        maxLength={20}
                                         required
                                         autoComplete="new-password"
                                     />
