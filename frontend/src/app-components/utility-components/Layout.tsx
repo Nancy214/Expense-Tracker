@@ -32,7 +32,7 @@ function LayoutContent({ children }: LayoutProps) {
     const location = useLocation();
     const navigate = useNavigate();
     const { logout, user, isAuthenticated } = useAuth();
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
     // Check if we're on auth pages
     const isAuthPage = [
@@ -47,7 +47,7 @@ function LayoutContent({ children }: LayoutProps) {
     // Authentication guard
     useEffect(() => {
         const checkAuth = () => {
-            const token = localStorage.getItem("accessToken");
+            const token: string | null = localStorage.getItem("accessToken");
 
             // If no token and not on auth page, redirect to login
             if (!token && !isAuthPage) {
@@ -76,7 +76,7 @@ function LayoutContent({ children }: LayoutProps) {
         try {
             await logout();
             navigate("/login", { replace: true });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Logout failed:", error);
         }
     };

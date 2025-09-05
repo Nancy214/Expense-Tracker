@@ -37,15 +37,15 @@ export const DateField: React.FC<DateFieldProps> = ({
     } = useFormContext();
 
     const error = errors[name];
-    const value = watch(name);
-    const [isOpen, setIsOpen] = useState(false);
+    const value: string | Date = watch(name);
+    const [isOpen, setIsOpen] = useState<boolean>(false);
 
     // Register the field
     React.useEffect(() => {
         register(name);
     }, [register, name]);
 
-    const displayValue = value
+    const displayValue: string | undefined = value
         ? format(typeof value === "string" ? parse(value, dateFormat, new Date()) : value, dateFormat)
         : undefined;
 

@@ -21,20 +21,20 @@ export default function StatsCards() {
             KRW: "₩",
         };
 
-        const currency = user?.currency || "INR";
-        const symbol = currencySymbols[currency] || currency;
+        const currency: string = user?.currency || "INR";
+        const symbol: string = currencySymbols[currency] || currency;
 
         // Handle special cases for currencies without decimal places
-        const decimals = ["JPY", "KRW"].includes(currency) ? 0 : 2;
+        const decimals: number = ["JPY", "KRW"].includes(currency) ? 0 : 2;
 
         // Format with proper thousand separators and decimal places
-        const formattedAmount = new Intl.NumberFormat("en-US", {
+        const formattedAmount: string = new Intl.NumberFormat("en-US", {
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals,
         }).format(amount);
 
         // Position the symbol based on currency convention
-        const symbolBefore = ["EUR", "GBP"].includes(currency) ? false : true;
+        const symbolBefore: boolean = ["EUR", "GBP"].includes(currency) ? false : true;
         return symbolBefore ? `${symbol}${formattedAmount}` : `${formattedAmount}${symbol}`;
     };
 

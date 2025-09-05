@@ -31,7 +31,7 @@ export const SwitchField: React.FC<SwitchFieldProps> = ({
     } = useFormContext();
 
     const error = errors[name];
-    const value = watch(name);
+    const value: boolean = watch(name);
 
     // Register the field
     React.useEffect(() => {

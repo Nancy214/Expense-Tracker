@@ -37,7 +37,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
     } = useFormContext();
 
     const error = errors[name];
-    const files = watch(name) || [];
+    const files: File[] = watch(name) || [];
     const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
     useEffect(() => {
@@ -48,7 +48,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
 
     const handleDragOver = (idx: number, files: File[], setFiles: (files: File[]) => void) => {
         if (draggedIdx === null || draggedIdx === idx) return;
-        const updated = [...files];
+        const updated: File[] = [...files];
         const [dragged] = updated.splice(draggedIdx, 1);
         updated.splice(idx, 0, dragged);
         setFiles(updated);

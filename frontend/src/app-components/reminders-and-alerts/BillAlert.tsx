@@ -35,15 +35,15 @@ const BillItem = ({
     onPay: (billId: string) => void;
     isUpdating: string | null;
 }) => {
-    const dueDate =
+    const dueDate: Date =
         bill.dueDate instanceof Date
             ? bill.dueDate
             : bill.dueDate.includes("T") || bill.dueDate.includes("-")
             ? parseFromAPI(bill.dueDate)
             : parseFromDisplay(bill.dueDate);
-    const formattedDueDate = formatToDisplay(dueDate);
-    const daysLeft = differenceInCalendarDays(dueDate, new Date());
-    const isThisBillUpdating = isUpdating === bill._id;
+    const formattedDueDate: string = formatToDisplay(dueDate);
+    const daysLeft: number = differenceInCalendarDays(dueDate, new Date());
+    const isThisBillUpdating: boolean = isUpdating === bill._id;
 
     // Determine bill status for styling
     const getBillStatus = () => {
@@ -52,8 +52,8 @@ const BillItem = ({
         return "upcoming";
     };
 
-    const billStatus = getBillStatus();
-    const statusColors = {
+    const billStatus: string = getBillStatus();
+    const statusColors: { [key: string]: string } = {
         overdue: "border-red-200 bg-red-50",
         urgent: "border-yellow-200 bg-yellow-50",
         upcoming: "border-blue-200 bg-blue-50",

@@ -14,7 +14,7 @@ export function BudgetRemindersUI({ user, activeReminders, dismissReminder }: Bu
     const { data: settingsData } = useSettings(user?.id || "");
 
     // Use settings from the API if available, otherwise default to true
-    const billsAndBudgetsAlertEnabled = !!(settingsData?.billsAndBudgetsAlert ?? true);
+    const billsAndBudgetsAlertEnabled: boolean = !!(settingsData?.billsAndBudgetsAlert ?? true);
 
     if (!billsAndBudgetsAlertEnabled || activeReminders.length === 0) {
         return null;
@@ -23,7 +23,7 @@ export function BudgetRemindersUI({ user, activeReminders, dismissReminder }: Bu
     return (
         <div className="mb-6 space-y-3">
             <h3 className="text-lg font-semibold text-gray-900">Budget Alerts</h3>
-            {activeReminders.map((reminder) => (
+            {activeReminders.map((reminder: BudgetReminder) => (
                 <Notification
                     key={reminder.id}
                     type={reminder.type}

@@ -40,7 +40,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
     } = useFormContext();
 
     const error = errors[name];
-    const value = watch(name);
+    const value: string = watch(name);
 
     // Register the field
     React.useEffect(() => {

@@ -15,17 +15,17 @@ export function ExpenseReminderBanner({ settings }: ExpenseReminderBannerProps) 
     const { data: settingsData } = useSettings(user?.id || "");
 
     // Use settings from the API if available, otherwise fall back to prop or defaults
-    const effectiveSettings = {
+    const effectiveSettings: { expenseReminders: boolean; expenseReminderTime: string } = {
         expenseReminders: settingsData?.expenseReminders ?? settings?.expenseReminders ?? false,
         expenseReminderTime: settingsData?.expenseReminderTime ?? settings?.expenseReminderTime ?? "18:00",
     };
 
-    const [show, setShow] = useState(false);
-    const [dismissed, setDismissed] = useState(false);
+    const [show, setShow] = useState<boolean>(false);
+    const [dismissed, setDismissed] = useState<boolean>(false);
 
     useEffect(() => {
         // Check if dismissed for today
-        const today = new Date().toISOString().slice(0, 10);
+        const today: string = new Date().toISOString().slice(0, 10);
         if (localStorage.getItem(`expense-reminder-dismissed-${today}`)) {
             setDismissed(true);
             return;
@@ -33,10 +33,10 @@ export function ExpenseReminderBanner({ settings }: ExpenseReminderBannerProps) 
         let interval: NodeJS.Timeout | undefined;
         const checkReminder = () => {
             if (effectiveSettings.expenseReminders && effectiveSettings.expenseReminderTime) {
-                const now = new Date();
-                const [h, m] = effectiveSettings.expenseReminderTime.split(":");
-                const nowMinutes = now.getHours() * 60 + now.getMinutes();
-                const reminderMinutes = Number(h) * 60 + Number(m);
+                const now: Date = new Date();
+                const [h, m]: string[] = effectiveSettings.expenseReminderTime.split(":");
+                const nowMinutes: number = now.getHours() * 60 + now.getMinutes();
+                const reminderMinutes: number = Number(h) * 60 + Number(m);
 
                 if (nowMinutes >= reminderMinutes) {
                     setShow(true);
@@ -56,7 +56,7 @@ export function ExpenseReminderBanner({ settings }: ExpenseReminderBannerProps) 
 
     const handleClose = () => {
         setShow(false);
-        const today = new Date().toISOString().slice(0, 10);
+        const today: string = new Date().toISOString().slice(0, 10);
         localStorage.setItem(`expense-reminder-dismissed-${today}`, "1");
         setDismissed(true);
     };
