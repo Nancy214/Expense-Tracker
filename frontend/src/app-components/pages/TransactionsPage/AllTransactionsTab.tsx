@@ -19,6 +19,7 @@ import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { TabComponentProps } from "@/types/transaction";
+import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 export function AllTransactionsTab({
     data,
@@ -80,15 +81,7 @@ export function AllTransactionsTab({
                 cell: ({ row }: { row: Row<TransactionWithId> }) => {
                     const date = row.getValue("date");
                     if (!date || (typeof date !== "string" && !(date instanceof Date))) return "-";
-                    return (
-                        <span>
-                            {typeof date === "string"
-                                ? date
-                                : date instanceof Date
-                                ? date.toLocaleDateString("en-GB")
-                                : "-"}
-                        </span>
-                    );
+                    return <span>{formatToHumanReadableDate(date)}</span>;
                 },
             },
             {

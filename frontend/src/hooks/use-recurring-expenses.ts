@@ -22,7 +22,7 @@ import {
     RecurringFrequency,
     TransactionType,
 } from "@/types/transaction";
-import { formatToDisplay, parseFromDisplay } from "@/utils/dateUtils";
+import { parseFromDisplay } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 
 // ============================================================================
@@ -38,19 +38,13 @@ interface PaginationInfo {
     hasPrevPage: boolean;
 }
 
-interface RecurringTemplateWithDisplayDate extends Omit<RecurringTransactionTemplate, "date"> {
-    date: string; // Display formatted date
-    description: string;
-    currency: string;
-}
-
 interface RecurringTemplatesQueryData {
-    recurringTemplates: RecurringTemplateWithDisplayDate[];
+    recurringTemplates: RecurringTransactionTemplate[];
     pagination: PaginationInfo | null;
 }
 
 interface UseRecurringTemplatesReturn {
-    recurringTemplates: RecurringTemplateWithDisplayDate[];
+    recurringTemplates: RecurringTransactionTemplate[];
     pagination: PaginationInfo | null;
     isLoading: boolean;
     isError: boolean;
@@ -87,12 +81,12 @@ interface UseRecurringExpenseFormReturn {
 }
 
 interface UseRecurringExpensesSelectorReturn {
-    recurringTemplates: RecurringTemplateWithDisplayDate[];
+    recurringTemplates: RecurringTransactionTemplate[];
     isLoading: boolean;
     invalidateRecurringTemplates: () => void;
-    activeRecurringExpenses: RecurringTemplateWithDisplayDate[];
-    expiredRecurringExpenses: RecurringTemplateWithDisplayDate[];
-    recurringExpensesByFrequency: Record<RecurringFrequency, RecurringTemplateWithDisplayDate[]>;
+    activeRecurringExpenses: RecurringTransactionTemplate[];
+    expiredRecurringExpenses: RecurringTransactionTemplate[];
+    recurringExpensesByFrequency: Record<RecurringFrequency, RecurringTransactionTemplate[]>;
 }
 
 interface ExchangeRateResponse {
@@ -123,17 +117,14 @@ export function useRecurringTemplates(page: number = 1, limit: number = 20): Use
             const response = await getRecurringTemplates(page, limit);
 
             const recurringTemplates = response?.recurringTemplates || [];
-            const templatesWithDates: RecurringTemplateWithDisplayDate[] = recurringTemplates.map(
-                (template: RecurringTransactionTemplate) => ({
-                    ...template,
-                    date: formatToDisplay(template.date),
-                    description: template.description ?? "",
-                    currency: template.currency ?? "INR",
-                })
-            );
+            const templatesWithDefaults: RecurringTransactionTemplate[] = recurringTemplates.map((template: any) => ({
+                ...template,
+                description: template.description ?? "",
+                currency: template.currency ?? "INR",
+            }));
 
             return {
-                recurringTemplates: templatesWithDates,
+                recurringTemplates: templatesWithDefaults,
                 pagination: response?.pagination || null,
             };
         },
@@ -379,8 +370,8 @@ export const useRecurringExpenseForm = ({
 export function useRecurringExpensesSelector(): UseRecurringExpensesSelectorReturn {
     const { recurringTemplates, isLoading, invalidateRecurringTemplates } = useRecurringTemplates();
 
-    const activeRecurringExpenses = useMemo((): RecurringTemplateWithDisplayDate[] => {
-        return recurringTemplates.filter((template: RecurringTemplateWithDisplayDate) => {
+    const activeRecurringExpenses = useMemo((): RecurringTransactionTemplate[] => {
+        return recurringTemplates.filter((template: RecurringTransactionTemplate) => {
             // Check if the template has an end date and if it's still active
             if (template.endDate) {
                 const endDate = parseFromDisplay(template.endDate.toString());
@@ -392,8 +383,8 @@ export function useRecurringExpensesSelector(): UseRecurringExpensesSelectorRetu
         });
     }, [recurringTemplates]);
 
-    const expiredRecurringExpenses = useMemo((): RecurringTemplateWithDisplayDate[] => {
-        return recurringTemplates.filter((template: RecurringTemplateWithDisplayDate) => {
+    const expiredRecurringExpenses = useMemo((): RecurringTransactionTemplate[] => {
+        return recurringTemplates.filter((template: RecurringTransactionTemplate) => {
             if (template.endDate) {
                 const endDate = parseFromDisplay(template.endDate.toString());
                 const today = new Date();
@@ -403,11 +394,11 @@ export function useRecurringExpensesSelector(): UseRecurringExpensesSelectorRetu
         });
     }, [recurringTemplates]);
 
-    const recurringExpensesByFrequency = useMemo((): Record<RecurringFrequency, RecurringTemplateWithDisplayDate[]> => {
+    const recurringExpensesByFrequency = useMemo((): Record<RecurringFrequency, RecurringTransactionTemplate[]> => {
         const grouped = recurringTemplates.reduce(
             (
-                acc: Record<RecurringFrequency, RecurringTemplateWithDisplayDate[]>,
-                template: RecurringTemplateWithDisplayDate
+                acc: Record<RecurringFrequency, RecurringTransactionTemplate[]>,
+                template: RecurringTransactionTemplate
             ) => {
                 const frequency: RecurringFrequency = template.recurringFrequency || "monthly";
                 if (!acc[frequency]) {
@@ -416,7 +407,7 @@ export function useRecurringExpensesSelector(): UseRecurringExpensesSelectorRetu
                 acc[frequency].push(template);
                 return acc;
             },
-            {} as Record<RecurringFrequency, RecurringTemplateWithDisplayDate[]>
+            {} as Record<RecurringFrequency, RecurringTransactionTemplate[]>
         );
 
         return grouped;

@@ -9,20 +9,12 @@ import { getBills, createExpense, updateExpense, updateTransactionBillStatus } f
 import { getExchangeRate } from "@/services/currency.service";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
 import { Transaction, Bill, BillStatus, BillFrequency, PaymentMethod, TransactionResponse } from "@/types/transaction";
-import { formatToDisplay, parseFromDisplay, getDaysDifference, getStartOfToday } from "@/utils/dateUtils";
+import { parseFromDisplay, getDaysDifference, getStartOfToday } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
-
-// Bill with processed dates for UI display
-interface BillWithProcessedDates extends Omit<Bill, "date" | "dueDate" | "nextDueDate" | "lastPaidDate"> {
-    date: string; // Display format (dd/MM/yyyy)
-    dueDate?: string; // Display format (dd/MM/yyyy)
-    nextDueDate?: string; // Display format (dd/MM/yyyy)
-    lastPaidDate?: string; // Display format (dd/MM/yyyy)
-}
 
 // API response for bills
 interface BillsApiResponse {
@@ -39,7 +31,7 @@ interface BillsApiResponse {
 
 // Bills query result
 interface BillsQueryResult {
-    bills: BillWithProcessedDates[];
+    bills: Bill[];
     pagination: {
         page: number;
         limit: number;
@@ -88,8 +80,8 @@ interface BillFormDefaultValues {
 
 // Upcoming and overdue bills result
 interface UpcomingAndOverdueBills {
-    upcoming: BillWithProcessedDates[];
-    overdue: BillWithProcessedDates[];
+    upcoming: Bill[];
+    overdue: Bill[];
 }
 
 // Query keys
@@ -102,7 +94,7 @@ const BILL_QUERY_KEYS = {
 // ============================================================================
 
 interface UseBillsReturn {
-    bills: BillWithProcessedDates[];
+    bills: Bill[];
     pagination: {
         page: number;
         limit: number;
@@ -133,18 +125,14 @@ export function useBills(page: number = 1, limit: number = 20): UseBillsReturn {
             const response: BillsApiResponse = await getBills(page, limit);
 
             const bills = response?.bills || [];
-            const billsWithDates: BillWithProcessedDates[] = bills.map((bill: Bill) => ({
+            const billsWithDefaults: Bill[] = bills.map((bill: Bill) => ({
                 ...bill,
-                date: formatToDisplay(bill.date),
                 description: bill.description ?? "",
                 currency: bill.currency ?? "INR",
-                dueDate: bill.dueDate ? formatToDisplay(bill.dueDate) : undefined,
-                nextDueDate: bill.nextDueDate ? formatToDisplay(bill.nextDueDate) : undefined,
-                lastPaidDate: bill.lastPaidDate ? formatToDisplay(bill.lastPaidDate) : undefined,
             }));
 
             return {
-                bills: billsWithDates,
+                bills: billsWithDefaults,
                 pagination: response?.pagination || null,
             };
         },
@@ -175,7 +163,7 @@ export function useBills(page: number = 1, limit: number = 20): UseBillsReturn {
 interface UseBillMutationsReturn {
     createBill: (data: Transaction) => Promise<TransactionResponse>;
     updateBill: (params: { id: string; data: Transaction }) => Promise<TransactionResponse>;
-    updateBillStatus: (params: { id: string; status: string }) => Promise<TransactionResponse>;
+    updateBillStatus: (params: { id: string; status: BillStatus }) => Promise<TransactionResponse>;
     isCreating: boolean;
     isUpdating: boolean;
     isUpdatingBillStatus: boolean;
@@ -212,8 +200,8 @@ export function useBillMutations(): UseBillMutationsReturn {
         },
     });
 
-    const updateBillStatusMutation = useMutation<TransactionResponse, Error, { id: string; status: string }>({
-        mutationFn: ({ id, status }: { id: string; status: string }) => updateTransactionBillStatus(id, status),
+    const updateBillStatusMutation = useMutation<TransactionResponse, Error, { id: string; status: BillStatus }>({
+        mutationFn: ({ id, status }: { id: string; status: BillStatus }) => updateTransactionBillStatus(id, status),
         onSuccess: () => {
             toast({
                 title: "Bill marked as paid",
@@ -222,7 +210,7 @@ export function useBillMutations(): UseBillMutationsReturn {
             // Invalidate all related queries to refresh the data
             queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
         },
-        onError: (error: Error, variables: { id: string; status: string }) => {
+        onError: (error: Error, variables: { id: string; status: BillStatus }) => {
             console.error("Error updating bill status:", { id: variables.id, status: variables.status, error });
             toast({
                 title: "Error",
@@ -415,11 +403,11 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
 // ============================================================================
 
 interface UseBillsSelectorReturn {
-    bills: BillWithProcessedDates[];
+    bills: Bill[];
     isLoading: boolean;
     invalidateBills: () => Promise<void>;
     upcomingAndOverdueBills: UpcomingAndOverdueBills;
-    billReminders: BillWithProcessedDates[];
+    billReminders: Bill[];
 }
 
 export function useBillsSelector(): UseBillsSelectorReturn {
@@ -439,23 +427,26 @@ export function useBillsSelector(): UseBillsSelectorReturn {
 
     const upcomingAndOverdueBills = useMemo((): UpcomingAndOverdueBills => {
         const today = getStartOfToday();
-        const upcoming: BillWithProcessedDates[] = [];
-        const overdue: BillWithProcessedDates[] = [];
+        const upcoming: Bill[] = [];
+        const overdue: Bill[] = [];
 
-        bills.forEach((bill: BillWithProcessedDates) => {
+        bills.forEach((bill: Bill) => {
             if (!bill.dueDate || bill.billStatus === "paid") {
                 return;
             }
 
             // Handle different date formats
             let dueDate: Date;
-            if (typeof bill.dueDate === "string") {
+            if (bill.dueDate instanceof Date) {
+                dueDate = bill.dueDate;
+            } else if (typeof bill.dueDate === "string") {
+                const dueDateStr = bill.dueDate as string;
                 // Check if it's an ISO date string
-                if (bill.dueDate.includes("T") || bill.dueDate.includes("-")) {
-                    dueDate = new Date(bill.dueDate);
+                if (dueDateStr.includes("T") || dueDateStr.includes("-")) {
+                    dueDate = new Date(dueDateStr);
                 } else {
                     // Assume it's in display format (dd/MM/yyyy)
-                    dueDate = parseFromDisplay(bill.dueDate);
+                    dueDate = parseFromDisplay(dueDateStr);
                 }
             } else {
                 return;
@@ -473,22 +464,25 @@ export function useBillsSelector(): UseBillsSelectorReturn {
         return { upcoming, overdue };
     }, [bills]);
 
-    const billReminders = useMemo((): BillWithProcessedDates[] => {
+    const billReminders = useMemo((): Bill[] => {
         const today = getStartOfToday();
-        const reminders = bills.filter((bill: BillWithProcessedDates) => {
+        const reminders = bills.filter((bill: Bill) => {
             if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays) {
                 return false;
             }
 
             // Handle different date formats
             let dueDate: Date;
-            if (typeof bill.dueDate === "string") {
+            if (bill.dueDate instanceof Date) {
+                dueDate = bill.dueDate;
+            } else if (typeof bill.dueDate === "string") {
+                const dueDateStr = bill.dueDate as string;
                 // Check if it's an ISO date string
-                if (bill.dueDate.includes("T") || bill.dueDate.includes("-")) {
-                    dueDate = new Date(bill.dueDate);
+                if (dueDateStr.includes("T") || dueDateStr.includes("-")) {
+                    dueDate = new Date(dueDateStr);
                 } else {
                     // Assume it's in display format (dd/MM/yyyy)
-                    dueDate = parseFromDisplay(bill.dueDate);
+                    dueDate = parseFromDisplay(dueDateStr);
                 }
             } else {
                 return false;

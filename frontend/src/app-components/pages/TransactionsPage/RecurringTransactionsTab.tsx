@@ -18,6 +18,7 @@ import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { format } from "date-fns";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { TabComponentProps } from "@/types/transaction";
+import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 export function RecurringTransactionsTab({ data, onEdit, refreshAllTransactions }: TabComponentProps) {
     const { toast } = useToast();
@@ -54,15 +55,7 @@ export function RecurringTransactionsTab({ data, onEdit, refreshAllTransactions 
                 cell: ({ row }: { row: Row<TransactionWithId> }) => {
                     const date = row.getValue("date");
                     if (!date || (typeof date !== "string" && !(date instanceof Date))) return "-";
-                    return (
-                        <span>
-                            {typeof date === "string"
-                                ? date
-                                : date instanceof Date
-                                ? date.toLocaleDateString("en-GB")
-                                : "-"}
-                        </span>
-                    );
+                    return <span>{formatToHumanReadableDate(date)}</span>;
                 },
             },
             {

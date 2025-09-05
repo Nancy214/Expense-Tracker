@@ -103,3 +103,12 @@ export const getRelativeDateDescription = (date: Date): string => {
     if (daysDiff > 0) return `In ${daysDiff} days`;
     return `${Math.abs(daysDiff)} days ago`;
 };
+
+export const formatToHumanReadableDate = (date: Date | string): string => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
+};

@@ -23,7 +23,7 @@ import {
     TransactionResponse,
     MonthlyStats,
 } from "@/types/transaction";
-import { formatToDisplay, parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
+import { parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 
 const QUERY_KEYS = {
@@ -51,7 +51,7 @@ const DEFAULT_SUMMARY: TransactionSummary = {
 };
 
 // Helper function to format transaction data
-const formatTransactionData = (data: TransactionResponse[]): TransactionWithId[] =>
+/* const formatTransactionData = (data: TransactionResponse[]): TransactionWithId[] =>
     data.map(
         (item: TransactionResponse): TransactionWithId => ({
             ...item,
@@ -61,6 +61,7 @@ const formatTransactionData = (data: TransactionResponse[]): TransactionWithId[]
         })
     );
 
+ */
 // Query response types
 interface ExpensesQueryResponse {
     expenses: TransactionWithId[];

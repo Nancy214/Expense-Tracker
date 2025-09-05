@@ -19,6 +19,7 @@ import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { format, isBefore, startOfDay } from "date-fns";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { TabComponentProps } from "@/types/transaction";
+import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTransactions }: TabComponentProps) {
     const { toast } = useToast();
@@ -99,15 +100,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                 cell: ({ row }: { row: Row<TransactionWithId> }) => {
                     const date = row.getValue("date");
                     if (!date || (typeof date !== "string" && !(date instanceof Date))) return "-";
-                    return (
-                        <span>
-                            {typeof date === "string"
-                                ? date
-                                : date instanceof Date
-                                ? date.toLocaleDateString("en-GB")
-                                : "-"}
-                        </span>
-                    );
+                    return <span>{formatToHumanReadableDate(date)}</span>;
                 },
             },
             {
