@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { HeatmapData, CalendarHeatmapProps, Insight } from "@/types/analytics";
+import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 const DEFAULT_COLORS = [
     "#ebedf0", // No data
@@ -183,7 +184,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
             return "No data";
         }
 
-        const date: string = new Date(value.date).toLocaleDateString();
+        const date: string = formatToHumanReadableDate(value.date);
         const count: number = value.count || 0;
         const amount: number = value.amount || 0;
         const category: string = value.category || "";

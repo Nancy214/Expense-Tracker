@@ -7,8 +7,9 @@ import {
     TransactionSummary,
     MonthlyStats,
     BillStatus,
+    Bill,
 } from "@/types/transaction";
-import { parse, isValid } from "date-fns";
+import { parse, isValid, parseISO } from "date-fns";
 import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api/expenses";
@@ -60,25 +61,25 @@ type ExpenseUpdateData = Transaction & {
 };
 
 // Helper function for safe date conversion
-const convertToISOString = (dateValue: string | Date | undefined): string | undefined => {
+const convertToISOString = (dateValue: string | Date | undefined): Date | undefined => {
     if (!dateValue) return undefined;
 
     if (typeof dateValue === "string") {
         // Check if it's already in ISO format (contains 'T' or 'Z')
         if (dateValue.includes("T") || dateValue.includes("Z")) {
-            return dateValue;
+            return new Date(dateValue);
         } else {
             // Assume it's in dd/MM/yyyy format and convert
-            const parsedDate = parse(dateValue, "dd/MM/yyyy", new Date());
+            const parsedDate = parseISO(dateValue);
             if (!isValid(parsedDate)) {
                 throw new Error(`Invalid date format: ${dateValue}`);
             }
-            return parsedDate.toISOString();
+            return parsedDate;
         }
     }
 
     if (dateValue instanceof Date) {
-        return dateValue.toISOString();
+        return dateValue;
     }
 
     return undefined;
@@ -193,15 +194,24 @@ export const createExpense = async (expense: Transaction): Promise<TransactionRe
 
 export const updateExpense = async (id: string, expense: ExpenseUpdateData): Promise<TransactionResponse> => {
     try {
+        console.log(expense);
         // Create a copy of the expense to avoid mutating the original
-        const expenseToUpdate: any = { ...expense };
+        const expenseToUpdate: Transaction | Bill = { ...expense };
 
         // Handle date conversion using the helper function
-        expenseToUpdate.date = convertToISOString(expense.date);
-        expenseToUpdate.endDate = convertToISOString(expense.endDate);
-        expenseToUpdate.dueDate = convertToISOString(expense.dueDate);
-        expenseToUpdate.nextDueDate = convertToISOString(expense.nextDueDate);
-        expenseToUpdate.lastPaidDate = convertToISOString(expense.lastPaidDate);
+        expenseToUpdate.date = convertToISOString(expense.date) || new Date();
+
+        if (expense.category === "Bill") {
+            const billUpdate: Bill = expenseToUpdate;
+            billUpdate.dueDate = convertToISOString(expense.dueDate);
+            billUpdate.nextDueDate = convertToISOString(expense.nextDueDate);
+            billUpdate.lastPaidDate = convertToISOString(expense.lastPaidDate);
+        }
+
+        if (expense.isRecurring && expense.recurringFrequency) {
+            const transactionUpdate: Transaction = expenseToUpdate;
+            transactionUpdate.endDate = convertToISOString(expense.endDate);
+        }
 
         const response = await expenseApi.put(`/${id}`, expenseToUpdate);
         return response.data;

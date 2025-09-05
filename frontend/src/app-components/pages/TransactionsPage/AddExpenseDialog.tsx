@@ -16,7 +16,15 @@ import { FileUploadField } from "@/app-components/form-fields/FileUploadField";
 import { showSaveError } from "@/utils/toastUtils";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { AddExpenseDialogProps, TransactionFormData, CurrencyOption, CategoryOption } from "@/types/transaction";
+import {
+    AddExpenseDialogProps,
+    TransactionFormData,
+    CurrencyOption,
+    CategoryOption,
+    Bill,
+    PaymentMethod,
+    BillFrequency,
+} from "@/types/transaction";
 import { Transaction } from "@/types/transaction";
 
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
@@ -93,23 +101,43 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 receiptKeys = await Promise.all(fileReceipts.map(uploadReceipt));
             }
 
-            // Convert string dates to Date objects for the Transaction interface
-            const transactionData: Transaction = {
-                title: data.title,
-                type: data.type,
-                amount: data.amount,
-                currency: data.currency,
-                category: data.category,
-                description: data.description || "",
-                userId: user?.id || "",
-                date: new Date(data.date.split("/").reverse().join("-")),
-                fromRate: data.fromRate,
-                toRate: data.toRate,
-                isRecurring: data.isRecurring || false,
-                recurringFrequency: data.recurringFrequency as any,
-                receipts: receiptKeys,
-                endDate: data.endDate ? new Date(data.endDate.split("/").reverse().join("-")) : undefined,
-            };
+            let transactionData: Transaction | Bill;
+
+            if (data.category === "Bill") {
+                transactionData = {
+                    title: data.title,
+                    type: data.type,
+                    amount: data.amount,
+                    currency: data.currency,
+                    category: data.category,
+                    description: data.description || "",
+                    userId: user?.id || "",
+                    date: new Date(data.date.split("/").reverse().join("-")),
+                    dueDate: data.dueDate ? new Date(data.dueDate.split("/").reverse().join("-")) : undefined,
+                    billCategory: data.billCategory,
+                    billFrequency: data.billFrequency as BillFrequency,
+                    paymentMethod: data.paymentMethod as PaymentMethod,
+                    reminderDays: data.reminderDays,
+                    receipts: receiptKeys,
+                };
+            } else {
+                transactionData = {
+                    title: data.title,
+                    type: data.type,
+                    amount: data.amount,
+                    currency: data.currency,
+                    category: data.category,
+                    description: data.description || "",
+                    userId: user?.id || "",
+                    date: new Date(data.date.split("/").reverse().join("-")),
+                    fromRate: data.fromRate,
+                    toRate: data.toRate,
+                    isRecurring: data.isRecurring || false,
+                    recurringFrequency: data.recurringFrequency as any,
+                    receipts: receiptKeys,
+                    endDate: data.endDate ? new Date(data.endDate.split("/").reverse().join("-")) : undefined,
+                };
+            }
 
             if (isEditing && editingExpense && editingExpense._id) {
                 await updateTransaction({ id: editingExpense._id, data: transactionData });

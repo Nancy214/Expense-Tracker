@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
-import { Bill } from "../types/transactions";
+import { Bill, BillFrequency } from "../types/transactions";
 import { getStartOfToday, addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
 import { s3Client, isAWSConfigured } from "../config/s3Client";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -36,7 +36,7 @@ const isBillDocument = (doc: TransactionOrBillDocument): doc is BillDocument => 
 };
 
 // Helper function to calculate next due date for bills
-/* const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): Date => {
+const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): Date => {
     const nextDate = new Date(currentDueDate);
 
     switch (frequency) {
@@ -49,12 +49,15 @@ const isBillDocument = (doc: TransactionOrBillDocument): doc is BillDocument => 
         case "yearly":
             nextDate.setFullYear(nextDate.getFullYear() + 1);
             break;
+        case "one-time":
+            // For one-time bills, return the same date
+            return nextDate;
         default:
             return nextDate;
     }
 
     return nextDate;
-}; */
+};
 
 // Helper function to create recurring instances
 const createRecurringInstances = async (template: TransactionOrBillDocument, userId: Types.ObjectId): Promise<void> => {
@@ -424,10 +427,20 @@ export const createExpense = async (req: AuthRequest, res: Response): Promise<vo
             return;
         }
 
-        const expense: TransactionOrBillDocument = await TransactionModel.create({
+        // Prepare expense data
+        let expenseData = {
             ...req.body,
             userId: new Types.ObjectId(userId),
-        });
+        };
+
+        // If it's a bill, calculate nextDueDate automatically
+        if (req.body.category === "Bill" && req.body.dueDate && req.body.billFrequency) {
+            const dueDate = new Date(req.body.dueDate);
+            const frequency = req.body.billFrequency as BillFrequency;
+            expenseData.nextDueDate = calculateNextDueDate(dueDate, frequency);
+        }
+
+        const expense: TransactionOrBillDocument = await TransactionModel.create(expenseData);
 
         const expenseDoc: TransactionOrBill = expense.toObject() as TransactionOrBill;
         const isBill: boolean = isBillTransaction(expenseDoc);
@@ -450,9 +463,19 @@ export const updateExpense = async (req: AuthRequest, res: Response): Promise<vo
             return;
         }
 
+        // Prepare update data
+        let updateData = { ...req.body };
+
+        // If it's a bill update, calculate nextDueDate automatically
+        if (req.body.category === "Bill" && req.body.dueDate && req.body.billFrequency) {
+            const dueDate = new Date(req.body.dueDate);
+            const frequency = req.body.billFrequency as BillFrequency;
+            updateData.nextDueDate = calculateNextDueDate(dueDate, frequency);
+        }
+
         const expense: TransactionOrBillDocument | null = await TransactionModel.findByIdAndUpdate(
             new Types.ObjectId(req.params.id),
-            req.body,
+            updateData,
             {
                 new: true,
             }

@@ -4,7 +4,7 @@ import { AlertTriangle, Clock, Bell, CreditCard, Loader2 } from "lucide-react";
 import { useBillsSelector } from "@/hooks/use-bills";
 import { useBillMutations } from "@/hooks/use-bills";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { parseFromAPI, parseFromDisplay } from "@/utils/dateUtils";
+import { formatToHumanReadableDate, parseFromAPI, parseFromDisplay } from "@/utils/dateUtils";
 import { useState } from "react";
 
 export function useBillsAndReminders() {
@@ -41,7 +41,7 @@ const BillItem = ({
             : bill.dueDate.includes("T") || bill.dueDate.includes("-")
             ? parseFromAPI(bill.dueDate)
             : parseFromDisplay(bill.dueDate);
-    const formattedDueDate: string = dueDate.toLocaleDateString("en-GB");
+    const formattedDueDate: string = formatToHumanReadableDate(dueDate);
     const daysLeft: number = differenceInCalendarDays(dueDate, new Date());
     const isThisBillUpdating: boolean = isUpdating === bill._id;
 

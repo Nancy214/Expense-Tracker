@@ -253,21 +253,6 @@ export const transactionFormSchema = z
             message: "Due date is required for bills",
             path: ["dueDate"],
         }
-    )
-    .refine(
-        (data) => {
-            // For recurring bills, nextDueDate must be provided
-            if (data.category === "Bill" && data.billFrequency !== "one-time") {
-                if (!data.nextDueDate || data.nextDueDate.trim() === "") {
-                    return false;
-                }
-            }
-            return true;
-        },
-        {
-            message: "Next due date is required for recurring bills",
-            path: ["nextDueDate"],
-        }
     );
 
 // Type inference for schemas
