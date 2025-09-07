@@ -11,20 +11,13 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ChevronDownIcon, UploadIcon } from "lucide-react";
+import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
-import { TransactionWithId, MonthFilter } from "@/types/transaction";
-import {
-    downloadCSV,
-    downloadExcel,
-    generateMonthlyStatementPDF,
-} from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
+import { TransactionWithId } from "@/types/transaction";
 import { FiltersSectionProps } from "@/types/transaction";
 
 const EXPENSE_CATEGORIES: string[] = [
@@ -50,11 +43,6 @@ const INCOME_CATEGORIES: string[] = [
     "Other Income",
 ];
 
-interface ExportOptions {
-    month: string;
-    format: "csv" | "excel" | "pdf";
-}
-
 export function FiltersSection({
     filteredTransactions,
     handleEdit,
@@ -65,8 +53,6 @@ export function FiltersSection({
     setAllExpenses,
     setAvailableMonths,
     parse,
-    availableMonths = [] as MonthFilter[],
-    user,
     refreshAllTransactions,
     activeTab = "all",
     setActiveTab,
@@ -82,10 +68,6 @@ export function FiltersSection({
     const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["all"]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [exportOptions, setExportOptions] = useState<ExportOptions>({
-        month: "",
-        format: "csv",
-    });
     const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
     // For now, use the data directly from the backend since it's already paginated
@@ -248,157 +230,6 @@ export function FiltersSection({
                         </Popover>
                     </div>
 
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button
-                                variant="outline"
-                                className="flex items-center gap-2 w-[40px] h-[40px] p-0 justify-center"
-                            >
-                                <UploadIcon className="h-4 w-4" />
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Export Transactions</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                    <label htmlFor="month">Select Month</label>
-                                    <Select
-                                        value={exportOptions.month}
-                                        onValueChange={(value) => {
-                                            setExportOptions((prev) => ({
-                                                ...prev,
-                                                month: value,
-                                            }));
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select month" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {(availableMonths || []).map((month) => {
-                                                const monthDate = new Date(month.value.year, month.value.month - 1);
-                                                const monthValue = format(monthDate, "yyyy-MM");
-                                                return (
-                                                    <SelectItem key={monthValue} value={monthValue}>
-                                                        {format(monthDate, "MMMM yyyy")}
-                                                    </SelectItem>
-                                                );
-                                            })}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid gap-2">
-                                    <label htmlFor="format">Export Format</label>
-                                    <Select
-                                        value={exportOptions.format}
-                                        onValueChange={(value: "csv" | "excel") => {
-                                            setExportOptions((prev) => ({
-                                                ...prev,
-                                                format: value,
-                                            }));
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select format" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="csv">CSV</SelectItem>
-                                            <SelectItem value="excel">Excel</SelectItem>
-                                            <SelectItem value="pdf">PDF</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <Button
-                                    onClick={() => {
-                                        if (!exportOptions.month || !exportOptions.format) {
-                                            return;
-                                        }
-
-                                        const selectedDate = new Date(exportOptions.month);
-                                        const monthName = format(selectedDate, "MMMM");
-                                        const currentYear = selectedDate.getFullYear();
-
-                                        if (exportOptions.format === "pdf") {
-                                            // Calculate required statistics for PDF
-                                            const totalIncome = localFilteredTransactions
-                                                .filter((t) => t.type === "income")
-                                                .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-                                            const totalExpenses = localFilteredTransactions
-                                                .filter((t) => t.type === "expense")
-                                                .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-                                            const netBalance = totalIncome - totalExpenses;
-                                            const savingsRate =
-                                                totalIncome > 0
-                                                    ? ((totalIncome - totalExpenses) / totalIncome) * 100
-                                                    : 0;
-                                            const avgTransaction =
-                                                localFilteredTransactions.length > 0
-                                                    ? totalExpenses / localFilteredTransactions.length
-                                                    : 0;
-
-                                            // Calculate expense by category
-                                            const expenseByCategory = localFilteredTransactions
-                                                .filter((t) => t.type === "expense")
-                                                .reduce((acc, t) => {
-                                                    const cat = t.category || "Uncategorized";
-                                                    acc[cat] = (acc[cat] || 0) + (t.amount || 0);
-                                                    return acc;
-                                                }, {} as Record<string, number>);
-
-                                            generateMonthlyStatementPDF({
-                                                allExpenses: localFilteredTransactions,
-                                                filteredTransactions: localFilteredTransactions,
-                                                userCurrency: user?.currency || "USD",
-                                                now: new Date(),
-                                                monthName,
-                                                currentYear,
-                                                totalIncome,
-                                                totalExpenses,
-                                                netBalance,
-                                                savingsRate,
-                                                totalTransactions: localFilteredTransactions.length,
-                                                avgTransaction,
-                                                expenseByCategory,
-                                                totalExpenseForBreakdown: totalExpenses,
-                                            });
-                                        } else {
-                                            // Filter transactions for the selected month
-                                            const monthTransactions = localFilteredTransactions.filter(
-                                                (transaction) => {
-                                                    let transactionDate: Date;
-                                                    if (typeof transaction.date === "string") {
-                                                        transactionDate = new Date(transaction.date);
-                                                    } else {
-                                                        transactionDate = transaction.date;
-                                                    }
-
-                                                    return (
-                                                        transactionDate.getMonth() === selectedDate.getMonth() &&
-                                                        transactionDate.getFullYear() === selectedDate.getFullYear()
-                                                    );
-                                                }
-                                            );
-
-                                            const filename = `expenses_${format(selectedDate, "MMM_yyyy")}`;
-                                            if (exportOptions.format === "csv") {
-                                                downloadCSV(monthTransactions, `${filename}.csv`);
-                                            } else {
-                                                downloadExcel(monthTransactions, `${filename}.xlsx`);
-                                            }
-                                        }
-                                    }}
-                                    className="mt-2"
-                                    disabled={!exportOptions.month || !exportOptions.format}
-                                >
-                                    Export
-                                </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
                     {(!selectedCategories.includes("all") ||
                         !selectedTypes.includes("all") ||
                         !selectedStatuses.includes("all") ||

@@ -2,19 +2,25 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { parse } from "date-fns";
-import { Plus, TrendingUp } from "lucide-react";
+import { parse, format } from "date-fns";
+import { Plus, TrendingUp, UploadIcon } from "lucide-react";
 import { TransactionWithId } from "@/types/transaction";
 import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
 import { useBudgets } from "@/hooks/use-budgets";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
-import { generateMonthlyStatementPDF } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
+import {
+    generateMonthlyStatementPDF,
+    downloadCSV,
+    downloadExcel,
+} from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { useSearchParams } from "react-router-dom";
 import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 import { useBills } from "@/hooks/use-bills";
 import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
 import { MonthFilter, TotalExpensesByCurrency } from "@/types/transaction";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
@@ -30,7 +36,6 @@ const TransactionsPage = () => {
     const {
         transactions: allTransactions,
         pagination: allTransactionsPagination,
-        isLoading: isLoadingAllTransactions,
         invalidateAllTransactions,
     } = useAllTransactions(allTransactionsPage, itemsPerPage);
     const { bills, pagination: billsPagination, invalidateBills } = useBills(billsPage, itemsPerPage);
@@ -46,6 +51,15 @@ const TransactionsPage = () => {
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState<"all" | "recurring" | "bills">("all");
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
+
+    // Export functionality state
+    const [exportOptions, setExportOptions] = useState<{
+        month: string;
+        format: "csv" | "excel" | "pdf";
+    }>({
+        month: "",
+        format: "csv",
+    });
 
     // Get current page based on active tab
     const getCurrentPage = (): number => {
@@ -221,55 +235,6 @@ const TransactionsPage = () => {
         return monthsArr;
     }, [allTransactions]);
 
-    // Download statement for a specific month
-    const downloadMonthlyStatementForMonth = ({ year, month }: { year: number; month: number }): void => {
-        const now = new Date(year, month, 1);
-        const monthName = now.toLocaleString("default", { month: "long" });
-        const currentYear = year;
-        // Filter for the selected month
-        const monthlyTransactions = allTransactions.filter((expense) => {
-            const date = getTransactionDate(expense);
-            return date.getMonth() === month && date.getFullYear() === year;
-        });
-        const totalIncome = monthlyTransactions
-            .filter((expense) => expense.type === "income")
-            .reduce((sum, expense) => sum + (expense.amount || 0), 0);
-        const totalExpenses = monthlyTransactions
-            .filter((expense) => expense.type === "expense")
-            .reduce((sum, expense) => sum + (expense.amount || 0), 0);
-        const netBalance = totalIncome - totalExpenses;
-        const savingsRate = totalIncome > 0 ? (netBalance / totalIncome) * 100 : 0;
-        const totalTransactions = monthlyTransactions.length;
-        const avgTransaction =
-            totalTransactions > 0
-                ? monthlyTransactions.reduce((sum, expense) => sum + (expense.amount || 0), 0) / totalTransactions
-                : 0;
-        const expenseByCategory: Record<string, number> = {};
-        monthlyTransactions.forEach((expense) => {
-            if (expense.type === "expense") {
-                expenseByCategory[expense.category] = (expenseByCategory[expense.category] || 0) + expense.amount;
-            }
-        });
-        const totalExpenseForBreakdown = Object.values(expenseByCategory).reduce((a, b) => a + b, 0);
-        const userCurrency = user?.currency || "INR";
-        generateMonthlyStatementPDF({
-            allExpenses: allTransactions,
-            filteredTransactions: monthlyTransactions,
-            userCurrency,
-            now,
-            monthName,
-            currentYear,
-            totalIncome,
-            totalExpenses,
-            netBalance,
-            savingsRate,
-            totalTransactions,
-            avgTransaction,
-            expenseByCategory,
-            totalExpenseForBreakdown,
-        });
-    };
-
     const currencySymbols: Record<string, string> = {
         INR: "₹",
         USD: "$",
@@ -283,6 +248,80 @@ const TransactionsPage = () => {
         KRW: "₩",
     };
     const symbol = currencySymbols[user?.currency || "INR"] || user?.currency || "INR";
+
+    // Export functionality
+    const handleExport = () => {
+        if (!exportOptions.month || !exportOptions.format) {
+            return;
+        }
+
+        const selectedDate = new Date(exportOptions.month);
+        const monthName = format(selectedDate, "MMMM");
+        const currentYear = selectedDate.getFullYear();
+
+        if (exportOptions.format === "pdf") {
+            // Calculate required statistics for PDF
+            const totalIncome = allTransactions
+                .filter((t) => t.type === "income")
+                .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+            const totalExpenses = allTransactions
+                .filter((t) => t.type === "expense")
+                .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+            const netBalance = totalIncome - totalExpenses;
+            const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+            const avgTransaction = allTransactions.length > 0 ? totalExpenses / allTransactions.length : 0;
+
+            // Calculate expense by category
+            const expenseByCategory = allTransactions
+                .filter((t) => t.type === "expense")
+                .reduce((acc, t) => {
+                    const cat = t.category || "Uncategorized";
+                    acc[cat] = (acc[cat] || 0) + (t.amount || 0);
+                    return acc;
+                }, {} as Record<string, number>);
+
+            generateMonthlyStatementPDF({
+                allExpenses: allTransactions,
+                filteredTransactions: allTransactions,
+                userCurrency: user?.currency || "USD",
+                now: new Date(),
+                monthName,
+                currentYear,
+                totalIncome,
+                totalExpenses,
+                netBalance,
+                savingsRate,
+                totalTransactions: allTransactions.length,
+                avgTransaction,
+                expenseByCategory,
+                totalExpenseForBreakdown: totalExpenses,
+            });
+        } else {
+            // Filter transactions for the selected month
+            const monthTransactions = allTransactions.filter((transaction) => {
+                let transactionDate: Date;
+                if (typeof transaction.date === "string") {
+                    transactionDate = new Date(transaction.date);
+                } else {
+                    transactionDate = transaction.date;
+                }
+
+                return (
+                    transactionDate.getMonth() === selectedDate.getMonth() &&
+                    transactionDate.getFullYear() === selectedDate.getFullYear()
+                );
+            });
+
+            const filename = `expenses_${format(selectedDate, "MMM_yyyy")}`;
+            if (exportOptions.format === "csv") {
+                downloadCSV(monthTransactions, `${filename}.csv`);
+            } else {
+                downloadExcel(monthTransactions, `${filename}.xlsx`);
+            }
+        }
+    };
 
     return (
         <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
@@ -318,6 +357,76 @@ const TransactionsPage = () => {
                         <Plus className="h-4 w-4" />
                         Add Bill
                     </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="flex items-center gap-2">
+                                <UploadIcon className="h-4 w-4" />
+                                Export
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Export Transactions</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                    <label htmlFor="month">Select Month</label>
+                                    <Select
+                                        value={exportOptions.month}
+                                        onValueChange={(value) => {
+                                            setExportOptions((prev) => ({
+                                                ...prev,
+                                                month: value,
+                                            }));
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select month" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableMonths.map((month) => {
+                                                const monthDate = new Date(month.value.year, month.value.month - 1);
+                                                const monthValue = format(monthDate, "yyyy-MM");
+                                                return (
+                                                    <SelectItem key={monthValue} value={monthValue}>
+                                                        {format(monthDate, "MMMM yyyy")}
+                                                    </SelectItem>
+                                                );
+                                            })}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <label htmlFor="format">Export Format</label>
+                                    <Select
+                                        value={exportOptions.format}
+                                        onValueChange={(value: "csv" | "excel" | "pdf") => {
+                                            setExportOptions((prev) => ({
+                                                ...prev,
+                                                format: value,
+                                            }));
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select format" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="csv">CSV</SelectItem>
+                                            <SelectItem value="excel">Excel</SelectItem>
+                                            <SelectItem value="pdf">PDF</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <Button
+                                    onClick={handleExport}
+                                    className="mt-2"
+                                    disabled={!exportOptions.month || !exportOptions.format}
+                                >
+                                    Export
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 
@@ -379,10 +488,6 @@ const TransactionsPage = () => {
 
             {/* Filters */}
             <FiltersSection
-                loadingMonths={isLoadingAllTransactions}
-                availableMonths={availableMonths}
-                downloadMonthlyStatementForMonth={downloadMonthlyStatementForMonth}
-                user={user}
                 filteredTransactions={
                     activeTab === "all"
                         ? allTransactions
