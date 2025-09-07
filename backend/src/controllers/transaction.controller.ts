@@ -734,9 +734,10 @@ export const getAllTransactionsForAnalytics = async (req: AuthRequest, res: Resp
         }
 
         // Get all transactions (excluding recurring templates) without pagination
+        // Include all actual transactions, both regular and recurring
         const transactions: TransactionOrBillDocument[] = await TransactionModel.find({
             userId: new Types.ObjectId(userId),
-            $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
+            // Don't filter by templateId or isRecurring - include all actual transactions
         }).sort({ date: -1 });
 
         res.json({ transactions });

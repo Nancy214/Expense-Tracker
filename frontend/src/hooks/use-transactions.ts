@@ -218,6 +218,8 @@ export function useTransactionMutations(): TransactionMutationsReturn {
     const invalidateQueries = (): void => {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses });
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.allTransactions });
+        // Also invalidate analytics queries to refresh stats
+        queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.allTransactions, "analytics"] });
     };
 
     const createMutation = useMutation<TransactionResponse, Error, Transaction>({
@@ -397,11 +399,33 @@ interface ExpensesSelectorReturn {
 // Derived Data Hook
 export function useExpensesSelector(): ExpensesSelectorReturn {
     const { expenses, isLoading, invalidateExpenses } = useExpenses();
+    const queryClient = useQueryClient();
+
+    // Use analytics hook to get all transactions for accurate monthly stats
+    const { transactions: allTransactions, isLoading: analyticsLoading } = useAllTransactionsForAnalytics();
 
     const monthlyStats = useMemo((): MonthlyStats => {
-        const currentMonthTransactions = expenses.filter((t: TransactionWithId) => {
-            if (t.templateId) return false;
-            return isInCurrentMonth(parseFromDisplay(t.date as unknown as string));
+        // Use all transactions for accurate monthly stats calculation
+        const currentMonthTransactions = allTransactions.filter((t: TransactionWithId) => {
+            // Include all transactions for stats calculation - both regular and recurring
+            // The backend should only return actual transactions, not templates
+
+            // Handle date conversion properly - dates come as ISO strings from API
+            let transactionDate: Date;
+            if (typeof t.date === "string") {
+                const dateStr = t.date as string;
+                // If it's an ISO string, parse it directly
+                if (dateStr.includes("T") || dateStr.includes("Z")) {
+                    transactionDate = new Date(dateStr);
+                } else {
+                    // If it's in display format, parse it
+                    transactionDate = parseFromDisplay(dateStr);
+                }
+            } else {
+                transactionDate = t.date as Date;
+            }
+
+            return isInCurrentMonth(transactionDate);
         });
 
         const totalIncome = currentMonthTransactions
@@ -418,9 +442,20 @@ export function useExpensesSelector(): ExpensesSelectorReturn {
             balance: totalIncome - totalExpenses,
             transactionCount: currentMonthTransactions.length,
         };
-    }, [expenses]);
+    }, [allTransactions]);
 
-    return { expenses, isLoading, invalidateExpenses, monthlyStats };
+    const invalidateAllQueries = useCallback(() => {
+        invalidateExpenses();
+        // Also invalidate analytics queries
+        queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.allTransactions, "analytics"] });
+    }, [invalidateExpenses, queryClient]);
+
+    return {
+        expenses,
+        isLoading: isLoading || analyticsLoading,
+        invalidateExpenses: invalidateAllQueries,
+        monthlyStats,
+    };
 }
 
 // Heatmap data types
