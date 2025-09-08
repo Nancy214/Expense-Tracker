@@ -3,7 +3,6 @@ import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { useStats } from "@/context/StatsContext";
 import { BudgetResponse, BudgetData } from "@/types/budget";
 import { budgetSchema, BudgetFormData, getDefaultValues } from "@/schemas/budgetSchema";
 import { useBudgets } from "@/hooks/use-budgets";
@@ -48,7 +47,6 @@ export const useBudgetForm = ({
     onOpenChange,
 }: UseBudgetFormProps = {}): UseBudgetFormReturn => {
     const { toast } = useToast();
-    const { refreshStats } = useStats();
     const { createBudget, updateBudget, isCreating, isUpdating } = useBudgets();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -100,7 +98,6 @@ export const useBudgetForm = ({
                 });
             }
 
-            await refreshStats();
             form.reset(getDefaultValues());
             onOpenChange?.(false);
             onSuccess?.();

@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { FormProvider } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
-import { useStats } from "@/context/StatsContext";
 import { useToast } from "@/hooks/use-toast";
 import { uploadReceipt } from "@/services/transaction.service";
 import { useTransactionMutations, useTransactionForm } from "@/hooks/use-transactions";
@@ -38,7 +37,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 }) => {
     const { toast } = useToast();
     const { user } = useAuth();
-    const { refreshStats } = useStats();
     const [showExchangeRate, setShowExchangeRate] = useState<boolean>(false);
 
     // Use the cached hook instead of direct API call
@@ -145,7 +143,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 await createTransaction(transactionData);
             }
 
-            await refreshStats();
             resetForm();
             onOpenChange(false);
             onSuccess?.();

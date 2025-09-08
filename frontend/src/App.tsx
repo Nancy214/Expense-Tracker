@@ -1,6 +1,5 @@
 import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
-import { StatsProvider } from "@/context/StatsContext";
 import { AppRoutes } from "@/routes";
 import { Toaster } from "@/components/ui/toaster";
 import Layout from "@/app-components/utility-components/Layout";
@@ -8,14 +7,12 @@ import Layout from "@/app-components/utility-components/Layout";
 function App() {
     return (
         <AuthProvider>
-            <StatsProvider>
-                <Router>
-                    <Layout>
-                        <AppRoutes />
-                    </Layout>
-                    <Toaster />
-                </Router>
-            </StatsProvider>
+            <Router>
+                <Layout>
+                    <AppRoutes />
+                </Layout>
+                <Toaster />
+            </Router>
         </AuthProvider>
     );
 }

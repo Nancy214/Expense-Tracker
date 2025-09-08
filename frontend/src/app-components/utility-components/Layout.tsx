@@ -169,7 +169,7 @@ function LayoutContent({ children }: LayoutProps) {
                 {/* Main content */}
                 <main className={cn("flex-1 transition-all duration-300 ease-in-out", "md:ml-0")}>
                     <div>
-                        {location.pathname !== "/profile" && <StatsCards />}
+                        {location.pathname === "/" && <StatsCards />}
                         {children}
                     </div>
                 </main>

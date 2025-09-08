@@ -1,11 +1,23 @@
-import { useStats } from "@/context/StatsContext";
+import { useExpensesSelector } from "@/hooks/use-transactions";
+import { useBillsSelector } from "@/hooks/use-bills";
+import { useBudgets } from "@/hooks/use-budgets";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import { TrendingUp, DollarSign, TrendingDown, Wallet, Calendar } from "lucide-react";
 
 export default function StatsCards() {
     const { user } = useAuth();
-    const { stats, loading, error, refreshStats } = useStats();
+    const { monthlyStats, isLoading: expensesLoading } = useExpensesSelector();
+    const { upcomingAndOverdueBills, isLoading: billsLoading } = useBillsSelector();
+    const { budgets, isBudgetsLoading } = useBudgets();
+
+    const loading = expensesLoading || billsLoading || isBudgetsLoading;
+    const error: string | null = null;
+    const stats = monthlyStats && {
+        ...monthlyStats,
+        activeBudgetsCount: budgets?.length || 0,
+        upcomingBillsCount: upcomingAndOverdueBills.upcoming.length,
+    };
 
     const formatAmount = (amount: number) => {
         const currencySymbols: { [key: string]: string } = {
@@ -50,9 +62,6 @@ export default function StatsCards() {
         return (
             <div className="flex flex-col items-center justify-center min-h-[80px]">
                 <div className="text-red-600 text-sm mb-2">{error}</div>
-                <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={refreshStats}>
-                    Retry
-                </button>
             </div>
         );
     }
