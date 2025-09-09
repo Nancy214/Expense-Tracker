@@ -4,7 +4,6 @@ import {
     updateProfile,
     //uploadProfilePicture,
     updateSettings,
-    getSettings,
     deleteProfilePicture,
     getCountryTimezoneCurrency,
 } from "../controllers/profile.controller";
@@ -35,8 +34,6 @@ router.put("/", authenticateToken as RequestHandler, upload.single("profilePictu
  */
 // Update user settings
 router.put("/settings", authenticateToken as RequestHandler, updateSettings as RequestHandler);
-
-router.get("/settings/:userId", authenticateToken as RequestHandler, getSettings as RequestHandler);
 
 // Delete profile picture
 router.delete("/picture", authenticateToken as RequestHandler, deleteProfilePicture as RequestHandler);

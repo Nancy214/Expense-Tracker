@@ -327,44 +327,6 @@ export const updateSettings = async (req: Request, res: Response): Promise<void>
     }
 };
 
-export const getSettings = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const user = req.user as TokenPayload;
-        const userId = user?.id;
-        if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
-            return;
-        }
-
-        const settingsDoc: SettingsDocument | null = await Settings.findById(userId);
-        if (!settingsDoc) {
-            // Return default settings structure without creating in database
-            const defaultSettings: DefaultSettings = {
-                userId,
-                monthlyReports: false,
-                expenseReminders: false,
-                billsAndBudgetsAlert: false,
-                expenseReminderTime: "18:00",
-            };
-            res.json({ success: true, settings: defaultSettings });
-            return;
-        }
-
-        const settingsResponse: SettingsResponse = {
-            userId: settingsDoc.userId,
-            monthlyReports: settingsDoc.monthlyReports,
-            expenseReminders: settingsDoc.expenseReminders,
-            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-            expenseReminderTime: settingsDoc.expenseReminderTime,
-        };
-
-        res.json({ success: true, settings: settingsResponse });
-    } catch (error: unknown) {
-        console.error("Error fetching settings:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
-};
-
 // Delete profile picture controller
 export const deleteProfilePicture = async (req: Request, res: Response): Promise<void> => {
     try {

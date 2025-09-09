@@ -13,10 +13,6 @@ interface ProfileApiResponse extends ApiResponse<{ user: ProfileResponse }> {
     user: ProfileResponse;
 }
 
-interface SettingsApiResponse extends ApiResponse<{ settings: SettingsData }> {
-    settings: SettingsData;
-}
-
 interface DeleteProfilePictureResponse extends ApiResponse<void> {
     message: string;
 }
@@ -37,14 +33,6 @@ interface CountryTimezoneCurrencyResponse {
 const API_URL = "http://localhost:8000/api/profile";
 
 const profileApi = axios.create({
-    baseURL: API_URL,
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
-
-// Create a separate axios instance for public endpoints (no auth required)
-const publicApi = axios.create({
     baseURL: API_URL,
     headers: {
         "Content-Type": "application/json",
@@ -122,20 +110,11 @@ export const updateProfile = async (profileData: ProfileData): Promise<ProfileRe
 
 export const updateSettings = async (settings: SettingsData): Promise<SettingsData> => {
     try {
-        const response: AxiosResponse<SettingsApiResponse> = await profileApi.put("/settings", settings);
+        const response: AxiosResponse<{ success: boolean; message: string; settings: SettingsData }> =
+            await profileApi.put("/settings", settings);
         return response.data.settings;
     } catch (error) {
         console.error("Error updating settings:", error);
-        throw error;
-    }
-};
-
-export const getSettings = async (userId: string): Promise<SettingsData> => {
-    try {
-        const response: AxiosResponse<SettingsApiResponse> = await profileApi.get(`/settings/${userId}`);
-        return response.data.settings;
-    } catch (error) {
-        console.error("Error fetching settings:", error);
         throw error;
     }
 };

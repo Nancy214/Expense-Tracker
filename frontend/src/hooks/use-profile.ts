@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -10,7 +10,6 @@ import {
     removeProfilePicture,
     getCountryTimezoneCurrency,
     updateSettings,
-    getSettings,
 } from "@/services/profile.service";
 import { profileSchema, ProfileFormData } from "@/schemas/profileSchema";
 import { SettingsData, ProfileResponse, ProfileData } from "@/types/profile";
@@ -144,14 +143,24 @@ export function useCountryTimezoneCurrency(): UseQueryResult<CountryTimezoneCurr
 
 export function useSettings(userId: string): UseQueryResult<SettingsData, AxiosError> {
     const { isAuthenticated } = useAuth();
+    const { data: profileData } = useProfile();
 
     return useQuery<SettingsData, AxiosError>({
         queryKey: PROFILE_QUERY_KEYS.settings(userId),
-        queryFn: () => getSettings(userId || ""),
+        queryFn: () =>
+            Promise.resolve(
+                profileData?.settings || {
+                    userId: userId,
+                    monthlyReports: false,
+                    expenseReminders: false,
+                    billsAndBudgetsAlert: false,
+                    expenseReminderTime: "18:00",
+                }
+            ),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false, // Don't refetch on window focus
-        enabled: isAuthenticated && !!userId, // Only run the query if authenticated and userId exists
+        enabled: isAuthenticated && !!userId && !!profileData, // Only run the query if authenticated, userId exists, and profile data is available
     });
 }
 
@@ -238,7 +247,8 @@ export function useProfileMutations(): ProfileMutationsReturn {
                 description: "Settings updated successfully",
             });
 
-            // Invalidate settings query
+            // Invalidate both profile and settings queries since settings are now part of profile
+            queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.profile });
             queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.settings(variables.userId) });
         },
         onError: (error: AxiosError) => {
@@ -271,7 +281,7 @@ export function useProfileMutations(): ProfileMutationsReturn {
 // ============================================================================
 
 export function useProfileForm(): ProfileFormReturn {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const { data: profileData } = useProfile();
     const { updateProfile, removeProfilePicture, isUpdatingProfile, isRemovingPicture } = useProfileMutations();
     const { toast } = useToast();
@@ -279,8 +289,10 @@ export function useProfileForm(): ProfileFormReturn {
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [photoRemoved, setPhotoRemoved] = useState<boolean>(false);
     const [isUpdatingSuccessfully, setIsUpdatingSuccessfully] = useState<boolean>(false);
+    const lastUpdatedProfileId = useRef<string | null>(null);
 
     // Use profile data from query if available, otherwise fall back to auth context
+    // Prioritize fresh API data over potentially stale localStorage data
     const currentProfileData = profileData || user;
 
     const form = useForm<ProfileFormData>({
@@ -313,6 +325,46 @@ export function useProfileForm(): ProfileFormReturn {
             setPhotoRemoved(false);
         }
     }, [currentProfileData, form, isEditing, isUpdatingSuccessfully]);
+
+    // Additional effect to handle when profileData becomes available after initial load
+    useEffect((): void => {
+        if (profileData && !isEditing && !isUpdatingSuccessfully) {
+            // Force form reset when fresh profile data becomes available
+            form.reset({
+                name: profileData.name || "",
+                email: profileData.email || "",
+                profilePicture: profileData.profilePicture || "",
+                phoneNumber: profileData.phoneNumber || "",
+                dateOfBirth: profileData.dateOfBirth || "",
+                currency: profileData.currency || "",
+                country: profileData.country || "",
+                timezone: profileData.timezone || "",
+            });
+            setPhotoRemoved(false);
+        }
+    }, [profileData, form, isEditing, isUpdatingSuccessfully]);
+
+    // Update AuthContext with fresh profile data to keep localStorage in sync
+    useEffect((): void => {
+        if (profileData && profileData._id !== lastUpdatedProfileId.current) {
+            const userForAuth = {
+                id: profileData._id,
+                email: profileData.email,
+                name: profileData.name,
+                profilePicture: profileData.profilePicture,
+                phoneNumber: profileData.phoneNumber,
+                dateOfBirth: profileData.dateOfBirth,
+                currency: profileData.currency,
+                country: profileData.country,
+                timezone: profileData.timezone,
+                settings: profileData.settings,
+            };
+
+            localStorage.setItem("user", JSON.stringify(userForAuth));
+            updateUser(userForAuth);
+            lastUpdatedProfileId.current = profileData._id;
+        }
+    }, [profileData]);
 
     const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         if (e.target.files?.[0]) {
