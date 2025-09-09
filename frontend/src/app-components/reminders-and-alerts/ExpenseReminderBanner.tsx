@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Bell } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/hooks/use-profile";
+import { hasReminderTimePassed, getUserTimezone } from "@/utils/timezoneUtils";
 
 interface ExpenseReminderBannerProps {
     settings?: {
@@ -24,25 +25,15 @@ export function ExpenseReminderBanner({ settings }: ExpenseReminderBannerProps) 
     const [dismissed, setDismissed] = useState<boolean>(false);
 
     useEffect(() => {
-        // Check if dismissed for today
-        const today: string = new Date().toISOString().slice(0, 10);
-        if (localStorage.getItem(`expense-reminder-dismissed-${today}`)) {
-            setDismissed(true);
-            return;
-        }
+        // Get user's timezone from profile or fallback to browser timezone
+        const userTimezone = user?.timezone || getUserTimezone();
+
         let interval: NodeJS.Timeout | undefined;
         const checkReminder = () => {
             if (effectiveSettings.expenseReminders && effectiveSettings.expenseReminderTime) {
-                const now: Date = new Date();
-                const [h, m]: string[] = effectiveSettings.expenseReminderTime.split(":");
-                const nowMinutes: number = now.getHours() * 60 + now.getMinutes();
-                const reminderMinutes: number = Number(h) * 60 + Number(m);
-
-                if (nowMinutes >= reminderMinutes) {
-                    setShow(true);
-                } else {
-                    setShow(false);
-                }
+                // Use timezone-aware reminder check
+                const shouldShow = hasReminderTimePassed(effectiveSettings.expenseReminderTime, userTimezone);
+                setShow(shouldShow);
             } else {
                 setShow(false);
             }
@@ -52,12 +43,9 @@ export function ExpenseReminderBanner({ settings }: ExpenseReminderBannerProps) 
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [effectiveSettings.expenseReminders, effectiveSettings.expenseReminderTime]);
+    }, [effectiveSettings.expenseReminders, effectiveSettings.expenseReminderTime, user?.timezone]);
 
     const handleClose = () => {
-        setShow(false);
-        const today: string = new Date().toISOString().slice(0, 10);
-        localStorage.setItem(`expense-reminder-dismissed-${today}`, "1");
         setDismissed(true);
     };
 

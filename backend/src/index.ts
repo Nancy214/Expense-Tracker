@@ -13,6 +13,8 @@ import currencyRoutes from "./routes/currency.routes";
 import cron from "node-cron";
 import { TransactionModel } from "./models/transaction.model";
 import { TransactionOrBillDocument } from "./types/transactions";
+import { User } from "./models/user.model";
+import { getTodayInTimezone } from "./utils/timezoneUtils";
 
 dotenv.config();
 
@@ -62,28 +64,58 @@ function getToday() {
     return now.toISOString().slice(0, 10);
 }
 
-cron.schedule("0 0 * * *", async () => {
-    // Recurring Expenses only
-    const recurringExpenses: TransactionOrBillDocument[] = await TransactionModel.find({ isRecurring: true });
-    const today: string = getToday();
+// Timezone-aware cron job that runs every hour to check for users in different timezones
+cron.schedule("0 * * * *", async () => {
+    try {
+        // Get all users with their timezones
+        const users = await User.find({ timezone: { $exists: true, $ne: null } });
 
-    for (const template of recurringExpenses) {
-        // Check if an instance for today exists
-        const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
-            templateId: template._id,
-            date: today,
-        });
-        if (!exists) {
-            await TransactionModel.create<TransactionOrBillDocument>({
-                ...template.toObject(),
-                _id: undefined,
-                date: today,
-                templateId: template._id,
-                isRecurring: false,
-            });
+        // Get all recurring expenses
+        const recurringExpenses: TransactionOrBillDocument[] = await TransactionModel.find({ isRecurring: true });
+
+        // Group expenses by user
+        const expensesByUser = new Map<string, TransactionOrBillDocument[]>();
+        for (const expense of recurringExpenses) {
+            if (expense.userId) {
+                const userId = expense.userId.toString();
+                if (!expensesByUser.has(userId)) {
+                    expensesByUser.set(userId, []);
+                }
+                expensesByUser.get(userId)!.push(expense);
+            }
         }
+
+        // Process each user's expenses based on their timezone
+        for (const user of users) {
+            const userTimezone = user.timezone || "UTC";
+            const todayInUserTimezone = getTodayInTimezone(userTimezone);
+            const userExpenses = expensesByUser.get(user._id.toString()) || [];
+
+            for (const template of userExpenses) {
+                // Check if an instance for today exists in user's timezone
+                const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
+                    templateId: template._id,
+                    date: todayInUserTimezone,
+                    userId: user._id,
+                });
+
+                if (!exists) {
+                    await TransactionModel.create<TransactionOrBillDocument>({
+                        ...template.toObject(),
+                        _id: undefined,
+                        date: todayInUserTimezone,
+                        templateId: template._id,
+                        isRecurring: false,
+                        userId: user._id,
+                    });
+                }
+            }
+        }
+
+        console.log(`Recurring expenses processed for ${users.length} users at ${new Date().toISOString()}`);
+    } catch (error) {
+        console.error("Error processing recurring expenses:", error);
     }
-    //console.log("Recurring expenses processed for", today);
 });
 
 // Helper to get next date for a given frequency
