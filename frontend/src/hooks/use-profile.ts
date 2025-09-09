@@ -172,7 +172,6 @@ export function useProfileMutations(): ProfileMutationsReturn {
                 description: "Profile updated successfully",
             });
 
-            console.log("data", data);
             // Convert ProfileResponse to User type for auth context
             const userForAuth: User = {
                 id: data._id,
@@ -336,7 +335,6 @@ export function useProfileForm(): ProfileFormReturn {
 
     const onSubmit = async (data: ProfileFormData): Promise<void> => {
         setError("");
-        console.log("data", data);
 
         // Check if any changes were made
         const hasChanges: boolean =
@@ -349,11 +347,6 @@ export function useProfileForm(): ProfileFormReturn {
             data.timezone !== currentProfileData?.timezone ||
             data.profilePicture instanceof File ||
             photoRemoved;
-
-        console.log(currentProfileData?.timezone);
-        console.log(data.timezone);
-
-        console.log("hasChanges", hasChanges);
 
         if (!hasChanges) {
             toast({

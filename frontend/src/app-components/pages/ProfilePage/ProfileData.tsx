@@ -146,7 +146,7 @@ const ProfileData: React.FC = () => {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="flex items-center justify-center p-6">
+                    <div className="flex items-center justify-center">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                             <p className="text-sm text-muted-foreground">Loading profile data...</p>
@@ -175,7 +175,7 @@ const ProfileData: React.FC = () => {
                     Personal Information
                 </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-2">
                 {/* Profile Picture */}
                 <div className="flex items-center gap-4">
                     <Avatar className="h-20 w-20">
@@ -242,7 +242,7 @@ const ProfileData: React.FC = () => {
 
                 {/* Basic Information */}
                 <FormProvider {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <form onSubmit={form.handleSubmit(onSubmit)}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <InputField name="name" label="Name" maxLength={100} disabled={!isEditing} required />
                             <InputField
@@ -336,7 +336,7 @@ const ProfileData: React.FC = () => {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 mt-4">
                             {isEditing ? (
                                 <>
                                     <Button
@@ -353,15 +353,6 @@ const ProfileData: React.FC = () => {
                                 </>
                             ) : null}
                         </div>
-
-                        {/* Debug info - remove this after fixing */}
-                        {isEditing && process.env.NODE_ENV === "development" && (
-                            <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
-                                <div>Form Valid: {form.formState.isValid ? "Yes" : "No"}</div>
-                                <div>Form Errors: {JSON.stringify(form.formState.errors, null, 2)}</div>
-                                <div>Form Values: {JSON.stringify(form.watch(), null, 2)}</div>
-                            </div>
-                        )}
                     </form>
                 </FormProvider>
 
@@ -370,7 +361,7 @@ const ProfileData: React.FC = () => {
                     <div className="flex gap-2">
                         <button
                             type="button"
-                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
+                            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4"
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
