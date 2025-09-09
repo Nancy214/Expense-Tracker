@@ -15,8 +15,13 @@ const ProfileData: React.FC = () => {
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
 
     // Extract currencies and countries from the query data
-    const currencies = countryTimezoneData?.map((item: CountryData) => item.currency) || [];
-    const countryList = countryTimezoneData?.map((item: CountryData) => item.country) || [];
+    const currencies = Array.isArray(countryTimezoneData)
+        ? countryTimezoneData.map((item: CountryData) => item.currency)
+        : [];
+    const countryList = Array.isArray(countryTimezoneData)
+        ? countryTimezoneData.map((item: CountryData) => item.country)
+        : [];
+
     const {
         form,
         isEditing,
@@ -70,20 +75,8 @@ const ProfileData: React.FC = () => {
     // Get available currencies for the selected country
     const availableCurrencies = useMemo((): CurrencyOption[] => {
         if (!selectedCountry) {
-            // If no country is selected, return all currencies
-            return currencies
-                .filter((currency: { code: string; name: string }) => currency.code !== "")
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .reduce((acc: Array<{ code: string; name: string }>, currency) => {
-                    if (!acc.some((c: { code: string; name: string }) => c.code === currency.code)) {
-                        acc.push(currency);
-                    }
-                    return acc;
-                }, [])
-                .map((currency: { code: string; name: string }) => ({
-                    value: currency.code || "Not Defined",
-                    label: `${currency.name} (${currency.code})`,
-                }));
+            // If no country is selected, return empty array
+            return [];
         }
 
         // Return currencies for the selected country
@@ -124,6 +117,23 @@ const ProfileData: React.FC = () => {
             }
         }
     }, [selectedCountry, isEditing, form, getCurrenciesForCountry, getTimezonesForCountry]);
+
+    // Ensure timezone is displayed when user data is available and not editing
+    useEffect(() => {
+        if (user?.timezone && !isEditing && selectedCountry) {
+            // Check if the user's timezone is available for the selected country
+            const countryTimezones: string[] = getTimezonesForCountry(selectedCountry);
+            if (countryTimezones.includes(user.timezone)) {
+                form.setValue("timezone", user.timezone);
+            }
+        }
+    }, [user?.timezone, isEditing, selectedCountry, form, getTimezonesForCountry]);
+
+    // Watch form changes for validation
+    useEffect(() => {
+        const subscription = form.watch(() => {});
+        return () => subscription.unsubscribe();
+    }, [form]);
 
     // Don't render if user data is not available
     if (!user) {
@@ -232,26 +242,16 @@ const ProfileData: React.FC = () => {
 
                 {/* Basic Information */}
                 <FormProvider {...form}>
-                    <form
-                        onSubmit={(e) => {
-                            console.log("Form submit event triggered, isEditing:", isEditing);
-                            if (!isEditing) {
-                                console.log("Preventing form submission - not in editing mode");
-                                e.preventDefault();
-                                return;
-                            }
-                            form.handleSubmit(onSubmit)(e);
-                        }}
-                        className="space-y-6"
-                    >
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputField name="name" label="Name" maxLength={100} disabled={!isEditing} />
+                            <InputField name="name" label="Name" maxLength={100} disabled={!isEditing} required />
                             <InputField
                                 name="email"
                                 label="Email Address"
                                 type="email"
                                 maxLength={255}
                                 disabled={!isEditing}
+                                required
                             />
                             <InputField
                                 name="phoneNumber"
@@ -266,6 +266,7 @@ const ProfileData: React.FC = () => {
                                 label="Date of Birth"
                                 placeholder="Pick a date"
                                 disabled={!isEditing}
+                                required
                             />
                         </div>
 
@@ -274,29 +275,63 @@ const ProfileData: React.FC = () => {
                                 name="country"
                                 label="Country"
                                 placeholder="Select a country"
-                                options={
-                                    countryList.length > 0
-                                        ? countryList.map((country: string) => ({
-                                              value: country,
-                                              label: country,
-                                          }))
-                                        : []
-                                }
+                                options={(() => {
+                                    const baseOptions =
+                                        countryList.length > 0
+                                            ? countryList.map((country: string) => ({
+                                                  value: country,
+                                                  label: country,
+                                              }))
+                                            : [];
+                                    const currentCountry = form.watch("country");
+
+                                    if (
+                                        currentCountry &&
+                                        !baseOptions.some((option) => option.value === currentCountry)
+                                    ) {
+                                        return [...baseOptions, { value: currentCountry, label: currentCountry }];
+                                    }
+
+                                    return baseOptions;
+                                })()}
                                 disabled={!isEditing}
+                                required
                             />
                             <SelectField
                                 name="timezone"
                                 label="Timezone"
                                 placeholder={selectedCountry ? "Select timezone" : "Select a country first"}
-                                options={availableTimezones}
+                                options={(() => {
+                                    const baseOptions = availableTimezones;
+                                    const currentValue = form.watch("timezone");
+
+                                    // If the current value is not in the options, add it
+                                    if (currentValue && !baseOptions.some((option) => option.value === currentValue)) {
+                                        return [...baseOptions, { value: currentValue, label: currentValue }];
+                                    }
+
+                                    return baseOptions;
+                                })()}
                                 disabled={!isEditing || !selectedCountry}
+                                required
                             />
                             <SelectField
                                 name="currency"
                                 label="Currency"
                                 placeholder={selectedCountry ? "Select currency" : "Select a country first"}
-                                options={availableCurrencies}
+                                options={(() => {
+                                    const baseOptions = availableCurrencies;
+                                    const currentValue = form.watch("currency");
+
+                                    // If the current value is not in the options, add it
+                                    if (currentValue && !baseOptions.some((option) => option.value === currentValue)) {
+                                        return [...baseOptions, { value: currentValue, label: currentValue }];
+                                    }
+
+                                    return baseOptions;
+                                })()}
                                 disabled={!isEditing || !selectedCountry}
+                                required
                             />
                         </div>
 
@@ -304,7 +339,11 @@ const ProfileData: React.FC = () => {
                         <div className="flex gap-2">
                             {isEditing ? (
                                 <>
-                                    <Button type="submit" disabled={isLoading}>
+                                    <Button
+                                        type="submit"
+                                        disabled={isLoading || !form.formState.isValid}
+                                        title={!form.formState.isValid ? "Please fix validation errors" : ""}
+                                    >
                                         <Save className="h-4 w-4 mr-2" />
                                         {isLoading ? "Saving..." : "Save Changes"}
                                     </Button>
@@ -314,6 +353,15 @@ const ProfileData: React.FC = () => {
                                 </>
                             ) : null}
                         </div>
+
+                        {/* Debug info - remove this after fixing */}
+                        {isEditing && process.env.NODE_ENV === "development" && (
+                            <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
+                                <div>Form Valid: {form.formState.isValid ? "Yes" : "No"}</div>
+                                <div>Form Errors: {JSON.stringify(form.formState.errors, null, 2)}</div>
+                                <div>Form Values: {JSON.stringify(form.watch(), null, 2)}</div>
+                            </div>
+                        )}
                     </form>
                 </FormProvider>
 

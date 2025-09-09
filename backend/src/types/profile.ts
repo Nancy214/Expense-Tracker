@@ -46,8 +46,13 @@ export interface SettingsResponse {
 
 // Country timezone currency response interface
 export interface CountryTimezoneCurrencyResponse {
+    _id: string;
     country: string;
-    currency: Record<string, unknown>;
+    currency: {
+        code: string;
+        symbol: string;
+        name: string;
+    };
     timezones: string[];
 }
 

@@ -59,10 +59,16 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        const settingsDoc: SettingsDocument | null = await Settings.findById(userId);
+        let settingsDoc: SettingsDocument | null = await Settings.findById(userId);
         if (!settingsDoc) {
-            res.status(404).json({ message: "Settings not found" });
-            return;
+            const defaultSettings: DefaultSettings = {
+                userId,
+                monthlyReports: false,
+                expenseReminders: false,
+                billsAndBudgetsAlert: false,
+                expenseReminderTime: "18:00",
+            };
+            settingsDoc = await Settings.create(defaultSettings);
         }
 
         // Generate pre-signed URL for profile picture if it exists
@@ -383,11 +389,14 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
 export const getCountryTimezoneCurrency = async (req: Request, res: Response): Promise<void> => {
     try {
         const countryTimezoneCurrency = await CountryTimezoneCurrency.find().sort({ country: 1 });
+
         const result: CountryTimezoneCurrencyResponse[] = countryTimezoneCurrency.map((item) => ({
+            _id: item._id.toString(),
             country: item.country,
             currency: item.currency,
             timezones: item.timezones,
         }));
+
         res.json(result);
     } catch (error: unknown) {
         console.error("Error fetching country timezone currency:", error);

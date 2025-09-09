@@ -26,14 +26,17 @@ const nameValidation = z
 const phoneValidation = z
     .string()
     .max(MAX_PHONE_LENGTH, `Phone number must be less than ${MAX_PHONE_LENGTH} characters`)
-    .regex(/^[\+]?[1-9][\d]{0,15}$/, "Please enter a valid phone number")
+    .regex(/^[\+]?[0-9][\d]{0,15}$/, "Please enter a valid phone number")
     .optional();
 
 const dateOfBirthValidation = z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
+    .min(1, "Birth date is required")
+    .regex(/^\d{1,2}\/\d{1,2}\/\d{4}$/, "Date must be in DD/MM/YYYY format")
     .refine((date) => {
-        const birthDate = new Date(date);
+        // Parse DD/MM/YYYY format correctly
+        const [day, month, year] = date.split("/").map(Number);
+        const birthDate = new Date(year, month - 1, day); // month is 0-indexed
         const today = new Date();
         const age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -44,11 +47,12 @@ const dateOfBirthValidation = z
         return age >= 13;
     }, "You must be at least 13 years old")
     .refine((date) => {
-        const birthDate = new Date(date);
+        // Parse DD/MM/YYYY format correctly
+        const [day, month, year] = date.split("/").map(Number);
+        const birthDate = new Date(year, month - 1, day); // month is 0-indexed
         const today = new Date();
         return birthDate <= today;
-    }, "Birth date cannot be in the future")
-    .optional();
+    }, "Birth date cannot be in the future");
 
 const profilePictureValidation = z
     .union([
@@ -62,34 +66,35 @@ const profilePictureValidation = z
                 (file) => VALID_FILE_TYPES.includes(file.type as any),
                 `File type must be one of: ${VALID_FILE_TYPES.join(", ")}`
             ),
-        z.string().url("Profile picture must be a valid URL").optional(),
+        z.string().url("Profile picture must be of valid image type and size").optional(),
+        z.literal(""), // Allow empty string
     ])
     .optional();
 
 const currencyValidation = z
     .string()
-    .min(3, "Currency code must be at least 3 characters")
-    .max(3, "Currency code must be exactly 3 characters")
-    .regex(/^[A-Z]{3}$/, "Currency code must be 3 uppercase letters")
-    .optional();
+    .min(1, "Currency is required")
+    .regex(/^[A-Z]{3}$/, "Choose a valid currency");
 
 const countryValidation = z
     .string()
     .min(1, "Country is required")
-    .max(100, "Country name must be less than 100 characters")
-    .regex(/^[a-zA-Z\s'-]+$/, "Country name can only contain letters, spaces, hyphens, and apostrophes")
-    .optional();
+    .regex(/^[a-zA-Z\s'-]+$/, "Choose a valid country");
 
 const timezoneValidation = z
     .string()
     .min(1, "Timezone is required")
-    .regex(/^[a-zA-Z_]+\/[a-zA-Z_]+$/, "Timezone must be in format 'Region/City'")
-    .optional();
+    .refine((timezone) => {
+        // Accept both UTC offset format (UTC+04:00) and Region/City format (Asia/Dubai)
+        const utcOffsetRegex = /^UTC[+-]\d{2}:\d{2}$/;
+        const regionCityRegex = /^[a-zA-Z_]+\/[a-zA-Z_]+$/;
+        return utcOffsetRegex.test(timezone) || regionCityRegex.test(timezone);
+    }, "Choose a valid timezone");
 
 // Enhanced profile schema with comprehensive validation
 export const profileSchema = z.object({
-    name: nameValidation.optional(),
-    email: emailValidation.optional(),
+    name: nameValidation,
+    email: emailValidation,
     profilePicture: profilePictureValidation,
     phoneNumber: phoneValidation,
     dateOfBirth: dateOfBirthValidation,
@@ -156,15 +161,19 @@ export const validateProfilePicture = (file: File): boolean => {
 };
 
 export const validatePhoneNumber = (phone: string): boolean => {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    const phoneRegex = /^[\+]?[0-9][\d]{0,15}$/;
     return phoneRegex.test(phone) && phone.length <= MAX_PHONE_LENGTH;
 };
 
 export const validateDateOfBirth = (date: string): boolean => {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!date || date.trim() === "") return false;
+
+    const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
     if (!dateRegex.test(date)) return false;
 
-    const birthDate = new Date(date);
+    // Parse DD/MM/YYYY format correctly
+    const [day, month, year] = date.split("/").map(Number);
+    const birthDate = new Date(year, month - 1, day); // month is 0-indexed
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -175,11 +184,16 @@ export const validateDateOfBirth = (date: string): boolean => {
 };
 
 export const validateCurrencyCode = (currency: string): boolean => {
-    return /^[A-Z]{3}$/.test(currency);
+    return Boolean(currency && currency.trim() !== "" && /^[A-Z]{3}$/.test(currency));
 };
 
 export const validateTimezone = (timezone: string): boolean => {
-    return /^[a-zA-Z_]+\/[a-zA-Z_]+$/.test(timezone);
+    if (!timezone || timezone.trim() === "") return false;
+
+    // Accept both UTC offset format (UTC+04:00) and Region/City format (Asia/Dubai)
+    const utcOffsetRegex = /^UTC[+-]\d{2}:\d{2}$/;
+    const regionCityRegex = /^[a-zA-Z_]+\/[a-zA-Z_]+$/;
+    return utcOffsetRegex.test(timezone) || regionCityRegex.test(timezone);
 };
 
 // Default values with proper typing
@@ -202,5 +216,5 @@ export const PROFILE_CONSTANTS = {
     MAX_EMAIL_LENGTH,
     MAX_PHONE_LENGTH,
     MIN_AGE: 13,
-    DATE_FORMAT: "YYYY-MM-DD",
+    DATE_FORMAT: "DD/MM/YYYY",
 } as const;

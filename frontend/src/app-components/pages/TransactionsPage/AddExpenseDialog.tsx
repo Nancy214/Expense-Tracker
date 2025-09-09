@@ -69,11 +69,12 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
 
     // Extract currency options from the cached data
-    const currencyOptions: CurrencyOption[] =
-        countryTimezoneData?.map((item) => ({
-            value: item.currency.code,
-            label: item.currency.code,
-        })) || [];
+    const currencyOptions: CurrencyOption[] = Array.isArray(countryTimezoneData)
+        ? countryTimezoneData.map((item) => ({
+              value: item.currency.code,
+              label: item.currency.code,
+          }))
+        : [];
 
     useEffect(() => {
         if (currency) {

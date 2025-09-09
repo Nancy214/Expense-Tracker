@@ -16,8 +16,11 @@ const router = express.Router();
 // All routes require authentication
 //router.use(authenticateToken);
 
+// Country timezone currency route (must come before /:userId to avoid route conflict)
+router.get("/country-timezone-currency", getCountryTimezoneCurrency as RequestHandler);
+
 // Get user profile
-router.get("/", authenticateToken as RequestHandler, getProfile as RequestHandler);
+router.get("/:userId", authenticateToken as RequestHandler, getProfile as RequestHandler);
 
 // Update profile information
 router.put("/", authenticateToken as RequestHandler, upload.single("profilePicture"), updateProfile as RequestHandler);
@@ -38,5 +41,4 @@ router.get("/settings/:userId", authenticateToken as RequestHandler, getSettings
 // Delete profile picture
 router.delete("/picture", authenticateToken as RequestHandler, deleteProfilePicture as RequestHandler);
 
-router.get("/country-timezone-currency", getCountryTimezoneCurrency as RequestHandler);
 export default router;

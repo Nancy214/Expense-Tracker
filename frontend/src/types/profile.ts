@@ -33,9 +33,11 @@ export interface ProfileResponse {
 
 // New types for enhanced profile functionality
 export interface CountryData {
+    _id: string;
     country: string;
     currency: {
         code: string;
+        symbol: string;
         name: string;
     };
     timezones: string[];

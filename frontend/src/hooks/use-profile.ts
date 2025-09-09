@@ -11,7 +11,6 @@ import {
     getCountryTimezoneCurrency,
     updateSettings,
     getSettings,
-    CountryTimezoneCurrency,
 } from "@/services/profile.service";
 import { profileSchema, ProfileFormData } from "@/schemas/profileSchema";
 import { SettingsData, ProfileResponse, ProfileData } from "@/types/profile";
@@ -23,14 +22,23 @@ import { AxiosError } from "axios";
 // ============================================================================
 
 // API Response Types
-interface UpdateProfileResponse {
-    user: ProfileResponse;
-    message?: string;
+interface CountryTimezoneCurrencyResponse {
+    _id: string;
+    country: string;
+    currency: {
+        code: string;
+        symbol: string;
+        name: string;
+    };
+    timezones: string[];
+}
+
+interface DeleteProfilePictureResponse {
+    success: boolean;
+    message: string;
 }
 
 // Mutation Function Types
-type UpdateProfileMutationFn = (data: ProfileData) => Promise<UpdateProfileResponse>;
-type RemoveProfilePictureMutationFn = () => Promise<void>;
 
 // Utility Types
 type ProfileDataUnion = User | ProfileResponse | null;
@@ -41,8 +49,8 @@ type FileValidationResult = {
 
 // Hook Return Types
 interface ProfileMutationsReturn {
-    updateProfile: (data: ProfileData) => Promise<UpdateProfileResponse>;
-    removeProfilePicture: () => Promise<void>;
+    updateProfile: (data: ProfileData) => Promise<ProfileResponse>;
+    removeProfilePicture: () => Promise<DeleteProfilePictureResponse>;
     updateSettings: (variables: { settings: SettingsData; userId: string }) => Promise<SettingsData>;
     isUpdatingProfile: boolean;
     isRemovingPicture: boolean;
@@ -110,27 +118,27 @@ const PROFILE_QUERY_KEYS = {
 
 export function useProfile(): UseQueryResult<ProfileResponse, AxiosError> {
     const { isAuthenticated } = useAuth();
+    const { user } = useAuth();
+    const userId = user?.id;
 
     return useQuery<ProfileResponse, AxiosError>({
         queryKey: PROFILE_QUERY_KEYS.profile,
-        queryFn: getProfile,
+        queryFn: () => getProfile(userId || ""),
         staleTime: 0, // Always consider data stale to ensure fresh profile picture URLs
         gcTime: 5 * 60 * 1000, // Cache for 5 minutes
         refetchOnWindowFocus: true, // Refetch on window focus to get fresh profile picture URLs
-        enabled: isAuthenticated, // Only run the query if authenticated
+        enabled: isAuthenticated && !!userId, // Only run the query if authenticated and userId exists
     });
 }
 
-export function useCountryTimezoneCurrency(): UseQueryResult<CountryTimezoneCurrency[], AxiosError> {
-    const { isAuthenticated } = useAuth();
-
-    return useQuery<CountryTimezoneCurrency[], AxiosError>({
+export function useCountryTimezoneCurrency(): UseQueryResult<CountryTimezoneCurrencyResponse[], AxiosError> {
+    return useQuery<CountryTimezoneCurrencyResponse[], AxiosError>({
         queryKey: PROFILE_QUERY_KEYS.countryTimezoneCurrency,
         queryFn: getCountryTimezoneCurrency,
         staleTime: 30 * 60 * 1000, // Consider data fresh for 30 minutes (country data rarely changes)
         gcTime: 60 * 60 * 1000, // Cache for 1 hour
         refetchOnWindowFocus: false, // Don't refetch on window focus
-        enabled: isAuthenticated, // Only run the query if authenticated
+        enabled: true, // Always enabled since endpoint is now public
     });
 }
 
@@ -139,7 +147,7 @@ export function useSettings(userId: string): UseQueryResult<SettingsData, AxiosE
 
     return useQuery<SettingsData, AxiosError>({
         queryKey: PROFILE_QUERY_KEYS.settings(userId),
-        queryFn: () => getSettings(userId),
+        queryFn: () => getSettings(userId || ""),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false, // Don't refetch on window focus
@@ -156,29 +164,31 @@ export function useProfileMutations(): ProfileMutationsReturn {
     const { toast } = useToast();
     const { updateUser } = useAuth();
 
-    const updateProfileMutation = useMutation<UpdateProfileResponse, AxiosError, ProfileData>({
-        mutationFn: updateProfile as UpdateProfileMutationFn,
-        onSuccess: (data: UpdateProfileResponse) => {
+    const updateProfileMutation = useMutation<ProfileResponse, AxiosError, ProfileData>({
+        mutationFn: updateProfile,
+        onSuccess: (data: ProfileResponse) => {
             toast({
                 title: "Success",
                 description: "Profile updated successfully",
             });
 
-            // Update local storage and auth context
-            localStorage.setItem("user", JSON.stringify(data.user));
+            console.log("data", data);
             // Convert ProfileResponse to User type for auth context
             const userForAuth: User = {
-                id: data.user._id,
-                email: data.user.email,
-                name: data.user.name,
-                profilePicture: data.user.profilePicture,
-                phoneNumber: data.user.phoneNumber,
-                dateOfBirth: data.user.dateOfBirth,
-                currency: data.user.currency,
-                country: data.user.country,
-                timezone: data.user.timezone,
-                settings: data.user.settings,
+                id: data._id,
+                email: data.email,
+                name: data.name,
+                profilePicture: data.profilePicture,
+                phoneNumber: data.phoneNumber,
+                dateOfBirth: data.dateOfBirth,
+                currency: data.currency,
+                country: data.country,
+                timezone: data.timezone,
+                settings: data.settings,
             };
+
+            // Update local storage and auth context
+            localStorage.setItem("user", JSON.stringify(userForAuth));
             updateUser(userForAuth);
 
             // Invalidate and refetch profile query to ensure fresh data
@@ -197,8 +207,8 @@ export function useProfileMutations(): ProfileMutationsReturn {
         },
     });
 
-    const removeProfilePictureMutation = useMutation<void, AxiosError, void>({
-        mutationFn: removeProfilePicture as RemoveProfilePictureMutationFn,
+    const removeProfilePictureMutation = useMutation<DeleteProfilePictureResponse, AxiosError, void>({
+        mutationFn: removeProfilePicture,
         onSuccess: () => {
             toast({
                 title: "Success",
@@ -282,7 +292,7 @@ export function useProfileForm(): ProfileFormReturn {
             profilePicture: currentProfileData?.profilePicture || "",
             phoneNumber: currentProfileData?.phoneNumber || "",
             dateOfBirth: currentProfileData?.dateOfBirth || "",
-            currency: currentProfileData?.currency || "INR",
+            currency: currentProfileData?.currency || "",
             country: currentProfileData?.country || "",
             timezone: currentProfileData?.timezone || "",
         },
@@ -297,7 +307,7 @@ export function useProfileForm(): ProfileFormReturn {
                 profilePicture: currentProfileData.profilePicture || "",
                 phoneNumber: currentProfileData.phoneNumber || "",
                 dateOfBirth: currentProfileData.dateOfBirth || "",
-                currency: currentProfileData.currency || "INR",
+                currency: currentProfileData.currency || "",
                 country: currentProfileData.country || "",
                 timezone: currentProfileData.timezone || "",
             });
@@ -326,6 +336,7 @@ export function useProfileForm(): ProfileFormReturn {
 
     const onSubmit = async (data: ProfileFormData): Promise<void> => {
         setError("");
+        console.log("data", data);
 
         // Check if any changes were made
         const hasChanges: boolean =
@@ -338,6 +349,11 @@ export function useProfileForm(): ProfileFormReturn {
             data.timezone !== currentProfileData?.timezone ||
             data.profilePicture instanceof File ||
             photoRemoved;
+
+        console.log(currentProfileData?.timezone);
+        console.log(data.timezone);
+
+        console.log("hasChanges", hasChanges);
 
         if (!hasChanges) {
             toast({
@@ -356,21 +372,21 @@ export function useProfileForm(): ProfileFormReturn {
                 await removeProfilePicture();
             }
 
-            const response: UpdateProfileResponse = await updateProfile(data);
+            const response: ProfileResponse = await updateProfile(data);
             setIsEditing(false);
             setPhotoRemoved(false);
 
             // Reset form with the updated data from the response
-            if (response && response.user) {
+            if (response) {
                 form.reset({
-                    name: response.user.name || "",
-                    email: response.user.email || "",
-                    profilePicture: response.user.profilePicture || "",
-                    phoneNumber: response.user.phoneNumber || "",
-                    dateOfBirth: response.user.dateOfBirth || "",
-                    currency: response.user.currency || "INR",
-                    country: response.user.country || "",
-                    timezone: response.user.timezone || "",
+                    name: response.name || "",
+                    email: response.email || "",
+                    profilePicture: response.profilePicture || "",
+                    phoneNumber: response.phoneNumber || "",
+                    dateOfBirth: response.dateOfBirth || "",
+                    currency: response.currency || "",
+                    country: response.country || "",
+                    timezone: response.timezone || "",
                 });
             }
 
@@ -397,7 +413,7 @@ export function useProfileForm(): ProfileFormReturn {
             profilePicture: currentProfileData?.profilePicture || "",
             phoneNumber: currentProfileData?.phoneNumber || "",
             dateOfBirth: currentProfileData?.dateOfBirth || "",
-            currency: currentProfileData?.currency || "INR",
+            currency: currentProfileData?.currency || "",
             country: currentProfileData?.country || "",
             timezone: currentProfileData?.timezone || "",
         });

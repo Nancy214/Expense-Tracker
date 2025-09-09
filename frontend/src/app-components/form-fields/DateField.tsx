@@ -88,6 +88,7 @@ export const DateField: React.FC<DateFieldProps> = ({
                         }}
                         disabled={disabled}
                         initialFocus
+                        captionLayout="dropdown"
                     />
                 </PopoverContent>
             </Popover>

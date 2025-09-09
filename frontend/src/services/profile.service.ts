@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import { ProfileData, ProfileResponse, SettingsData } from "@/types/profile";
-import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
+import { refreshAuthTokens } from "@/utils/authUtils";
 
 // API Response Types
 interface ApiResponse<T> {
@@ -43,6 +43,14 @@ const profileApi = axios.create({
     },
 });
 
+// Create a separate axios instance for public endpoints (no auth required)
+const publicApi = axios.create({
+    baseURL: API_URL,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
+
 // Add interceptor to include auth token
 profileApi.interceptors.request.use((config) => {
     const token = localStorage.getItem("accessToken");
@@ -71,9 +79,9 @@ profileApi.interceptors.response.use(
     }
 );
 
-export const getProfile = async (): Promise<ProfileResponse> => {
+export const getProfile = async (userId: string): Promise<ProfileResponse> => {
     try {
-        const response: AxiosResponse<ProfileApiResponse> = await profileApi.get("/");
+        const response: AxiosResponse<ProfileApiResponse> = await profileApi.get(`/${userId}`);
         return response.data.user;
     } catch (error) {
         console.error("Error fetching profile:", error);

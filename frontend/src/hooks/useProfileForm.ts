@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
@@ -6,13 +6,6 @@ import { updateProfile, removeProfilePicture } from "@/services/profile.service"
 import { profileSchema, ProfileFormData, validateProfilePicture } from "@/schemas/profileSchema";
 import { User } from "@/types/auth";
 import { ProfileResponse } from "@/types/profile";
-
-// Backend response type for updateProfile
-interface UpdateProfileResponse {
-    success: boolean;
-    message: string;
-    user: ProfileResponse;
-}
 
 // Return type interface for the hook
 interface UseProfileFormReturn {
@@ -38,16 +31,34 @@ export const useProfileForm = (): UseProfileFormReturn => {
 
     const form: UseFormReturn<ProfileFormData> = useForm<ProfileFormData>({
         resolver: zodResolver(profileSchema),
+        mode: "onChange", // Enable real-time validation
         defaultValues: {
             name: user?.name || "",
             email: user?.email || "",
             profilePicture: user?.profilePicture || "",
             phoneNumber: user?.phoneNumber || "",
             dateOfBirth: user?.dateOfBirth || "",
-            currency: user?.currency || "INR",
+            currency: user?.currency || "",
             country: user?.country || "",
+            timezone: user?.timezone || "",
         },
     });
+
+    // Reset form when user data changes
+    useEffect(() => {
+        if (user) {
+            form.reset({
+                name: user.name || "",
+                email: user.email || "",
+                profilePicture: user.profilePicture || "",
+                phoneNumber: user.phoneNumber || "",
+                dateOfBirth: user.dateOfBirth || "",
+                currency: user.currency || "",
+                country: user.country || "",
+                timezone: user.timezone || "",
+            });
+        }
+    }, [user, form]);
 
     const handleProfilePictureChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -78,30 +89,32 @@ export const useProfileForm = (): UseProfileFormReturn => {
                 if (photoRemoved) {
                     await removeProfilePicture();
                 }
+                console.log("data", data);
 
-                const updatedProfile: UpdateProfileResponse = await updateProfile(data);
+                const updatedProfile: ProfileResponse = await updateProfile(data);
                 form.reset({
-                    name: updatedProfile.user.name,
-                    email: updatedProfile.user.email,
-                    profilePicture: updatedProfile.user.profilePicture || "",
-                    phoneNumber: updatedProfile.user.phoneNumber || "",
-                    dateOfBirth: updatedProfile.user.dateOfBirth || "",
-                    currency: updatedProfile.user.currency || "INR",
-                    country: updatedProfile.user.country || "",
+                    name: user?.name || "",
+                    email: user?.email || "",
+                    profilePicture: user?.profilePicture || "",
+                    phoneNumber: user?.phoneNumber || "",
+                    dateOfBirth: user?.dateOfBirth || "",
+                    currency: user?.currency || "",
+                    country: user?.country || "",
+                    timezone: user?.timezone || "",
                 });
 
                 // Convert ProfileResponse to User type for AuthContext
                 const userForAuth: User = {
-                    id: updatedProfile.user._id,
-                    email: updatedProfile.user.email,
-                    name: updatedProfile.user.name,
-                    profilePicture: updatedProfile.user.profilePicture,
-                    phoneNumber: updatedProfile.user.phoneNumber,
-                    dateOfBirth: updatedProfile.user.dateOfBirth,
-                    currency: updatedProfile.user.currency,
-                    country: updatedProfile.user.country,
-                    timezone: updatedProfile.user.timezone,
-                    settings: updatedProfile.user.settings,
+                    id: updatedProfile._id,
+                    email: updatedProfile.email,
+                    name: updatedProfile.name,
+                    profilePicture: updatedProfile.profilePicture,
+                    phoneNumber: updatedProfile.phoneNumber,
+                    dateOfBirth: updatedProfile.dateOfBirth,
+                    currency: updatedProfile.currency,
+                    country: updatedProfile.country,
+                    timezone: updatedProfile.timezone,
+                    settings: updatedProfile.settings,
                 };
 
                 localStorage.setItem("user", JSON.stringify(userForAuth));
@@ -127,8 +140,9 @@ export const useProfileForm = (): UseProfileFormReturn => {
             profilePicture: user?.profilePicture || "",
             phoneNumber: user?.phoneNumber || "",
             dateOfBirth: user?.dateOfBirth || "",
-            currency: user?.currency || "INR",
+            currency: user?.currency || "",
             country: user?.country || "",
+            timezone: user?.timezone || "",
         });
         setPhotoRemoved(false);
         setIsEditing(false);
