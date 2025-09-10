@@ -6,7 +6,7 @@ import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { ExpenseReminderBanner } from "@/app-components/reminders-and-alerts/ExpenseReminderBanner";
 import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
 import { useBillsAndReminders, BillAlertsUI } from "@/app-components/reminders-and-alerts/BillAlert";
-import { useExpensesSelector } from "@/hooks/use-transactions";
+import { useExpensesSelector } from "@/hooks/use-analytics";
 import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useSettings } from "@/hooks/use-profile";

@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
     getExpenses,
     getAllTransactions,
-    getAllTransactionsForAnalytics,
     getTransactionSummary,
     createExpense,
     updateExpense,
@@ -21,9 +20,7 @@ import {
     TransactionSummary,
     PaginationInfo,
     TransactionResponse,
-    MonthlyStats,
 } from "@/types/transaction";
-import { parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 
 const QUERY_KEYS = {
@@ -71,10 +68,6 @@ interface ExpensesQueryResponse {
 interface AllTransactionsQueryResponse {
     transactions: TransactionWithId[];
     pagination: PaginationInfo | null;
-}
-
-interface AnalyticsQueryResponse {
-    transactions: TransactionWithId[];
 }
 
 // Query Hooks
@@ -141,32 +134,6 @@ export function useAllTransactions(
         transactions: query.data?.transactions ?? [],
         pagination: query.data?.pagination ?? null,
         invalidateAllTransactions: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.allTransactions }),
-    };
-}
-
-export function useAllTransactionsForAnalytics(): UseQueryResult<AnalyticsQueryResponse> & {
-    transactions: TransactionWithId[];
-    invalidateAnalytics: () => void;
-} {
-    const { isAuthenticated } = useAuth();
-    const queryClient = useQueryClient();
-
-    const query = useQuery<AnalyticsQueryResponse>({
-        queryKey: [...QUERY_KEYS.allTransactions, "analytics"],
-        ...DEFAULT_QUERY_CONFIG,
-        queryFn: async (): Promise<AnalyticsQueryResponse> => {
-            if (!isAuthenticated) return { transactions: [] };
-            const response = await getAllTransactionsForAnalytics();
-            return { transactions: response?.transactions || [] };
-        },
-        enabled: isAuthenticated,
-    });
-
-    return {
-        ...query,
-        transactions: query.data?.transactions ?? [],
-        invalidateAnalytics: () =>
-            queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.allTransactions, "analytics"] }),
     };
 }
 
@@ -386,132 +353,4 @@ export const useTransactionForm = ({
         handleCurrencyChange,
         handleRecurringToggle,
     };
-};
-
-// Derived Data Hook types
-interface ExpensesSelectorReturn {
-    expenses: TransactionWithId[];
-    isLoading: boolean;
-    invalidateExpenses: () => void;
-    monthlyStats: MonthlyStats;
-}
-
-// Derived Data Hook
-export function useExpensesSelector(): ExpensesSelectorReturn {
-    const { expenses, isLoading, invalidateExpenses } = useExpenses();
-    const queryClient = useQueryClient();
-
-    // Use analytics hook to get all transactions for accurate monthly stats
-    const { transactions: allTransactions, isLoading: analyticsLoading } = useAllTransactionsForAnalytics();
-
-    const monthlyStats = useMemo((): MonthlyStats => {
-        // Use all transactions for accurate monthly stats calculation
-        const currentMonthTransactions = allTransactions.filter((t: TransactionWithId) => {
-            // Include all transactions for stats calculation - both regular and recurring
-            // The backend should only return actual transactions, not templates
-
-            // Handle date conversion properly - dates come as ISO strings from API
-            let transactionDate: Date;
-            if (typeof t.date === "string") {
-                const dateStr = t.date as string;
-                // If it's an ISO string, parse it directly
-                if (dateStr.includes("T") || dateStr.includes("Z")) {
-                    transactionDate = new Date(dateStr);
-                } else {
-                    // If it's in display format, parse it
-                    transactionDate = parseFromDisplay(dateStr);
-                }
-            } else {
-                transactionDate = t.date as Date;
-            }
-
-            return isInCurrentMonth(transactionDate);
-        });
-
-        const totalIncome = currentMonthTransactions
-            .filter((t: TransactionWithId) => t.type === "income")
-            .reduce((sum: number, t: TransactionWithId) => sum + (t.amount || 0), 0);
-
-        const totalExpenses = currentMonthTransactions
-            .filter((t: TransactionWithId) => t.type === "expense")
-            .reduce((sum: number, t: TransactionWithId) => sum + (t.amount || 0), 0);
-
-        return {
-            totalIncome,
-            totalExpenses,
-            balance: totalIncome - totalExpenses,
-            transactionCount: currentMonthTransactions.length,
-        };
-    }, [allTransactions]);
-
-    const invalidateAllQueries = useCallback(() => {
-        invalidateExpenses();
-        // Also invalidate analytics queries
-        queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.allTransactions, "analytics"] });
-    }, [invalidateExpenses, queryClient]);
-
-    return {
-        expenses,
-        isLoading: isLoading || analyticsLoading,
-        invalidateExpenses: invalidateAllQueries,
-        monthlyStats,
-    };
-}
-
-// Heatmap data types
-interface HeatmapDataPoint {
-    date: string;
-    count: number;
-    amount: number;
-    category: string;
-}
-
-interface GroupedHeatmapData {
-    date: string;
-    count: number;
-    amount: number;
-    categories: Set<string>;
-}
-
-// Utility function for heatmap data
-export const transformExpensesToHeatmapData = (expenses: Transaction[]): HeatmapDataPoint[] => {
-    const groupedByDate = expenses.reduce((acc: Record<string, GroupedHeatmapData>, expense: Transaction) => {
-        let dateStr: string;
-        const expenseDate = expense.date as string | Date;
-
-        if (typeof expenseDate === "string") {
-            dateStr =
-                expenseDate.includes("T") || expenseDate.includes("Z")
-                    ? expenseDate.split("T")[0]
-                    : (() => {
-                          const [day, month, year] = expenseDate.split("/");
-                          return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-                      })();
-        } else {
-            dateStr =
-                expenseDate instanceof Date
-                    ? expenseDate.toISOString().split("T")[0]
-                    : new Date().toISOString().split("T")[0];
-        }
-
-        if (!acc[dateStr]) {
-            acc[dateStr] = { date: dateStr, count: 0, amount: 0, categories: new Set<string>() };
-        }
-
-        acc[dateStr].count++;
-        acc[dateStr].amount += expense.amount;
-        acc[dateStr].categories.add(expense.category || "Uncategorized");
-        return acc;
-    }, {} as Record<string, GroupedHeatmapData>);
-
-    return Object.values(groupedByDate)
-        .sort((a: GroupedHeatmapData, b: GroupedHeatmapData) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        .map(
-            (day: GroupedHeatmapData): HeatmapDataPoint => ({
-                date: day.date,
-                count: day.count,
-                amount: day.amount,
-                category: Array.from(day.categories).join(", "),
-            })
-        );
 };

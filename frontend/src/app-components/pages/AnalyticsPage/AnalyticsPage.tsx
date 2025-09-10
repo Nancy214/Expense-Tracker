@@ -2,12 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useExpenses, useAllTransactionsForAnalytics } from "@/hooks/use-transactions";
+import { useExpenses } from "@/hooks/use-transactions";
 import {
     useExpenseCategoryBreakdown,
     useBillsCategoryBreakdown,
     useIncomeExpenseSummary,
     useMonthlySavingsTrend,
+    useAllTransactionsForAnalytics,
     transformExpensesToHeatmapData,
 } from "@/hooks/use-analytics";
 import "react-calendar-heatmap/dist/styles.css";

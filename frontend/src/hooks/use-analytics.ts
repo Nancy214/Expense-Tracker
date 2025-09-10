@@ -1,28 +1,16 @@
-/**
- * Analytics Hooks
- *
- * This module provides React Query hooks for fetching analytics data with proper TypeScript typing.
- * It includes hooks for expense breakdowns, bills breakdowns, income/expense summaries,
- * monthly savings trends, and utility functions for data transformation.
- *
- * Features:
- * - Strongly typed API responses
- * - Proper error handling
- * - Query invalidation utilities
- * - Heatmap data transformation
- * - Comprehensive JSDoc documentation
- */
-
 import { useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
+import { useMemo, useCallback } from "react";
 import {
     getExpenseCategoryBreakdown,
     getBillsCategoryBreakdown,
     getIncomeExpenseSummary,
     getMonthlySavingsTrend,
 } from "@/services/analytics.service";
+import { getAllTransactionsForAnalytics } from "@/services/transaction.service";
 import { useAuth } from "@/context/AuthContext";
-import { Transaction } from "@/types/transaction";
+import { Transaction, TransactionWithId, MonthlyStats } from "@/types/transaction";
 import { ExpenseCategoryData, BillsCategoryData, HeatmapData } from "@/types/analytics";
+import { parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
 
 // Type definitions for analytics API responses
 export interface ExpenseBreakdownResponse {
@@ -125,10 +113,6 @@ export const ANALYTICS_QUERY_KEYS = {
 // Type for analytics query keys
 export type AnalyticsQueryKey = (typeof ANALYTICS_QUERY_KEYS)[keyof typeof ANALYTICS_QUERY_KEYS];
 
-/**
- * Hook to fetch expense category breakdown data for analytics
- * @returns React Query result with expense breakdown data
- */
 export function useExpenseCategoryBreakdown(): UseQueryResult<ExpenseBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
@@ -142,10 +126,6 @@ export function useExpenseCategoryBreakdown(): UseQueryResult<ExpenseBreakdownRe
     });
 }
 
-/**
- * Hook to fetch bills category breakdown data for analytics
- * @returns React Query result with bills breakdown data
- */
 export function useBillsCategoryBreakdown(): UseQueryResult<BillsBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
@@ -159,10 +139,6 @@ export function useBillsCategoryBreakdown(): UseQueryResult<BillsBreakdownRespon
     });
 }
 
-/**
- * Hook to fetch income and expense summary data for analytics
- * @returns React Query result with income/expense summary data
- */
 export function useIncomeExpenseSummary(): UseQueryResult<IncomeExpenseSummaryResponse, Error> {
     const { isAuthenticated } = useAuth();
 
@@ -176,10 +152,6 @@ export function useIncomeExpenseSummary(): UseQueryResult<IncomeExpenseSummaryRe
     });
 }
 
-/**
- * Hook to fetch monthly savings trend data for analytics
- * @returns React Query result with monthly savings trend data
- */
 export function useMonthlySavingsTrend(): UseQueryResult<MonthlySavingsTrendResponse, Error> {
     const { isAuthenticated } = useAuth();
 
@@ -212,11 +184,6 @@ const isValidDateString = (dateStr: string): boolean => {
     return !isNaN(date.getTime());
 };
 
-/**
- * Utility function to transform expenses for heatmap visualization
- * @param expenses - Array of transaction data
- * @returns Array of heatmap data with date, count, amount, and category information
- */
 export const transformExpensesToHeatmapData = (expenses: Transaction[]): HeatmapData[] => {
     const groupedByDate = expenses.reduce((acc: Record<string, GroupedExpenseData>, expense: Transaction) => {
         let dateStr: string;
@@ -294,10 +261,6 @@ export interface AnalyticsInvalidationReturn {
     invalidateMonthlySavingsTrend: () => Promise<void>;
 }
 
-/**
- * Hook to invalidate analytics queries
- * @returns Object with functions to invalidate specific analytics queries
- */
 export function useInvalidateAnalytics(): AnalyticsInvalidationReturn {
     const queryClient = useQueryClient();
 
@@ -342,5 +305,100 @@ export function useInvalidateAnalytics(): AnalyticsInvalidationReturn {
         invalidateBillsBreakdown,
         invalidateIncomeExpenseSummary,
         invalidateMonthlySavingsTrend,
+    };
+}
+
+export function useAllTransactionsForAnalytics(): UseQueryResult<{ transactions: TransactionWithId[] }> & {
+    transactions: TransactionWithId[];
+    invalidateAnalytics: () => void;
+} {
+    const { isAuthenticated } = useAuth();
+    const queryClient = useQueryClient();
+
+    const query = useQuery<{ transactions: TransactionWithId[] }>({
+        queryKey: ["all-transactions", "analytics"],
+        staleTime: 30 * 1000,
+        gcTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        queryFn: async (): Promise<{ transactions: TransactionWithId[] }> => {
+            if (!isAuthenticated) return { transactions: [] };
+            const response = await getAllTransactionsForAnalytics();
+            return { transactions: response?.transactions || [] };
+        },
+        enabled: isAuthenticated,
+    });
+
+    return {
+        ...query,
+        transactions: query.data?.transactions ?? [],
+        invalidateAnalytics: () => queryClient.invalidateQueries({ queryKey: ["all-transactions", "analytics"] }),
+    };
+}
+
+// Derived Data Hook types
+interface ExpensesSelectorReturn {
+    expenses: TransactionWithId[];
+    isLoading: boolean;
+    invalidateExpenses: () => void;
+    monthlyStats: MonthlyStats;
+}
+
+export function useExpensesSelector(): ExpensesSelectorReturn {
+    const { isAuthenticated } = useAuth();
+    const queryClient = useQueryClient();
+
+    // Use analytics hook to get all transactions for accurate monthly stats
+    const { transactions: allTransactions, isLoading: analyticsLoading } = useAllTransactionsForAnalytics();
+
+    const monthlyStats = useMemo((): MonthlyStats => {
+        // Use all transactions for accurate monthly stats calculation
+        const currentMonthTransactions = allTransactions.filter((t: TransactionWithId) => {
+            // Include all transactions for stats calculation - both regular and recurring
+            // The backend should only return actual transactions, not templates
+
+            // Handle date conversion properly - dates come as ISO strings from API
+            let transactionDate: Date;
+            if (typeof t.date === "string") {
+                const dateStr = t.date as string;
+                // If it's an ISO string, parse it directly
+                if (dateStr.includes("T") || dateStr.includes("Z")) {
+                    transactionDate = new Date(dateStr);
+                } else {
+                    // If it's in display format, parse it
+                    transactionDate = parseFromDisplay(dateStr);
+                }
+            } else {
+                transactionDate = t.date as Date;
+            }
+
+            return isInCurrentMonth(transactionDate);
+        });
+
+        const totalIncome = currentMonthTransactions
+            .filter((t: TransactionWithId) => t.type === "income")
+            .reduce((sum: number, t: TransactionWithId) => sum + (t.amount || 0), 0);
+
+        const totalExpenses = currentMonthTransactions
+            .filter((t: TransactionWithId) => t.type === "expense")
+            .reduce((sum: number, t: TransactionWithId) => sum + (t.amount || 0), 0);
+
+        return {
+            totalIncome,
+            totalExpenses,
+            balance: totalIncome - totalExpenses,
+            transactionCount: currentMonthTransactions.length,
+        };
+    }, [allTransactions]);
+
+    const invalidateAllQueries = useCallback(() => {
+        // Invalidate analytics queries
+        queryClient.invalidateQueries({ queryKey: ["all-transactions", "analytics"] });
+    }, [queryClient]);
+
+    return {
+        expenses: allTransactions,
+        isLoading: analyticsLoading,
+        invalidateExpenses: invalidateAllQueries,
+        monthlyStats,
     };
 }

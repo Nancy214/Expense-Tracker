@@ -1,4 +1,4 @@
-import { useExpensesSelector } from "@/hooks/use-transactions";
+import { useExpensesSelector } from "@/hooks/use-analytics";
 import { useBillsSelector } from "@/hooks/use-bills";
 import { useBudgets } from "@/hooks/use-budgets";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
