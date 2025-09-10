@@ -153,19 +153,6 @@ export const hasReminderTimePassed = (reminderTime: string, userTimezone: string
         const hasPassed = currentTotal >= reminderTotal;
 
         // Temporary debug logging
-        console.log("Reminder Debug:", {
-            userTimezone,
-            ianaTimezone,
-            currentTimeInTimezone,
-            reminderTime,
-            currentTotal,
-            reminderTotal,
-            hasPassed,
-            currentHour,
-            currentMinute,
-            reminderHour,
-            reminderMinute,
-        });
 
         return hasPassed;
     } catch (error) {
