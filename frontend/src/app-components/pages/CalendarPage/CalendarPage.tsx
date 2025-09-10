@@ -7,7 +7,7 @@ import { useExpenses } from "@/hooks/use-transactions";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { TransactionResponse } from "@/types/transaction";
+import { TransactionResponse, TransactionWithId } from "@/types/transaction";
 import { CalendarEvent } from "@/types/calendar";
 
 // Separate color mappings for expense and income categories
@@ -95,7 +95,7 @@ const CalendarPage: React.FC = () => {
                 font-size: 1.2rem !important;
             }
             .fc-toolbar-chunk {
-                padding: 0 0.5rem !important;
+                
             }
             .fc-col-header-cell {
                 font-weight: 700 !important;
@@ -116,7 +116,7 @@ const CalendarPage: React.FC = () => {
     }, []);
 
     // Convert expenses to FullCalendar events
-    const calendarEvents: CalendarEvent[] = expenses.map((expense: TransactionResponse) => {
+    const calendarEvents: CalendarEvent[] = expenses.map((expense: TransactionWithId) => {
         const currency: string = expense.currency || "INR";
         const currencySymbols: { [key: string]: string } = {
             INR: "₹",

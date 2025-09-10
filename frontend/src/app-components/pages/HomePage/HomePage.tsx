@@ -28,6 +28,11 @@ const HomePage = () => {
     );
 
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
+    const [dismissedExpenseReminder, setDismissedExpenseReminder] = useState<{
+        time: string;
+        date: string;
+        timezone: string;
+    } | null>(null);
     const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState<boolean>(false);
     const [isAddBudgetDialogOpen, setIsAddBudgetDialogOpen] = useState<boolean>(false);
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
@@ -66,8 +71,30 @@ const HomePage = () => {
         }
     }, [isExpenseDialogOpen]);
 
+    // Load dismissed expense reminder from localStorage on component mount
+    useEffect(() => {
+        const savedDismissedReminder = localStorage.getItem("dismissedExpenseReminder");
+        if (savedDismissedReminder) {
+            try {
+                const parsed = JSON.parse(savedDismissedReminder);
+                setDismissedExpenseReminder(parsed);
+            } catch (error) {
+                console.error("Error parsing dismissed expense reminder from localStorage:", error);
+                localStorage.removeItem("dismissedExpenseReminder");
+            }
+        }
+    }, []);
+
+    // Note: Do not auto-clear dismissed reminder on settings/timezone change here.
+    // The banner itself checks time/date/timezone and will re-show appropriately.
+
     const dismissReminder = (reminderId: string) => {
         setDismissedReminders((prev) => new Set([...prev, reminderId]));
+    };
+
+    const dismissExpenseReminder = (dismissalData: { time: string; date: string; timezone: string }) => {
+        setDismissedExpenseReminder(dismissalData);
+        localStorage.setItem("dismissedExpenseReminder", JSON.stringify(dismissalData));
     };
 
     // Financial Overview helper functions
@@ -101,7 +128,11 @@ const HomePage = () => {
 
     return (
         <div className="p-4 md:p-6 lg:p-4 space-y-4 max-w-full">
-            <ExpenseReminderBanner settings={settingsData} />
+            <ExpenseReminderBanner
+                settings={settingsData}
+                dismissedReminder={dismissedExpenseReminder}
+                onDismiss={dismissExpenseReminder}
+            />
             {/* Budget Reminders */}
             {remindersError ? (
                 <div className="text-center p-4 text-red-600">
