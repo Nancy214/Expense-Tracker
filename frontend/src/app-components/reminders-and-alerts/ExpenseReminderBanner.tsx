@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { X, Bell } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useSettings } from "@/hooks/use-profile";
-import { hasReminderTimePassed, getUserTimezone, getTodayInTimezone } from "@/utils/timezoneUtils";
+import { useSettings, useProfile } from "@/hooks/use-profile";
+import { hasReminderTimePassed, getTodayInTimezone } from "@/utils/timezoneUtils";
 
 interface ExpenseReminderBannerProps {
     settings?: {
@@ -12,44 +12,67 @@ interface ExpenseReminderBannerProps {
     dismissedReminder?: {
         time: string;
         date: string;
+        dateUTC?: string;
         timezone: string;
     } | null;
-    onDismiss?: (dismissalData: { time: string; date: string; timezone: string }) => void;
+    onDismiss?: (dismissalData: { time: string; date: string; dateUTC?: string; timezone: string }) => void;
 }
 
 export function ExpenseReminderBanner({ settings, dismissedReminder, onDismiss }: ExpenseReminderBannerProps) {
     const { user } = useAuth();
     const { data: settingsData } = useSettings(user?.id || "");
+    const { data: profileData } = useProfile();
 
     // Use settings from the API if available, otherwise fall back to prop or defaults
     const effectiveSettings: { expenseReminders: boolean; expenseReminderTime: string } = {
-        expenseReminders: settingsData?.expenseReminders ?? settings?.expenseReminders ?? false,
+        expenseReminders: settingsData?.expenseReminders ?? settings?.expenseReminders ?? true,
         expenseReminderTime: settingsData?.expenseReminderTime ?? settings?.expenseReminderTime ?? "18:00",
     };
 
     const [show, setShow] = useState<boolean>(false);
 
     useEffect(() => {
-        // Get user's timezone from profile or fallback to browser timezone
-        const userTimezone = user?.timezone || getUserTimezone();
+        // Get timezone from multiple sources - prioritize fresh profile data over AuthContext
+        // First try to get timezone from profileData (most up-to-date), then fallback to user object
+        const userTimezone = profileData?.timezone || user?.timezone;
+
+        // If no timezone is set in profile, skip reminder logic
+        if (!userTimezone) {
+            setShow(false);
+            return;
+        }
 
         let interval: NodeJS.Timeout | undefined;
         const checkReminder = () => {
             if (effectiveSettings.expenseReminders && effectiveSettings.expenseReminderTime) {
-                // Get the current date in the user's timezone (YYYY-MM-DD format)
-                const currentDate = getTodayInTimezone(userTimezone);
-
                 // Check if reminder time has passed
                 const shouldShow = hasReminderTimePassed(effectiveSettings.expenseReminderTime, userTimezone);
 
-                // If reminder should show, check if it was already dismissed for this time/date/timezone combination
+                // If reminder should show, check if it was already dismissed for this time/date combination
                 if (shouldShow) {
-                    const wasDismissedForThisTime =
-                        dismissedReminder &&
-                        dismissedReminder.time === effectiveSettings.expenseReminderTime &&
-                        dismissedReminder.date === currentDate &&
-                        dismissedReminder.timezone === userTimezone;
+                    let wasDismissedForThisTime = false;
 
+                    if (dismissedReminder) {
+                        // Check if dismissed for the same reminder time
+                        if (dismissedReminder.time === effectiveSettings.expenseReminderTime) {
+                            const currentDateUTC = getTodayInTimezone("UTC");
+
+                            // Use UTC date for cross-timezone compatibility
+                            // Check if dismissed for the same UTC date (most reliable across timezones)
+                            if (dismissedReminder.dateUTC && dismissedReminder.dateUTC === currentDateUTC) {
+                                wasDismissedForThisTime = true;
+                            } else {
+                                // Fallback to local date comparison for backward compatibility
+                                const dismissedDate = dismissedReminder.date;
+                                const currentDate = getTodayInTimezone(userTimezone);
+
+                                if (dismissedDate === currentDate) {
+                                    wasDismissedForThisTime = true;
+                                }
+                            }
+                        } else {
+                        }
+                    }
                     setShow(!wasDismissedForThisTime);
                 } else {
                     setShow(false);
@@ -63,16 +86,30 @@ export function ExpenseReminderBanner({ settings, dismissedReminder, onDismiss }
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [effectiveSettings.expenseReminders, effectiveSettings.expenseReminderTime, user?.timezone, dismissedReminder]);
+    }, [
+        effectiveSettings.expenseReminders,
+        effectiveSettings.expenseReminderTime,
+        user?.timezone,
+        profileData?.timezone,
+        dismissedReminder,
+    ]);
 
     const handleClose = () => {
-        const userTimezone = user?.timezone || getUserTimezone();
+        // Get timezone from multiple sources - prioritize fresh profile data over AuthContext
+        const userTimezone = profileData?.timezone || user?.timezone;
+        if (!userTimezone) {
+            return;
+        }
+
         const currentDate = getTodayInTimezone(userTimezone);
+        const currentDateUTC = getTodayInTimezone("UTC");
 
         // Record when and for what time this reminder was dismissed
+        // Store both local date and UTC date for better cross-timezone compatibility
         const dismissalData = {
             time: effectiveSettings.expenseReminderTime,
             date: currentDate,
+            dateUTC: currentDateUTC,
             timezone: userTimezone,
         };
 

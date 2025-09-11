@@ -64,7 +64,7 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             const defaultSettings: DefaultSettings = {
                 userId,
                 monthlyReports: false,
-                expenseReminders: false,
+                expenseReminders: true,
                 billsAndBudgetsAlert: false,
                 expenseReminderTime: "18:00",
             };
@@ -256,7 +256,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
                 : {
                       userId: updatedUser._id,
                       monthlyReports: false,
-                      expenseReminders: false,
+                      expenseReminders: true,
                       billsAndBudgetsAlert: false,
                       expenseReminderTime: "18:00",
                   },

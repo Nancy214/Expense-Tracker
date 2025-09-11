@@ -152,7 +152,7 @@ export function useSettings(userId: string): UseQueryResult<SettingsData, AxiosE
                 profileData?.settings || {
                     userId: userId,
                     monthlyReports: false,
-                    expenseReminders: false,
+                    expenseReminders: true,
                     billsAndBudgetsAlert: false,
                     expenseReminderTime: "18:00",
                 }

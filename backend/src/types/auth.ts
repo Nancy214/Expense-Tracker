@@ -115,7 +115,11 @@ export interface AuthenticatedUser {
     email: string;
     name: string;
     profilePicture?: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
     currency?: string;
+    country?: string;
+    timezone?: string;
     accessToken?: string;
     refreshToken?: string;
 }
@@ -128,7 +132,11 @@ export interface LoginResponse {
         email: string;
         name: string;
         profilePicture: string;
+        phoneNumber?: string;
+        dateOfBirth?: string;
         currency?: string;
+        country?: string;
+        timezone?: string;
         settings: SettingsDocument;
     };
 }

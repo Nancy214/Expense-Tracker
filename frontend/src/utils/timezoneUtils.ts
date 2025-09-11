@@ -36,6 +36,11 @@ const UTC_OFFSET_TO_IANA: Record<string, string> = {
 
 // Convert UTC offset format to IANA timezone identifier
 export const convertUTCOffsetToIANA = (timezone: string): string => {
+    if (!timezone) {
+        console.warn("Empty timezone provided to convertUTCOffsetToIANA");
+        return "UTC";
+    }
+
     // If it's already an IANA timezone, return as is
     if (timezone.includes("/") || timezone === "UTC") {
         return timezone;
@@ -43,16 +48,29 @@ export const convertUTCOffsetToIANA = (timezone: string): string => {
 
     // If it's a UTC offset format, convert to IANA
     if (timezone.startsWith("UTC")) {
-        return UTC_OFFSET_TO_IANA[timezone] || timezone;
+        const ianaTimezone = UTC_OFFSET_TO_IANA[timezone];
+        if (ianaTimezone) {
+            return ianaTimezone;
+        } else {
+            console.warn(`Unknown UTC offset format: ${timezone}, falling back to UTC`);
+            return "UTC";
+        }
     }
 
     // If it's a simple offset format like +05:30, convert to UTC+05:30 first
     if (timezone.match(/^[+-]\d{2}:\d{2}$/)) {
         const utcFormat = `UTC${timezone}`;
-        return UTC_OFFSET_TO_IANA[utcFormat] || timezone;
+        const ianaTimezone = UTC_OFFSET_TO_IANA[utcFormat];
+        if (ianaTimezone) {
+            return ianaTimezone;
+        } else {
+            console.warn(`Unknown offset format: ${timezone}, falling back to UTC`);
+            return "UTC";
+        }
     }
 
-    // Return as is if we can't convert
+    // Return as is if we can't convert, but log a warning
+    console.warn(`Unable to convert timezone format: ${timezone}, using as-is`);
     return timezone;
 };
 
@@ -64,6 +82,44 @@ export const getUserTimezone = (): string => {
         console.warn("Failed to get user timezone, falling back to UTC:", error);
         return "UTC";
     }
+};
+
+// Convert IANA timezone to UTC offset format for display
+export const convertIANAToUTCOffset = (ianaTimezone: string): string => {
+    // Find the UTC offset format for the given IANA timezone
+    for (const [utcOffset, iana] of Object.entries(UTC_OFFSET_TO_IANA)) {
+        if (iana === ianaTimezone) {
+            return utcOffset;
+        }
+    }
+
+    // If not found in our mapping, return the IANA timezone as-is
+    return ianaTimezone;
+};
+
+// Validate and normalize timezone format
+export const normalizeTimezone = (timezone: string): string => {
+    if (!timezone) {
+        return "UTC";
+    }
+
+    // If it's already in UTC offset format, return as-is
+    if (timezone.startsWith("UTC")) {
+        return timezone;
+    }
+
+    // If it's in IANA format, convert to UTC offset format
+    if (timezone.includes("/")) {
+        return convertIANAToUTCOffset(timezone);
+    }
+
+    // If it's a simple offset format, add UTC prefix
+    if (timezone.match(/^[+-]\d{2}:\d{2}$/)) {
+        return `UTC${timezone}`;
+    }
+
+    // Return as-is if we can't normalize
+    return timezone;
 };
 
 // Get date-time parts in a specific timezone using Intl formatToParts (avoids incorrect Date math)
@@ -152,8 +208,6 @@ export const hasReminderTimePassed = (reminderTime: string, userTimezone: string
         // Check if the reminder time has passed in the selected timezone
         const hasPassed = currentTotal >= reminderTotal;
 
-        // Temporary debug logging
-
         return hasPassed;
     } catch (error) {
         console.warn(`Invalid timezone: ${userTimezone}, falling back to local time`, error);
@@ -182,6 +236,29 @@ export const getTodayInTimezone = (timezone: string): string => {
     const mm = String(parts.month).padStart(2, "0");
     const dd = String(parts.day).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
+};
+
+// Get a specific date in a different timezone
+// This helps with cross-timezone dismissal logic
+export const getTodayInTimezoneForDate = (dateString: string, fromTimezone: string, toTimezone: string): string => {
+    try {
+        // Parse the date string (YYYY-MM-DD format)
+        const [year, month, day] = dateString.split("-").map(Number);
+
+        // Create a date at midnight in the from timezone
+        const dateInFromTimezone = new Date(year, month - 1, day, 0, 0, 0);
+
+        // Convert to the target timezone
+        const parts = getZonedParts(toTimezone, dateInFromTimezone);
+        const yyyy = String(parts.year).padStart(4, "0");
+        const mm = String(parts.month).padStart(2, "0");
+        const dd = String(parts.day).padStart(2, "0");
+
+        return `${yyyy}-${mm}-${dd}`;
+    } catch (error) {
+        console.warn(`Error converting date ${dateString} from ${fromTimezone} to ${toTimezone}:`, error);
+        return dateString; // Fallback to original date
+    }
 };
 
 // Format time for display in user's timezone

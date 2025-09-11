@@ -77,7 +77,7 @@ const settingsSchema = new Schema({
     },
     expenseReminders: {
         type: Boolean,
-        default: false,
+        default: true,
     },
     expenseReminderTime: {
         type: String,
