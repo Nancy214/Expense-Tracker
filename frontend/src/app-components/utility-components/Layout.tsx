@@ -162,7 +162,7 @@ function LayoutContent({ children }: LayoutProps) {
 
             <div className="flex flex-1">
                 {/* Sidebar */}
-                <aside className="hidden md:flex flex-col border-r bg-white w-64">
+                <aside className="hidden md:flex flex-col border-r bg-white w-64 sticky top-16 h-[calc(100vh-4rem)]">
                     <SidebarContent />
                 </aside>
 
@@ -184,7 +184,7 @@ function SidebarContent() {
     return (
         <div className="flex h-full flex-col">
             {/* Sidebar navigation */}
-            <nav className="flex-1 space-y-1 p-4">
+            <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
                 {navLinks.map(({ label, path, icon: Icon }) => {
                     const isActive = location.pathname === path;
 

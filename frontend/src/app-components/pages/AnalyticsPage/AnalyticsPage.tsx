@@ -67,9 +67,9 @@ const AnalyticsCard: React.FC<{
         },
         {
             id: "expenses",
-            label: "Expenses Category",
+            label: "Category Breakdown",
             icon: PieChart,
-            description: "Expense breakdown and analysis",
+            description: "Expense and bills categories breakdown and analysis",
         },
         {
             id: "income",
