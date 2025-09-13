@@ -1,0 +1,9 @@
+version: "3"
+services:
+    backend:
+        build: .
+        ports:
+            - "8001:8000"
+        environment:
+            file: .env
+        restart: unless-stopped
