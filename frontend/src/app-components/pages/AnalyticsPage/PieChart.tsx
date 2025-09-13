@@ -116,20 +116,30 @@ const PieChartComponent: React.FC<PieChartProps> = ({
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900/80 rounded-2xl shadow-lg p-6 transition hover:shadow-2xl">
-            <div className="flex flex-wrap items-center gap-4 justify-between">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
+        <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between">
+                <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100">
+                    {title}
+                </h2>
             </div>
-            {description && <p className="text-sm text-muted-foreground">{description}</p>}
+            {description && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>}
 
             <div className="w-full flex flex-col items-center">
                 {data.length === 0 ? (
-                    <div className="text-muted-foreground text-center py-8">No data available.</div>
+                    <div className="text-muted-foreground text-center py-6 sm:py-8 text-sm">No data available.</div>
                 ) : (
-                    <div style={{ width: "100%", height: 280 }}>
+                    <div className="w-full h-[220px] sm:h-[280px] md:h-[320px] lg:h-[380px] xl:h-[420px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
-                                <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}>
+                                <Pie
+                                    data={data}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius="60%"
+                                    innerRadius="0%"
+                                >
                                     {data.map((_, idx) => (
                                         <Cell key={`cell-${idx}`} fill={chartColors[idx % chartColors.length]} />
                                     ))}
@@ -142,27 +152,29 @@ const PieChartComponent: React.FC<PieChartProps> = ({
                 )}
 
                 {data.length > 0 && (
-                    <div className="mt-4 w-full max-w-md mx-auto">
-                        <h3 className="text-sm font-semibold mb-2 text-center">Top 5 Categories</h3>
+                    <div className="mt-3 sm:mt-4 w-full max-w-md mx-auto">
+                        <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">Top 5 Categories</h3>
                         <ul className="divide-y divide-muted-foreground/10">
                             {data.slice(0, 5).map((item, idx) => {
                                 const total = data.reduce((acc, c) => acc + c.value, 0);
                                 const percent = total > 0 ? (item.value / total) * 100 : 0;
                                 return (
                                     <li key={item.name} className="flex items-center justify-between py-1 px-2">
-                                        <span className="flex items-center gap-2">
+                                        <span className="flex items-center gap-1 sm:gap-2">
                                             <span
                                                 style={{
                                                     display: "inline-block",
-                                                    width: 10,
-                                                    height: 10,
-                                                    borderRadius: 5,
+                                                    width: 8,
+                                                    height: 8,
+                                                    borderRadius: 4,
                                                     background: chartColors[idx % chartColors.length],
                                                 }}
                                             />
-                                            <span className="text-sm">{item.name}</span>
+                                            <span className="text-xs sm:text-sm truncate">{item.name}</span>
                                         </span>
-                                        <span className="font-mono tabular-nums text-sm">{percent.toFixed(1)}%</span>
+                                        <span className="font-mono tabular-nums text-xs sm:text-sm">
+                                            {percent.toFixed(1)}%
+                                        </span>
                                     </li>
                                 );
                             })}
@@ -170,7 +182,7 @@ const PieChartComponent: React.FC<PieChartProps> = ({
                     </div>
                 )}
 
-                <div className="mt-2 mb-2 text-sm text-muted-foreground text-center">
+                <div className="mt-2 mb-2 text-xs sm:text-sm text-muted-foreground text-center px-2">
                     {data.length > 0
                         ? (() => {
                               const topCategory = data.sort((a, b) => b.value - a.value)[0];
@@ -183,9 +195,11 @@ const PieChartComponent: React.FC<PieChartProps> = ({
 
                 {/* Insights Section */}
                 {showInsights && data.length > 0 && (
-                    <div className="mt-2 p-4 bg-muted/100 rounded-lg w-full">
-                        <h4 className="text-sm mb-2 font-semibold text-gray-800 dark:text-gray-100">Smart Insights</h4>
-                        <div className="space-y-2">
+                    <div className="mt-2 p-3 sm:p-4 bg-muted/100 rounded-lg w-full">
+                        <h4 className="text-xs sm:text-sm mb-2 font-semibold text-gray-800 dark:text-gray-100">
+                            Smart Insights
+                        </h4>
+                        <div className="space-y-1 sm:space-y-2">
                             {generateInsights(data).map((insight, index) => (
                                 <div key={index} className="text-xs text-muted-foreground rounded">
                                     {insight}

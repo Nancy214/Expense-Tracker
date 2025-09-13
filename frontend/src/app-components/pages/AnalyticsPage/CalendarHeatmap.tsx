@@ -217,13 +217,15 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
 
     return (
         <TooltipProvider>
-            <Card className="w-full">
-                <CardHeader>
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <Card className="w-full rounded-xl sm:rounded-2xl">
+                <CardHeader className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
                         <div>
-                            <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+                            <CardTitle className="text-base sm:text-lg md:text-xl font-semibold">{title}</CardTitle>
                             {description && (
-                                <CardDescription className="text-muted-foreground">{description}</CardDescription>
+                                <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                    {description}
+                                </CardDescription>
                             )}
                         </div>
                         {availableYears.length > 1 && (
@@ -231,7 +233,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                                 value={selectedYear.toString()}
                                 onValueChange={(value: string) => setSelectedYear(parseInt(value))}
                             >
-                                <SelectTrigger className="w-[120px]">
+                                <SelectTrigger className="w-[100px] sm:w-[120px] h-8 sm:h-10">
                                     <SelectValue placeholder="Select Year" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -245,7 +247,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                         )}
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
                     <div className="overflow-x-auto">
                         <CalendarHeatmap
                             startDate={startDate}
@@ -253,7 +255,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                             values={yearData}
                             classForValue={getClassForValue}
                             showWeekdayLabels={true}
-                            gutterSize={2}
+                            gutterSize={1}
                             transformDayElement={(element: any, value: any, index: number) => {
                                 if (!value || !value.date) {
                                     return element;
@@ -263,7 +265,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                                     <Tooltip key={index}>
                                         <TooltipTrigger asChild>{element}</TooltipTrigger>
                                         <TooltipContent>
-                                            <p>{getTooltipContent(value)}</p>
+                                            <p className="text-xs">{getTooltipContent(value)}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 );
@@ -272,23 +274,27 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                     </div>
 
                     {showLegend && (
-                        <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
+                        <div className="flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-muted-foreground">
                             <span>Less</span>
                             {colorScale.slice(1).map((color: string, index: number) => (
-                                <div key={index} className="w-4 h-4 rounded-sm" style={{ backgroundColor: color }} />
+                                <div
+                                    key={index}
+                                    className="w-3 h-3 sm:w-4 sm:h-4 rounded-sm"
+                                    style={{ backgroundColor: color }}
+                                />
                             ))}
                             <span>More</span>
                         </div>
                     )}
 
                     {insights.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mt-3 sm:mt-4">
                             {insights.map((insight: Insight, index: number) => (
-                                <div key={index} className="text-center p-2 bg-muted rounded-lg">
+                                <div key={index} className="text-center p-2 sm:p-3 bg-muted rounded-lg">
                                     <div className="text-xs text-muted-foreground">{insight.label}</div>
                                     <div
                                         className={cn(
-                                            "text-sm font-medium",
+                                            "text-xs sm:text-sm font-medium",
                                             insight.type === "success" && "text-green-600",
                                             insight.type === "warning" && "text-orange-600",
                                             insight.type === "info" && "text-blue-600"

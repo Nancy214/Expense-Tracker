@@ -16,6 +16,8 @@ import type {
     BarChartMonthNetData as MonthData,
     BarChartTooltipProps as TooltipProps,
 } from "@/types/analytics";
+import { TimePeriod } from "./TimePeriodSelector";
+import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
 
 const COLORS = [
     "#10b981", // Green for Income
@@ -31,6 +33,8 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     currency = "$",
     showGrid = true,
     showLegend = true,
+    timePeriod = "monthly",
+    subPeriod = "",
 }) => {
     // Format amount with currency
     const formatAmount = (amount: number): string => {
@@ -198,34 +202,46 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         return null;
     };
 
-    const transformedData: TransformedBarData[] = transformDataForGroupedBars(data);
+    // Format data based on time period
+    const formattedData = formatChartData(data, timePeriod as TimePeriod, subPeriod);
+    const transformedData: TransformedBarData[] = transformDataForGroupedBars(formattedData);
+
+    // Get dynamic labels and titles
+    const dynamicTitle = getChartTitle(title, timePeriod as TimePeriod, subPeriod);
+    const dynamicDescription = getChartDescription(description || "", timePeriod as TimePeriod);
+    const xAxisLabel = getXAxisLabel(timePeriod as TimePeriod);
 
     return (
-        <div className="bg-white dark:bg-slate-900/80 rounded-2xl shadow-lg p-6 transition hover:shadow-2xl">
-            <div className="flex flex-wrap items-center gap-4 justify-between">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
+        <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between">
+                <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100">
+                    {dynamicTitle}
+                </h2>
             </div>
-            {description && <p className="text-sm text-muted-foreground">{description}</p>}
+            {dynamicDescription && (
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">{dynamicDescription}</p>
+            )}
 
             <div className="w-full flex flex-col items-center">
                 {data.length === 0 ? (
-                    <div className="text-muted-foreground text-center py-8">No data available.</div>
+                    <div className="text-muted-foreground text-center py-6 sm:py-8 text-sm">No data available.</div>
                 ) : (
-                    <div style={{ width: "100%", height: 400 }}>
+                    <div className="w-full h-[300px] sm:h-[400px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <RechartsBarChart
                                 data={transformedData}
-                                margin={{ top: 50, right: 30, left: 30, bottom: 30 }}
+                                margin={{ top: 20, right: 10, left: 10, bottom: 20 }}
                             >
                                 {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />}
                                 <XAxis
                                     dataKey="name"
-                                    tick={{ fontSize: 12 }}
-                                    label={{ value: "", position: "bottom", offset: 0 }}
+                                    tick={{ fontSize: 10 }}
+                                    label={{ value: xAxisLabel, position: "bottom", offset: 0 }}
                                 />
                                 <YAxis
                                     tickFormatter={(value) => formatAmount(value)}
                                     label={{ value: "", position: "top left", offset: 0 }}
+                                    tick={{ fontSize: 10 }}
                                 />
                                 <Tooltip content={<CustomTooltip />} />
                                 {showLegend && <Legend />}
@@ -237,8 +253,8 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                 )}
 
                 {data.length > 0 && (
-                    <div className="w-full max-w-md mx-auto">
-                        <h3 className="text-sm font-semibold mb-2 text-center">Current Month Summary</h3>
+                    <div className="mt-3 sm:mt-4 w-full max-w-md mx-auto">
+                        <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">Current Month Summary</h3>
                         <ul className="divide-y divide-muted-foreground/10">
                             {(() => {
                                 // Get only the current month data (last month in the array)
@@ -252,7 +268,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
 
                                 return (
                                     <li className="flex items-center justify-between py-2 px-2">
-                                        <span className="text-sm font-medium">{currentMonthData.name}</span>
+                                        <span className="text-xs sm:text-sm font-medium">{currentMonthData.name}</span>
                                         <div className="text-right">
                                             <div className="text-xs text-green-600">+{formatAmount(income)}</div>
                                             <div className="text-xs text-red-600">-{formatAmount(expense)}</div>
@@ -272,7 +288,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                     </div>
                 )}
 
-                <div className="mt-2 mb-2 text-sm text-muted-foreground text-center">
+                <div className="mt-2 mb-2 text-xs sm:text-sm text-muted-foreground text-center px-2">
                     {data.length > 0
                         ? (() => {
                               // Get only current month data (last month in the array)
@@ -293,9 +309,11 @@ const BarChartComponent: React.FC<BarChartProps> = ({
 
                 {/* Insights Section */}
                 {showInsights && data.length > 0 && (
-                    <div className="p-4 bg-muted/100 rounded-lg w-full">
-                        <h4 className="text-sm mb-2 font-semibold text-gray-800 dark:text-gray-100">Smart Insights</h4>
-                        <div className="space-y-2">
+                    <div className="mt-2 p-3 sm:p-4 bg-muted/100 rounded-lg w-full">
+                        <h4 className="text-xs sm:text-sm mb-2 font-semibold text-gray-800 dark:text-gray-100">
+                            Smart Insights
+                        </h4>
+                        <div className="space-y-1 sm:space-y-2">
                             {generateInsights(data).map((insight: string, index: number) => (
                                 <div key={index} className="text-xs text-muted-foreground rounded">
                                     {insight}

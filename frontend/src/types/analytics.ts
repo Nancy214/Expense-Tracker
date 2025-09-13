@@ -96,6 +96,8 @@ export interface AreaChartProps {
     yAxisLabel?: string;
     showGrid?: boolean;
     showLegend?: boolean;
+    timePeriod?: string;
+    subPeriod?: string;
 }
 
 export interface AreaChartTooltipPayload {
@@ -133,6 +135,8 @@ export interface BarChartProps {
     yAxisLabel?: string;
     showGrid?: boolean;
     showLegend?: boolean;
+    timePeriod?: string;
+    subPeriod?: string;
 }
 
 export interface TransformedBarData {

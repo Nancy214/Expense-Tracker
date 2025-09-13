@@ -104,21 +104,28 @@ export interface MonthlySavingsTrendResponse {
 
 // Query keys for analytics data
 export const ANALYTICS_QUERY_KEYS = {
-    expenseBreakdown: ["analytics", "expense-breakdown"] as const,
-    billsBreakdown: ["analytics", "bills-breakdown"] as const,
-    incomeExpenseSummary: ["analytics", "income-expense-summary"] as const,
-    monthlySavingsTrend: ["analytics", "monthly-savings-trend"] as const,
+    expenseBreakdown: (period?: string, subPeriod?: string) =>
+        ["analytics", "expense-breakdown", period, subPeriod] as const,
+    billsBreakdown: (period?: string, subPeriod?: string) =>
+        ["analytics", "bills-breakdown", period, subPeriod] as const,
+    incomeExpenseSummary: (period?: string, subPeriod?: string) =>
+        ["analytics", "income-expense-summary", period, subPeriod] as const,
+    monthlySavingsTrend: (period?: string, subPeriod?: string) =>
+        ["analytics", "monthly-savings-trend", period, subPeriod] as const,
 } as const;
 
 // Type for analytics query keys
 export type AnalyticsQueryKey = (typeof ANALYTICS_QUERY_KEYS)[keyof typeof ANALYTICS_QUERY_KEYS];
 
-export function useExpenseCategoryBreakdown(): UseQueryResult<ExpenseBreakdownResponse, Error> {
+export function useExpenseCategoryBreakdown(
+    period?: string,
+    subPeriod?: string
+): UseQueryResult<ExpenseBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
     return useQuery<ExpenseBreakdownResponse, Error>({
-        queryKey: ANALYTICS_QUERY_KEYS.expenseBreakdown,
-        queryFn: getExpenseCategoryBreakdown,
+        queryKey: ANALYTICS_QUERY_KEYS.expenseBreakdown(period, subPeriod),
+        queryFn: () => getExpenseCategoryBreakdown(period, subPeriod),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false,
@@ -126,12 +133,15 @@ export function useExpenseCategoryBreakdown(): UseQueryResult<ExpenseBreakdownRe
     });
 }
 
-export function useBillsCategoryBreakdown(): UseQueryResult<BillsBreakdownResponse, Error> {
+export function useBillsCategoryBreakdown(
+    period?: string,
+    subPeriod?: string
+): UseQueryResult<BillsBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
     return useQuery<BillsBreakdownResponse, Error>({
-        queryKey: ANALYTICS_QUERY_KEYS.billsBreakdown,
-        queryFn: getBillsCategoryBreakdown,
+        queryKey: ANALYTICS_QUERY_KEYS.billsBreakdown(period, subPeriod),
+        queryFn: () => getBillsCategoryBreakdown(period, subPeriod),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false,
@@ -139,12 +149,15 @@ export function useBillsCategoryBreakdown(): UseQueryResult<BillsBreakdownRespon
     });
 }
 
-export function useIncomeExpenseSummary(): UseQueryResult<IncomeExpenseSummaryResponse, Error> {
+export function useIncomeExpenseSummary(
+    period?: string,
+    subPeriod?: string
+): UseQueryResult<IncomeExpenseSummaryResponse, Error> {
     const { isAuthenticated } = useAuth();
 
     return useQuery<IncomeExpenseSummaryResponse, Error>({
-        queryKey: ANALYTICS_QUERY_KEYS.incomeExpenseSummary,
-        queryFn: getIncomeExpenseSummary,
+        queryKey: ANALYTICS_QUERY_KEYS.incomeExpenseSummary(period, subPeriod),
+        queryFn: () => getIncomeExpenseSummary(period, subPeriod),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false,
@@ -152,12 +165,15 @@ export function useIncomeExpenseSummary(): UseQueryResult<IncomeExpenseSummaryRe
     });
 }
 
-export function useMonthlySavingsTrend(): UseQueryResult<MonthlySavingsTrendResponse, Error> {
+export function useMonthlySavingsTrend(
+    period?: string,
+    subPeriod?: string
+): UseQueryResult<MonthlySavingsTrendResponse, Error> {
     const { isAuthenticated } = useAuth();
 
     return useQuery<MonthlySavingsTrendResponse, Error>({
-        queryKey: ANALYTICS_QUERY_KEYS.monthlySavingsTrend,
-        queryFn: getMonthlySavingsTrend,
+        queryKey: ANALYTICS_QUERY_KEYS.monthlySavingsTrend(period, subPeriod),
+        queryFn: () => getMonthlySavingsTrend(period, subPeriod),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false,
@@ -273,29 +289,29 @@ export function useInvalidateAnalytics(): AnalyticsInvalidationReturn {
 
     const invalidateExpenseBreakdown = (): Promise<void> => {
         return queryClient.invalidateQueries({
-            queryKey: ANALYTICS_QUERY_KEYS.expenseBreakdown,
-            exact: true,
+            queryKey: ["analytics", "expense-breakdown"],
+            exact: false,
         });
     };
 
     const invalidateBillsBreakdown = (): Promise<void> => {
         return queryClient.invalidateQueries({
-            queryKey: ANALYTICS_QUERY_KEYS.billsBreakdown,
-            exact: true,
+            queryKey: ["analytics", "bills-breakdown"],
+            exact: false,
         });
     };
 
     const invalidateIncomeExpenseSummary = (): Promise<void> => {
         return queryClient.invalidateQueries({
-            queryKey: ANALYTICS_QUERY_KEYS.incomeExpenseSummary,
-            exact: true,
+            queryKey: ["analytics", "income-expense-summary"],
+            exact: false,
         });
     };
 
     const invalidateMonthlySavingsTrend = (): Promise<void> => {
         return queryClient.invalidateQueries({
-            queryKey: ANALYTICS_QUERY_KEYS.monthlySavingsTrend,
-            exact: true,
+            queryKey: ["analytics", "monthly-savings-trend"],
+            exact: false,
         });
     };
 
@@ -344,7 +360,6 @@ interface ExpensesSelectorReturn {
 }
 
 export function useExpensesSelector(): ExpensesSelectorReturn {
-    const { isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
 
     // Use analytics hook to get all transactions for accurate monthly stats

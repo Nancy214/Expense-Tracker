@@ -1,5 +1,5 @@
 import axios, { AxiosResponse, AxiosError } from "axios";
-import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
+import { refreshAuthTokens } from "@/utils/authUtils";
 import type {
     ExpenseCategoryBreakdownResponse,
     BillsCategoryBreakdownResponse,
@@ -45,9 +45,18 @@ analyticsApi.interceptors.response.use(
 );
 
 // Get expense category breakdown for pie chart
-export const getExpenseCategoryBreakdown = async (): Promise<ExpenseCategoryBreakdownResponse> => {
+export const getExpenseCategoryBreakdown = async (
+    period?: string,
+    subPeriod?: string
+): Promise<ExpenseCategoryBreakdownResponse> => {
     try {
-        const response: AxiosResponse<ExpenseCategoryBreakdownResponse> = await analyticsApi.get("/expense-breakdown");
+        const params = new URLSearchParams();
+        if (period) params.append("period", period);
+        if (subPeriod) params.append("subPeriod", subPeriod);
+
+        const response: AxiosResponse<ExpenseCategoryBreakdownResponse> = await analyticsApi.get(
+            `/expense-breakdown${params.toString() ? `?${params.toString()}` : ""}`
+        );
         return response.data;
     } catch (error) {
         console.error("Error fetching expense category breakdown:", error);
@@ -56,9 +65,18 @@ export const getExpenseCategoryBreakdown = async (): Promise<ExpenseCategoryBrea
 };
 
 // Get bills category breakdown for pie chart
-export const getBillsCategoryBreakdown = async (): Promise<BillsCategoryBreakdownResponse> => {
+export const getBillsCategoryBreakdown = async (
+    period?: string,
+    subPeriod?: string
+): Promise<BillsCategoryBreakdownResponse> => {
     try {
-        const response: AxiosResponse<BillsCategoryBreakdownResponse> = await analyticsApi.get("/bills-breakdown");
+        const params = new URLSearchParams();
+        if (period) params.append("period", period);
+        if (subPeriod) params.append("subPeriod", subPeriod);
+
+        const response: AxiosResponse<BillsCategoryBreakdownResponse> = await analyticsApi.get(
+            `/bills-breakdown${params.toString() ? `?${params.toString()}` : ""}`
+        );
         return response.data;
     } catch (error) {
         console.error("Error fetching bills category breakdown:", error);
@@ -67,9 +85,18 @@ export const getBillsCategoryBreakdown = async (): Promise<BillsCategoryBreakdow
 };
 
 // Get income and expense summary for different time periods
-export const getIncomeExpenseSummary = async (): Promise<IncomeExpenseSummaryResponse> => {
+export const getIncomeExpenseSummary = async (
+    period?: string,
+    subPeriod?: string
+): Promise<IncomeExpenseSummaryResponse> => {
     try {
-        const response: AxiosResponse<IncomeExpenseSummaryResponse> = await analyticsApi.get("/income-expense-summary");
+        const params = new URLSearchParams();
+        if (period) params.append("period", period);
+        if (subPeriod) params.append("subPeriod", subPeriod);
+
+        const response: AxiosResponse<IncomeExpenseSummaryResponse> = await analyticsApi.get(
+            `/income-expense-summary${params.toString() ? `?${params.toString()}` : ""}`
+        );
         return response.data;
     } catch (error) {
         console.error("Error fetching income and expense summary:", error);
@@ -78,9 +105,18 @@ export const getIncomeExpenseSummary = async (): Promise<IncomeExpenseSummaryRes
 };
 
 // Get monthly savings trend data for the last 12 months
-export const getMonthlySavingsTrend = async (): Promise<MonthlySavingsTrendResponse> => {
+export const getMonthlySavingsTrend = async (
+    period?: string,
+    subPeriod?: string
+): Promise<MonthlySavingsTrendResponse> => {
     try {
-        const response: AxiosResponse<MonthlySavingsTrendResponse> = await analyticsApi.get("/monthly-savings-trend");
+        const params = new URLSearchParams();
+        if (period) params.append("period", period);
+        if (subPeriod) params.append("subPeriod", subPeriod);
+
+        const response: AxiosResponse<MonthlySavingsTrendResponse> = await analyticsApi.get(
+            `/monthly-savings-trend${params.toString() ? `?${params.toString()}` : ""}`
+        );
         return response.data;
     } catch (error) {
         console.error("Error fetching monthly savings trend:", error);
