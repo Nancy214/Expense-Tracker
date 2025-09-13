@@ -25,7 +25,20 @@ const getMonthDates = (year: number, month: number): MonthDates => {
 
 // Helper function to get month name
 const getMonthName = (month: number): string => {
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthNames = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ];
     return monthNames[month];
 };
 
@@ -51,13 +64,16 @@ const getDateRange = (period: string, subPeriod: string): { startDate: Date; end
                 "November",
                 "December",
             ].indexOf(subPeriod);
-            const year = monthIndex <= currentMonth ? currentYear : currentYear - 1;
+            // For monthly view, always use current year for recent months (Oct, Nov, Dec)
+            // unless we're specifically looking at a past year
+            const year = currentYear;
             return getMonthDates(year, monthIndex);
 
         case "quarterly":
             const quarter = parseInt(subPeriod.replace("Q", ""));
             const quarterStartMonth = (quarter - 1) * 3;
-            const quarterYear = quarterStartMonth <= currentMonth ? currentYear : currentYear - 1;
+            // For quarterly view, always use current year for recent quarters (Q4 includes Oct, Nov, Dec)
+            const quarterYear = currentYear;
             const quarterStart = new Date(quarterYear, quarterStartMonth, 1);
             const quarterEnd = new Date(quarterYear, quarterStartMonth + 3, 0, 23, 59, 59, 999);
             return { startDate: quarterStart, endDate: quarterEnd };
@@ -65,7 +81,8 @@ const getDateRange = (period: string, subPeriod: string): { startDate: Date; end
         case "half-yearly":
             const half = parseInt(subPeriod.replace("H", ""));
             const halfStartMonth = (half - 1) * 6;
-            const halfYear = halfStartMonth <= currentMonth ? currentYear : currentYear - 1;
+            // For half-yearly view, always use current year for recent half-years (H2 includes Jul-Dec)
+            const halfYear = currentYear;
             const halfStart = new Date(halfYear, halfStartMonth, 1);
             const halfEnd = new Date(halfYear, halfStartMonth + 6, 0, 23, 59, 59, 999);
             return { startDate: halfStart, endDate: halfEnd };
@@ -275,33 +292,33 @@ export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response): 
 
             switch (period) {
                 case "monthly":
-                    // Get 6 months including the selected month
-                    for (let i = 5; i >= 0; i--) {
-                        const monthIndex = startDate.getMonth() - i;
-                        const year = startDate.getFullYear() + Math.floor(monthIndex / 12);
-                        const month = ((monthIndex % 12) + 12) % 12;
+                    // Get daily data for the selected month
+                    const selectedMonth = startDate.getMonth();
+                    const selectedYearForMonthly = startDate.getFullYear();
 
-                        const monthDates = getMonthDates(year, month);
-                        const monthData = await getTransactionsForPeriod(
-                            userId,
-                            monthDates.startDate,
-                            monthDates.endDate
-                        );
+                    const dailyData = await getDailyTransactionsForMonth(userId, selectedYearForMonthly, selectedMonth);
 
+                    // Convert daily data to the expected format
+                    dailyData.forEach((dayData) => {
                         allMonthsData.push({
-                            month: getMonthName(month),
-                            year: year,
-                            monthIndex: month,
-                            ...monthData,
+                            month: dayData.date, // Use date string like "01/01", "02/01", etc.
+                            year: selectedYearForMonthly,
+                            monthIndex: selectedMonth,
+                            income: dayData.income,
+                            expenses: dayData.expenses,
+                            bills: 0, // Daily bills data not implemented yet
+                            netIncome: dayData.savings,
+                            transactionCount: 0, // Not tracking daily transaction count
+                            isActive: dayData.income > 0 || dayData.expenses > 0,
                         });
-                    }
+                    });
                     break;
 
                 case "quarterly":
                     // Get monthly data for the selected quarter
                     const selectedQuarter = parseInt(subPeriod.replace("Q", ""));
                     const quarterStartMonth = (selectedQuarter - 1) * 3; // Q1=0, Q2=3, Q3=6, Q4=9
-                    const quarterYear = quarterStartMonth <= currentMonth ? currentYear : currentYear - 1;
+                    const quarterYear = currentYear;
 
                     for (let month = quarterStartMonth; month < quarterStartMonth + 3; month++) {
                         const monthDates = getMonthDates(quarterYear, month);
@@ -324,7 +341,7 @@ export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response): 
                     // Get monthly data for the selected half-year
                     const selectedHalf = parseInt(subPeriod.replace("H", ""));
                     const halfStartMonth = (selectedHalf - 1) * 6; // H1=0, H2=6
-                    const halfYear = halfStartMonth <= currentMonth ? currentYear : currentYear - 1;
+                    const halfYear = currentYear;
 
                     for (let month = halfStartMonth; month < halfStartMonth + 6; month++) {
                         const monthDates = getMonthDates(halfYear, month);
@@ -463,6 +480,60 @@ const getTransactionsForMonth = async (userId: string, year: number, month: numb
     }
 };
 
+// Helper function to get daily transactions for a specific month
+const getDailyTransactionsForMonth = async (userId: string, year: number, month: number): Promise<any[]> => {
+    try {
+        const monthDates: MonthDates = getMonthDates(year, month);
+        const transactions: TransactionDocument[] = await TransactionModel.find({
+            userId,
+            date: {
+                $gte: monthDates.startDate,
+                $lte: monthDates.endDate,
+            },
+        });
+
+        // Group transactions by day
+        const dailyData: { [key: string]: { income: number; expenses: number; savings: number; date: string } } = {};
+
+        // Initialize all days in the month with zero values
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayStr = day.toString().padStart(2, "0");
+            const monthStr = (month + 1).toString().padStart(2, "0");
+            const dateStr = `${dayStr}/${monthStr}`;
+            dailyData[dateStr] = { income: 0, expenses: 0, savings: 0, date: dateStr };
+        }
+
+        // Aggregate transactions by day
+        transactions.forEach((transaction) => {
+            const day = transaction.date.getDate();
+            const dayStr = day.toString().padStart(2, "0");
+            const monthStr = (month + 1).toString().padStart(2, "0");
+            const dateStr = `${dayStr}/${monthStr}`;
+
+            if (transaction.type === "income") {
+                dailyData[dateStr].income += transaction.amount;
+            } else if (transaction.type === "expense") {
+                dailyData[dateStr].expenses += transaction.amount;
+            }
+        });
+
+        // Calculate savings for each day
+        Object.values(dailyData).forEach((dayData) => {
+            dayData.savings = dayData.income - dayData.expenses;
+        });
+
+        // Convert to array and sort by date
+        return Object.values(dailyData).sort((a, b) => {
+            const aDay = parseInt(a.date.split("/")[0]);
+            const bDay = parseInt(b.date.split("/")[0]);
+            return aDay - bDay;
+        });
+    } catch (error: unknown) {
+        throw new Error("Error fetching daily transactions for month");
+    }
+};
+
 // Get monthly savings trend data for the last 12 months
 export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -487,29 +558,37 @@ export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response): P
 
             switch (period) {
                 case "monthly":
-                    // Get 12 months including the selected month
-                    for (let i = 11; i >= 0; i--) {
-                        const monthIndex = startDate.getMonth() - i;
-                        const year = startDate.getFullYear() + Math.floor(monthIndex / 12);
-                        const month = ((monthIndex % 12) + 12) % 12;
+                    // Get daily data for the selected month
+                    const selectedMonth = startDate.getMonth();
+                    const selectedYearForSavings = startDate.getFullYear();
 
-                        const monthData = await getTransactionsForMonth(userId, year, month);
+                    const dailySavingsData = await getDailyTransactionsForMonth(
+                        userId,
+                        selectedYearForSavings,
+                        selectedMonth
+                    );
 
+                    // Convert daily data to the expected format
+                    dailySavingsData.forEach((dayData) => {
                         allMonthsData.push({
-                            month: getMonthName(month),
-                            year: year,
-                            monthIndex: month,
-                            period: `${getMonthName(month)} ${year}`,
-                            ...monthData,
+                            month: dayData.date, // Use date string like "01/01", "02/01", etc.
+                            year: selectedYearForSavings,
+                            monthIndex: selectedMonth,
+                            period: dayData.date,
+                            income: dayData.income,
+                            expenses: dayData.expenses,
+                            savings: dayData.savings,
+                            transactionCount: 0, // Not tracking daily transaction count
+                            isActive: dayData.income > 0 || dayData.expenses > 0,
                         });
-                    }
+                    });
                     break;
 
                 case "quarterly":
                     // Get monthly data for the selected quarter
                     const selectedQuarter = parseInt(subPeriod.replace("Q", ""));
                     const quarterStartMonth = (selectedQuarter - 1) * 3; // Q1=0, Q2=3, Q3=6, Q4=9
-                    const quarterYear = quarterStartMonth <= currentMonth ? currentYear : currentYear - 1;
+                    const quarterYear = currentYear;
 
                     for (let month = quarterStartMonth; month < quarterStartMonth + 3; month++) {
                         const monthData = await getTransactionsForMonth(userId, quarterYear, month);
@@ -528,7 +607,7 @@ export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response): P
                     // Get monthly data for the selected half-year
                     const selectedHalf = parseInt(subPeriod.replace("H", ""));
                     const halfStartMonth = (selectedHalf - 1) * 6; // H1=0, H2=6
-                    const halfYear = halfStartMonth <= currentMonth ? currentYear : currentYear - 1;
+                    const halfYear = currentYear;
 
                     for (let month = halfStartMonth; month < halfStartMonth + 6; month++) {
                         const monthData = await getTransactionsForMonth(userId, halfYear, month);

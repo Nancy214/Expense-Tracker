@@ -137,76 +137,109 @@ const AnalyticsCard: React.FC<{
 
                         {/* Overview Tab - All Charts */}
                         <TabsContent value="overview" className="mt-4 sm:mt-6 space-y-4 sm:space-y-6 px-3 sm:px-0">
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-                                {/* Expense Category Breakdown */}
-                                <PieChartComponent
-                                    title="Expense Categories"
-                                    description="Your spending distribution by category"
-                                    data={expenseCategoryData}
-                                    currency={currency}
-                                    showInsights={true}
-                                />
+                            {expenseCategoryData.length > 0 ||
+                            billsCategoryData.length > 0 ||
+                            incomeExpenseData.length > 0 ||
+                            savingsTrendData.length > 0 ? (
+                                <>
+                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+                                        {/* Expense Category Breakdown */}
+                                        <PieChartComponent
+                                            title="Expense Categories"
+                                            description="Your spending distribution by category"
+                                            data={expenseCategoryData}
+                                            currency={currency}
+                                            showInsights={true}
+                                        />
 
-                                {/* Bills Category Breakdown */}
-                                <PieChartComponent
-                                    title="Bills Categories"
-                                    description="Your bills distribution by category"
-                                    data={billsCategoryData}
-                                    currency={currency}
-                                    showInsights={true}
-                                />
-                            </div>
+                                        {/* Bills Category Breakdown */}
+                                        <PieChartComponent
+                                            title="Bills Categories"
+                                            description="Your bills distribution by category"
+                                            data={billsCategoryData}
+                                            currency={currency}
+                                            showInsights={true}
+                                        />
+                                    </div>
 
-                            {/* Income vs Expenses Bar Chart */}
-                            {incomeExpenseData.length > 0 && (
-                                <BarChartComponent
-                                    title="Income vs Expenses Overview"
-                                    description="Compare your income and expenses over time"
-                                    data={incomeExpenseData}
-                                    currency={currency}
-                                    showInsights={true}
-                                    xAxisLabel="Time Period"
-                                    yAxisLabel="Amount"
-                                    timePeriod={selectedPeriod}
-                                    subPeriod={selectedSubPeriod}
-                                />
-                            )}
+                                    {/* Income vs Expenses Bar Chart */}
+                                    {incomeExpenseData.length > 0 && (
+                                        <BarChartComponent
+                                            title="Income vs Expenses Overview"
+                                            description="Compare your income and expenses over time"
+                                            data={incomeExpenseData}
+                                            currency={currency}
+                                            showInsights={true}
+                                            xAxisLabel="Time Period"
+                                            yAxisLabel="Amount"
+                                            timePeriod={selectedPeriod}
+                                            subPeriod={selectedSubPeriod}
+                                        />
+                                    )}
 
-                            {/* Monthly Savings Trend Area Chart */}
-                            {savingsTrendData.length > 0 && (
-                                <AreaChartComponent
-                                    title="Monthly Savings Trend"
-                                    description="Track your savings progress over time"
-                                    data={savingsTrendData}
-                                    currency={currency}
-                                    showInsights={true}
-                                    xAxisLabel="Month"
-                                    yAxisLabel="Amount"
-                                    timePeriod={selectedPeriod}
-                                    subPeriod={selectedSubPeriod}
-                                />
+                                    {/* Monthly Savings Trend Area Chart */}
+                                    {savingsTrendData.length > 0 && (
+                                        <AreaChartComponent
+                                            title="Monthly Savings Trend"
+                                            description="Track your savings progress over time"
+                                            data={savingsTrendData}
+                                            currency={currency}
+                                            showInsights={true}
+                                            xAxisLabel="Month"
+                                            yAxisLabel="Amount"
+                                            timePeriod={selectedPeriod}
+                                            subPeriod={selectedSubPeriod}
+                                        />
+                                    )}
+                                </>
+                            ) : (
+                                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center">
+                                    <TrendingUp className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                                        No Analytics Data
+                                    </h3>
+                                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                                        {isLoading
+                                            ? "Loading analytics data..."
+                                            : "Add income, expense, and bill transactions to see your comprehensive financial overview."}
+                                    </p>
+                                </div>
                             )}
                         </TabsContent>
 
                         {/* Expenses Tab - Pie Charts Only */}
                         <TabsContent value="expenses" className="mt-4 sm:mt-6 px-3 sm:px-0">
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-                                <PieChartComponent
-                                    title="Expense Category Breakdown"
-                                    description="View your expense distribution by category"
-                                    data={expenseCategoryData}
-                                    currency={currency}
-                                    showInsights={true}
-                                />
+                            {expenseCategoryData.length > 0 || billsCategoryData.length > 0 ? (
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+                                    <PieChartComponent
+                                        title="Expense Category Breakdown"
+                                        description="View your expense distribution by category"
+                                        data={expenseCategoryData}
+                                        currency={currency}
+                                        showInsights={true}
+                                    />
 
-                                <PieChartComponent
-                                    title="Bills Category Breakdown"
-                                    description="View your bills distribution by category"
-                                    data={billsCategoryData}
-                                    currency={currency}
-                                    showInsights={true}
-                                />
-                            </div>
+                                    <PieChartComponent
+                                        title="Bills Category Breakdown"
+                                        description="View your bills distribution by category"
+                                        data={billsCategoryData}
+                                        currency={currency}
+                                        showInsights={true}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center">
+                                    <PieChart className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                                        No Category Data
+                                    </h3>
+                                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                                        {isLoading
+                                            ? "Loading category data..."
+                                            : "Add expense and bill transactions to see your category breakdown."}
+                                    </p>
+                                </div>
+                            )}
                         </TabsContent>
 
                         {/* Income Tab - Bar Chart Only */}

@@ -126,7 +126,15 @@ const PieChartComponent: React.FC<PieChartProps> = ({
 
             <div className="w-full flex flex-col items-center">
                 {data.length === 0 ? (
-                    <div className="text-muted-foreground text-center py-6 sm:py-8 text-sm">No data available.</div>
+                    <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center mt-4">
+                        <PieChart className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                            No Category Data
+                        </h3>
+                        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                            Add expense or bill transactions to see your category breakdown.
+                        </p>
+                    </div>
                 ) : (
                     <div className="w-full h-[220px] sm:h-[280px] md:h-[320px] lg:h-[380px] xl:h-[420px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -190,7 +198,7 @@ const PieChartComponent: React.FC<PieChartProps> = ({
                                   topCategory.value
                               )}.`;
                           })()
-                        : "No data available."}
+                        : ""}
                 </div>
 
                 {/* Insights Section */}

@@ -11,7 +11,13 @@ import {
 } from "recharts";
 import type { AreaChartData, AreaChartProps, AreaChartTooltipProps as TooltipProps } from "@/types/analytics";
 import { TimePeriod } from "./TimePeriodSelector";
-import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
+import {
+    formatChartData,
+    getXAxisLabel,
+    getChartTitle,
+    getChartDescription,
+    getCurrentPeriodData,
+} from "@/utils/chartUtils";
 
 const COLORS = {
     savings: "#10b981", // Green for savings
@@ -187,6 +193,19 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     // Format data based on time period
     const formattedData = formatChartData(data, timePeriod as TimePeriod, subPeriod);
 
+    // For monthly period, we need to transform the data to match AreaChartData format
+    let chartData = formattedData;
+
+    if (timePeriod === "monthly") {
+        // Transform daily data to AreaChartData format
+        chartData = formattedData.map((item) => ({
+            name: item.name, // Date like "01/01"
+            savings: item.savings || 0,
+            income: item.income || 0,
+            expenses: item.expenses || 0,
+        }));
+    }
+
     // Get dynamic labels and titles
     const dynamicTitle = getChartTitle(title, timePeriod as TimePeriod, subPeriod);
     const dynamicDescription = getChartDescription(description, timePeriod as TimePeriod);
@@ -206,7 +225,7 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
             <div className="w-full flex flex-col items-center">
                 <div className="w-full h-[300px] sm:h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
-                        <RechartsAreaChart data={formattedData} margin={{ top: 20, right: 10, left: 10, bottom: 20 }}>
+                        <RechartsAreaChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 20 }}>
                             <defs>
                                 <linearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor={colors.savings} stopOpacity={0.8} />
@@ -239,19 +258,22 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                 </div>
 
                 <div className="mt-3 sm:mt-4 w-full max-w-md mx-auto">
-                    <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">Current Month Summary</h3>
+                    <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">Current Period Summary</h3>
                     <ul className="divide-y divide-muted-foreground/10">
                         {(() => {
-                            const currentMonthData: AreaChartData = formattedData[formattedData.length - 1];
-                            if (!currentMonthData) return null;
+                            // Get current period data based on selected time period
+                            const currentPeriodData: AreaChartData =
+                                getCurrentPeriodData(chartData, timePeriod as TimePeriod, subPeriod) ||
+                                chartData[chartData.length - 1]; // Fallback to last item
+                            if (!currentPeriodData) return null;
 
-                            const savings: number = currentMonthData.savings || 0;
-                            const income: number = currentMonthData.income || 0;
-                            const expenses: number = currentMonthData.expenses || 0;
+                            const savings: number = currentPeriodData.savings || 0;
+                            const income: number = currentPeriodData.income || 0;
+                            const expenses: number = currentPeriodData.expenses || 0;
 
                             return (
                                 <li className="flex items-center justify-between py-2 px-2">
-                                    <span className="text-xs sm:text-sm font-medium">{currentMonthData.name}</span>
+                                    <span className="text-xs sm:text-sm font-medium">{currentPeriodData.name}</span>
                                     <div className="text-right">
                                         <div className="text-xs text-green-600">Savings: {formatAmount(savings)}</div>
                                         {income !== undefined && (
@@ -270,14 +292,14 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                 </div>
 
                 <div className="mt-2 mb-2 text-xs sm:text-sm text-muted-foreground text-center px-2">
-                    {formattedData.length > 0
+                    {chartData.length > 0
                         ? (() => {
-                              const totalSavings: number = formattedData.reduce((sum, item) => sum + item.savings, 0);
-                              const avgSavings: number = totalSavings / formattedData.length;
-                              const positiveMonths: number = formattedData.filter((item) => item.savings > 0).length;
+                              const totalSavings: number = chartData.reduce((sum, item) => sum + item.savings, 0);
+                              const avgSavings: number = totalSavings / chartData.length;
+                              const positiveMonths: number = chartData.filter((item) => item.savings > 0).length;
                               return `Total Savings: ${formatAmount(totalSavings)} | Avg Monthly: ${formatAmount(
                                   avgSavings
-                              )} | Positive Months: ${positiveMonths}/${formattedData.length}`;
+                              )} | Positive Months: ${positiveMonths}/${chartData.length}`;
                           })()
                         : "No savings data available. Add income and expense transactions to see your savings trend."}
                 </div>
@@ -289,8 +311,8 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                             Smart Insights
                         </h4>
                         <div className="space-y-1 sm:space-y-2">
-                            {formattedData.length > 0 ? (
-                                generateInsights(formattedData).map((insight, index) => (
+                            {chartData.length > 0 ? (
+                                generateInsights(chartData).map((insight, index) => (
                                     <div key={index} className="text-xs text-muted-foreground rounded">
                                         {insight}
                                     </div>

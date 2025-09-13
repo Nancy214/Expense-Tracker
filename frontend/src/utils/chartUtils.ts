@@ -32,8 +32,8 @@ export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataL
 
             if (monthIndex !== -1) {
                 const currentYear = new Date().getFullYear();
-                const currentMonth = new Date().getMonth();
-                const year = monthIndex > currentMonth ? currentYear - 1 : currentYear;
+                // Always use current year for recent months (Oct, Nov, Dec)
+                const year = currentYear;
 
                 // Get the number of days in the selected month
                 const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -161,11 +161,10 @@ export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataL
 export const getXAxisLabel = (period: TimePeriod): string => {
     switch (period) {
         case "monthly":
-            return "Dates (DD/MM)";
         case "quarterly":
         case "half-yearly":
         case "yearly":
-            return "Months";
+            return "";
         default:
             return "Time Period";
     }
@@ -197,6 +196,12 @@ export const getYAxisLabel = (chartType: string): string => {
 export const formatChartData = (data: any[], period: TimePeriod, subPeriod: string): any[] => {
     if (!data || data.length === 0) return data;
 
+    // For monthly period, return all daily data (no filtering needed as backend returns daily data)
+    if (period === "monthly") {
+        // Backend now returns daily data for monthly view, so we return all data
+        return data;
+    }
+
     // For yearly, quarterly, and half-yearly periods, use the backend month names
     // as they are already correct and match the actual data
     if (period === "yearly" || period === "quarterly" || period === "half-yearly") {
@@ -206,7 +211,7 @@ export const formatChartData = (data: any[], period: TimePeriod, subPeriod: stri
         }));
     }
 
-    // For monthly periods, generate date labels
+    // For other periods, generate date labels
     const labels = generateXAxisLabels(period, subPeriod, data.length);
 
     return data.map((item, index) => ({
@@ -258,5 +263,53 @@ export const getChartDescription = (baseDescription: string, period: TimePeriod)
             return `${baseDescription} - Monthly view within the selected year`;
         default:
             return baseDescription;
+    }
+};
+
+/**
+ * Get current period data based on selected time period and sub-period
+ * @param data - Chart data array
+ * @param period - Selected time period
+ * @param subPeriod - Selected sub-period
+ * @returns Current period data or null if not found
+ */
+export const getCurrentPeriodData = (data: any[], period: TimePeriod, subPeriod: string): any | null => {
+    if (!data || data.length === 0) return null;
+
+    // Define month names array at the top level
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    switch (period) {
+        case "monthly":
+            // For monthly, find the data that matches the selected month
+            return data.find((item) => item.name === subPeriod || item.originalName === subPeriod) || null;
+
+        case "quarterly":
+            // For quarterly, find the last month in the selected quarter
+            if (subPeriod.startsWith("Q")) {
+                const quarter = parseInt(subPeriod.replace("Q", ""));
+                const lastMonthIndex = quarter * 3 - 1; // Q1=2 (Mar), Q2=5 (Jun), Q3=8 (Sep), Q4=11 (Dec)
+                const lastMonthName = monthNames[lastMonthIndex];
+                return data.find((item) => item.name === lastMonthName || item.originalName === lastMonthName) || null;
+            }
+            return null;
+
+        case "half-yearly":
+            // For half-yearly, find the last month in the selected half-year
+            if (subPeriod.startsWith("H")) {
+                const half = parseInt(subPeriod.replace("H", ""));
+                const lastMonthIndex = half === 1 ? 5 : 11; // H1=5 (Jun), H2=11 (Dec)
+                const lastMonthName = monthNames[lastMonthIndex];
+                return data.find((item) => item.name === lastMonthName || item.originalName === lastMonthName) || null;
+            }
+            return null;
+
+        case "yearly":
+            // For yearly, find the last month (December) of the selected year
+            return data.find((item) => item.name === "Dec" || item.originalName === "Dec") || null;
+
+        default:
+            // Fallback to last item
+            return data[data.length - 1] || null;
     }
 };

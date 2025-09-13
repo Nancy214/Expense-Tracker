@@ -17,7 +17,13 @@ import type {
     BarChartTooltipProps as TooltipProps,
 } from "@/types/analytics";
 import { TimePeriod } from "./TimePeriodSelector";
-import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
+import {
+    formatChartData,
+    getXAxisLabel,
+    getChartTitle,
+    getChartDescription,
+    getCurrentPeriodData,
+} from "@/utils/chartUtils";
 
 const COLORS = [
     "#10b981", // Green for Income
@@ -63,6 +69,32 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     // Transform data for grouped bar chart (income vs expenses over time)
     const transformDataForGroupedBars = (data: BarChartData[]): TransformedBarData[] => {
         if (!data || data.length === 0) return [];
+
+        // For monthly period, we now have daily data, so group by date
+        if (timePeriod === "monthly" && data.length > 0) {
+            // Group data by date (name field contains the date like "01/01", "02/01", etc.)
+            const dailyData: { [key: string]: { Income: number; Expense: number } } = {};
+
+            data.forEach((item) => {
+                const date = item.name;
+                if (!dailyData[date]) {
+                    dailyData[date] = { Income: 0, Expense: 0 };
+                }
+
+                if (item.category === "Income") {
+                    dailyData[date].Income += item.value || 0;
+                } else if (item.category === "Expense") {
+                    dailyData[date].Expense += item.value || 0;
+                }
+            });
+
+            // Convert to array format for the chart
+            return Object.entries(dailyData).map(([date, values]) => ({
+                name: date,
+                Income: values.Income,
+                Expense: values.Expense,
+            }));
+        }
 
         const timePeriods: string[] = [...new Set(data.map((item) => item.name))];
         const categories: string[] = [...new Set(data.map((item) => item.category || ""))];
@@ -254,21 +286,22 @@ const BarChartComponent: React.FC<BarChartProps> = ({
 
                 {data.length > 0 && (
                     <div className="mt-3 sm:mt-4 w-full max-w-md mx-auto">
-                        <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">Current Month Summary</h3>
+                        <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">Current Period Summary</h3>
                         <ul className="divide-y divide-muted-foreground/10">
                             {(() => {
-                                // Get only the current month data (last month in the array)
-                                const currentMonthData: TransformedBarData =
-                                    transformedData[transformedData.length - 1];
-                                if (!currentMonthData) return null;
+                                // Get the current period data based on selected time period
+                                const currentPeriodData: TransformedBarData =
+                                    getCurrentPeriodData(transformedData, timePeriod as TimePeriod, subPeriod) ||
+                                    transformedData[transformedData.length - 1]; // Fallback to last item
+                                if (!currentPeriodData) return null;
 
-                                const income: number = currentMonthData.Income || 0;
-                                const expense: number = currentMonthData.Expense || 0;
+                                const income: number = currentPeriodData.Income || 0;
+                                const expense: number = currentPeriodData.Expense || 0;
                                 const net: number = income - expense;
 
                                 return (
                                     <li className="flex items-center justify-between py-2 px-2">
-                                        <span className="text-xs sm:text-sm font-medium">{currentMonthData.name}</span>
+                                        <span className="text-xs sm:text-sm font-medium">{currentPeriodData.name}</span>
                                         <div className="text-right">
                                             <div className="text-xs text-green-600">+{formatAmount(income)}</div>
                                             <div className="text-xs text-red-600">-{formatAmount(expense)}</div>
@@ -291,16 +324,18 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                 <div className="mt-2 mb-2 text-xs sm:text-sm text-muted-foreground text-center px-2">
                     {data.length > 0
                         ? (() => {
-                              // Get only current month data (last month in the array)
-                              const currentMonthData: TransformedBarData = transformedData[transformedData.length - 1];
-                              if (!currentMonthData) return "No data available.";
+                              // Get current period data based on selected time period
+                              const currentPeriodData: TransformedBarData =
+                                  getCurrentPeriodData(transformedData, timePeriod as TimePeriod, subPeriod) ||
+                                  transformedData[transformedData.length - 1]; // Fallback to last item
+                              if (!currentPeriodData) return "No data available.";
 
-                              const totalIncome: number = currentMonthData.Income || 0;
-                              const totalExpense: number = currentMonthData.Expense || 0;
+                              const totalIncome: number = currentPeriodData.Income || 0;
+                              const totalExpense: number = currentPeriodData.Expense || 0;
                               const netIncome: number = totalIncome - totalExpense;
-                              return `Current Month Income: ${formatAmount(
+                              return `Current Period Income: ${formatAmount(
                                   totalIncome
-                              )} | Current Month Expenses: ${formatAmount(totalExpense)} | Net: ${formatAmount(
+                              )} | Current Period Expenses: ${formatAmount(totalExpense)} | Net: ${formatAmount(
                                   netIncome
                               )}`;
                           })()
