@@ -116,13 +116,13 @@ const PieChartComponent: React.FC<PieChartProps> = ({
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between">
+        <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-2 sm:p-3 md:p-4 transition hover:shadow-2xl">
+            <div className="flex flex-wrap items-center gap-1 justify-between">
                 <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100">
                     {title}
                 </h2>
             </div>
-            {description && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>}
+            {description && <p className="text-xs sm:text-sm text-muted-foreground -mt-1">{description}</p>}
 
             <div className="w-full flex flex-col items-center">
                 {data.length === 0 ? (
@@ -136,9 +136,9 @@ const PieChartComponent: React.FC<PieChartProps> = ({
                         </p>
                     </div>
                 ) : (
-                    <div className="w-full h-[220px] sm:h-[280px] md:h-[320px] lg:h-[380px] xl:h-[420px]">
+                    <div className="w-full h-[150px] sm:h-[200px] md:h-[240px] lg:h-[280px] xl:h-[320px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
+                            <PieChart margin={{ top: -20, right: 0, bottom: -20, left: 0 }}>
                                 <Pie
                                     data={data}
                                     dataKey="value"
@@ -160,14 +160,14 @@ const PieChartComponent: React.FC<PieChartProps> = ({
                 )}
 
                 {data.length > 0 && (
-                    <div className="mt-3 sm:mt-4 w-full max-w-md mx-auto">
-                        <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">Top 5 Categories</h3>
+                    <div className="mt-6 w-full max-w-md mx-auto">
+                        <h3 className="text-xs sm:text-sm font-semibold mb-0.5 text-center">Top 5 Categories</h3>
                         <ul className="divide-y divide-muted-foreground/10">
                             {data.slice(0, 5).map((item, idx) => {
                                 const total = data.reduce((acc, c) => acc + c.value, 0);
                                 const percent = total > 0 ? (item.value / total) * 100 : 0;
                                 return (
-                                    <li key={item.name} className="flex items-center justify-between py-1 px-2">
+                                    <li key={item.name} className="flex items-center justify-between py-0.5 px-2">
                                         <span className="flex items-center gap-1 sm:gap-2">
                                             <span
                                                 style={{

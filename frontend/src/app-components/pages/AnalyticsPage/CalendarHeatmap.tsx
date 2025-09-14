@@ -88,96 +88,6 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
     // Calculate max value if not provided
     const calculatedMaxValue: number = maxValue || Math.max(...yearData.map((d) => d.count), 1);
 
-    // Generate insights based on data
-    const generateInsights = (data: HeatmapData[]) => {
-        const insights: Insight[] = [];
-
-        if (data.length === 0) return [];
-
-        const totalDays: number = data.length;
-        const activeDays: number = data.filter((d) => d.count > 0).length;
-
-        // Most active day
-        const mostActiveDay: HeatmapData = data.reduce(
-            (max, current) => (current.count > max.count ? current : max),
-            data[0]
-        );
-
-        // Streak analysis
-        let currentStreak: number = 0;
-        let maxStreak: number = 0;
-        let tempStreak: number = 0;
-
-        data.forEach((day: HeatmapData) => {
-            if (day.count > 0) {
-                tempStreak++;
-                maxStreak = Math.max(maxStreak, tempStreak);
-            } else {
-                tempStreak = 0;
-            }
-        });
-
-        // Current streak (from the end)
-        for (let i = data.length - 1; i >= 0; i--) {
-            if (data[i].count > 0) {
-                currentStreak++;
-            } else {
-                break;
-            }
-        }
-
-        insights.push({
-            label: "Total Days",
-            value: totalDays.toString(),
-            type: "info",
-        });
-        insights.push({
-            label: "Total Days",
-            value: totalDays.toString(),
-            type: "info",
-        });
-
-        insights.push({
-            label: "Active Days",
-            value: activeDays.toString(),
-            type: "success",
-        });
-
-        insights.push({
-            label: "Activity Rate",
-            value: `${((activeDays / totalDays) * 100).toFixed(1)}%`,
-            type: "info",
-        });
-
-        if (mostActiveDay && mostActiveDay.count > 0) {
-            insights.push({
-                label: "Peak Activity",
-                value: `${mostActiveDay.count} on ${new Date(mostActiveDay.date).toLocaleDateString()}`,
-                type: "success",
-            });
-        }
-
-        if (maxStreak > 0) {
-            insights.push({
-                label: "Longest Streak",
-                value: `${maxStreak} days`,
-                type: "info",
-            });
-        }
-
-        if (currentStreak > 0) {
-            insights.push({
-                label: "Current Streak",
-                value: `${currentStreak} days`,
-                type: "success",
-            });
-        }
-
-        return insights;
-    };
-
-    const insights: Insight[] = showInsights ? generateInsights(yearData) : [];
-
     // Custom tooltip content
     const getTooltipContent = (value: any) => {
         if (!value || !value.date) {
@@ -247,7 +157,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                         )}
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+                <CardContent className="space-y-4 sm:space-y-0 p-4 pt-0">
                     <div className="overflow-x-auto">
                         <CalendarHeatmap
                             startDate={startDate}
@@ -274,7 +184,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                     </div>
 
                     {showLegend && (
-                        <div className="flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-muted-foreground">
+                        <div className="flex items-center justify-center space-x-1 text-xs sm:text-sm text-muted-foreground">
                             <span>Less</span>
                             {colorScale.slice(1).map((color: string, index: number) => (
                                 <div
@@ -284,26 +194,6 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                                 />
                             ))}
                             <span>More</span>
-                        </div>
-                    )}
-
-                    {insights.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mt-3 sm:mt-4">
-                            {insights.map((insight: Insight, index: number) => (
-                                <div key={index} className="text-center p-2 sm:p-3 bg-muted rounded-lg">
-                                    <div className="text-xs text-muted-foreground">{insight.label}</div>
-                                    <div
-                                        className={cn(
-                                            "text-xs sm:text-sm font-medium",
-                                            insight.type === "success" && "text-green-600",
-                                            insight.type === "warning" && "text-orange-600",
-                                            insight.type === "info" && "text-blue-600"
-                                        )}
-                                    >
-                                        {insight.value}
-                                    </div>
-                                </div>
-                            ))}
                         </div>
                     )}
                 </CardContent>
@@ -338,12 +228,13 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                     }
                     
                     .react-calendar-heatmap .react-calendar-heatmap-weekday-label {
-                        font-size: 10px;
+                        font-size: 8px;
                         fill: #666;
+                        transform: translate(-3px, 0);
                     }
                     
                     .react-calendar-heatmap .react-calendar-heatmap-month-label {
-                        font-size: 10px;
+                        font-size: 8px;
                         fill: #666;
                     }
                     

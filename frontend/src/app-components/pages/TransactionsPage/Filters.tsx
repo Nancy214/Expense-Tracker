@@ -126,7 +126,7 @@ export function FiltersSection({
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-[160px] justify-between">
+                            <Button variant="outline" className="w-[200px] justify-between">
                                 <span className="truncate">
                                     {selectedCategories.includes("all")
                                         ? "All Categories"
@@ -135,7 +135,7 @@ export function FiltersSection({
                                 <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[160px]">
+                        <DropdownMenuContent className="w-[200px]">
                             <DropdownMenuCheckboxItem
                                 checked={selectedCategories.includes("all")}
                                 onCheckedChange={(checked) => handleCategoryFilterChange("all", checked)}
@@ -168,14 +168,14 @@ export function FiltersSection({
                     </DropdownMenu>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-[140px] justify-between">
+                            <Button variant="outline" className="w-[180px] justify-between">
                                 <span className="truncate">
                                     {selectedTypes.includes("all") ? "All Types" : `${selectedTypes.length} selected`}
                                 </span>
                                 <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[140px]">
+                        <DropdownMenuContent className="w-[180px]">
                             <DropdownMenuLabel>Transaction Types</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuCheckboxItem

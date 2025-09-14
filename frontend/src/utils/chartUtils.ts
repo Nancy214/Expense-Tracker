@@ -1,4 +1,5 @@
 import { TimePeriod } from "@/app-components/pages/AnalyticsPage/TimePeriodSelector";
+import { formatToHumanReadableDate } from "./dateUtils";
 
 // Utility functions for chart x-axis formatting based on time period
 
@@ -15,7 +16,7 @@ export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataL
     switch (period) {
         case "monthly":
             // For monthly view, show all dates in DD/MM format for the entire month
-            const monthIndex = [
+            const monthNames = [
                 "January",
                 "February",
                 "March",
@@ -28,7 +29,8 @@ export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataL
                 "October",
                 "November",
                 "December",
-            ].indexOf(subPeriod);
+            ];
+            const monthIndex = monthNames.indexOf(subPeriod);
 
             if (monthIndex !== -1) {
                 const currentYear = new Date().getFullYear();
@@ -40,9 +42,8 @@ export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataL
 
                 // Generate date labels for all days in the month in DD/MM format
                 for (let day = 1; day <= daysInMonth; day++) {
-                    const dayStr = day.toString().padStart(2, "0");
-                    const monthStr = (monthIndex + 1).toString().padStart(2, "0");
-                    labels.push(`${dayStr}/${monthStr}`);
+                    const date = new Date(year, monthIndex, day);
+                    labels.push(formatToHumanReadableDate(date));
                 }
             } else {
                 // Fallback to day numbers if month not found
@@ -196,10 +197,34 @@ export const getYAxisLabel = (chartType: string): string => {
 export const formatChartData = (data: any[], period: TimePeriod, subPeriod: string): any[] => {
     if (!data || data.length === 0) return data;
 
-    // For monthly period, return all daily data (no filtering needed as backend returns daily data)
+    // For monthly period, format the dates using formatToHumanReadableDate
     if (period === "monthly") {
-        // Backend now returns daily data for monthly view, so we return all data
-        return data;
+        return data.map((item) => {
+            // Parse the date string properly
+            let date;
+            if (typeof item.name === "string") {
+                // Try to parse the date string
+                const parts = item.name.split("/");
+                if (parts.length === 2) {
+                    // If it's in DD/MM format, construct the date with current year
+                    const [day, month] = parts;
+                    date = new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day));
+                } else {
+                    // Otherwise try to parse it as a regular date string
+                    date = new Date(item.name);
+                }
+            } else if (item.name instanceof Date) {
+                date = item.name;
+            } else {
+                return item;
+            }
+
+            const formattedDate = formatToHumanReadableDate(date);
+            return {
+                ...item,
+                name: formattedDate,
+            };
+        });
     }
 
     // For yearly, quarterly, and half-yearly periods, use the backend month names

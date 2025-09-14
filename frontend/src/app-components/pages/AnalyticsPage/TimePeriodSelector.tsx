@@ -2,6 +2,15 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, TrendingUp, BarChart3, PieChart } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export type TimePeriod = "monthly" | "quarterly" | "half-yearly" | "yearly";
 
@@ -111,116 +120,108 @@ const TimePeriodSelector: React.FC<TimePeriodSelectorProps> = ({
     const currentSubPeriod = selectedSubPeriod || defaultSubPeriod;
 
     return (
-        <Card className="rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition">
-            <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
-                    Time Period Analysis
-                </CardTitle>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                    Select a time period to analyze your financial data
-                </p>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
-                {/* Main Period Selector */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                    {periods.map((period) => {
-                        const Icon = period.icon;
-                        const isSelected = selectedPeriod === period.key;
-
-                        return (
-                            <Button
-                                key={period.key}
-                                variant={isSelected ? "default" : "outline"}
-                                className={`h-auto p-2 sm:p-3 md:p-4 flex flex-col items-center gap-1 sm:gap-2 transition-all ${
-                                    isSelected
-                                        ? "bg-primary text-primary-foreground shadow-md"
-                                        : "hover:bg-muted hover:shadow-sm"
-                                }`}
-                                onClick={() => {
-                                    onPeriodChange(period.key);
-                                    // Reset sub-period when main period changes
-                                    if (onSubPeriodChange) {
-                                        onSubPeriodChange(getDefaultSubPeriod(period.key));
-                                    }
-                                }}
-                            >
-                                <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                                <span className="text-xs sm:text-sm font-medium text-center">{period.label}</span>
-                            </Button>
-                        );
-                    })}
-                </div>
-
-                {/* Sub-Period Selector */}
-                {subPeriods.length > 0 && (
-                    <div className="space-y-2 sm:space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h4 className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Select{" "}
-                                {selectedPeriod === "monthly"
-                                    ? "Month"
-                                    : selectedPeriod === "quarterly"
-                                    ? "Quarter"
-                                    : selectedPeriod === "half-yearly"
-                                    ? "Half-Year"
-                                    : "Year"}
-                            </h4>
-                        </div>
-
-                        <div className="grid gap-1 sm:gap-2 grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12">
-                            {subPeriods.map((subPeriod) => {
-                                const isSelected = currentSubPeriod === subPeriod;
-
-                                return (
-                                    <Button
-                                        key={subPeriod}
-                                        variant={isSelected ? "default" : "outline"}
-                                        size="sm"
-                                        className={`h-7 sm:h-8 text-xs transition-all ${
-                                            isSelected ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                                        }`}
-                                        onClick={() => onSubPeriodChange?.(subPeriod)}
-                                    >
-                                        {subPeriod}
-                                    </Button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Selected Period Badge - No date range for monthly */}
-                        {selectedPeriod === "monthly" && currentSubPeriod && (
-                            <div className="flex items-center gap-2 pt-2 border-t">
-                                <div className="text-xs text-muted-foreground">
-                                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                                        {currentSubPeriod}{" "}
-                                        {(() => {
-                                            const monthIndex = [
-                                                "January",
-                                                "February",
-                                                "March",
-                                                "April",
-                                                "May",
-                                                "June",
-                                                "July",
-                                                "August",
-                                                "September",
-                                                "October",
-                                                "November",
-                                                "December",
-                                            ].indexOf(currentSubPeriod);
-                                            const currentYear = new Date().getFullYear();
-                                            const currentMonth = new Date().getMonth();
-
-                                            // If the selected month is in the future, use previous year
-                                            return monthIndex > currentMonth ? currentYear - 1 : currentYear;
-                                        })()}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
+        <Card className="rounded-lg shadow-sm border border-border/40 bg-gradient-to-b from-background to-muted/20 backdrop-blur-sm">
+            <CardHeader className="p-3 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <div className="p-1 rounded-md bg-primary/10">
+                        <TrendingUp className="h-3.5 w-3.5 text-primary" />
                     </div>
-                )}
+                    <span className="text-xs tracking-wide uppercase">Time Period</span>
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                <div className="flex gap-3 items-center">
+                    {/* Main Period Selector */}
+                    <Select
+                        value={selectedPeriod}
+                        onValueChange={(value: TimePeriod) => {
+                            onPeriodChange(value);
+                            if (onSubPeriodChange) {
+                                onSubPeriodChange(getDefaultSubPeriod(value));
+                            }
+                        }}
+                    >
+                        <SelectTrigger className="w-[180px] h-8 bg-background/50 backdrop-blur-sm">
+                            <SelectValue placeholder="Select period">
+                                {selectedPeriod &&
+                                    (() => {
+                                        const period = periods.find((p) => p.key === selectedPeriod);
+                                        const Icon = period?.icon || Calendar;
+                                        return (
+                                            <div className="flex items-center gap-2">
+                                                <div className="p-0.5 rounded bg-primary/10">
+                                                    <Icon className="h-3.5 w-3.5 text-primary" />
+                                                </div>
+                                                <span className="font-medium text-sm">{period?.label}</span>
+                                            </div>
+                                        );
+                                    })()}
+                            </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectLabel className="text-xs font-medium text-muted-foreground">
+                                    Time Periods
+                                </SelectLabel>
+                                {periods.map((period) => {
+                                    const Icon = period.icon;
+                                    return (
+                                        <SelectItem
+                                            key={period.key}
+                                            value={period.key}
+                                            className="flex items-center gap-2 py-2.5"
+                                        >
+                                            <div className="flex items-center gap-2 flex-1">
+                                                <div className="p-0.5 rounded bg-muted">
+                                                    <Icon className="h-4 w-4 text-muted-foreground" />
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-medium">{period.label}</span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {period.description}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </SelectItem>
+                                    );
+                                })}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Sub-Period Selector */}
+                    {subPeriods.length > 0 && (
+                        <div className="flex-1">
+                            <div className="flex flex-wrap gap-1">
+                                {subPeriods.map((subPeriod) => {
+                                    const isSelected = currentSubPeriod === subPeriod;
+
+                                    return (
+                                        <Button
+                                            key={subPeriod}
+                                            variant={isSelected ? "default" : "ghost"}
+                                            size="sm"
+                                            className={`group h-8 px-3 text-sm transition-all duration-200 ${
+                                                isSelected
+                                                    ? "bg-primary/90 text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                                                    : "hover:bg-muted/80 hover:shadow-sm"
+                                            }`}
+                                            onClick={() => onSubPeriodChange?.(subPeriod)}
+                                        >
+                                            <span
+                                                className={`transition-transform duration-200 ${
+                                                    isSelected ? "scale-105" : "group-hover:scale-105"
+                                                }`}
+                                            >
+                                                {subPeriod}
+                                            </span>
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </CardContent>
         </Card>
     );

@@ -56,15 +56,9 @@ const AnalyticsCard: React.FC<{
     hasErrors,
     currency,
 }) => {
-    const [activeTab, setActiveTab] = useState("overview");
+    const [activeTab, setActiveTab] = useState("expenses");
 
     const tabs = [
-        {
-            id: "overview",
-            label: "Overview",
-            icon: TrendingUp,
-            description: "Complete financial overview with all charts",
-        },
         {
             id: "expenses",
             label: "Category Breakdown",
@@ -87,27 +81,9 @@ const AnalyticsCard: React.FC<{
 
     return (
         <Card className="rounded-xl sm:rounded-2xl shadow-xl border-0 bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 border-b border-slate-200 dark:border-slate-600 p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-                    <div>
-                        <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
-                            <div className="p-1.5 sm:p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <span className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl">
-                                Financial Analytics Dashboard
-                            </span>
-                        </CardTitle>
-                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
-                            Comprehensive view of your financial health and spending patterns
-                        </p>
-                    </div>
-                </div>
-            </CardHeader>
-
             <CardContent className="p-0">
                 {/* Time Period Selector */}
-                <div className="p-3 sm:p-4 md:p-6 pb-3 sm:pb-4">
+                <div className="p-3 sm:p-4 md:p-3 pb-3 sm:pb-4">
                     <TimePeriodSelector
                         selectedPeriod={selectedPeriod}
                         onPeriodChange={onPeriodChange}
@@ -117,9 +93,9 @@ const AnalyticsCard: React.FC<{
                 </div>
 
                 {/* Navigation Tabs */}
-                <div className="px-3 sm:px-4 md:px-6 pb-3 sm:pb-4">
+                <div className="px-3 sm:px-4 md:px-3 pb-3 sm:pb-4">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-slate-100 dark:bg-slate-700 h-auto">
+                        <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-2 sm:grid-cols-3 bg-slate-100 dark:bg-slate-700 h-auto">
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
                                 return (
@@ -135,80 +111,8 @@ const AnalyticsCard: React.FC<{
                             })}
                         </TabsList>
 
-                        {/* Overview Tab - All Charts */}
-                        <TabsContent value="overview" className="mt-4 sm:mt-6 space-y-4 sm:space-y-6 px-3 sm:px-0">
-                            {expenseCategoryData.length > 0 ||
-                            billsCategoryData.length > 0 ||
-                            incomeExpenseData.length > 0 ||
-                            savingsTrendData.length > 0 ? (
-                                <>
-                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-                                        {/* Expense Category Breakdown */}
-                                        <PieChartComponent
-                                            title="Expense Categories"
-                                            description="Your spending distribution by category"
-                                            data={expenseCategoryData}
-                                            currency={currency}
-                                            showInsights={true}
-                                        />
-
-                                        {/* Bills Category Breakdown */}
-                                        <PieChartComponent
-                                            title="Bills Categories"
-                                            description="Your bills distribution by category"
-                                            data={billsCategoryData}
-                                            currency={currency}
-                                            showInsights={true}
-                                        />
-                                    </div>
-
-                                    {/* Income vs Expenses Bar Chart */}
-                                    {incomeExpenseData.length > 0 && (
-                                        <BarChartComponent
-                                            title="Income vs Expenses Overview"
-                                            description="Compare your income and expenses over time"
-                                            data={incomeExpenseData}
-                                            currency={currency}
-                                            showInsights={true}
-                                            xAxisLabel="Time Period"
-                                            yAxisLabel="Amount"
-                                            timePeriod={selectedPeriod}
-                                            subPeriod={selectedSubPeriod}
-                                        />
-                                    )}
-
-                                    {/* Monthly Savings Trend Area Chart */}
-                                    {savingsTrendData.length > 0 && (
-                                        <AreaChartComponent
-                                            title="Monthly Savings Trend"
-                                            description="Track your savings progress over time"
-                                            data={savingsTrendData}
-                                            currency={currency}
-                                            showInsights={true}
-                                            xAxisLabel="Month"
-                                            yAxisLabel="Amount"
-                                            timePeriod={selectedPeriod}
-                                            subPeriod={selectedSubPeriod}
-                                        />
-                                    )}
-                                </>
-                            ) : (
-                                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center">
-                                    <TrendingUp className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                                        No Analytics Data
-                                    </h3>
-                                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                                        {isLoading
-                                            ? "Loading analytics data..."
-                                            : "Add income, expense, and bill transactions to see your comprehensive financial overview."}
-                                    </p>
-                                </div>
-                            )}
-                        </TabsContent>
-
                         {/* Expenses Tab - Pie Charts Only */}
-                        <TabsContent value="expenses" className="mt-4 sm:mt-6 px-3 sm:px-0">
+                        <TabsContent value="expenses" className="mt-4 sm:mt-3 px-3 sm:px-0">
                             {expenseCategoryData.length > 0 || billsCategoryData.length > 0 ? (
                                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
                                     <PieChartComponent
@@ -243,7 +147,7 @@ const AnalyticsCard: React.FC<{
                         </TabsContent>
 
                         {/* Income Tab - Bar Chart Only */}
-                        <TabsContent value="income" className="mt-4 sm:mt-6 px-3 sm:px-0">
+                        <TabsContent value="income" className="mt-4 sm:mt-3 px-3 sm:px-0">
                             {incomeExpenseData.length > 0 ? (
                                 <BarChartComponent
                                     title="Income vs Expenses Overview"
@@ -272,7 +176,7 @@ const AnalyticsCard: React.FC<{
                         </TabsContent>
 
                         {/* Savings Tab - Area Chart Only */}
-                        <TabsContent value="savings" className="mt-4 sm:mt-6 px-3 sm:px-0">
+                        <TabsContent value="savings" className="mt-4 sm:mt-3 px-3 sm:px-0">
                             {savingsTrendData.length > 0 ? (
                                 <div className="bg-white dark:bg-slate-800/50 rounded-xl p-2 sm:p-4 border border-slate-200 dark:border-slate-600">
                                     <AreaChartComponent

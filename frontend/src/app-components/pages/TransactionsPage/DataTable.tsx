@@ -103,52 +103,6 @@ export function DataTable({
                 />
             )}
 
-            {/* Transaction Summary */}
-            <div className="mt-4 flex justify-between p-4 bg-muted/50 rounded-lg">
-                <span className="font-medium">Transaction Summary</span>
-                <div className="text-right space-y-1">
-                    {Object.entries(totalExpensesByCurrency).map(([currency, totals]) => {
-                        const currencySymbols: Record<string, string> = {
-                            INR: "₹",
-                            EUR: "€",
-                            GBP: "£",
-                            JPY: "¥",
-                            USD: "$",
-                            CAD: "C$",
-                            AUD: "A$",
-                            CHF: "CHF",
-                            CNY: "¥",
-                            KRW: "₩",
-                        };
-                        const symbol = currencySymbols[currency] || currency;
-                        return (
-                            <div key={currency} className="space-y-1">
-                                <div className="text-sm">
-                                    <span className="text-green-600 font-medium">
-                                        {symbol}
-                                        {totals.income.toFixed(2)} Income
-                                    </span>
-                                </div>
-                                <div className="text-sm">
-                                    <span className="text-red-600 font-medium">
-                                        {symbol}
-                                        {totals.expense.toFixed(2)} Expense
-                                    </span>
-                                </div>
-                                <div className="text-sm">
-                                    <span
-                                        className={`font-medium ${totals.net >= 0 ? "text-green-600" : "text-red-600"}`}
-                                    >
-                                        {symbol}
-                                        {totals.net.toFixed(2)} Net
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
             {/* Pagination */}
             {onPageChange && (
                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
