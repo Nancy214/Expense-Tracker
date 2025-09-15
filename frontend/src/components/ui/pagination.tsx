@@ -81,9 +81,16 @@ interface PaginationWrapperProps {
     totalPages: number;
     onPageChange: (page: number) => void;
     className?: string;
+    isLoading?: boolean;
 }
 
-const PaginationWrapper: React.FC<PaginationWrapperProps> = ({ currentPage, totalPages, onPageChange, className }) => {
+const PaginationWrapper: React.FC<PaginationWrapperProps> = ({
+    currentPage,
+    totalPages,
+    onPageChange,
+    className,
+    isLoading = false,
+}) => {
     const getVisiblePages = () => {
         const delta = 2;
         const range = [];
@@ -120,11 +127,14 @@ const PaginationWrapper: React.FC<PaginationWrapperProps> = ({ currentPage, tota
                         href="#"
                         onClick={(e) => {
                             e.preventDefault();
-                            if (currentPage > 1) {
+                            if (!isLoading && currentPage > 1) {
                                 onPageChange(currentPage - 1);
                             }
                         }}
-                        className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                        className={cn(
+                            currentPage <= 1 ? "pointer-events-none opacity-50" : "",
+                            isLoading && "cursor-not-allowed opacity-50"
+                        )}
                     />
                 </PaginationItem>
 
@@ -137,7 +147,9 @@ const PaginationWrapper: React.FC<PaginationWrapperProps> = ({ currentPage, tota
                                 href="#"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    onPageChange(page as number);
+                                    if (!isLoading) {
+                                        onPageChange(page as number);
+                                    }
                                 }}
                                 isActive={currentPage === page}
                             >
@@ -152,11 +164,14 @@ const PaginationWrapper: React.FC<PaginationWrapperProps> = ({ currentPage, tota
                         href="#"
                         onClick={(e) => {
                             e.preventDefault();
-                            if (currentPage < totalPages) {
+                            if (!isLoading && currentPage < totalPages) {
                                 onPageChange(currentPage + 1);
                             }
                         }}
-                        className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                        className={cn(
+                            currentPage >= totalPages ? "pointer-events-none opacity-50" : "",
+                            isLoading && "cursor-not-allowed opacity-50"
+                        )}
                     />
                 </PaginationItem>
             </PaginationContent>

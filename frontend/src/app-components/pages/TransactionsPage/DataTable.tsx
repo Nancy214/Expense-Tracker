@@ -23,6 +23,7 @@ export function DataTable({
     onPageChange,
     totalItems = 0,
     itemsPerPage = 20,
+    isLoading = false,
 }: DataTableProps) {
     // Sync activeTab with isRecurringTab prop
     useEffect(() => {
@@ -116,6 +117,7 @@ export function DataTable({
                             currentPage={currentPage}
                             totalPages={totalPages}
                             onPageChange={onPageChange}
+                            isLoading={isLoading}
                         />
                     )}
                 </div>

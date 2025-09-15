@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
-import { TransactionWithId } from "@/types/transaction";
 import { FiltersSectionProps } from "@/types/transaction";
+import { useAllTransactions, TransactionFilters } from "@/hooks/use-transactions";
 
 const EXPENSE_CATEGORIES: string[] = [
     "Food & Dining",
@@ -44,7 +44,6 @@ const INCOME_CATEGORIES: string[] = [
 ];
 
 export function FiltersSection({
-    filteredTransactions,
     handleEdit,
     handleDelete,
     recurringTransactions = [],
@@ -70,19 +69,19 @@ export function FiltersSection({
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
-    // For now, use the data directly from the backend since it's already paginated
-    // In the future, we can implement server-side filtering
-    const localFilteredTransactions: TransactionWithId[] = filteredTransactions;
+    // Create filters object for the API
+    const filters: TransactionFilters = {
+        categories: selectedCategories.includes("all") ? undefined : selectedCategories,
+        types: selectedTypes.includes("all") ? undefined : selectedTypes,
+        dateRange: dateRangeForFilter,
+        searchQuery: searchQuery || undefined,
+    };
 
-    // Use the data directly from backend pagination
-    const paginatedData = localFilteredTransactions;
+    // Fetch filtered data from the API
+    const { transactions: paginatedData, isLoading } = useAllTransactions(currentPage, itemsPerPage, filters);
 
-    // Reset to first page when filters change
-    useEffect(() => {
-        if (onPageChange) {
-            onPageChange(1);
-        }
-    }, [selectedCategories, selectedTypes, selectedStatuses, searchQuery, dateRangeForFilter, activeTab, onPageChange]);
+    // We'll implement server-side filtering later
+    // For now, we're just using the paginated data from the backend
 
     const handleCategoryFilterChange = (category: string, checked: boolean) => {
         let newCategories: string[];
@@ -204,7 +203,7 @@ export function FiltersSection({
                             <PopoverTrigger asChild>
                                 <Button
                                     variant={"outline"}
-                                    className={cn("w-[160px] justify-start text-left font-normal")}
+                                    className={cn("w-[200px] justify-start text-left font-normal")}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                                     <span className="truncate">
@@ -271,6 +270,7 @@ export function FiltersSection({
                         onPageChange={onPageChange}
                         totalItems={totalItems}
                         itemsPerPage={itemsPerPage}
+                        isLoading={isLoading}
                         apiRecurringTemplates={apiRecurringTemplates}
                     />
                 </div>

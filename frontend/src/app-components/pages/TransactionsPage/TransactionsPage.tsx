@@ -37,12 +37,19 @@ const TransactionsPage = () => {
         transactions: allTransactions,
         pagination: allTransactionsPagination,
         invalidateAllTransactions,
+        isLoading: isAllTransactionsLoading,
     } = useAllTransactions(allTransactionsPage, itemsPerPage);
-    const { bills, pagination: billsPagination, invalidateBills } = useBills(billsPage, itemsPerPage);
+    const {
+        bills,
+        pagination: billsPagination,
+        invalidateBills,
+        isLoading: isBillsLoading,
+    } = useBills(billsPage, itemsPerPage);
     const {
         recurringTemplates: apiRecurringTemplates,
         pagination: recurringPagination,
         invalidateRecurringTemplates,
+        isLoading: isRecurringLoading,
     } = useRecurringTemplates(recurringTransactionsPage, itemsPerPage);
     const { summary } = useTransactionSummary();
 
@@ -72,6 +79,20 @@ const TransactionsPage = () => {
                 return billsPage;
             default:
                 return allTransactionsPage;
+        }
+    };
+
+    // Get current loading state based on active tab
+    const isLoading = (): boolean => {
+        switch (activeTab) {
+            case "all":
+                return isAllTransactionsLoading;
+            case "recurring":
+                return isRecurringLoading;
+            case "bills":
+                return isBillsLoading;
+            default:
+                return false;
         }
     };
 
@@ -197,6 +218,11 @@ const TransactionsPage = () => {
 
     // Handle page change for different tabs
     const handlePageChange = (page: number): void => {
+        // Prevent changing page if it's the same as current
+        const currentPageForTab = getCurrentPage();
+        if (page === currentPageForTab) return;
+
+        // Update the page state based on active tab
         switch (activeTab) {
             case "all":
                 setAllTransactionsPage(page);
@@ -208,6 +234,9 @@ const TransactionsPage = () => {
                 setBillsPage(page);
                 break;
         }
+
+        // Scroll to top of the table
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     // Get available months for filtering
@@ -531,6 +560,7 @@ const TransactionsPage = () => {
                         : 0
                 }
                 itemsPerPage={itemsPerPage}
+                isLoading={isLoading()}
                 // Recurring templates from API
                 apiRecurringTemplates={apiRecurringTemplates}
             />

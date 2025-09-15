@@ -29,9 +29,11 @@ const QUERY_KEYS = {
 } as const;
 
 const DEFAULT_QUERY_CONFIG = {
-    staleTime: 30 * 1000,
+    staleTime: 0, // Don't cache data for pagination
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    keepPreviousData: false, // Don't keep previous data to avoid stale data issues
+    refetchOnMount: true, // Always refetch on mount to ensure fresh data
 };
 
 const DEFAULT_SUMMARY: TransactionSummary = {
@@ -88,10 +90,7 @@ export function useExpenses(
         queryFn: async (): Promise<ExpensesQueryResponse> => {
             if (!isAuthenticated) return { expenses: [], pagination: null };
             const response = await getExpenses(page, limit);
-            return {
-                expenses: response?.expenses || [],
-                pagination: response?.pagination || null,
-            };
+            return response;
         },
         enabled: isAuthenticated,
     });
@@ -104,36 +103,47 @@ export function useExpenses(
     };
 }
 
+export interface TransactionFilters {
+    categories?: string[];
+    types?: string[];
+    dateRange?: {
+        from?: Date;
+        to?: Date;
+    };
+    searchQuery?: string;
+}
+
 export function useAllTransactions(
     page: number = 1,
-    limit: number = 20
-): UseQueryResult<AllTransactionsQueryResponse> & {
+    limit: number = 20,
+    filters?: TransactionFilters
+): {
     transactions: TransactionWithId[];
     pagination: PaginationInfo | null;
     invalidateAllTransactions: () => void;
+    isLoading: boolean;
+    error: Error | null;
 } {
     const { isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
 
     const query = useQuery<AllTransactionsQueryResponse>({
-        queryKey: [...QUERY_KEYS.allTransactions, page, limit],
+        queryKey: [...QUERY_KEYS.allTransactions, page, limit, filters],
         ...DEFAULT_QUERY_CONFIG,
         queryFn: async (): Promise<AllTransactionsQueryResponse> => {
             if (!isAuthenticated) return { transactions: [], pagination: null };
-            const response = await getAllTransactions(page, limit);
-            return {
-                transactions: response?.transactions || [],
-                pagination: response?.pagination || null,
-            };
+            const response = await getAllTransactions(page, limit, filters);
+            return response;
         },
         enabled: isAuthenticated,
     });
 
     return {
-        ...query,
         transactions: query.data?.transactions ?? [],
         pagination: query.data?.pagination ?? null,
         invalidateAllTransactions: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.allTransactions }),
+        isLoading: query.isLoading,
+        error: query.error,
     };
 }
 

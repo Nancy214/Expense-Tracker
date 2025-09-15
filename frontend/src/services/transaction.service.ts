@@ -9,14 +9,14 @@ import {
     BillStatus,
     Bill,
 } from "@/types/transaction";
-import { parse, isValid, parseISO } from "date-fns";
-import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
+import { isValid, parseISO } from "date-fns";
+import { refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api/expenses";
 
 // API Response interfaces
 interface PaginatedResponse<T> {
-    data: T[];
+    [key: string]: T[] | PaginationInfo;
     pagination: PaginationInfo;
 }
 
@@ -129,9 +129,46 @@ export const getExpenses = async (page: number = 1, limit: number = 20): Promise
     }
 };
 
-export const getAllTransactions = async (page: number = 1, limit: number = 20): Promise<TransactionsResponse> => {
+interface TransactionFilters {
+    categories?: string[];
+    types?: string[];
+    dateRange?: {
+        from?: Date;
+        to?: Date;
+    };
+    searchQuery?: string;
+}
+
+export const getAllTransactions = async (
+    page: number = 1,
+    limit: number = 20,
+    filters?: TransactionFilters
+): Promise<TransactionsResponse> => {
     try {
-        const response = await expenseApi.get(`/get-all-transactions?page=${page}&limit=${limit}`);
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+        });
+
+        if (filters) {
+            if (filters.categories?.length && !filters.categories.includes("all")) {
+                params.append("categories", filters.categories.join(","));
+            }
+            if (filters.types?.length && !filters.types.includes("all")) {
+                params.append("types", filters.types.join(","));
+            }
+            if (filters.dateRange?.from) {
+                params.append("fromDate", filters.dateRange.from.toISOString());
+            }
+            if (filters.dateRange?.to) {
+                params.append("toDate", filters.dateRange.to.toISOString());
+            }
+            if (filters.searchQuery) {
+                params.append("search", filters.searchQuery);
+            }
+        }
+
+        const response = await expenseApi.get(`/get-all-transactions?${params.toString()}`);
         return response.data;
     } catch (error) {
         console.error("Error fetching all transactions:", error);

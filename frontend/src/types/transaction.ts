@@ -268,6 +268,7 @@ export interface DataTableProps {
     totalItems?: number;
     itemsPerPage?: number;
     apiRecurringTemplates?: TransactionWithId[];
+    isLoading?: boolean;
 }
 
 // Filters section props types
@@ -295,6 +296,7 @@ export interface FiltersSectionProps {
     totalItems?: number;
     itemsPerPage?: number;
     apiRecurringTemplates?: TransactionWithId[];
+    isLoading?: boolean;
 }
 
 // Form field change handlers

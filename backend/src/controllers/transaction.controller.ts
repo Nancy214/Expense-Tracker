@@ -187,17 +187,46 @@ export const getAllTransactions = async (req: AuthRequest, res: Response): Promi
         const limit: number = parseInt((req.query as PaginationQuery).limit || "20");
         const skip: number = (page - 1) * limit;
 
-        // Get total count for pagination (excluding recurring templates)
-        const total: number = await TransactionModel.countDocuments({
+        // Build filter query
+        const query: any = {
             userId: new Types.ObjectId(userId),
             $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
-        });
+        };
 
-        // Get paginated transactions (excluding recurring templates)
-        const transactions: TransactionOrBillDocument[] = await TransactionModel.find({
-            userId: new Types.ObjectId(userId),
-            $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
-        })
+        // Add category filter
+        if (req.query.categories) {
+            const categories = (req.query.categories as string).split(",");
+            query.category = { $in: categories };
+        }
+
+        // Add type filter
+        if (req.query.types) {
+            const types = (req.query.types as string).split(",");
+            query.type = { $in: types };
+        }
+
+        // Add date range filter
+        if (req.query.fromDate || req.query.toDate) {
+            query.date = {};
+            if (req.query.fromDate) {
+                query.date.$gte = new Date(req.query.fromDate as string);
+            }
+            if (req.query.toDate) {
+                query.date.$lte = new Date(req.query.toDate as string);
+            }
+        }
+
+        // Add search filter
+        if (req.query.search) {
+            const searchRegex = new RegExp(req.query.search as string, "i");
+            query.$or = [{ title: searchRegex }, { description: searchRegex }, { category: searchRegex }];
+        }
+
+        // Get total count for pagination with filters
+        const total: number = await TransactionModel.countDocuments(query);
+
+        // Get filtered and paginated transactions
+        const transactions: TransactionOrBillDocument[] = await TransactionModel.find(query)
             .sort({ date: -1 })
             .skip(skip)
             .limit(limit);
