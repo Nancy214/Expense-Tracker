@@ -11,13 +11,7 @@ import {
 } from "recharts";
 import type { AreaChartData, AreaChartProps, AreaChartTooltipProps as TooltipProps } from "@/types/analytics";
 import { TimePeriod } from "./TimePeriodSelector";
-import {
-    formatChartData,
-    getXAxisLabel,
-    getChartTitle,
-    getChartDescription,
-    getCurrentPeriodData,
-} from "@/utils/chartUtils";
+import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
 
 const COLORS = {
     savings: "#10b981", // Green for savings
@@ -258,32 +252,56 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                 </div>
 
                 <div className="mt-3 sm:mt-4 w-full max-w-md mx-auto">
-                    <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">Current Period Summary</h3>
+                    <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">
+                        {(() => {
+                            switch (timePeriod) {
+                                case "monthly":
+                                    return "Daily Average for " + subPeriod;
+                                case "quarterly":
+                                    return "Monthly Average for " + subPeriod;
+                                case "half-yearly":
+                                    return "Monthly Average for " + subPeriod;
+                                case "yearly":
+                                    return "Monthly Average for " + subPeriod;
+                                default:
+                                    return "Period Average Summary";
+                            }
+                        })()}
+                    </h3>
                     <ul className="divide-y divide-muted-foreground/10">
                         {(() => {
-                            // Get current period data based on selected time period
-                            const currentPeriodData: AreaChartData =
-                                getCurrentPeriodData(chartData, timePeriod as TimePeriod, subPeriod) ||
-                                chartData[chartData.length - 1]; // Fallback to last item
-                            if (!currentPeriodData) return null;
+                            // Calculate averages from all data points
+                            const totalSavings = chartData.reduce((sum, item) => sum + (item.savings || 0), 0);
+                            const totalIncome = chartData.reduce((sum, item) => sum + (item.income || 0), 0);
+                            const totalExpenses = chartData.reduce((sum, item) => sum + (item.expenses || 0), 0);
+                            const avgSavings = totalSavings / chartData.length;
+                            const avgIncome = totalIncome / chartData.length;
+                            const avgExpenses = totalExpenses / chartData.length;
 
-                            const savings: number = currentPeriodData.savings || 0;
-                            const income: number = currentPeriodData.income || 0;
-                            const expenses: number = currentPeriodData.expenses || 0;
+                            const periodLabel = (() => {
+                                switch (timePeriod) {
+                                    case "monthly":
+                                        return "Average per Day";
+                                    case "quarterly":
+                                    case "half-yearly":
+                                    case "yearly":
+                                        return "Average per Month";
+                                    default:
+                                        return "Average per Period";
+                                }
+                            })();
 
                             return (
                                 <li className="flex items-center justify-between py-2 px-2">
-                                    <span className="text-xs sm:text-sm font-medium">{currentPeriodData.name}</span>
+                                    <span className="text-xs sm:text-sm font-medium">{periodLabel}</span>
                                     <div className="text-right">
-                                        <div className="text-xs text-green-600">Savings: {formatAmount(savings)}</div>
-                                        {income !== undefined && (
-                                            <div className="text-xs text-blue-600">Income: {formatAmount(income)}</div>
-                                        )}
-                                        {expenses !== undefined && (
-                                            <div className="text-xs text-red-600">
-                                                Expenses: {formatAmount(expenses)}
-                                            </div>
-                                        )}
+                                        <div className="text-xs text-blue-600">Income: {formatAmount(avgIncome)}</div>
+                                        <div className="text-xs text-red-600">
+                                            Expenses: {formatAmount(avgExpenses)}
+                                        </div>
+                                        <div className="text-xs text-green-600">
+                                            Savings: {formatAmount(avgSavings)}
+                                        </div>
                                     </div>
                                 </li>
                             );
@@ -294,12 +312,31 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                 <div className="mt-2 mb-2 text-xs sm:text-sm text-muted-foreground text-center px-2">
                     {chartData.length > 0
                         ? (() => {
-                              const totalSavings: number = chartData.reduce((sum, item) => sum + item.savings, 0);
-                              const avgSavings: number = totalSavings / chartData.length;
-                              const positiveMonths: number = chartData.filter((item) => item.savings > 0).length;
-                              return `Total Savings: ${formatAmount(totalSavings)} | Avg Monthly: ${formatAmount(
-                                  avgSavings
-                              )} | Positive Months: ${positiveMonths}/${chartData.length}`;
+                              const totalSavings = chartData.reduce((sum, item) => sum + (item.savings || 0), 0);
+                              const totalIncome = chartData.reduce((sum, item) => sum + (item.income || 0), 0);
+                              const totalExpenses = chartData.reduce((sum, item) => sum + (item.expenses || 0), 0);
+                              const avgSavings = totalSavings / chartData.length;
+                              const avgIncome = totalIncome / chartData.length;
+                              const avgExpenses = totalExpenses / chartData.length;
+
+                              const periodLabel = (() => {
+                                  switch (timePeriod) {
+                                      case "monthly":
+                                          return "Daily";
+                                      case "quarterly":
+                                      case "half-yearly":
+                                      case "yearly":
+                                          return "Monthly";
+                                      default:
+                                          return "Period";
+                                  }
+                              })();
+
+                              return `Average ${periodLabel} Income: ${formatAmount(
+                                  avgIncome
+                              )} | Average ${periodLabel} Expenses: ${formatAmount(
+                                  avgExpenses
+                              )} | Average ${periodLabel} Savings: ${formatAmount(avgSavings)}`;
                           })()
                         : "No savings data available. Add income and expense transactions to see your savings trend."}
                 </div>

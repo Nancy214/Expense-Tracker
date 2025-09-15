@@ -17,13 +17,7 @@ import type {
     BarChartTooltipProps as TooltipProps,
 } from "@/types/analytics";
 import { TimePeriod } from "./TimePeriodSelector";
-import {
-    formatChartData,
-    getXAxisLabel,
-    getChartTitle,
-    getChartDescription,
-    getCurrentPeriodData,
-} from "@/utils/chartUtils";
+import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
 
 const COLORS = [
     "#10b981", // Green for Income
@@ -286,33 +280,52 @@ const BarChartComponent: React.FC<BarChartProps> = ({
 
                 {data.length > 0 && (
                     <div className="mt-3 sm:mt-4 w-full max-w-md mx-auto">
-                        <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">Current Period Summary</h3>
+                        <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">
+                            {(() => {
+                                switch (timePeriod) {
+                                    case "monthly":
+                                        return "Daily Average for " + subPeriod;
+                                    case "quarterly":
+                                        return "Monthly Average for " + subPeriod;
+                                    case "half-yearly":
+                                        return "Monthly Average for " + subPeriod;
+                                    case "yearly":
+                                        return "Monthly Average for " + subPeriod;
+                                    default:
+                                        return "Period Average Summary";
+                                }
+                            })()}
+                        </h3>
                         <ul className="divide-y divide-muted-foreground/10">
                             {(() => {
-                                // Get the current period data based on selected time period
-                                const currentPeriodData: TransformedBarData =
-                                    getCurrentPeriodData(transformedData, timePeriod as TimePeriod, subPeriod) ||
-                                    transformedData[transformedData.length - 1]; // Fallback to last item
-                                if (!currentPeriodData) return null;
+                                // Calculate averages from all data points
+                                const totalIncome = transformedData.reduce((sum, item) => sum + (item.Income || 0), 0);
+                                const totalExpense = transformedData.reduce(
+                                    (sum, item) => sum + (item.Expense || 0),
+                                    0
+                                );
+                                const avgIncome = totalIncome / transformedData.length;
+                                const avgExpense = totalExpense / transformedData.length;
 
-                                const income: number = currentPeriodData.Income || 0;
-                                const expense: number = currentPeriodData.Expense || 0;
-                                const net: number = income - expense;
+                                const periodLabel = (() => {
+                                    switch (timePeriod) {
+                                        case "monthly":
+                                            return "Average per Day";
+                                        case "quarterly":
+                                        case "half-yearly":
+                                        case "yearly":
+                                            return "Average per Month";
+                                        default:
+                                            return "Average per Period";
+                                    }
+                                })();
 
                                 return (
                                     <li className="flex items-center justify-between py-2 px-2">
-                                        <span className="text-xs sm:text-sm font-medium">{currentPeriodData.name}</span>
+                                        <span className="text-xs sm:text-sm font-medium">{periodLabel}</span>
                                         <div className="text-right">
-                                            <div className="text-xs text-green-600">+{formatAmount(income)}</div>
-                                            <div className="text-xs text-red-600">-{formatAmount(expense)}</div>
-                                            <div
-                                                className={`text-xs font-semibold ${
-                                                    net >= 0 ? "text-green-600" : "text-red-600"
-                                                }`}
-                                            >
-                                                {net >= 0 ? "+" : ""}
-                                                {formatAmount(net)}
-                                            </div>
+                                            <div className="text-xs text-green-600">+{formatAmount(avgIncome)}</div>
+                                            <div className="text-xs text-red-600">-{formatAmount(avgExpense)}</div>
                                         </div>
                                     </li>
                                 );
@@ -324,20 +337,26 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                 <div className="mt-2 mb-2 text-xs sm:text-sm text-muted-foreground text-center px-2">
                     {data.length > 0
                         ? (() => {
-                              // Get current period data based on selected time period
-                              const currentPeriodData: TransformedBarData =
-                                  getCurrentPeriodData(transformedData, timePeriod as TimePeriod, subPeriod) ||
-                                  transformedData[transformedData.length - 1]; // Fallback to last item
-                              if (!currentPeriodData) return "No data available.";
-
-                              const totalIncome: number = currentPeriodData.Income || 0;
-                              const totalExpense: number = currentPeriodData.Expense || 0;
-                              const netIncome: number = totalIncome - totalExpense;
-                              return `Current Period Income: ${formatAmount(
-                                  totalIncome
-                              )} | Current Period Expenses: ${formatAmount(totalExpense)} | Net: ${formatAmount(
-                                  netIncome
-                              )}`;
+                              // Calculate averages from all data points
+                              const totalIncome = transformedData.reduce((sum, item) => sum + (item.Income || 0), 0);
+                              const totalExpense = transformedData.reduce((sum, item) => sum + (item.Expense || 0), 0);
+                              const avgIncome = totalIncome / transformedData.length;
+                              const avgExpense = totalExpense / transformedData.length;
+                              const periodLabel = (() => {
+                                  switch (timePeriod) {
+                                      case "monthly":
+                                          return "Daily";
+                                      case "quarterly":
+                                      case "half-yearly":
+                                      case "yearly":
+                                          return "Monthly";
+                                      default:
+                                          return "Period";
+                                  }
+                              })();
+                              return `Average ${periodLabel} Income: ${formatAmount(
+                                  avgIncome
+                              )} | Average ${periodLabel} Expenses: ${formatAmount(avgExpense)}`;
                           })()
                         : "No data available."}
                 </div>
