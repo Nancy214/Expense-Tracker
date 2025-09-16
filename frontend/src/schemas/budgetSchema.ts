@@ -86,6 +86,10 @@ export const budgetSchema = z.object({
             const now = format(new Date(), "dd/MM/yyyy");
             return validateBudgetDateRange(now, date);
         }, "End date must be in the future"),
+    reason: z
+        .string()
+        .optional()
+        .refine((reason) => !reason || reason.length <= 500, "Reason cannot exceed 500 characters"),
 });
 
 // Type inference from schema
@@ -139,6 +143,7 @@ export const getDefaultValues = (): BudgetFormData => ({
     category: "Other",
     isRepeating: false,
     endDate: undefined,
+    reason: undefined,
 });
 
 // Helper function to create budget period options

@@ -102,6 +102,14 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
                                 </Tooltip>
                             </TooltipProvider>
                         </div>
+                        {isEditing && (
+                            <InputField
+                                name="reason"
+                                label="Reason for Update"
+                                placeholder="Enter reason for updating the budget"
+                                maxLength={500}
+                            />
+                        )}
                     </form>
                 </FormProvider>
                 <DialogFooter className="mt-4">

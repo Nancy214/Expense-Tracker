@@ -11,6 +11,7 @@ export interface BudgetType {
     createdAt: Date;
     isRepeating: boolean;
     endDate?: Date;
+    reason?: string;
 }
 
 export interface BudgetRequest {
@@ -20,6 +21,7 @@ export interface BudgetRequest {
     category: string;
     isRepeating?: boolean;
     endDate?: Date;
+    reason?: string;
 }
 
 // New types for budget progress tracking
@@ -56,6 +58,7 @@ export interface BudgetResponse {
     createdAt: Date;
     isRepeating: boolean;
     endDate?: Date;
+    reason?: string;
 }
 
 export interface BudgetDeleteResponse {
