@@ -244,11 +244,13 @@ const BudgetPage: React.FC = () => {
                                     <CardHeader>
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <CardTitle className="text-xl">{formatAmount(budget.amount)}</CardTitle>
-                                                <CardDescription>{formatPeriod(budget.period)} Budget</CardDescription>
-                                                <div className="text-xs text-gray-500 mt-1">
+                                                <CardTitle className="text-lg font-bold">
                                                     {budget.category === "Bill" ? "Bills" : budget.category}
+                                                </CardTitle>
+                                                <div className="text-md text-primary">
+                                                    {formatAmount(budget.amount)}
                                                 </div>
+                                                <CardDescription>{formatPeriod(budget.period)} Budget</CardDescription>
                                             </div>
                                             <div className="flex gap-1">
                                                 <Button variant="ghost" size="sm" onClick={() => handleEdit(budget)}>

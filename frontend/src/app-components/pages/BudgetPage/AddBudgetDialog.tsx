@@ -2,10 +2,12 @@ import { Button } from "@/components/ui/button";
 import { AddBudgetDialogProps, BudgetPeriodOption, BudgetCategoryOption } from "@/types/budget";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { FormProvider } from "react-hook-form";
+import { DateField } from "@/app-components/form-fields/DateField";
 import { InputField } from "@/app-components/form-fields/InputField";
 import { SelectField } from "@/app-components/form-fields/SelectField";
-import { DateField } from "@/app-components/form-fields/DateField";
+import { SwitchField } from "@/app-components/form-fields/SwitchField";
 import { useBudgetForm } from "@/hooks/useBudgetForm";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
 
 const PERIOD_OPTIONS: BudgetPeriodOption[] = [
@@ -73,6 +75,32 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
                             />
 
                             <DateField name="startDate" label="Start Date" placeholder="Pick a date" required />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 items-start">
+                            <SwitchField
+                                name="isRepeating"
+                                label="Repeating Budget"
+                                description="Do you want this budget to repeat according to the period?"
+                            />
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div>
+                                            <DateField
+                                                name="endDate"
+                                                label="End Date"
+                                                placeholder="Pick an end date"
+                                                disabled={!form.watch("isRepeating")}
+                                            />
+                                        </div>
+                                    </TooltipTrigger>
+                                    {!form.watch("isRepeating") && (
+                                        <TooltipContent>
+                                            <p>TThis is available only when 'Repeating Budget' is enabled</p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                     </form>
                 </FormProvider>

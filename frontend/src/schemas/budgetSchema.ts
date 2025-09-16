@@ -72,6 +72,20 @@ export const budgetSchema = z.object({
     category: z.enum(BUDGET_CATEGORIES, {
         message: "Please select a valid category",
     }),
+    isRepeating: z.boolean().optional().default(false),
+    endDate: z
+        .string()
+        .optional()
+        .refine((date) => !date || isValidDate(date), "Please enter a valid end date in DD/MM/YYYY format")
+        .refine((date: string | undefined) => {
+            if (!date) return true;
+            return isValidDate(date);
+        }, "Please enter a valid end date in DD/MM/YYYY format")
+        .refine((date: string | undefined) => {
+            if (!date) return true;
+            const now = format(new Date(), "dd/MM/yyyy");
+            return validateBudgetDateRange(now, date);
+        }, "End date must be in the future"),
 });
 
 // Type inference from schema
@@ -88,6 +102,8 @@ export interface BudgetFormState {
     period: BudgetPeriod;
     startDate: string;
     category: BudgetCategory;
+    isRepeating: boolean;
+    endDate?: string;
     isSubmitting: boolean;
     errors: Partial<Record<keyof BudgetFormData, string>>;
 }
@@ -98,6 +114,8 @@ export interface BudgetFormHandlers {
     handlePeriodChange: (period: BudgetPeriod) => void;
     handleStartDateChange: (date: string) => void;
     handleCategoryChange: (category: BudgetCategory) => void;
+    handleIsRepeatingChange: (isRepeating: boolean) => void;
+    handleEndDateChange: (date: string) => void;
     handleSubmit: (data: BudgetFormData) => Promise<void>;
     resetForm: () => void;
 }
@@ -119,6 +137,8 @@ export const getDefaultValues = (): BudgetFormData => ({
     period: "monthly",
     startDate: format(new Date(), "dd/MM/yyyy"),
     category: "Other",
+    isRepeating: false,
+    endDate: undefined,
 });
 
 // Helper function to create budget period options

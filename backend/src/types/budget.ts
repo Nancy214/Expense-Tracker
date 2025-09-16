@@ -9,6 +9,8 @@ export interface BudgetType {
     startDate: Date;
     category: string;
     createdAt: Date;
+    isRepeating: boolean;
+    endDate?: Date;
 }
 
 export interface BudgetRequest {
@@ -16,6 +18,8 @@ export interface BudgetRequest {
     period: BudgetPeriod;
     startDate: Date;
     category: string;
+    isRepeating?: boolean;
+    endDate?: Date;
 }
 
 // New types for budget progress tracking
@@ -50,6 +54,8 @@ export interface BudgetResponse {
     startDate: Date;
     category: string;
     createdAt: Date;
+    isRepeating: boolean;
+    endDate?: Date;
 }
 
 export interface BudgetDeleteResponse {

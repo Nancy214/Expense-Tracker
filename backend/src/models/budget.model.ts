@@ -17,6 +17,8 @@ const budgetSchema = new Schema<BudgetType>({
     startDate: { type: Date, required: true },
     category: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
+    isRepeating: { type: Boolean, default: false },
+    endDate: { type: Date, required: false },
 });
 
 export const Budget = mongoose.model<BudgetType>("Budget", budgetSchema);
