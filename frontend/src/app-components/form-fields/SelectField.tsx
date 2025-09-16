@@ -40,7 +40,8 @@ export const SelectField: React.FC<SelectFieldProps> = ({
     } = useFormContext();
 
     const error = errors[name];
-    const value: string = watch(name);
+    const value = watch(name);
+    const currentValue = value === undefined ? "" : value;
 
     // Register the field
     React.useEffect(() => {
@@ -53,7 +54,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>
             <Select
-                value={value}
+                value={currentValue}
                 onValueChange={(newValue) => {
                     setValue(name, newValue, { shouldValidate: true });
                     trigger(name);

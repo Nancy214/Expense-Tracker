@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    BudgetFrequency,
+    BudgetPeriod,
     BudgetResponse,
     BudgetProgress,
     BudgetReminder,
@@ -106,8 +106,9 @@ const BudgetPage: React.FC = () => {
         }));
     };
 
-    const formatFrequency = (freq: BudgetFrequency): string => {
-        return freq.charAt(0).toUpperCase() + freq.slice(1);
+    const formatPeriod = (period: BudgetPeriod): string => {
+        if (!period) return "Monthly"; // Default fallback
+        return period.charAt(0).toUpperCase() + period.slice(1);
     };
 
     const formatAmount = (amount: number): string => {
@@ -244,9 +245,7 @@ const BudgetPage: React.FC = () => {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <CardTitle className="text-xl">{formatAmount(budget.amount)}</CardTitle>
-                                                <CardDescription>
-                                                    {formatFrequency(budget.frequency)} Budget
-                                                </CardDescription>
+                                                <CardDescription>{formatPeriod(budget.period)} Budget</CardDescription>
                                                 <div className="text-xs text-gray-500 mt-1">
                                                     {budget.category === "Bill" ? "Bills" : budget.category}
                                                 </div>
@@ -309,8 +308,8 @@ const BudgetPage: React.FC = () => {
                 title="Delete Budget"
                 message={
                     budgetToDelete
-                        ? `Are you sure you want to delete the ${formatFrequency(
-                              budgetToDelete.frequency
+                        ? `Are you sure you want to delete the ${formatPeriod(
+                              budgetToDelete.period
                           )} budget of ${formatAmount(budgetToDelete.amount)} for ${
                               budgetToDelete.category
                           }? This action cannot be undone.`

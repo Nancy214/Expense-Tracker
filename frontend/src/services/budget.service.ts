@@ -141,7 +141,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
             reminders.push({
                 id: `over-${budget._id}`,
                 budgetId: budget._id,
-                budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
+                budgetName: `${budget.period.charAt(0).toUpperCase() + budget.period.slice(1)} Budget - ${
                     budget.category === "Bill"
                         ? "Bills"
                         : budget.category === "All Categories"
@@ -150,7 +150,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
                 }`,
                 type: "danger",
                 title: "Budget Exceeded!",
-                message: `You've exceeded your ${budget.frequency} budget for ${
+                message: `You've exceeded your ${budget.period} budget for ${
                     budget.category === "Bill"
                         ? "Bills"
                         : budget.category === "All Categories"
@@ -167,7 +167,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
             reminders.push({
                 id: `warning-${budget._id}`,
                 budgetId: budget._id,
-                budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
+                budgetName: `${budget.period.charAt(0).toUpperCase() + budget.period.slice(1)} Budget - ${
                     budget.category === "Bill"
                         ? "Bills"
                         : budget.category === "All Categories"
@@ -176,7 +176,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
                 }`,
                 type: "warning",
                 title: "Budget Warning",
-                message: `You've used ${progress.toFixed(1)}% of your ${budget.frequency} budget for ${
+                message: `You've used ${progress.toFixed(1)}% of your ${budget.period} budget for ${
                     budget.category === "Bill"
                         ? "Bills"
                         : budget.category === "All Categories"
@@ -193,7 +193,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
             reminders.push({
                 id: `info-${budget._id}`,
                 budgetId: budget._id,
-                budgetName: `${budget.frequency.charAt(0).toUpperCase() + budget.frequency.slice(1)} Budget - ${
+                budgetName: `${budget.period.charAt(0).toUpperCase() + budget.period.slice(1)} Budget - ${
                     budget.category === "Bill"
                         ? "Bills"
                         : budget.category === "All Categories"
@@ -202,7 +202,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
                 }`,
                 type: "warning",
                 title: "Budget Update",
-                message: `You've used ${progress.toFixed(1)}% of your ${budget.frequency} budget for ${
+                message: `You've used ${progress.toFixed(1)}% of your ${budget.period} budget for ${
                     budget.category === "Bill"
                         ? "Bills"
                         : budget.category === "All Categories"

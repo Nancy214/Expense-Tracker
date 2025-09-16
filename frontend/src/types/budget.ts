@@ -1,8 +1,9 @@
-export type BudgetFrequency = "daily" | "weekly" | "monthly" | "yearly";
+import { BudgetPeriod } from "@/schemas/budgetSchema";
+export type { BudgetPeriod };
 
 export interface BudgetData {
     amount: number;
-    frequency: BudgetFrequency;
+    period: BudgetPeriod;
     startDate: Date;
     category: string;
 }
@@ -11,7 +12,7 @@ export interface BudgetResponse {
     _id: string;
     userId: string;
     amount: number;
-    frequency: BudgetFrequency;
+    period: BudgetPeriod;
     startDate: string;
     category: string;
     createdAt: string;
@@ -20,7 +21,7 @@ export interface BudgetResponse {
 export interface BudgetProgress {
     _id: string;
     amount: number;
-    frequency: BudgetFrequency;
+    period: BudgetPeriod;
     startDate: string;
     category: string;
     createdAt: string;
@@ -98,7 +99,7 @@ export interface AddBudgetDialogProps {
     triggerButton?: React.ReactNode;
 }
 
-export interface BudgetFrequencyOption {
+export interface BudgetPeriodOption {
     value: "daily" | "weekly" | "monthly" | "yearly";
     label: string;
 }

@@ -34,16 +34,16 @@ export const createBudget = async (
             return;
         }
 
-        const { amount, frequency, startDate, category }: BudgetRequest = req.body;
-        if (!amount || !frequency || !startDate || !category) {
-            res.status(400).json({ message: "Amount, frequency, start date, and category are required." });
+        const { amount, period, startDate, category }: BudgetRequest = req.body;
+        if (!amount || !period || !startDate || !category) {
+            res.status(400).json({ message: "Amount, period, start date, and category are required." });
             return;
         }
 
         const budget = new Budget({
             userId: new mongoose.Types.ObjectId(userId),
             amount,
-            frequency,
+            period,
             startDate,
             category,
         });
@@ -68,10 +68,10 @@ export const updateBudget = async (
         }
 
         const { id } = req.params;
-        const { amount, frequency, startDate, category }: BudgetRequest = req.body;
+        const { amount, period, startDate, category }: BudgetRequest = req.body;
 
-        if (!amount || !frequency || !startDate || !category) {
-            res.status(400).json({ message: "Amount, frequency, start date, and category are required." });
+        if (!amount || !period || !startDate || !category) {
+            res.status(400).json({ message: "Amount, period, start date, and category are required." });
             return;
         }
 
@@ -80,7 +80,7 @@ export const updateBudget = async (
                 _id: new mongoose.Types.ObjectId(id),
                 userId: new mongoose.Types.ObjectId(userId),
             },
-            { amount, frequency, startDate, category },
+            { amount, period, startDate, category },
             { new: true }
         );
 
@@ -214,12 +214,12 @@ export const getBudgetProgress = async (
             const now: Date = new Date();
             const budgetStartDate: Date = new Date(budget.startDate);
 
-            // Calculate the current period based on frequency
+            // Calculate the current period based on period
             let periodStart: Date;
             let periodEnd: Date;
             let budgetAmount: number;
 
-            switch (budget.frequency) {
+            switch (budget.period) {
                 case "daily":
                     periodStart = startOfDay(now);
                     periodEnd = endOfDay(now);
@@ -290,7 +290,7 @@ export const getBudgetProgress = async (
             return {
                 _id: budget._id,
                 amount: budget.amount,
-                frequency: budget.frequency,
+                period: budget.period,
                 startDate: budget.startDate,
                 category: budget.category,
                 createdAt: budget.createdAt,

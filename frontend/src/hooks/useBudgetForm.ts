@@ -50,23 +50,27 @@ export const useBudgetForm = ({
     const { createBudget, updateBudget, isCreating, isUpdating } = useBudgets();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const defaultValues = getDefaultValues();
     const form = useForm<BudgetFormData>({
         resolver: zodResolver(budgetSchema),
-        defaultValues: getDefaultValues(),
+        defaultValues,
     });
 
     // Initialize form with editing budget if provided
     useEffect(() => {
-        if (editingBudget) {
-            form.reset({
-                amount: editingBudget.amount,
-                frequency: editingBudget.frequency,
-                startDate: format(new Date(editingBudget.startDate), "dd/MM/yyyy"),
-                category: editingBudget.category as BudgetFormData["category"],
-            });
-        } else {
-            form.reset(getDefaultValues());
-        }
+        const formValues = editingBudget
+            ? {
+                  amount: editingBudget.amount,
+                  period: editingBudget.period,
+                  startDate: format(new Date(editingBudget.startDate), "dd/MM/yyyy"),
+                  category: editingBudget.category as BudgetFormData["category"],
+              }
+            : getDefaultValues();
+
+        // Force a reset with the values
+        form.reset(formValues, {
+            keepDefaultValues: true,
+        });
     }, [editingBudget, form]);
 
     /**
@@ -79,7 +83,7 @@ export const useBudgetForm = ({
         try {
             const budgetData: BudgetData = {
                 amount: data.amount,
-                frequency: data.frequency,
+                period: data.period,
                 startDate: parse(data.startDate, "dd/MM/yyyy", new Date()),
                 category: data.category,
             };

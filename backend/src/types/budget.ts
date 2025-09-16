@@ -1,11 +1,11 @@
 import { Types } from "mongoose";
 
-export type BudgetFrequency = "daily" | "weekly" | "monthly" | "yearly";
+export type BudgetPeriod = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface BudgetType {
     userId: Types.ObjectId;
     amount: number;
-    frequency: BudgetFrequency;
+    period: BudgetPeriod;
     startDate: Date;
     category: string;
     createdAt: Date;
@@ -13,7 +13,7 @@ export interface BudgetType {
 
 export interface BudgetRequest {
     amount: number;
-    frequency: BudgetFrequency;
+    period: BudgetPeriod;
     startDate: Date;
     category: string;
 }
@@ -22,7 +22,7 @@ export interface BudgetRequest {
 export interface BudgetProgressItem {
     _id: Types.ObjectId;
     amount: number;
-    frequency: BudgetFrequency;
+    period: BudgetPeriod;
     startDate: Date;
     category: string;
     createdAt: Date;
@@ -46,7 +46,7 @@ export interface BudgetResponse {
     _id: Types.ObjectId;
     userId: Types.ObjectId;
     amount: number;
-    frequency: BudgetFrequency;
+    period: BudgetPeriod;
     startDate: Date;
     category: string;
     createdAt: Date;

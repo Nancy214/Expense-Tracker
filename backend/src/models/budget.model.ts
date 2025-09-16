@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { BudgetType } from "../types/budget";
 
-export type BudgetFrequency = "daily" | "weekly" | "monthly" | "yearly";
+export type BudgetPeriod = "daily" | "weekly" | "monthly" | "yearly";
 
 const budgetSchema = new Schema<BudgetType>({
     userId: {
@@ -9,7 +9,7 @@ const budgetSchema = new Schema<BudgetType>({
         ref: "User",
     },
     amount: { type: Number, required: true },
-    frequency: {
+    period: {
         type: String,
         enum: ["daily", "weekly", "monthly", "yearly"],
         required: true,

@@ -18,7 +18,7 @@ export type BudgetCategory =
     | "Other";
 
 // Type definitions for budget frequencies - align with BudgetFrequency type
-export type BudgetFrequency = "daily" | "weekly" | "monthly" | "yearly";
+export type BudgetPeriod = "daily" | "weekly" | "monthly" | "yearly";
 
 // Budget categories array with proper typing
 export const BUDGET_CATEGORIES: readonly BudgetCategory[] = [
@@ -38,7 +38,7 @@ export const BUDGET_CATEGORIES: readonly BudgetCategory[] = [
 ] as const;
 
 // Budget frequencies array with proper typing
-export const BUDGET_FREQUENCIES: readonly BudgetFrequency[] = ["daily", "weekly", "monthly", "yearly"] as const;
+export const BUDGET_FREQUENCIES: readonly BudgetPeriod[] = ["daily", "weekly", "monthly", "yearly"] as const;
 
 // Validation helper functions
 const isValidDate = (dateString: string): boolean => {
@@ -62,8 +62,8 @@ export const budgetSchema = z.object({
         .positive("Amount must be greater than 0")
         .max(999999999, "Amount cannot exceed 999,999,999")
         .refine(isValidAmount, "Please enter a valid amount"),
-    frequency: z.enum(BUDGET_FREQUENCIES, {
-        message: "Please select a valid frequency",
+    period: z.enum(BUDGET_FREQUENCIES, {
+        message: "Please select a valid period",
     }),
     startDate: z
         .string({ message: "Start date is required" })
@@ -85,7 +85,7 @@ export interface BudgetSubmissionData extends BudgetFormData {
 // Budget form state type for component state management
 export interface BudgetFormState {
     amount: number;
-    frequency: BudgetFrequency;
+    period: BudgetPeriod;
     startDate: string;
     category: BudgetCategory;
     isSubmitting: boolean;
@@ -95,7 +95,7 @@ export interface BudgetFormState {
 // Budget form handlers type
 export interface BudgetFormHandlers {
     handleAmountChange: (amount: number) => void;
-    handleFrequencyChange: (frequency: BudgetFrequency) => void;
+    handlePeriodChange: (period: BudgetPeriod) => void;
     handleStartDateChange: (date: string) => void;
     handleCategoryChange: (category: BudgetCategory) => void;
     handleSubmit: (data: BudgetFormData) => Promise<void>;
@@ -103,8 +103,8 @@ export interface BudgetFormHandlers {
 }
 
 // Budget option types for dropdowns
-export interface BudgetFrequencyOption {
-    value: BudgetFrequency;
+export interface BudgetPeriodOption {
+    value: BudgetPeriod;
     label: string;
 }
 
@@ -116,13 +116,13 @@ export interface BudgetCategoryOption {
 // Default values with proper typing
 export const getDefaultValues = (): BudgetFormData => ({
     amount: 0,
-    frequency: "monthly",
+    period: "monthly",
     startDate: format(new Date(), "dd/MM/yyyy"),
     category: "Other",
 });
 
-// Helper function to create budget frequency options
-export const getBudgetFrequencyOptions = (): BudgetFrequencyOption[] => [
+// Helper function to create budget period options
+export const getBudgetPeriodOptions = (): BudgetPeriodOption[] => [
     { value: "daily", label: "Daily" },
     { value: "weekly", label: "Weekly" },
     { value: "monthly", label: "Monthly" },

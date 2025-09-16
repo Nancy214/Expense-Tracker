@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { AddBudgetDialogProps, BudgetFrequencyOption, BudgetCategoryOption } from "@/types/budget";
+import { AddBudgetDialogProps, BudgetPeriodOption, BudgetCategoryOption } from "@/types/budget";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { FormProvider } from "react-hook-form";
 import { InputField } from "@/app-components/form-fields/InputField";
@@ -8,7 +8,7 @@ import { DateField } from "@/app-components/form-fields/DateField";
 import { useBudgetForm } from "@/hooks/useBudgetForm";
 import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
 
-const FREQUENCY_OPTIONS: BudgetFrequencyOption[] = [
+const PERIOD_OPTIONS: BudgetPeriodOption[] = [
     { value: "daily", label: "Daily" },
     { value: "weekly", label: "Weekly" },
     { value: "monthly", label: "Monthly" },
@@ -43,7 +43,7 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
                 <FormProvider {...form}>
                     <form id="budget-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <p className="text-sm text-gray-500">
-                            {isEditing ? "Update your budget details" : "Set a new budget amount and frequency"}
+                            {isEditing ? "Update your budget details" : "Set a new budget amount and period"}
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <InputField
@@ -57,10 +57,10 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
                             />
 
                             <SelectField
-                                name="frequency"
-                                label="Budget Frequency"
-                                placeholder="Select frequency"
-                                options={FREQUENCY_OPTIONS}
+                                name="period"
+                                label="Budget Period"
+                                placeholder="Select period"
+                                options={PERIOD_OPTIONS}
                                 required
                             />
 
