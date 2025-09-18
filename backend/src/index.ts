@@ -14,6 +14,7 @@ import cron from "node-cron";
 import { TransactionModel } from "./models/transaction.model";
 import { TransactionOrBillDocument } from "./types/transactions";
 import { User } from "./models/user.model";
+import { BudgetLog } from "./models/budget-log.model";
 import { getTodayInTimezone } from "./utils/timezoneUtils";
 
 dotenv.config();

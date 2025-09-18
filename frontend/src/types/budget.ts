@@ -1,32 +1,55 @@
-import { BudgetPeriod } from "@/schemas/budgetSchema";
-export type { BudgetPeriod };
+export type BudgetPeriod = "daily" | "weekly" | "monthly" | "yearly";
+
+export interface Budget {
+    _id: string;
+    userId: string;
+    amount: number;
+    period: BudgetPeriod;
+    startDate: Date;
+    category: string;
+    createdAt: Date;
+    isRepeating: boolean;
+    endDate?: Date;
+    reason?: string;
+}
 
 export interface BudgetData {
     amount: number;
     period: BudgetPeriod;
     startDate: Date;
     category: string;
+    isRepeating?: boolean;
+    endDate?: Date;
+    reason?: string;
 }
 
-export interface BudgetResponse {
+export type BudgetChangeType = "created" | "updated" | "deleted";
+
+export interface BudgetChange {
+    field: string;
+    oldValue: any;
+    newValue: any;
+}
+
+export interface BudgetLog {
     _id: string;
+    budgetId: string;
     userId: string;
-    amount: number;
-    period: BudgetPeriod;
-    startDate: string;
-    category: string;
-    createdAt: string;
+    changeType: BudgetChangeType;
+    changes: BudgetChange[];
+    reason: string;
+    timestamp: Date;
 }
 
 export interface BudgetProgress {
     _id: string;
     amount: number;
     period: BudgetPeriod;
-    startDate: string;
+    startDate: Date;
     category: string;
-    createdAt: string;
-    periodStart: string;
-    periodEnd: string;
+    createdAt: Date;
+    periodStart: Date;
+    periodEnd: Date;
     totalSpent: number;
     remaining: number;
     progress: number;
@@ -41,11 +64,23 @@ export interface BudgetProgressResponse {
     totalSpent: number;
 }
 
+export interface BudgetFormData {
+    amount: number;
+    period: BudgetPeriod;
+    startDate: Date;
+    category: string;
+    isRepeating: boolean;
+    endDate?: Date;
+    reason?: string;
+}
+
+export type BudgetResponse = Budget;
+
 export interface BudgetReminder {
     id: string;
     budgetId: string;
     budgetName: string;
-    type: "warning" | "danger";
+    type: "danger" | "warning";
     title: string;
     message: string;
     progress: number;
@@ -53,58 +88,49 @@ export interface BudgetReminder {
     isOverBudget: boolean;
 }
 
-// Additional types for BudgetPage components
 export interface BudgetPageState {
     isDialogOpen: boolean;
     editingBudget: BudgetResponse | null;
     dismissedReminders: Set<string>;
 }
 
-export interface BudgetPageHandlers {
-    handleEdit: (budget: BudgetResponse) => void;
-    handleAddBudget: () => void;
-    dismissReminder: (reminderId: string) => void;
-}
-
-export interface BudgetCardProps {
-    budget: BudgetResponse;
-    progress?: BudgetProgress;
-    onEdit: (budget: BudgetResponse) => void;
-    onDelete: (budget: BudgetResponse) => void;
-}
-
-export interface BudgetOverviewProps {
-    budgets: BudgetResponse[];
-    budgetProgress: BudgetProgressResponse;
-}
-
-export interface BudgetRemindersSectionProps {
-    user: { id: string; name: string; email: string } | null;
-    activeReminders: BudgetReminder[];
-    onDismiss: (reminderId: string) => void;
-}
-
 export type ProgressColor = "success" | "default" | "warning" | "danger";
 
-export interface ProgressIndicatorProps {
-    progress: number;
-    isOverBudget: boolean;
-}
-
-export interface AddBudgetDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    editingBudget?: BudgetResponse | null;
-    onSuccess?: () => void;
-    triggerButton?: React.ReactNode;
-}
-
 export interface BudgetPeriodOption {
-    value: "daily" | "weekly" | "monthly" | "yearly";
+    value: BudgetPeriod;
     label: string;
 }
 
 export interface BudgetCategoryOption {
     value: string;
     label: string;
+}
+
+export interface AddBudgetDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    editingBudget: Budget | null;
+    onSuccess?: () => void;
+    triggerButton?: React.ReactNode;
+}
+
+// Filter types for budget logs
+export interface BudgetLogFilters {
+    changeTypes?: string[];
+    dateRange?: {
+        from?: Date;
+        to?: Date;
+    };
+    searchQuery?: string;
+    categories?: string[];
+}
+
+export interface BudgetLogFilterState {
+    selectedChangeTypes: string[];
+    selectedCategories: string[];
+    searchQuery: string;
+    dateRangeForFilter?: {
+        from: Date;
+        to?: Date;
+    };
 }

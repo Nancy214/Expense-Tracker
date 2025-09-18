@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { Budget } from "../models/budget.model";
+import { BudgetLog } from "../models/budget-log.model";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
 import {
@@ -9,6 +10,9 @@ import {
     BudgetProgressResponse,
     BudgetProgressItem,
     BudgetType,
+    BudgetChange,
+    BudgetLogResponse,
+    BudgetLogsResponse,
 } from "../types/budget";
 import { Transaction } from "../types/transactions";
 import mongoose from "mongoose";
@@ -56,6 +60,30 @@ export const createBudget = async (
         });
 
         const savedBudget: BudgetResponse | null = await budget.save();
+
+        // Create a log for the new budget
+        const budgetLog = new BudgetLog({
+            budgetId: savedBudget._id,
+            userId: new mongoose.Types.ObjectId(userId),
+            changeType: "created",
+            changes: [
+                {
+                    field: "budget",
+                    oldValue: null,
+                    newValue: {
+                        amount,
+                        period,
+                        startDate,
+                        category,
+                        isRepeating: isRepeating || false,
+                        endDate: endDate || undefined,
+                    },
+                },
+            ],
+            reason: req.body.reason || "Initial budget creation",
+        });
+        await budgetLog.save();
+
         res.status(201).json(savedBudget);
     } catch (error: unknown) {
         console.error("Budget creation error:", error);
@@ -87,6 +115,20 @@ export const updateBudget = async (
             return;
         }
 
+        // Get the old budget first
+        const oldBudget = await Budget.findOne({
+            _id: new mongoose.Types.ObjectId(id),
+            userId: new mongoose.Types.ObjectId(userId),
+        });
+
+        if (!oldBudget) {
+            res.status(404).json({ message: "Budget not found." });
+            return;
+        }
+
+        // Process isRepeating to ensure it's always a boolean
+        const processedIsRepeating = isRepeating || false;
+
         const budget: BudgetResponse | null = await Budget.findOneAndUpdate(
             {
                 _id: new mongoose.Types.ObjectId(id),
@@ -97,7 +139,7 @@ export const updateBudget = async (
                 period,
                 startDate,
                 category,
-                isRepeating: isRepeating || false,
+                isRepeating: processedIsRepeating,
                 endDate: endDate || undefined,
             },
             { new: true }
@@ -106,6 +148,66 @@ export const updateBudget = async (
         if (!budget) {
             res.status(404).json({ message: "Budget not found." });
             return;
+        }
+
+        // Create changes array by comparing old and new values
+        const changes: BudgetChange[] = [];
+        console.log("Comparing budget values:", {
+            amount: { old: oldBudget.amount, new: amount, changed: oldBudget.amount !== amount },
+            period: { old: oldBudget.period, new: period, changed: oldBudget.period !== period },
+            startDate: {
+                old: oldBudget.startDate.toISOString(),
+                new: new Date(startDate).toISOString(),
+                changed: oldBudget.startDate.toISOString() !== new Date(startDate).toISOString(),
+            },
+            category: { old: oldBudget.category, new: category, changed: oldBudget.category !== category },
+            isRepeating: {
+                old: oldBudget.isRepeating,
+                new: processedIsRepeating,
+                changed: oldBudget.isRepeating !== processedIsRepeating,
+            },
+            endDate: {
+                old: oldBudget.endDate?.toISOString(),
+                new: endDate ? new Date(endDate).toISOString() : undefined,
+                changed: oldBudget.endDate?.toISOString() !== (endDate ? new Date(endDate).toISOString() : undefined),
+            },
+        });
+
+        if (oldBudget.amount !== amount) {
+            changes.push({ field: "amount", oldValue: oldBudget.amount, newValue: amount });
+        }
+        if (oldBudget.period !== period) {
+            changes.push({ field: "period", oldValue: oldBudget.period, newValue: period });
+        }
+        if (oldBudget.startDate.toISOString() !== new Date(startDate).toISOString()) {
+            changes.push({ field: "startDate", oldValue: oldBudget.startDate, newValue: startDate });
+        }
+        if (oldBudget.category !== category) {
+            changes.push({ field: "category", oldValue: oldBudget.category, newValue: category });
+        }
+        if (oldBudget.isRepeating !== processedIsRepeating) {
+            changes.push({ field: "isRepeating", oldValue: oldBudget.isRepeating, newValue: processedIsRepeating });
+        }
+        if (oldBudget.endDate?.toISOString() !== (endDate ? new Date(endDate).toISOString() : undefined)) {
+            changes.push({ field: "endDate", oldValue: oldBudget.endDate, newValue: endDate });
+        }
+
+        console.log("Detected changes:", changes.length, changes);
+
+        // Create a log for the budget update
+        if (changes.length > 0) {
+            console.log("Creating budget update log...");
+            const budgetLog = new BudgetLog({
+                budgetId: budget._id,
+                userId: new mongoose.Types.ObjectId(userId),
+                changeType: "updated",
+                changes,
+                reason: req.body.reason || "Budget update",
+            });
+            const savedLog = await budgetLog.save();
+            console.log("Budget update log created:", savedLog._id);
+        } else {
+            console.log("No changes detected, skipping log creation");
         }
 
         res.status(200).json(budget);
@@ -128,6 +230,12 @@ export const deleteBudget = async (
 
         const { id } = req.params;
 
+        // Validate ObjectId early to avoid cast errors
+        if (!mongoose.isValidObjectId(id)) {
+            res.status(400).json({ message: "Invalid budget id" });
+            return;
+        }
+
         const budget: BudgetResponse | null = await Budget.findOneAndDelete({
             _id: new mongoose.Types.ObjectId(id),
             userId: new mongoose.Types.ObjectId(userId),
@@ -138,9 +246,45 @@ export const deleteBudget = async (
             return;
         }
 
+        // Create a log for the budget deletion
+        const reasonForDeletion = (req as any)?.body?.reason || "Budget deletion";
+        const budgetLog = new BudgetLog({
+            budgetId: budget._id,
+            userId: new mongoose.Types.ObjectId(userId),
+            changeType: "deleted",
+            changes: [
+                {
+                    field: "budget",
+                    oldValue: {
+                        amount: budget.amount,
+                        period: budget.period,
+                        startDate: budget.startDate,
+                        category: budget.category,
+                        isRepeating: budget.isRepeating,
+                        endDate: budget.endDate,
+                    },
+                    newValue: null,
+                },
+            ],
+            reason: reasonForDeletion,
+        });
+
+        // Do not fail the deletion if log saving fails
+        try {
+            await budgetLog.save();
+        } catch (logError) {
+            console.error("Failed to save budget deletion log:", logError);
+        }
+
         res.status(200).json({ message: "Budget deleted successfully." });
     } catch (error: unknown) {
         console.error("Budget deletion error:", error);
+        console.error("Error details:", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            userId: req.user?.id,
+            budgetId: req.params.id,
+        });
         res.status(500).json({ message: "Failed to delete budget." });
     }
 };
@@ -193,6 +337,32 @@ export const getBudget = async (
     } catch (error: unknown) {
         console.error("Budget fetch error:", error);
         res.status(500).json({ message: "Failed to fetch budget." });
+    }
+};
+
+export const getBudgetLogs = async (
+    req: AuthRequest,
+    res: Response<BudgetLogsResponse | { message: string }>
+): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: "User not authenticated" });
+            return;
+        }
+
+        const { budgetId } = req.params;
+
+        const query = budgetId
+            ? { userId: new mongoose.Types.ObjectId(userId), budgetId: new mongoose.Types.ObjectId(budgetId) }
+            : { userId: new mongoose.Types.ObjectId(userId) };
+
+        const logs = await BudgetLog.find(query).sort({ timestamp: -1 });
+
+        res.status(200).json({ logs });
+    } catch (error) {
+        console.error("Budget logs fetch error:", error);
+        res.status(500).json({ message: "Failed to fetch budget logs." });
     }
 };
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,9 +10,10 @@ import {
     ProgressColor,
 } from "@/types/budget";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
+import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle, History } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
+import BudgetLogs from "@/app-components/pages/BudgetPage/BudgetLogs";
 import { useAuth } from "@/context/AuthContext";
 import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
@@ -67,13 +68,15 @@ const BudgetPage: React.FC = () => {
     };
 
     // Show error toast if budgets fail to load
-    if (budgetsError) {
-        toast({
-            title: "Error loading budgets",
-            description: budgetsError.message || "Failed to load your budgets. Please try again.",
-            variant: "destructive",
-        });
-    }
+    useEffect(() => {
+        if (budgetsError) {
+            toast({
+                title: "Error loading budgets",
+                description: budgetsError.message || "Failed to load your budgets. Please try again.",
+                variant: "destructive",
+            });
+        }
+    }, [budgetsError, toast]);
 
     const dismissReminder = (reminderId: string): void => {
         setPageState((prev) => ({
@@ -297,6 +300,17 @@ const BudgetPage: React.FC = () => {
                                 </Card>
                             );
                         })}
+                    </div>
+                )}
+
+                {/* Budget Change History */}
+                {budgets.length > 0 && (
+                    <div className="mt-2">
+                        <div className="flex items-center gap-2">
+                            <History className="h-5 w-5" />
+                            <h2 className="text-xl font-semibold">Budget Change History</h2>
+                        </div>
+                        <BudgetLogs />
                     </div>
                 )}
             </div>

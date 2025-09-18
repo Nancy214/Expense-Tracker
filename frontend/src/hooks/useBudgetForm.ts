@@ -54,6 +54,7 @@ export const useBudgetForm = ({
     const form = useForm<BudgetFormData>({
         resolver: zodResolver(budgetSchema),
         defaultValues,
+        mode: "onChange",
     });
 
     // Initialize form with editing budget if provided
@@ -64,6 +65,9 @@ export const useBudgetForm = ({
                   period: editingBudget.period,
                   startDate: format(new Date(editingBudget.startDate), "dd/MM/yyyy"),
                   category: editingBudget.category as BudgetFormData["category"],
+                  isRepeating: editingBudget.isRepeating || false,
+                  endDate: editingBudget.endDate ? format(new Date(editingBudget.endDate), "dd/MM/yyyy") : undefined,
+                  reason: undefined, // Don't pre-fill reason field
               }
             : getDefaultValues();
 
@@ -86,6 +90,9 @@ export const useBudgetForm = ({
                 period: data.period,
                 startDate: parse(data.startDate, "dd/MM/yyyy", new Date()),
                 category: data.category,
+                isRepeating: data.isRepeating || false,
+                endDate: data.endDate ? parse(data.endDate, "dd/MM/yyyy", new Date()) : undefined,
+                reason: data.reason,
             };
 
             if (editingBudget) {

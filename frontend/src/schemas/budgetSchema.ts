@@ -72,7 +72,7 @@ export const budgetSchema = z.object({
     category: z.enum(BUDGET_CATEGORIES, {
         message: "Please select a valid category",
     }),
-    isRepeating: z.boolean().optional().default(false),
+    isRepeating: z.boolean(),
     endDate: z
         .string()
         .optional()

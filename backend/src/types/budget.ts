@@ -73,3 +73,34 @@ export interface BudgetSuccessResponse {
     success: boolean;
     message: string;
 }
+
+export type BudgetChangeType = "created" | "updated" | "deleted";
+
+export interface BudgetChange {
+    field: string;
+    oldValue: any;
+    newValue: any;
+}
+
+export interface BudgetLogType {
+    budgetId: Types.ObjectId;
+    userId: Types.ObjectId;
+    changeType: BudgetChangeType;
+    changes: BudgetChange[];
+    reason: string;
+    timestamp: Date;
+}
+
+export interface BudgetLogResponse {
+    _id: Types.ObjectId;
+    budgetId: Types.ObjectId;
+    userId: Types.ObjectId;
+    changeType: BudgetChangeType;
+    changes: BudgetChange[];
+    reason: string;
+    timestamp: Date;
+}
+
+export interface BudgetLogsResponse {
+    logs: BudgetLogResponse[];
+}

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from "axios";
-import { BudgetData, BudgetResponse, BudgetProgressResponse, BudgetReminder } from "../types/budget";
+import { BudgetData, BudgetResponse, BudgetProgressResponse, BudgetReminder, BudgetLog } from "../types/budget";
 import { ApiError } from "../types/error";
 import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
 
@@ -242,4 +242,16 @@ export const getReminderPriority = (reminder: BudgetReminder): number => {
     if (reminder.progress >= 90) return 2;
     if (reminder.progress >= 80) return 1;
     return 0;
+};
+
+export const getBudgetLogs = async (budgetId?: string): Promise<BudgetLog[]> => {
+    try {
+        const url = budgetId ? `/budget/logs/${budgetId}` : "/budget/logs";
+        const response: AxiosResponse<{ logs: BudgetLog[] }> = await budgetApi.get(url);
+        return response.data.logs;
+    } catch (error: unknown) {
+        const apiError = error as AxiosError<ApiError>;
+        console.error("Budget logs fetch error:", apiError);
+        throw apiError;
+    }
 };

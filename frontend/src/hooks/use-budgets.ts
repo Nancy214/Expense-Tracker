@@ -71,7 +71,7 @@ export const useBudgets = (): UseBudgetsReturn => {
     const createBudgetMutation: UseMutationResult<BudgetResponse, Error, BudgetData> = useMutation({
         mutationFn: (budgetData: BudgetData) => createBudget(budgetData),
         onSuccess: () => {
-            // Invalidate and refetch budgets and progress queries
+            // Invalidate and refetch budgets, progress, and logs queries
             queryClient.invalidateQueries({
                 queryKey: ["budgets"],
                 exact: true,
@@ -80,6 +80,11 @@ export const useBudgets = (): UseBudgetsReturn => {
             queryClient.invalidateQueries({
                 queryKey: ["budgetProgress"],
                 exact: true,
+                refetchType: "active",
+            });
+            // Invalidate all budget logs queries (both all logs and specific budget logs)
+            queryClient.invalidateQueries({
+                queryKey: ["budgetLogs"],
                 refetchType: "active",
             });
         },
@@ -100,6 +105,11 @@ export const useBudgets = (): UseBudgetsReturn => {
                     exact: true,
                     refetchType: "active",
                 });
+                // Invalidate all budget logs queries (both all logs and specific budget logs)
+                queryClient.invalidateQueries({
+                    queryKey: ["budgetLogs"],
+                    refetchType: "active",
+                });
             },
         });
 
@@ -115,6 +125,11 @@ export const useBudgets = (): UseBudgetsReturn => {
             queryClient.invalidateQueries({
                 queryKey: ["budgetProgress"],
                 exact: true,
+                refetchType: "active",
+            });
+            // Invalidate all budget logs queries (both all logs and specific budget logs)
+            queryClient.invalidateQueries({
+                queryKey: ["budgetLogs"],
                 refetchType: "active",
             });
         },
