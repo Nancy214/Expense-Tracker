@@ -10,9 +10,10 @@ import {
 } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Repeat, Pencil, Trash, Receipt, CheckCircle, Clock } from "lucide-react";
+import { ArrowUpDown, Repeat, Pencil, Trash, Receipt, CheckCircle, Clock, Star } from "lucide-react";
 import { TransactionWithId, BillStatus } from "@/types/transaction";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
@@ -97,30 +98,65 @@ export function AllTransactionsTab({
                 size: 200,
                 cell: ({ row }: { row: Row<TransactionWithId> }) => {
                     const expense = row.original;
-                    const isRecurringInstance =
-                        (!expense.isRecurring && !!expense.templateId) || (expense.isRecurring && !expense.templateId);
+                    const isRecurringInstance = !expense.isRecurring && !!expense.templateId;
+                    const isMainRecurringTemplate = expense.isRecurring && !expense.templateId;
                     const isBill = expense.category === "Bill";
 
                     return (
                         <span className="flex items-center gap-2">
                             {expense.title}
                             {showRecurringIcon && isRecurringInstance && (
-                                <>
-                                    <Repeat className="h-4 w-4 text-blue-500" />
-                                    <span className="sr-only">Recurring</span>
-                                </>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Repeat className="h-4 w-4 text-blue-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Generated recurring transaction instance</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
+                            {isMainRecurringTemplate && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Main recurring transaction template</p>
+                                            <p>Deleting this will delete all its instances</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             )}
                             {isBill && (
-                                <>
-                                    <Receipt className="h-4 w-4 text-orange-500" />
-                                    <span className="sr-only">Bill</span>
-                                </>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Receipt className="h-4 w-4 text-orange-500 cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Bill transaction</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             )}
                             {showRecurringBadge && expense.recurringFrequency && (
-                                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                                    <Repeat className="h-3 w-3 text-blue-500" />
+                                <Badge
+                                    variant={isMainRecurringTemplate ? "default" : "secondary"}
+                                    className={`flex items-center gap-1 text-xs ${
+                                        isMainRecurringTemplate ? "bg-yellow-100 text-yellow-800 border-yellow-300" : ""
+                                    }`}
+                                >
+                                    {isMainRecurringTemplate ? (
+                                        <Star className="h-3 w-3 text-yellow-600 fill-yellow-600" />
+                                    ) : (
+                                        <Repeat className="h-3 w-3 text-blue-500" />
+                                    )}
                                     {expense.recurringFrequency.charAt(0).toUpperCase() +
                                         expense.recurringFrequency.slice(1)}
+                                    {isMainRecurringTemplate && " (Template)"}
                                 </Badge>
                             )}
                         </span>
