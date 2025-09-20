@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
     BudgetPeriod,
     BudgetResponse,
@@ -27,6 +29,7 @@ const BudgetPage: React.FC = () => {
         editingBudget: null,
         dismissedReminders: new Set(),
     });
+    const [showBudgetHistory, setShowBudgetHistory] = useState(false);
 
     const { toast } = useToast();
     const { user } = useAuth();
@@ -306,11 +309,23 @@ const BudgetPage: React.FC = () => {
                 {/* Budget Change History */}
                 {budgets.length > 0 && (
                     <div className="mt-2">
-                        <div className="flex items-center gap-2">
-                            <History className="h-5 w-5" />
-                            <h2 className="text-xl font-semibold">Budget Change History</h2>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <History className="h-5 w-5" />
+                                <h2 className="text-xl font-semibold">Budget Change History</h2>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Switch
+                                    id="show-budget-history"
+                                    checked={showBudgetHistory}
+                                    onCheckedChange={setShowBudgetHistory}
+                                />
+                                <Label htmlFor="show-budget-history" className="text-sm font-medium">
+                                    Show History
+                                </Label>
+                            </div>
                         </div>
-                        <BudgetLogs />
+                        {showBudgetHistory && <BudgetLogs />}
                     </div>
                 )}
             </div>
