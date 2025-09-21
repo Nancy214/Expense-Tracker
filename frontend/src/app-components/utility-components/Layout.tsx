@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -77,15 +77,20 @@ function LayoutContent({ children }: LayoutProps) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="md:hidden"
+                                    className="md:hidden transition-all duration-200 hover:bg-gray-100 hover:scale-110 active:scale-95"
                                     onClick={() => setSidebarOpen(true)}
                                 >
-                                    <Menu className="h-5 w-5" />
+                                    <Menu className="h-5 w-5 transition-transform duration-200" />
                                     <span className="sr-only">Toggle sidebar</span>
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent side="left" className="w-72 p-0">
-                                <SidebarContent />
+                            <SheetContent
+                                side="left"
+                                className="w-72 p-0 transition-all duration-300 ease-out"
+                            >
+                                <div className="animate-in slide-in-from-left duration-300">
+                                    <SidebarContent onItemClick={() => setSidebarOpen(false)} />
+                                </div>
                             </SheetContent>
                         </Sheet>
 
@@ -136,13 +141,15 @@ function LayoutContent({ children }: LayoutProps) {
 
             <div className="flex flex-1">
                 {/* Sidebar */}
-                <aside className="hidden md:flex flex-col border-r bg-white w-64 sticky top-16 h-[calc(100vh-4rem)]">
-                    <SidebarContent />
+                <aside className="hidden md:flex flex-col border-r bg-white w-64 sticky top-16 h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out">
+                    <div className="animate-in fade-in duration-500">
+                        <SidebarContent />
+                    </div>
                 </aside>
 
                 {/* Main content */}
                 <main className={cn("flex-1 transition-all duration-300 ease-in-out", "md:ml-0")}>
-                    <div>
+                    <div className="animate-in fade-in slide-in-from-right duration-300">
                         {location.pathname === "/" && <StatsCards />}
                         {children}
                     </div>
@@ -152,29 +159,123 @@ function LayoutContent({ children }: LayoutProps) {
     );
 }
 
-function SidebarContent() {
+function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
     const location = useLocation();
+    const navRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+
+    // Find the index of the currently active item
+    const activeIndex = navLinks.findIndex(link => link.path === location.pathname);
+
+    // Calculate the position of the sliding indicator using actual element positions
+    const [indicatorTop, setIndicatorTop] = useState(0);
+    const [indicatorLeft, setIndicatorLeft] = useState(0);
+    const [indicatorWidth, setIndicatorWidth] = useState(0);
+    const [indicatorHeight, setIndicatorHeight] = useState(40);
+
+    useEffect(() => {
+        // Small delay to ensure refs are set and elements are rendered
+        const timer = setTimeout(() => {
+            if (activeIndex >= 0 && navRefs.current[activeIndex]) {
+                const activeElement = navRefs.current[activeIndex];
+                if (activeElement) {
+                    // Use offsetTop and offsetLeft for more reliable positioning
+                    setIndicatorTop(activeElement.offsetTop);
+                    setIndicatorLeft(activeElement.offsetLeft);
+                    setIndicatorWidth(activeElement.offsetWidth);
+                    setIndicatorHeight(activeElement.offsetHeight);
+                }
+            }
+        }, 10);
+
+        return () => clearTimeout(timer);
+    }, [activeIndex, location.pathname]);
 
     return (
         <div className="flex h-full flex-col">
             {/* Sidebar navigation */}
-            <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-                {navLinks.map(({ label, path, icon: Icon }) => {
+            <nav className="flex-1 space-y-1 p-4 overflow-y-auto relative">
+                {/* Sliding active indicator */}
+                <div
+                    className={cn(
+                        "absolute w-1 bg-blue-600 rounded-r-full z-10",
+                        "transition-all duration-600 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]",
+                        activeIndex >= 0 ? "opacity-100" : "opacity-0"
+                    )}
+                    style={{
+                        left: `${indicatorLeft - 4}px`,
+                        top: `${indicatorTop}px`,
+                        height: `${indicatorHeight}px`,
+                    }}
+                />
+
+                {/* Sliding background indicator */}
+                <div
+                    className={cn(
+                        "absolute bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg shadow-sm",
+                        "transition-all duration-600 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]",
+                        activeIndex >= 0 ? "opacity-100 scale-100" : "opacity-0 scale-95"
+                    )}
+                    style={{
+                        left: `${indicatorLeft}px`,
+                        top: `${indicatorTop}px`,
+                        width: `${indicatorWidth}px`,
+                        height: `${indicatorHeight}px`,
+                    }}
+                />
+
+                {navLinks.map(({ label, path, icon: Icon }, index) => {
                     const isActive = location.pathname === path;
 
                     return (
                         <Link
                             key={path}
                             to={path}
+                            ref={(el) => {
+                                navRefs.current[index] = el;
+                            }}
+                            onClick={onItemClick}
                             className={cn(
-                                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                                "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 ease-in-out transform z-20",
+                                "hover:scale-[1.02] hover:shadow-sm active:scale-95",
                                 isActive
-                                    ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                    ? "text-blue-700 scale-[1.02]"
+                                    : "text-gray-700 hover:bg-gradient-to-r hover:from-gray-50/50 hover:to-gray-100/50 hover:text-gray-900"
                             )}
+                            style={{
+                                animationDelay: `${index * 50}ms`
+                            }}
                         >
-                            <Icon className="h-4 w-4" />
-                            <span className="flex-1">{label}</span>
+                            {/* Icon with animation */}
+                            <Icon
+                                className={cn(
+                                    "h-4 w-4 transition-all duration-300 ease-out relative z-30",
+                                    isActive
+                                        ? "text-blue-700 scale-110"
+                                        : "text-gray-600 group-hover:text-gray-900 group-hover:scale-110"
+                                )}
+                            />
+
+                            {/* Label with slide animation */}
+                            <span
+                                className={cn(
+                                    "flex-1 transition-all duration-300 ease-out relative z-30",
+                                    isActive
+                                        ? "font-semibold text-blue-700 translate-x-1"
+                                        : "group-hover:translate-x-1 group-hover:font-medium"
+                                )}
+                            >
+                                {label}
+                            </span>
+
+                            {/* Subtle glow effect for active item */}
+                            {isActive && (
+                                <div className="absolute inset-0 bg-blue-400/5 rounded-lg animate-pulse z-10" />
+                            )}
+
+                            {/* Ripple effect on click */}
+                            <div className="absolute inset-0 rounded-lg overflow-hidden z-10">
+                                <div className="absolute inset-0 bg-blue-200/20 rounded-lg transform scale-0 group-active:scale-100 transition-transform duration-200 ease-out" />
+                            </div>
                         </Link>
                     );
                 })}
