@@ -129,7 +129,7 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, _: 
     }
 };
 
-export const getExpenses = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getExpenses = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
@@ -485,7 +485,7 @@ export const createExpense = async (req: AuthRequest, res: Response): Promise<vo
     }
 };
 
-export const updateExpense = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateExpense = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = req.user?.id;
         if (!userId) {
@@ -619,7 +619,7 @@ export const uploadReceipt = async (req: AuthRequest, res: Response): Promise<vo
     }
 };
 
-export const getReceiptUrl = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getReceiptUrl = async (req: Request, res: Response): Promise<void> => {
     try {
         const key: string = decodeURIComponent(req.params.key);
         if (!key) {

@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { TransactionModel } from "../models/transaction.model";
 import { User } from "../models/user.model";
 import { TransactionOrBillDocument } from "../types/transactions";
-import { addTimeByFrequency, getStartOfToday, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
+import { addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
 import { getTodayInTimezone } from "../utils/timezoneUtils";
 
 /**
@@ -208,7 +208,7 @@ export class RecurringTransactionJobService {
         template: TransactionOrBillDocument,
         nextDueDate: Date,
         todayDate: Date,
-        timezone: string
+        _: string
     ): boolean {
         // Check if today is the due date or past the due date
         if (isDateAfter(todayDate, nextDueDate) || this.isSameDate(todayDate, nextDueDate)) {

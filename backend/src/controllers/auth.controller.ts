@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import passport from "passport";
 import { User, Settings } from "../models/user.model";
 import {
-    AuthRequest,
     UserGoogleType,
     UserLocalType,
     TokenPayload,
@@ -51,7 +50,7 @@ export const generateTokens = (user: MongooseUserDocument): { accessToken: strin
 };
 
 export const register = async (
-    req: Request<{}, RegisterResponse, RegisterRequest> & { file?: Express.Multer.File },
+    req: Request<{}, RegisterResponse, RegisterRequest>,
     res: Response<RegisterResponse>
 ): Promise<void> => {
     try {
@@ -239,7 +238,7 @@ export const refreshToken = async (
     }
 };
 
-export const logout = async (req: AuthRequest, res: Response<LogoutResponse>): Promise<void> => {
+export const logout = async (req: Request, res: Response<LogoutResponse>): Promise<void> => {
     try {
         // Clear any auth cookies
         res.clearCookie("connect.sid"); // Clear session cookie
@@ -451,9 +450,9 @@ export const resetPassword = async (
     }
 };
 
-export const changePassword = async (req: AuthRequest, res: Response<ChangePasswordResponse>): Promise<void> => {
+export const changePassword = async (req: Request, res: Response<ChangePasswordResponse>): Promise<void> => {
     try {
-        const user: TokenPayload | undefined = req.user;
+        const user = req.user as TokenPayload | undefined;
         const userId: string | undefined = user?.id;
 
         if (!userId) {

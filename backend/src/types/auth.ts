@@ -1,6 +1,5 @@
 import { Document, Schema, Types } from "mongoose";
 import { Request } from "express";
-import multer from "multer";
 
 export interface UserType {
     _id: string;
@@ -42,9 +41,6 @@ export interface TokenPayload {
 }
 
 export interface AuthRequest extends Request {
-    headers: {
-        authorization?: string;
-    };
     user?: TokenPayload;
 }
 

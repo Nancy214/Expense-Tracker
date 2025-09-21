@@ -268,16 +268,14 @@ export const formatTimeInTimezone = (date: Date, timezone: string): string => {
 };
 
 // Get start of day in user's timezone
-export const getStartOfDayInTimezone = (timezone: string, date?: Date): Date => {
-    const targetDate = date || new Date();
+export const getStartOfDayInTimezone = (timezone: string, _?: Date): Date => {
     const dateInTimezone = getCurrentTimeInTimezone(timezone);
     dateInTimezone.setHours(0, 0, 0, 0);
     return dateInTimezone;
 };
 
 // Get end of day in user's timezone
-export const getEndOfDayInTimezone = (timezone: string, date?: Date): Date => {
-    const targetDate = date || new Date();
+export const getEndOfDayInTimezone = (timezone: string, _?: Date): Date => {
     const dateInTimezone = getCurrentTimeInTimezone(timezone);
     dateInTimezone.setHours(23, 59, 59, 999);
     return dateInTimezone;
