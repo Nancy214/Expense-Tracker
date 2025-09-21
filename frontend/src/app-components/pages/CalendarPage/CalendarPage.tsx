@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -7,7 +7,7 @@ import { useExpenses } from "@/hooks/use-transactions";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { TransactionResponse, TransactionWithId } from "@/types/transaction";
+import { TransactionType, TransactionWithId } from "@/types/transaction";
 import { CalendarEvent } from "@/types/calendar";
 import "./CalendarStyle.css";
 // Separate color mappings for expense and income categories
@@ -71,8 +71,8 @@ const CalendarPage: React.FC = () => {
             id: expense._id || "",
             title: `${expense.title} - ${symbol}${expense.amount}`,
             date: new Date(dateStr.split("/").reverse().join("-")).toISOString(), // Convert dd/MM/yyyy to ISO format
-            backgroundColor: getCategoryColor(expense.category),
-            borderColor: getCategoryColor(expense.category),
+            backgroundColor: getCategoryColor(expense.type, expense.category),
+            borderColor: getCategoryColor(expense.type, expense.category),
             textColor: "#ffffff",
             extendedProps: {
                 category: expense.category,
@@ -99,13 +99,13 @@ const CalendarPage: React.FC = () => {
     };
 
     // Color coding for different categories
-    function getCategoryColor(category: string): string {
+    function getCategoryColor(type: TransactionType, category: string): string {
         // Check if it's an expense category
-        if (expenseColors[category]) {
+        if (type === "expense") {
             return expenseColors[category];
         }
         // Check if it's an income category
-        if (incomeColors[category]) {
+        if (type === "income") {
             return incomeColors[category];
         }
         // Default color for unknown categories
