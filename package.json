@@ -1,0 +1,25 @@
+{
+    "name": "expense-tracker-monorepo",
+    "version": "1.0.0",
+    "description": "Expense Tracker Monorepo with Nx",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "libs/*"
+    ],
+    "scripts": {
+        "build": "nx run-many --target=build --all",
+        "test": "nx run-many --target=test --all",
+        "lint": "nx run-many --target=lint --all",
+        "dev": "nx run-many --target=dev --all --parallel",
+        "backend:dev": "nx run backend:dev",
+        "frontend:dev": "nx run frontend:dev",
+        "backend:build": "nx run backend:build",
+        "frontend:build": "nx run frontend:build"
+    },
+    "devDependencies": {
+        "nx": "^21.5.3",
+        "@nx/eslint": "^21.5.3",
+        "@nx/vite": "^21.5.3"
+    }
+}
