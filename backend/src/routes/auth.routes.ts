@@ -1,4 +1,4 @@
-import { RequestHandler, Router } from "express";
+import { Router } from "express";
 import passport from "../config/passport";
 import { authenticateToken } from "../middleware/auth.middleware";
 import {
@@ -23,22 +23,15 @@ router.get(
     passport.authenticate("google", {
         failureRedirect: "/login",
     }),
-    googleAuthCallback as RequestHandler
+    googleAuthCallback
 );
 
-router.post("/register", upload.single("profilePicture"), register as RequestHandler);
-router.post("/login", login as RequestHandler);
-router.post("/refresh-token", refreshToken as RequestHandler);
-router.post("/logout", logout as RequestHandler);
-router.post("/forgot-password", forgotPassword as RequestHandler);
-router.post("/reset-password", resetPassword as RequestHandler);
-router.put("/change-password", authenticateToken as RequestHandler, changePassword as RequestHandler);
-router.get(
-    "/profile",
-    authenticateToken as RequestHandler,
-    ((req, res) => {
-        res.json({ message: "Hello World", user: req.user });
-    }) as RequestHandler
-);
+router.post("/register", upload.single("profilePicture"), register);
+router.post("/login", login);
+router.post("/refresh-token", refreshToken);
+router.post("/logout", logout);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
+router.put("/change-password", authenticateToken, changePassword);
 
 export default router;

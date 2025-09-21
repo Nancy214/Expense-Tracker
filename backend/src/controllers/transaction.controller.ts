@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
-import { Bill, BillFrequency } from "../types/transactions";
+import { BillFrequency } from "../types/transactions";
 import { getStartOfToday, addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
 import { s3Client, isAWSConfigured } from "../config/s3Client";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -12,7 +12,6 @@ import crypto from "crypto";
 import { Types } from "mongoose";
 import { RecurringTransactionJobService } from "../services/recurringTransactionJob.service";
 import {
-    TransactionOrBill,
     TransactionOrBillDocument,
     BillDocument,
     PaginationQuery,
@@ -22,14 +21,13 @@ import {
     ReceiptUrlResponse,
     BillStatusUpdateRequest,
     BillStatusUpdateResponse,
-    RecurringExpenseJobResponse,
     DeleteResponse,
 } from "../types/transactions";
 
 // Type guard to check if a transaction is a bill
-const isBillTransaction = (transaction: TransactionOrBill): transaction is Bill => {
+/* const isBillTransaction = (transaction: TransactionOrBill): transaction is Bill => {
     return transaction.category === "Bills";
-};
+}; */
 
 // Type guard to check if a document is a bill document
 const isBillDocument = (doc: TransactionOrBillDocument): doc is BillDocument => {
@@ -61,7 +59,7 @@ const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): D
 };
 
 // Helper function to create recurring instances
-const createRecurringInstances = async (template: TransactionOrBillDocument, userId: Types.ObjectId): Promise<void> => {
+const createRecurringInstances = async (template: TransactionOrBillDocument, _: Types.ObjectId): Promise<void> => {
     if (isBillDocument(template)) {
         // Handle bill frequency
         if (template.billFrequency) {
@@ -474,8 +472,8 @@ export const createExpense = async (req: AuthRequest, res: Response): Promise<vo
 
         const expense: TransactionOrBillDocument = await TransactionModel.create(expenseData);
 
-        const expenseDoc: TransactionOrBill = expense.toObject() as TransactionOrBill;
-        const isBill: boolean = isBillTransaction(expenseDoc);
+        //const expenseDoc: TransactionOrBill = expense.toObject() as TransactionOrBill;
+        //const isBill: boolean = isBillTransaction(expenseDoc);
 
         // Create recurring instances
         await createRecurringInstances(expense, new Types.ObjectId(userId));

@@ -9,9 +9,7 @@ import {
     BudgetDeleteResponse,
     BudgetProgressResponse,
     BudgetProgressItem,
-    BudgetType,
     BudgetChange,
-    BudgetLogResponse,
     BudgetLogsResponse,
 } from "../types/budget";
 import { Transaction } from "../types/transactions";
@@ -462,8 +460,8 @@ export const getBudgetProgress = async (
                 title: budget.title,
                 amount: budget.amount,
                 currency: budget.currency,
-                fromRate: budget.fromRate,
-                toRate: budget.toRate,
+                fromRate: budget.fromRate || 1,
+                toRate: budget.toRate || 1,
                 recurrence: budget.recurrence,
                 startDate: budget.startDate,
                 category: budget.category,

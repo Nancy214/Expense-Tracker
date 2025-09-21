@@ -90,13 +90,13 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             name: userDoc.name,
             email: userDoc.email,
             profilePicture: profilePictureUrl,
-            phoneNumber: userDoc.phoneNumber,
-            dateOfBirth: userDoc.dateOfBirth,
-            currency: userDoc.currency,
-            country: userDoc.country,
-            timezone: userDoc.timezone,
-            budget: userDoc.budget,
-            budgetType: userDoc.budgetType,
+            phoneNumber: userDoc.phoneNumber || "",
+            dateOfBirth: userDoc.dateOfBirth || "",
+            currency: userDoc.currency || "",
+            country: userDoc.country || "",
+            timezone: userDoc.timezone || "",
+            budget: userDoc.budget || false,
+            budgetType: userDoc.budgetType || "",
             settings: {
                 userId: settingsDoc.userId,
                 monthlyReports: settingsDoc.monthlyReports,
@@ -238,13 +238,13 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             name: updatedUser.name,
             email: updatedUser.email,
             profilePicture: profilePictureUrl,
-            phoneNumber: updatedUser.phoneNumber,
-            dateOfBirth: updatedUser.dateOfBirth,
-            currency: updatedUser.currency,
-            country: updatedUser.country,
-            timezone: updatedUser.timezone,
-            budget: updatedUser.budget,
-            budgetType: updatedUser.budgetType,
+            phoneNumber: updatedUser.phoneNumber || "",
+            dateOfBirth: updatedUser.dateOfBirth || "",
+            currency: updatedUser.currency || "",
+            country: updatedUser.country || "",
+            timezone: updatedUser.timezone || "",
+            budget: updatedUser.budget || false,
+            budgetType: updatedUser.budgetType || "",
             settings: settingsDoc
                 ? {
                       userId: settingsDoc.userId,
@@ -348,7 +348,7 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
     }
 };
 
-export const getCountryTimezoneCurrency = async (req: Request, res: Response): Promise<void> => {
+export const getCountryTimezoneCurrency = async (_: Request, res: Response): Promise<void> => {
     try {
         const countryTimezoneCurrency = await CountryTimezoneCurrency.find().sort({ country: 1 });
 

@@ -69,7 +69,7 @@ passport.use(
             clientSecret: GOOGLE_CLIENT_SECRET || "",
             callbackURL: "http://localhost:8000/api/auth/google/callback",
         },
-        async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+        async (profile: any, done: any) => {
             try {
                 const user = await User.findOne({
                     googleId: profile.id,

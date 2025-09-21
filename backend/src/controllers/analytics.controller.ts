@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
 import { Transaction, Bill } from "../types/transactions";
@@ -100,9 +100,9 @@ const getDateRange = (period: string, subPeriod: string): { startDate: Date; end
 };
 
 // Get expense category breakdown for pie chart
-export const getExpenseCategoryBreakdown = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getExpenseCategoryBreakdown = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId: string | undefined = req.user?.id;
+        const userId: string | undefined = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -163,9 +163,9 @@ export const getExpenseCategoryBreakdown = async (req: AuthRequest, res: Respons
 };
 
 // Get bills category breakdown for pie chart
-export const getBillsCategoryBreakdown = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getBillsCategoryBreakdown = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId: string | undefined = req.user?.id;
+        const userId: string | undefined = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -265,9 +265,9 @@ const getTransactionsForPeriod = async (
 };
 
 // Get income and expenses summary for different time periods
-export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getIncomeExpenseSummary = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId: string | undefined = req.user?.id;
+        const userId: string | undefined = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -284,11 +284,9 @@ export const getIncomeExpenseSummary = async (req: AuthRequest, res: Response): 
 
         if (subPeriod && typeof subPeriod === "string") {
             // Get data for specific period
-            const { startDate, endDate } = getDateRange(period as string, subPeriod);
+            const { startDate } = getDateRange(period as string, subPeriod);
 
             // For specific periods, we'll get data for that period and a few periods before for comparison
-            let periodsToAnalyze = 6;
-            let periodStartDate = startDate;
 
             switch (period) {
                 case "monthly":
@@ -535,9 +533,9 @@ const getDailyTransactionsForMonth = async (userId: string, year: number, month:
 };
 
 // Get monthly savings trend data for the last 12 months
-export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getMonthlySavingsTrend = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId: string | undefined = req.user?.id;
+        const userId: string | undefined = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -554,7 +552,7 @@ export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response): P
 
         if (subPeriod && typeof subPeriod === "string") {
             // Get data for specific period
-            const { startDate, endDate } = getDateRange(period as string, subPeriod);
+            const { startDate } = getDateRange(period as string, subPeriod);
 
             switch (period) {
                 case "monthly":
@@ -626,7 +624,7 @@ export const getMonthlySavingsTrend = async (req: AuthRequest, res: Response): P
                     // Get monthly data for the selected year
                     const selectedYear = parseInt(subPeriod);
                     for (let month = 0; month < 12; month++) {
-                        const monthDates = getMonthDates(selectedYear, month);
+                        //const monthDates = getMonthDates(selectedYear, month);
                         const monthData = await getTransactionsForMonth(userId, selectedYear, month);
 
                         allMonthsData.push({

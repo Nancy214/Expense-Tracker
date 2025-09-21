@@ -11,11 +11,6 @@ import profileRoutes from "./routes/profile.routes";
 import analyticsRoutes from "./routes/analytics.routes";
 import currencyRoutes from "./routes/currency.routes";
 import cron from "node-cron";
-import { TransactionModel } from "./models/transaction.model";
-import { TransactionOrBillDocument } from "./types/transactions";
-import { User } from "./models/user.model";
-import { BudgetLog } from "./models/budget-log.model";
-import { getTodayInTimezone } from "./utils/timezoneUtils";
 import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 
 dotenv.config();
@@ -60,12 +55,6 @@ mongoose
         process.exit(1);
     });
 
-// Helper to get today's date in YYYY-MM-DD
-function getToday() {
-    const now: Date = new Date();
-    return now.toISOString().slice(0, 10);
-}
-
 // Recurring transaction job - runs every hour to process recurring transactions
 cron.schedule("0 * * * *", async () => {
     try {
@@ -76,16 +65,6 @@ cron.schedule("0 * * * *", async () => {
         console.error("[CronJob] Error in recurring transaction job:", error);
     }
 });
-
-// Helper to get next date for a given frequency
-/* function getNextDate(date: Date, frequency: string) {
-    const d = new Date(date);
-    if (frequency === "daily") d.setDate(d.getDate() + 1);
-    else if (frequency === "weekly") d.setDate(d.getDate() + 7);
-    else if (frequency === "monthly") d.setMonth(d.getMonth() + 1);
-    else if (frequency === "yearly") d.setFullYear(d.getFullYear() + 1);
-    return d;
-} */
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -99,11 +78,4 @@ const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
-
-    /* try {
-    await axios.post(`http://localhost:${PORT}/api/currency/init`);
-    console.log("Currencies initialized");
-  } catch (error) {
-    console.error("Error initializing currencies:", error);
-  } */
 });
