@@ -62,11 +62,9 @@ export const useBudgetForm = ({
         const formValues = editingBudget
             ? {
                   amount: editingBudget.amount,
-                  period: editingBudget.period,
+                  recurrence: editingBudget.recurrence,
                   startDate: format(new Date(editingBudget.startDate), "dd/MM/yyyy"),
                   category: editingBudget.category as BudgetFormData["category"],
-                  isRepeating: editingBudget.isRepeating || false,
-                  endDate: editingBudget.endDate ? format(new Date(editingBudget.endDate), "dd/MM/yyyy") : undefined,
                   reason: undefined, // Don't pre-fill reason field
               }
             : getDefaultValues();
@@ -87,11 +85,9 @@ export const useBudgetForm = ({
         try {
             const budgetData: BudgetData = {
                 amount: data.amount,
-                period: data.period,
+                recurrence: data.recurrence,
                 startDate: parse(data.startDate, "dd/MM/yyyy", new Date()),
                 category: data.category,
-                isRepeating: data.isRepeating || false,
-                endDate: data.endDate ? parse(data.endDate, "dd/MM/yyyy", new Date()) : undefined,
                 reason: data.reason,
             };
 

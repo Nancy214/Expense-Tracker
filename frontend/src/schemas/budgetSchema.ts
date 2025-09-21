@@ -18,7 +18,7 @@ export type BudgetCategory =
     | "Other";
 
 // Type definitions for budget frequencies - align with BudgetFrequency type
-export type BudgetPeriod = "daily" | "weekly" | "monthly" | "yearly";
+export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
 
 // Budget categories array with proper typing
 export const BUDGET_CATEGORIES: readonly BudgetCategory[] = [
@@ -38,7 +38,7 @@ export const BUDGET_CATEGORIES: readonly BudgetCategory[] = [
 ] as const;
 
 // Budget frequencies array with proper typing
-export const BUDGET_FREQUENCIES: readonly BudgetPeriod[] = ["daily", "weekly", "monthly", "yearly"] as const;
+export const BUDGET_FREQUENCIES: readonly BudgetRecurrence[] = ["daily", "weekly", "monthly", "yearly"] as const;
 
 // Validation helper functions
 const isValidDate = (dateString: string): boolean => {
@@ -62,8 +62,8 @@ export const budgetSchema = z.object({
         .positive("Amount must be greater than 0")
         .max(999999999, "Amount cannot exceed 999,999,999")
         .refine(isValidAmount, "Please enter a valid amount"),
-    period: z.enum(BUDGET_FREQUENCIES, {
-        message: "Please select a valid period",
+    recurrence: z.enum(BUDGET_FREQUENCIES, {
+        message: "Please select a valid recurrence",
     }),
     startDate: z
         .string({ message: "Start date is required" })
@@ -72,20 +72,6 @@ export const budgetSchema = z.object({
     category: z.enum(BUDGET_CATEGORIES, {
         message: "Please select a valid category",
     }),
-    isRepeating: z.boolean(),
-    endDate: z
-        .string()
-        .optional()
-        .refine((date) => !date || isValidDate(date), "Please enter a valid end date in DD/MM/YYYY format")
-        .refine((date: string | undefined) => {
-            if (!date) return true;
-            return isValidDate(date);
-        }, "Please enter a valid end date in DD/MM/YYYY format")
-        .refine((date: string | undefined) => {
-            if (!date) return true;
-            const now = format(new Date(), "dd/MM/yyyy");
-            return validateBudgetDateRange(now, date);
-        }, "End date must be in the future"),
     reason: z
         .string()
         .optional()
@@ -103,11 +89,9 @@ export interface BudgetSubmissionData extends BudgetFormData {
 // Budget form state type for component state management
 export interface BudgetFormState {
     amount: number;
-    period: BudgetPeriod;
+    recurrence: BudgetRecurrence;
     startDate: string;
     category: BudgetCategory;
-    isRepeating: boolean;
-    endDate?: string;
     isSubmitting: boolean;
     errors: Partial<Record<keyof BudgetFormData, string>>;
 }
@@ -115,18 +99,16 @@ export interface BudgetFormState {
 // Budget form handlers type
 export interface BudgetFormHandlers {
     handleAmountChange: (amount: number) => void;
-    handlePeriodChange: (period: BudgetPeriod) => void;
+    handleRecurrenceChange: (recurrence: BudgetRecurrence) => void;
     handleStartDateChange: (date: string) => void;
     handleCategoryChange: (category: BudgetCategory) => void;
-    handleIsRepeatingChange: (isRepeating: boolean) => void;
-    handleEndDateChange: (date: string) => void;
     handleSubmit: (data: BudgetFormData) => Promise<void>;
     resetForm: () => void;
 }
 
 // Budget option types for dropdowns
-export interface BudgetPeriodOption {
-    value: BudgetPeriod;
+export interface BudgetRecurrenceOption {
+    value: BudgetRecurrence;
     label: string;
 }
 
@@ -138,16 +120,14 @@ export interface BudgetCategoryOption {
 // Default values with proper typing
 export const getDefaultValues = (): BudgetFormData => ({
     amount: 0,
-    period: "monthly",
+    recurrence: "monthly",
     startDate: format(new Date(), "dd/MM/yyyy"),
     category: "Other",
-    isRepeating: false,
-    endDate: undefined,
     reason: undefined,
 });
 
-// Helper function to create budget period options
-export const getBudgetPeriodOptions = (): BudgetPeriodOption[] => [
+// Helper function to create budget recurrence options
+export const getBudgetRecurrenceOptions = (): BudgetRecurrenceOption[] => [
     { value: "daily", label: "Daily" },
     { value: "weekly", label: "Weekly" },
     { value: "monthly", label: "Monthly" },
@@ -160,19 +140,6 @@ export const getBudgetCategoryOptions = (): BudgetCategoryOption[] =>
         value: category,
         label: category === "All Categories" ? "All Categories" : category,
     }));
-
-// Validation helper for date ranges
-export const validateBudgetDateRange = (startDate: string, endDate?: string): boolean => {
-    if (!startDate || startDate.trim() === "") return false;
-
-    if (endDate && endDate.trim() !== "") {
-        const start = new Date(startDate.split("/").reverse().join("-"));
-        const end = new Date(endDate.split("/").reverse().join("-"));
-        return end > start;
-    }
-
-    return true;
-};
 
 // Budget constants export for reuse across components
 export const BUDGET_CONSTANTS = {

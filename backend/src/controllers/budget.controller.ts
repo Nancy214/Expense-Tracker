@@ -38,25 +38,18 @@ export const createBudget = async (
             return;
         }
 
-        const { amount, period, startDate, category, isRepeating, endDate }: BudgetRequest = req.body;
-        if (!amount || !period || !startDate || !category) {
-            res.status(400).json({ message: "Amount, period, start date, and category are required." });
-            return;
-        }
-
-        if (isRepeating && !endDate) {
-            res.status(400).json({ message: "End date is required for repeating budgets." });
+        const { amount, recurrence, startDate, category }: BudgetRequest = req.body;
+        if (!amount || !recurrence || !startDate || !category) {
+            res.status(400).json({ message: "Amount, recurrence, start date, and category are required." });
             return;
         }
 
         const budget = new Budget({
             userId: new mongoose.Types.ObjectId(userId),
             amount,
-            period,
+            recurrence,
             startDate,
             category,
-            isRepeating: isRepeating || false,
-            endDate: endDate || undefined,
         });
 
         const savedBudget: BudgetResponse | null = await budget.save();
@@ -72,11 +65,9 @@ export const createBudget = async (
                     oldValue: null,
                     newValue: {
                         amount,
-                        period,
+                        recurrence,
                         startDate,
                         category,
-                        isRepeating: isRepeating || false,
-                        endDate: endDate || undefined,
                     },
                 },
             ],
@@ -103,15 +94,10 @@ export const updateBudget = async (
         }
 
         const { id } = req.params;
-        const { amount, period, startDate, category, isRepeating, endDate }: BudgetRequest = req.body;
+        const { amount, recurrence, startDate, category }: BudgetRequest = req.body;
 
-        if (!amount || !period || !startDate || !category) {
-            res.status(400).json({ message: "Amount, period, start date, and category are required." });
-            return;
-        }
-
-        if (isRepeating && !endDate) {
-            res.status(400).json({ message: "End date is required for repeating budgets." });
+        if (!amount || !recurrence || !startDate || !category) {
+            res.status(400).json({ message: "Amount, recurrence, start date, and category are required." });
             return;
         }
 
@@ -126,9 +112,6 @@ export const updateBudget = async (
             return;
         }
 
-        // Process isRepeating to ensure it's always a boolean
-        const processedIsRepeating = isRepeating || false;
-
         const budget: BudgetResponse | null = await Budget.findOneAndUpdate(
             {
                 _id: new mongoose.Types.ObjectId(id),
@@ -136,11 +119,9 @@ export const updateBudget = async (
             },
             {
                 amount,
-                period,
+                recurrence,
                 startDate,
                 category,
-                isRepeating: processedIsRepeating,
-                endDate: endDate || undefined,
             },
             { new: true }
         );
@@ -154,42 +135,26 @@ export const updateBudget = async (
         const changes: BudgetChange[] = [];
         console.log("Comparing budget values:", {
             amount: { old: oldBudget.amount, new: amount, changed: oldBudget.amount !== amount },
-            period: { old: oldBudget.period, new: period, changed: oldBudget.period !== period },
+            recurrence: { old: oldBudget.recurrence, new: recurrence, changed: oldBudget.recurrence !== recurrence },
             startDate: {
                 old: oldBudget.startDate.toISOString(),
                 new: new Date(startDate).toISOString(),
                 changed: oldBudget.startDate.toISOString() !== new Date(startDate).toISOString(),
             },
             category: { old: oldBudget.category, new: category, changed: oldBudget.category !== category },
-            isRepeating: {
-                old: oldBudget.isRepeating,
-                new: processedIsRepeating,
-                changed: oldBudget.isRepeating !== processedIsRepeating,
-            },
-            endDate: {
-                old: oldBudget.endDate?.toISOString(),
-                new: endDate ? new Date(endDate).toISOString() : undefined,
-                changed: oldBudget.endDate?.toISOString() !== (endDate ? new Date(endDate).toISOString() : undefined),
-            },
         });
 
         if (oldBudget.amount !== amount) {
             changes.push({ field: "amount", oldValue: oldBudget.amount, newValue: amount });
         }
-        if (oldBudget.period !== period) {
-            changes.push({ field: "period", oldValue: oldBudget.period, newValue: period });
+        if (oldBudget.recurrence !== recurrence) {
+            changes.push({ field: "recurrence", oldValue: oldBudget.recurrence, newValue: recurrence });
         }
         if (oldBudget.startDate.toISOString() !== new Date(startDate).toISOString()) {
             changes.push({ field: "startDate", oldValue: oldBudget.startDate, newValue: startDate });
         }
         if (oldBudget.category !== category) {
             changes.push({ field: "category", oldValue: oldBudget.category, newValue: category });
-        }
-        if (oldBudget.isRepeating !== processedIsRepeating) {
-            changes.push({ field: "isRepeating", oldValue: oldBudget.isRepeating, newValue: processedIsRepeating });
-        }
-        if (oldBudget.endDate?.toISOString() !== (endDate ? new Date(endDate).toISOString() : undefined)) {
-            changes.push({ field: "endDate", oldValue: oldBudget.endDate, newValue: endDate });
         }
 
         console.log("Detected changes:", changes.length, changes);
@@ -257,11 +222,9 @@ export const deleteBudget = async (
                     field: "budget",
                     oldValue: {
                         amount: budget.amount,
-                        period: budget.period,
+                        recurrence: budget.recurrence,
                         startDate: budget.startDate,
                         category: budget.category,
-                        isRepeating: budget.isRepeating,
-                        endDate: budget.endDate,
                     },
                     newValue: null,
                 },
@@ -402,19 +365,13 @@ export const getBudgetProgress = async (
         const budgetProgress = budgets.map((budget: BudgetResponse) => {
             const now: Date = new Date();
             const budgetStartDate: Date = new Date(budget.startDate);
-            const budgetEndDate: Date | undefined = budget.endDate ? new Date(budget.endDate) : undefined;
 
-            // For repeating budgets, check if we're past the end date
-            if (budget.isRepeating && budgetEndDate && now > budgetEndDate) {
-                return null; // Skip this budget as it has ended
-            }
-
-            // Calculate the current period based on period
+            // Calculate the current period based on recurrence
             let periodStart: Date;
             let periodEnd: Date;
             let budgetAmount: number;
 
-            switch (budget.period) {
+            switch (budget.recurrence) {
                 case "daily":
                     periodStart = startOfDay(now);
                     periodEnd = endOfDay(now);
@@ -441,11 +398,6 @@ export const getBudgetProgress = async (
                     budgetAmount = budget.amount;
             }
 
-            // For repeating budgets, ensure we don't go past the end date
-            if (budget.isRepeating && budgetEndDate && periodEnd > budgetEndDate) {
-                periodEnd = budgetEndDate;
-            }
-
             // Filter expenses from the budget start date to now (not just current period)
             // and match the budget category
             const budgetExpenses: Transaction[] = expenses.filter((expense: Transaction) => {
@@ -463,8 +415,7 @@ export const getBudgetProgress = async (
                 );
                 const nowStart: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-                let endDateToUse = budget.isRepeating && budgetEndDate ? budgetEndDate : nowStart;
-                const isInRange: boolean = expenseDateStart >= budgetStartDateStart && expenseDateStart <= endDateToUse;
+                const isInRange: boolean = expenseDateStart >= budgetStartDateStart && expenseDateStart <= nowStart;
                 const matchesCategory: boolean =
                     budget.category === "All Categories" || expense.category === budget.category;
 
@@ -491,7 +442,7 @@ export const getBudgetProgress = async (
             return {
                 _id: budget._id,
                 amount: budget.amount,
-                period: budget.period,
+                recurrence: budget.recurrence,
                 startDate: budget.startDate,
                 category: budget.category,
                 createdAt: budget.createdAt,
@@ -505,8 +456,7 @@ export const getBudgetProgress = async (
             };
         });
 
-        // Filter out null values (ended repeating budgets)
-        const activeBudgetProgress = budgetProgress.filter((budget): budget is BudgetProgressItem => budget !== null);
+        const activeBudgetProgress = budgetProgress;
 
         // Calculate overall progress
         const totalBudgetAmount: number = activeBudgetProgress.reduce(

@@ -322,6 +322,7 @@ const HomePage = () => {
             <AddBudgetDialog
                 open={isAddBudgetDialogOpen}
                 onOpenChange={setIsAddBudgetDialogOpen}
+                editingBudget={null}
                 onSuccess={() => {
                     setIsAddBudgetDialogOpen(false);
                     navigate("/budget");

@@ -10,6 +10,7 @@ import path from "path";
 import sharp from "sharp";
 import crypto from "crypto";
 import { Types } from "mongoose";
+import { RecurringTransactionJobService } from "../services/recurringTransactionJob.service";
 import {
     TransactionOrBill,
     TransactionOrBillDocument,
@@ -187,10 +188,9 @@ export const getAllTransactions = async (req: AuthRequest, res: Response): Promi
         const limit: number = parseInt((req.query as PaginationQuery).limit || "20");
         const skip: number = (page - 1) * limit;
 
-        // Build filter query
+        // Build filter query - include all transactions including recurring templates
         const query: any = {
             userId: new Types.ObjectId(userId),
-            $or: [{ isRecurring: false }, { isRecurring: { $exists: false } }],
         };
 
         // Add category filter
@@ -219,7 +219,10 @@ export const getAllTransactions = async (req: AuthRequest, res: Response): Promi
         // Add search filter
         if (req.query.search) {
             const searchRegex = new RegExp(req.query.search as string, "i");
-            query.$or = [{ title: searchRegex }, { description: searchRegex }, { category: searchRegex }];
+            query.$and = [
+                ...(query.$and || []),
+                { $or: [{ title: searchRegex }, { description: searchRegex }, { category: searchRegex }] },
+            ];
         }
 
         // Get total count for pagination with filters
@@ -552,49 +555,6 @@ export const deleteExpense = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-export const triggerRecurringExpensesJob = async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-        // Only process for the current user
-        const userId = req.user?.id;
-        if (!userId) {
-            res.status(401).json({ message: "Unauthorized" });
-            return;
-        }
-
-        const recurringExpenses: TransactionOrBillDocument[] = await TransactionModel.find({
-            isRecurring: true,
-            userId: new Types.ObjectId(userId),
-        });
-        const today: string = new Date().toISOString().slice(0, 10);
-        let createdCount = 0;
-
-        for (const template of recurringExpenses) {
-            const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
-                templateId: template._id,
-                date: today,
-                userId: new Types.ObjectId(userId),
-            });
-            if (!exists) {
-                await TransactionModel.create<TransactionOrBillDocument>({
-                    ...template.toObject(),
-                    _id: undefined,
-                    date: today,
-                    templateId: template._id,
-                    isRecurring: false,
-                    userId: new Types.ObjectId(userId),
-                });
-                createdCount++;
-            }
-        }
-
-        const response: RecurringExpenseJobResponse = { success: true, createdCount };
-        res.json(response);
-    } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
-    }
-};
-
 export const uploadReceipt = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         if (!req.file) {
@@ -770,6 +730,37 @@ export const getAllTransactionsForAnalytics = async (req: AuthRequest, res: Resp
         }).sort({ date: -1 });
 
         res.json({ transactions });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        res.status(500).json({ message: errorMessage });
+    }
+};
+
+/**
+ * Manually trigger recurring transaction processing for the current user
+ */
+export const triggerRecurringTransactionsJob = async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
+        const result = await RecurringTransactionJobService.processUserRecurringTransactionsManually(userId);
+
+        if (result.success) {
+            res.json({
+                success: true,
+                createdCount: result.createdCount,
+                message: result.message,
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                message: result.message,
+            });
+        }
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         res.status(500).json({ message: errorMessage });

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
-    BudgetPeriod,
+    BudgetRecurrence,
     BudgetResponse,
     BudgetProgress,
     BudgetReminder,
@@ -112,9 +112,9 @@ const BudgetPage: React.FC = () => {
         }));
     };
 
-    const formatPeriod = (period: BudgetPeriod): string => {
-        if (!period) return "Monthly"; // Default fallback
-        return period.charAt(0).toUpperCase() + period.slice(1);
+    const formatRecurrence = (recurrence: BudgetRecurrence): string => {
+        if (!recurrence) return "Monthly"; // Default fallback
+        return recurrence.charAt(0).toUpperCase() + recurrence.slice(1);
     };
 
     const formatAmount = (amount: number): string => {
@@ -256,7 +256,9 @@ const BudgetPage: React.FC = () => {
                                                 <div className="text-md text-primary">
                                                     {formatAmount(budget.amount)}
                                                 </div>
-                                                <CardDescription>{formatPeriod(budget.period)} Budget</CardDescription>
+                                                <CardDescription>
+                                                    {formatRecurrence(budget.recurrence)} Budget
+                                                </CardDescription>
                                             </div>
                                             <div className="flex gap-1">
                                                 <Button variant="ghost" size="sm" onClick={() => handleEdit(budget)}>
@@ -285,7 +287,7 @@ const BudgetPage: React.FC = () => {
                                                     <span>Remaining: {formatAmount(progress.remaining)}</span>
                                                 </div>
                                                 <div className="text-xs text-gray-500">
-                                                    {progress.expensesCount} transactions this period
+                                                    {progress.expensesCount} transactions this recurrence
                                                 </div>
                                                 {progress.isOverBudget && (
                                                     <div className="text-xs text-red-500 font-medium">
@@ -339,8 +341,8 @@ const BudgetPage: React.FC = () => {
                 title="Delete Budget"
                 message={
                     budgetToDelete
-                        ? `Are you sure you want to delete the ${formatPeriod(
-                              budgetToDelete.period
+                        ? `Are you sure you want to delete the ${formatRecurrence(
+                              budgetToDelete.recurrence
                           )} budget of ${formatAmount(budgetToDelete.amount)} for ${
                               budgetToDelete.category
                           }? This action cannot be undone.`

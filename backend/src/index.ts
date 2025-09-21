@@ -16,6 +16,7 @@ import { TransactionOrBillDocument } from "./types/transactions";
 import { User } from "./models/user.model";
 import { BudgetLog } from "./models/budget-log.model";
 import { getTodayInTimezone } from "./utils/timezoneUtils";
+import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 
 dotenv.config();
 
@@ -65,57 +66,14 @@ function getToday() {
     return now.toISOString().slice(0, 10);
 }
 
-// Timezone-aware cron job that runs every hour to check for users in different timezones
+// Recurring transaction job - runs every hour to process recurring transactions
 cron.schedule("0 * * * *", async () => {
     try {
-        // Get all users with their timezones
-        const users = await User.find({ timezone: { $exists: true, $ne: null } });
-
-        // Get all recurring expenses
-        const recurringExpenses: TransactionOrBillDocument[] = await TransactionModel.find({ isRecurring: true });
-
-        // Group expenses by user
-        const expensesByUser = new Map<string, TransactionOrBillDocument[]>();
-        for (const expense of recurringExpenses) {
-            if (expense.userId) {
-                const userId = expense.userId.toString();
-                if (!expensesByUser.has(userId)) {
-                    expensesByUser.set(userId, []);
-                }
-                expensesByUser.get(userId)!.push(expense);
-            }
-        }
-
-        // Process each user's expenses based on their timezone
-        for (const user of users) {
-            const userTimezone = user.timezone || "UTC";
-            const todayInUserTimezone = getTodayInTimezone(userTimezone);
-            const userExpenses = expensesByUser.get(user._id.toString()) || [];
-
-            for (const template of userExpenses) {
-                // Check if an instance for today exists in user's timezone
-                const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
-                    templateId: template._id,
-                    date: todayInUserTimezone,
-                    userId: user._id,
-                });
-
-                if (!exists) {
-                    await TransactionModel.create<TransactionOrBillDocument>({
-                        ...template.toObject(),
-                        _id: undefined,
-                        date: todayInUserTimezone,
-                        templateId: template._id,
-                        isRecurring: false,
-                        userId: user._id,
-                    });
-                }
-            }
-        }
-
-        console.log(`Recurring expenses processed for ${users.length} users at ${new Date().toISOString()}`);
+        console.log(`[CronJob] Starting recurring transaction job at ${new Date().toISOString()}`);
+        await RecurringTransactionJobService.processAllRecurringTransactions();
+        console.log(`[CronJob] Recurring transaction job completed at ${new Date().toISOString()}`);
     } catch (error) {
-        console.error("Error processing recurring expenses:", error);
+        console.error("[CronJob] Error in recurring transaction job:", error);
     }
 });
 

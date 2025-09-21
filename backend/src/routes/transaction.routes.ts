@@ -10,10 +10,10 @@ import {
     createExpense,
     updateExpense,
     deleteExpense,
-    triggerRecurringExpensesJob,
     getReceiptUrl,
     deleteRecurringExpense,
     updateTransactionBillStatus,
+    triggerRecurringTransactionsJob,
 } from "../controllers/transaction.controller";
 import { upload } from "../config/multer";
 import { uploadReceipt } from "../controllers/transaction.controller";
@@ -31,7 +31,11 @@ router.get("/get-bills", authenticateToken as RequestHandler, getBills as Reques
 router.get("/get-recurring-templates", authenticateToken as RequestHandler, getRecurringTemplates as RequestHandler);
 router.get("/transaction-summary", authenticateToken as RequestHandler, getTransactionSummary as RequestHandler);
 router.post("/add-expenses", authenticateToken as RequestHandler, createExpense as RequestHandler);
-router.post("/trigger-recurring", authenticateToken as RequestHandler, triggerRecurringExpensesJob as RequestHandler);
+router.post(
+    "/trigger-recurring",
+    authenticateToken as RequestHandler,
+    triggerRecurringTransactionsJob as RequestHandler
+);
 router.post(
     "/upload-receipt",
     authenticateToken as RequestHandler,

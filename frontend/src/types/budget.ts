@@ -1,25 +1,21 @@
-export type BudgetPeriod = "daily" | "weekly" | "monthly" | "yearly";
+export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface Budget {
     _id: string;
     userId: string;
     amount: number;
-    period: BudgetPeriod;
+    recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
     createdAt: Date;
-    isRepeating: boolean;
-    endDate?: Date;
     reason?: string;
 }
 
 export interface BudgetData {
     amount: number;
-    period: BudgetPeriod;
+    recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
-    isRepeating?: boolean;
-    endDate?: Date;
     reason?: string;
 }
 
@@ -44,7 +40,7 @@ export interface BudgetLog {
 export interface BudgetProgress {
     _id: string;
     amount: number;
-    period: BudgetPeriod;
+    recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
     createdAt: Date;
@@ -66,11 +62,9 @@ export interface BudgetProgressResponse {
 
 export interface BudgetFormData {
     amount: number;
-    period: BudgetPeriod;
+    recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
-    isRepeating: boolean;
-    endDate?: Date;
     reason?: string;
 }
 
@@ -96,8 +90,8 @@ export interface BudgetPageState {
 
 export type ProgressColor = "success" | "default" | "warning" | "danger";
 
-export interface BudgetPeriodOption {
-    value: BudgetPeriod;
+export interface BudgetRecurrenceOption {
+    value: BudgetRecurrence;
     label: string;
 }
 

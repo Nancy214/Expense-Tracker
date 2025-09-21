@@ -76,11 +76,9 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
                         <p className="text-sm font-medium">{action} budget with:</p>
                         <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
                             <li>Amount: ₹{values.amount}</li>
-                            <li>Period: {values.period}</li>
+                            <li>Recurrence: {values.recurrence}</li>
                             <li>Category: {values.category}</li>
                             <li>Start Date: {format(new Date(values.startDate), "PPP")}</li>
-                            {values.endDate && <li>End Date: {format(new Date(values.endDate), "PPP")}</li>}
-                            <li>Repeating: {values.isRepeating ? "Yes" : "No"}</li>
                         </ul>
                     </div>
                 );

@@ -1,26 +1,22 @@
 import { Types } from "mongoose";
 
-export type BudgetPeriod = "daily" | "weekly" | "monthly" | "yearly";
+export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface BudgetType {
     userId: Types.ObjectId;
     amount: number;
-    period: BudgetPeriod;
+    recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
     createdAt: Date;
-    isRepeating: boolean;
-    endDate?: Date;
     reason?: string;
 }
 
 export interface BudgetRequest {
     amount: number;
-    period: BudgetPeriod;
+    recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
-    isRepeating?: boolean;
-    endDate?: Date;
     reason?: string;
 }
 
@@ -28,7 +24,7 @@ export interface BudgetRequest {
 export interface BudgetProgressItem {
     _id: Types.ObjectId;
     amount: number;
-    period: BudgetPeriod;
+    recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
     createdAt: Date;
@@ -52,12 +48,10 @@ export interface BudgetResponse {
     _id: Types.ObjectId;
     userId: Types.ObjectId;
     amount: number;
-    period: BudgetPeriod;
+    recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
     createdAt: Date;
-    isRepeating: boolean;
-    endDate?: Date;
     reason?: string;
 }
 

@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { BudgetType } from "../types/budget";
 
-export type BudgetPeriod = "daily" | "weekly" | "monthly" | "yearly";
+export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
 
 const budgetSchema = new Schema<BudgetType>({
     userId: {
@@ -9,7 +9,7 @@ const budgetSchema = new Schema<BudgetType>({
         ref: "User",
     },
     amount: { type: Number, required: true },
-    period: {
+    recurrence: {
         type: String,
         enum: ["daily", "weekly", "monthly", "yearly"],
         required: true,
@@ -17,8 +17,6 @@ const budgetSchema = new Schema<BudgetType>({
     startDate: { type: Date, required: true },
     category: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
-    isRepeating: { type: Boolean, default: false },
-    endDate: { type: Date, required: false },
 });
 
 export const Budget = mongoose.model<BudgetType>("Budget", budgetSchema);
