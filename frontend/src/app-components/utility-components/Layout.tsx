@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Home, Receipt, PieChart, Calendar, User, Menu, LogOut, BarChart } from "lucide-react";
@@ -44,33 +44,7 @@ function LayoutContent({ children }: LayoutProps) {
         "/logout",
     ].includes(location.pathname);
 
-    // Authentication guard
-    useEffect(() => {
-        const checkAuth = () => {
-            const token: string | null = localStorage.getItem("accessToken");
-
-            // If no token and not on auth page, redirect to login
-            if (!token && !isAuthPage) {
-                navigate("/login", { replace: true });
-                return;
-            }
-
-            // If token exists but user is not authenticated (expired token), redirect to logout page
-            if (token && !isAuthenticated && !isAuthPage) {
-                localStorage.removeItem("accessToken"); // Clear expired token
-                navigate("/logout", { replace: true });
-                return;
-            }
-
-            // If authenticated and on auth page, redirect to dashboard
-            if (isAuthenticated && isAuthPage) {
-                navigate("/", { replace: true });
-                return;
-            }
-        };
-
-        checkAuth();
-    }, [isAuthenticated, isAuthPage, navigate]);
+    // Note: Auth guard logic moved to RouteGuard to prevent duplicate checks
 
     const handleLogout = async () => {
         try {
@@ -189,9 +163,9 @@ function SidebarContent() {
                     const isActive = location.pathname === path;
 
                     return (
-                        <a
+                        <Link
                             key={path}
-                            href={path}
+                            to={path}
                             className={cn(
                                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                                 isActive
@@ -201,7 +175,7 @@ function SidebarContent() {
                         >
                             <Icon className="h-4 w-4" />
                             <span className="flex-1">{label}</span>
-                        </a>
+                        </Link>
                     );
                 })}
             </nav>
