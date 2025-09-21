@@ -71,7 +71,7 @@ export default function StatsCards() {
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 pt-4 pl-4 pr-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 pt-4">
             <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-green-100">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-xs sm:text-sm font-medium text-green-900">Total Income</CardTitle>

@@ -99,9 +99,13 @@ export const RouteGuard = ({ children }: { children: React.ReactNode }) => {
     const { isAuthenticated, isLoading } = useAuth();
     const location = useLocation();
 
-    // Show loading state while checking authentication
+    // Show subtle loading state while checking authentication
     if (isLoading) {
-        return <div>Loading...</div>; // Or your loading component
+        return (
+            <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
     }
 
     const currentRoute = routes.find((route) => route.path === location.pathname);
