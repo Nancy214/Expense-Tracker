@@ -1,55 +1,37 @@
 import { z } from "zod";
 import { format } from "date-fns";
 import { User } from "@/types/auth";
-
-// Type definitions for budget categories
-export type BudgetCategory =
-    | "All Categories"
-    | "Food & Dining"
-    | "Groceries"
-    | "Transport"
-    | "Shopping"
-    | "Work"
-    | "Household"
-    | "Car"
-    | "Entertainment"
-    | "Utilities"
-    | "Bills"
-    | "Healthcare"
-    | "Vacation"
-    | "Education"
-    | "Housing"
-    | "Personal Care"
-    | "Gifts"
-    | "Other";
-
-// Type definitions for budget frequencies - align with BudgetFrequency type
-export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
+import { BudgetRecurrence, BudgetCategory } from "@/types/budget";
 
 // Budget categories array with proper typing
 export const BUDGET_CATEGORIES: readonly BudgetCategory[] = [
-    "All Categories",
-    "Food & Dining",
-    "Groceries",
-    "Transport",
-    "Shopping",
-    "Work",
-    "Household",
-    "Car",
-    "Entertainment",
-    "Utilities",
-    "Bills",
-    "Healthcare",
-    "Vacation",
-    "Education",
-    "Housing",
-    "Personal Care",
-    "Gifts",
-    "Other",
+    BudgetCategory.ALL_CATEGORIES,
+    BudgetCategory.FOOD_DINING,
+    BudgetCategory.GROCERIES,
+    BudgetCategory.TRANSPORT,
+    BudgetCategory.SHOPPING,
+    BudgetCategory.WORK,
+    BudgetCategory.HOUSEHOLD,
+    BudgetCategory.CAR,
+    BudgetCategory.ENTERTAINMENT,
+    BudgetCategory.UTILITIES,
+    BudgetCategory.BILLS,
+    BudgetCategory.HEALTHCARE,
+    BudgetCategory.VACATION,
+    BudgetCategory.EDUCATION,
+    BudgetCategory.HOUSING,
+    BudgetCategory.PERSONAL_CARE,
+    BudgetCategory.GIFTS,
+    BudgetCategory.OTHER,
 ] as const;
 
 // Budget frequencies array with proper typing
-export const BUDGET_FREQUENCIES: readonly BudgetRecurrence[] = ["daily", "weekly", "monthly", "yearly"] as const;
+export const BUDGET_FREQUENCIES: readonly BudgetRecurrence[] = [
+    BudgetRecurrence.DAILY,
+    BudgetRecurrence.WEEKLY,
+    BudgetRecurrence.MONTHLY,
+    BudgetRecurrence.YEARLY,
+] as const;
 
 // Validation helper functions
 const isValidDate = (dateString: string): boolean => {
@@ -158,25 +140,25 @@ export const getDefaultValues = (user?: User): BudgetFormData => ({
     currency: user?.currency || "INR",
     fromRate: 1,
     toRate: 1,
-    recurrence: "monthly",
+    recurrence: BudgetRecurrence.MONTHLY,
     startDate: format(new Date(), "dd/MM/yyyy"),
-    category: "All Categories",
+    category: BudgetCategory.ALL_CATEGORIES,
     reason: undefined,
 });
 
 // Helper function to create budget recurrence options
 export const getBudgetRecurrenceOptions = (): BudgetRecurrenceOption[] => [
-    { value: "daily", label: "Daily" },
-    { value: "weekly", label: "Weekly" },
-    { value: "monthly", label: "Monthly" },
-    { value: "yearly", label: "Yearly" },
+    { value: BudgetRecurrence.DAILY, label: "Daily" },
+    { value: BudgetRecurrence.WEEKLY, label: "Weekly" },
+    { value: BudgetRecurrence.MONTHLY, label: "Monthly" },
+    { value: BudgetRecurrence.YEARLY, label: "Yearly" },
 ];
 
 // Helper function to create budget category options
 export const getBudgetCategoryOptions = (): BudgetCategoryOption[] =>
     BUDGET_CATEGORIES.map((category) => ({
         value: category,
-        label: category === "All Categories" ? "All Categories" : category,
+        label: category === BudgetCategory.ALL_CATEGORIES ? BudgetCategory.ALL_CATEGORIES : category,
     }));
 
 // Budget constants export for reuse across components

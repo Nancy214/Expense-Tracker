@@ -1,10 +1,81 @@
-export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
-export type TransactionType = "income" | "expense";
+export enum RecurringFrequency {
+    DAILY = "daily",
+    WEEKLY = "weekly",
+    MONTHLY = "monthly",
+    YEARLY = "yearly",
+}
+export enum TransactionType {
+    INCOME = "income",
+    EXPENSE = "expense",
+}
 
 // Bill-related types
-export type BillStatus = "unpaid" | "paid" | "overdue" | "pending";
-export type BillFrequency = "monthly" | "quarterly" | "yearly" | "one-time";
-export type PaymentMethod = "manual" | "auto-pay" | "bank-transfer" | "credit-card" | "debit-card" | "cash";
+export enum BillStatus {
+    UNPAID = "unpaid",
+    PAID = "paid",
+    OVERDUE = "overdue",
+    PENDING = "pending",
+}
+export enum BillFrequency {
+    MONTHLY = "monthly",
+    QUARTERLY = "quarterly",
+    YEARLY = "yearly",
+    ONE_TIME = "one-time",
+}
+export enum PaymentMethod {
+    MANUAL = "manual",
+    AUTO_PAY = "auto-pay",
+    BANK_TRANSFER = "bank-transfer",
+    CREDIT_CARD = "credit-card",
+    DEBIT_CARD = "debit-card",
+    CASH = "cash",
+    OTHER = "other",
+}
+
+export enum ExpenseCategory {
+    FOOD_DINING = "Food & Dining",
+    GROCERIES = "Groceries",
+    TRANSPORT = "Transport",
+    SHOPPING = "Shopping",
+    WORK = "Work",
+    HOUSEHOLD = "Household",
+    CAR = "Car",
+    ENTERTAINMENT = "Entertainment",
+    UTILITIES = "Utilities",
+    HEALTHCARE = "Healthcare",
+    VACATION = "Vacation",
+    EDUCATION = "Education",
+    HOUSING = "Housing",
+    PERSONAL_CARE = "Personal Care",
+    GIFTS = "Gifts",
+    OTHER = "Other",
+    BILLS = "Bills",
+}
+
+export enum BillCategory {
+    RENT_MORTGAGE = "Rent/Mortgage",
+    ELECTRICITY = "Electricity",
+    WATER = "Water",
+    GAS = "Gas",
+    INTERNET = "Internet",
+    PHONE = "Phone",
+    INSURANCE = "Insurance",
+    SUBSCRIPTIONS = "Subscriptions",
+    CREDIT_CARD = "Credit Card",
+    LOAN_PAYMENT = "Loan Payment",
+    TAXES = "Taxes",
+}
+
+export enum IncomeCategory {
+    SALARY = "Salary",
+    FREELANCE = "Freelance",
+    BUSINESS = "Business",
+    INVESTMENT = "Investment",
+    RENTAL_INCOME = "Rental Income",
+    GIFTS = "Gifts",
+    REFUNDS = "Refunds",
+    OTHER_INCOME = "Other Income",
+}
 
 // Base transaction interface - single source of truth
 export interface Transaction {
@@ -61,7 +132,7 @@ export type TransactionWithId = Transaction & {
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
     title: string;
-    type: "expense" | "income";
+    type: TransactionType;
     amount: number;
     currency: string;
     category: string;
@@ -271,6 +342,12 @@ export interface DataTableProps {
     isLoading?: boolean;
 }
 
+export enum ActiveTab {
+    ALL = "all",
+    RECURRING = "recurring",
+    BILLS = "bills",
+}
+
 // Filters section props types
 export interface FiltersSectionProps {
     filteredTransactions: TransactionWithId[];
@@ -284,8 +361,8 @@ export interface FiltersSectionProps {
     availableMonths?: MonthFilter[];
     downloadMonthlyStatementForMonth?: (month: { year: number; month: number }) => void;
     user?: User | null;
-    activeTab?: "all" | "recurring" | "bills";
-    setActiveTab?: (tab: "all" | "recurring" | "bills") => void;
+    activeTab?: ActiveTab;
+    setActiveTab?: (tab: ActiveTab) => void;
     onRefresh?: () => void;
     setAllExpenses?: (expenses: TransactionWithId[]) => void;
     setAvailableMonths?: (months: MonthFilter[]) => void;
@@ -308,7 +385,7 @@ export interface FormFieldHandlers {
 // Form state
 export interface FormState {
     category: string;
-    type: "expense" | "income";
+    type: TransactionType;
     isRecurring: boolean;
     currency: string;
 }
@@ -325,7 +402,7 @@ export interface TransactionMutations {
 export interface TransactionFormHook {
     form: any; // React Hook Form instance
     category: string;
-    type: "expense" | "income";
+    type: TransactionType;
     isRecurring: boolean;
     currency: string;
     resetForm: () => void;
@@ -354,7 +431,7 @@ export interface ReceiptUploadResult {
 // Transaction submission data - extends form data with processed fields
 export interface TransactionSubmissionData {
     title: string;
-    type: "expense" | "income";
+    type: TransactionType;
     amount: number;
     currency: string;
     category: string;

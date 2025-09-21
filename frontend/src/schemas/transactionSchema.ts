@@ -1,52 +1,14 @@
+import {
+    BillStatus,
+    PaymentMethod,
+    BillFrequency,
+    RecurringFrequency,
+    ExpenseCategory,
+    IncomeCategory,
+    BillCategory,
+    TransactionType,
+} from "@/types/transaction";
 import { z } from "zod";
-
-// Type definitions for better type safety
-export type ExpenseCategory =
-    | "Food & Dining"
-    | "Groceries"
-    | "Transport"
-    | "Shopping"
-    | "Work"
-    | "Household"
-    | "Car"
-    | "Entertainment"
-    | "Utilities"
-    | "Healthcare"
-    | "Vacation"
-    | "Education"
-    | "Housing"
-    | "Personal Care"
-    | "Gifts"
-    | "Other";
-
-export type BillCategory =
-    | "Rent/Mortgage"
-    | "Electricity"
-    | "Water"
-    | "Gas"
-    | "Internet"
-    | "Phone"
-    | "Insurance"
-    | "Subscriptions"
-    | "Credit Card"
-    | "Loan Payment"
-    | "Taxes";
-
-export type IncomeCategory =
-    | "Salary"
-    | "Freelance"
-    | "Business"
-    | "Investment"
-    | "Rental Income"
-    | "Gifts"
-    | "Refunds"
-    | "Other Income";
-
-export type BillFrequency = "monthly" | "quarterly" | "yearly" | "one-time";
-export type PaymentMethod = "manual" | "auto-pay" | "bank-transfer" | "credit-card" | "debit-card" | "cash" | "other";
-export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
-export type TransactionType = "income" | "expense";
-export type BillStatus = "unpaid" | "paid" | "pending" | "overdue";
 
 // Union types for all categories
 export type AllCategories = ExpenseCategory | IncomeCategory | "Bills";
@@ -54,60 +16,70 @@ export type AllBillCategories = BillCategory;
 
 // Constants for validation with proper typing
 const EXPENSE_CATEGORIES: readonly ExpenseCategory[] = [
-    "Food & Dining",
-    "Groceries",
-    "Transport",
-    "Shopping",
-    "Work",
-    "Household",
-    "Car",
-    "Entertainment",
-    "Utilities",
-    "Healthcare",
-    "Vacation",
-    "Education",
-    "Housing",
-    "Personal Care",
-    "Gifts",
-    "Other",
+    ExpenseCategory.FOOD_DINING,
+    ExpenseCategory.GROCERIES,
+    ExpenseCategory.TRANSPORT,
+    ExpenseCategory.SHOPPING,
+    ExpenseCategory.WORK,
+    ExpenseCategory.HOUSEHOLD,
+    ExpenseCategory.CAR,
+    ExpenseCategory.ENTERTAINMENT,
+    ExpenseCategory.UTILITIES,
+    ExpenseCategory.HEALTHCARE,
+    ExpenseCategory.VACATION,
+    ExpenseCategory.EDUCATION,
+    ExpenseCategory.HOUSING,
+    ExpenseCategory.PERSONAL_CARE,
+    ExpenseCategory.GIFTS,
+    ExpenseCategory.OTHER,
 ] as const;
 
 const BILL_CATEGORIES: readonly BillCategory[] = [
-    "Rent/Mortgage",
-    "Electricity",
-    "Water",
-    "Gas",
-    "Internet",
-    "Phone",
-    "Insurance",
-    "Subscriptions",
-    "Credit Card",
-    "Loan Payment",
-    "Taxes",
+    BillCategory.RENT_MORTGAGE,
+    BillCategory.ELECTRICITY,
+    BillCategory.WATER,
+    BillCategory.GAS,
+    BillCategory.INTERNET,
+    BillCategory.PHONE,
+    BillCategory.INSURANCE,
+    BillCategory.SUBSCRIPTIONS,
+    BillCategory.CREDIT_CARD,
+    BillCategory.LOAN_PAYMENT,
+    BillCategory.TAXES,
 ] as const;
 
 const INCOME_CATEGORIES: readonly IncomeCategory[] = [
-    "Salary",
-    "Freelance",
-    "Business",
-    "Investment",
-    "Rental Income",
-    "Gifts",
-    "Refunds",
-    "Other Income",
+    IncomeCategory.SALARY,
+    IncomeCategory.FREELANCE,
+    IncomeCategory.BUSINESS,
+    IncomeCategory.INVESTMENT,
+    IncomeCategory.RENTAL_INCOME,
+    IncomeCategory.GIFTS,
+    IncomeCategory.REFUNDS,
+    IncomeCategory.OTHER_INCOME,
 ] as const;
 
-const BILL_FREQUENCIES: readonly BillFrequency[] = ["monthly", "quarterly", "yearly", "one-time"] as const;
-const PAYMENT_METHODS: readonly PaymentMethod[] = [
-    "manual",
-    "auto-pay",
-    "bank-transfer",
-    "credit-card",
-    "debit-card",
-    "cash",
-    "other",
+const BILL_FREQUENCIES: readonly BillFrequency[] = [
+    BillFrequency.MONTHLY,
+    BillFrequency.QUARTERLY,
+    BillFrequency.YEARLY,
+    BillFrequency.ONE_TIME,
 ] as const;
-const RECURRING_FREQUENCIES: readonly RecurringFrequency[] = ["daily", "weekly", "monthly", "yearly"] as const;
+const PAYMENT_METHODS: readonly PaymentMethod[] = [
+    PaymentMethod.MANUAL,
+    PaymentMethod.AUTO_PAY,
+    PaymentMethod.BANK_TRANSFER,
+    PaymentMethod.CREDIT_CARD,
+    PaymentMethod.DEBIT_CARD,
+    PaymentMethod.CASH,
+    PaymentMethod.OTHER,
+] as const;
+const RECURRING_FREQUENCIES: readonly RecurringFrequency[] = [
+    RecurringFrequency.DAILY,
+    RecurringFrequency.WEEKLY,
+    RecurringFrequency.MONTHLY,
+    RecurringFrequency.YEARLY,
+] as const;
 
 // Date validation helper with proper typing
 const isValidDate = (dateString: string): boolean => {
@@ -152,7 +124,7 @@ const baseTransactionSchema = z.object({
         .string({ message: "Date is required" })
         .min(1, "Date is required")
         .refine(isValidDate, "Please enter a valid date in DD/MM/YYYY format"),
-    type: z.enum(["income", "expense"] as const, {
+    type: z.enum([TransactionType.INCOME, TransactionType.EXPENSE] as const, {
         message: "Transaction type must be either income or expense",
     }),
     isRecurring: z.boolean().default(false),
@@ -186,7 +158,7 @@ const regularTransactionSchema = baseTransactionSchema.extend({
 
 // Bill transaction schema with proper typing
 const billTransactionSchema = baseTransactionSchema.extend({
-    category: z.literal("Bills"),
+    category: z.literal(ExpenseCategory.BILLS),
     billCategory: z.enum(BILL_CATEGORIES, {
         message: "Please select a bill category",
     }),
@@ -200,15 +172,15 @@ const billTransactionSchema = baseTransactionSchema.extend({
         .min(1, "Due date is required")
         .refine(isValidDate, "Please enter a valid due date in DD/MM/YYYY format"),
     billStatus: z
-        .enum(["unpaid", "paid", "pending", "overdue"], {
+        .enum([BillStatus.UNPAID, BillStatus.PAID, BillStatus.OVERDUE, BillStatus.PENDING], {
             message: "Please select a valid bill status",
         })
-        .default("unpaid"),
+        .default(BillStatus.UNPAID),
     billFrequency: z
         .enum(BILL_FREQUENCIES, {
             message: "Please select a valid bill frequency",
         })
-        .default("monthly"),
+        .default(BillFrequency.MONTHLY),
     nextDueDate: z
         .string({ message: "Next due date is required for recurring bills" })
         .min(1, "Next due date is required for recurring bills")
@@ -258,7 +230,7 @@ export const transactionFormSchema = z
     .refine(
         (data) => {
             // For bills, dueDate must be provided and not empty
-            if (data.category === "Bills") {
+            if (data.category === ExpenseCategory.BILLS) {
                 const billData = data as BillTransactionData;
                 if (!billData.dueDate || billData.dueDate.trim() === "") {
                     return false;
@@ -279,7 +251,7 @@ export type RegularTransactionData = z.infer<typeof regularTransactionSchema>;
 export type BillTransactionData = z.infer<typeof billTransactionSchema>;
 
 // Utility types for better type safety
-export type TransactionWithCategory<T extends AllCategories> = T extends "Bills"
+export type TransactionWithCategory<T extends AllCategories> = T extends ExpenseCategory.BILLS
     ? BillTransactionData
     : T extends ExpenseCategory | IncomeCategory
     ? RegularTransactionData
@@ -373,9 +345,9 @@ export const isIncomeCategory = (category: string): category is IncomeCategory =
 };
 
 export const isBillTransaction = (transaction: TransactionFormData): transaction is BillTransactionData => {
-    return transaction.category === "Bills";
+    return transaction.category === ExpenseCategory.BILLS;
 };
 
 export const isRegularTransaction = (transaction: TransactionFormData): transaction is RegularTransactionData => {
-    return transaction.category !== "Bills";
+    return transaction.category !== ExpenseCategory.BILLS;
 };

@@ -1,4 +1,30 @@
-export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
+export enum BudgetRecurrence {
+    DAILY = "daily",
+    WEEKLY = "weekly",
+    MONTHLY = "monthly",
+    YEARLY = "yearly",
+}
+
+export enum BudgetCategory {
+    ALL_CATEGORIES = "All Categories",
+    FOOD_DINING = "Food & Dining",
+    GROCERIES = "Groceries",
+    TRANSPORT = "Transport",
+    SHOPPING = "Shopping",
+    WORK = "Work",
+    HOUSEHOLD = "Household",
+    CAR = "Car",
+    ENTERTAINMENT = "Entertainment",
+    UTILITIES = "Utilities",
+    BILLS = "Bills",
+    HEALTHCARE = "Healthcare",
+    VACATION = "Vacation",
+    EDUCATION = "Education",
+    HOUSING = "Housing",
+    PERSONAL_CARE = "Personal Care",
+    GIFTS = "Gifts",
+    OTHER = "Other",
+}
 
 export interface Budget {
     _id: string;
@@ -27,8 +53,11 @@ export interface BudgetData {
     reason?: string;
 }
 
-export type BudgetChangeType = "created" | "updated" | "deleted";
-
+export enum BudgetChangeType {
+    CREATED = "created",
+    UPDATED = "updated",
+    DELETED = "deleted",
+}
 export interface BudgetChange {
     field: string;
     oldValue: any;
@@ -104,7 +133,12 @@ export interface BudgetPageState {
     dismissedReminders: Set<string>;
 }
 
-export type ProgressColor = "success" | "default" | "warning" | "danger";
+export enum ProgressColor {
+    SUCCESS = "success",
+    DEFAULT = "default",
+    WARNING = "warning",
+    DANGER = "danger",
+}
 
 export interface BudgetRecurrenceOption {
     value: BudgetRecurrence;
