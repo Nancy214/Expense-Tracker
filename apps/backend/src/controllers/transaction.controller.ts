@@ -25,6 +25,7 @@ import {
 } from "../types/transactions";
 import { AuthRequest } from "../types/auth";
 
+// FIXME: Remove this once the shared types are updated
 // Type guard to check if a transaction is a bill
 /* const isBillTransaction = (transaction: TransactionOrBill): transaction is Bill => {
     return transaction.category === "Bills";
@@ -473,6 +474,7 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
 
         const expense: TransactionOrBillDocument = await TransactionModel.create(expenseData);
 
+        // TODO: Remove this dead code.
         //const expenseDoc: TransactionOrBill = expense.toObject() as TransactionOrBill;
         //const isBill: boolean = isBillTransaction(expenseDoc);
 
