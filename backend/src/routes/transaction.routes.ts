@@ -1,4 +1,4 @@
-import { RequestHandler, Router } from "express";
+import { Router } from "express";
 import { authenticateToken } from "../middleware/auth.middleware";
 import {
     getExpenses,
@@ -20,32 +20,19 @@ import { uploadReceipt } from "../controllers/transaction.controller";
 
 const router = Router();
 
-router.get("/get-expenses", authenticateToken as RequestHandler, getExpenses as RequestHandler);
-router.get("/get-all-transactions", authenticateToken as RequestHandler, getAllTransactions as RequestHandler);
-router.get(
-    "/get-all-transactions-analytics",
-    authenticateToken as RequestHandler,
-    getAllTransactionsForAnalytics as RequestHandler
-);
-router.get("/get-bills", authenticateToken as RequestHandler, getBills as RequestHandler);
-router.get("/get-recurring-templates", authenticateToken as RequestHandler, getRecurringTemplates as RequestHandler);
-router.get("/transaction-summary", authenticateToken as RequestHandler, getTransactionSummary as RequestHandler);
-router.post("/add-expenses", authenticateToken as RequestHandler, createExpense as RequestHandler);
-router.post(
-    "/trigger-recurring",
-    authenticateToken as RequestHandler,
-    triggerRecurringTransactionsJob as RequestHandler
-);
-router.post(
-    "/upload-receipt",
-    authenticateToken as RequestHandler,
-    upload.single("file"),
-    uploadReceipt as RequestHandler
-);
-router.get("/receipts/:key", authenticateToken as RequestHandler, getReceiptUrl as RequestHandler);
-router.put("/:id", authenticateToken as RequestHandler, updateExpense as RequestHandler);
-router.delete("/:id", authenticateToken as RequestHandler, deleteExpense as RequestHandler);
-router.delete("/recurring/:id", authenticateToken as RequestHandler, deleteRecurringExpense as RequestHandler);
-router.patch("/:id/bill-status", authenticateToken as RequestHandler, updateTransactionBillStatus as RequestHandler);
+router.get("/get-expenses", authenticateToken, getExpenses);
+router.get("/get-all-transactions", authenticateToken, getAllTransactions);
+router.get("/get-all-transactions-analytics", authenticateToken, getAllTransactionsForAnalytics);
+router.get("/get-bills", authenticateToken, getBills);
+router.get("/get-recurring-templates", authenticateToken, getRecurringTemplates);
+router.get("/transaction-summary", authenticateToken, getTransactionSummary);
+router.post("/add-expenses", authenticateToken, createExpense);
+router.post("/trigger-recurring", authenticateToken, triggerRecurringTransactionsJob);
+router.post("/upload-receipt", authenticateToken, upload.single("file"), uploadReceipt);
+router.get("/receipts/:key", authenticateToken, getReceiptUrl);
+router.put("/:id", authenticateToken, updateExpense);
+router.delete("/:id", authenticateToken, deleteExpense);
+router.delete("/recurring/:id", authenticateToken, deleteRecurringExpense);
+router.patch("/:id/bill-status", authenticateToken, updateTransactionBillStatus);
 
 export default router;

@@ -17,9 +17,6 @@ declare global {
                 buffer?: Buffer;
             };
         }
-        interface Response {
-            // Add any custom response properties here if needed
-        }
         // Override the default User type
         interface User extends TokenPayload {}
     }

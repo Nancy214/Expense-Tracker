@@ -37,7 +37,7 @@ export interface LoginRequest {
 
 export interface TokenPayload {
     id: string;
-    email: string;
+    user: UserLocalType | UserGoogleType;
 }
 
 export interface AuthRequest extends Request {

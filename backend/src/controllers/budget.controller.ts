@@ -1,17 +1,9 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { Budget } from "../models/budget.model";
 import { BudgetLog } from "../models/budget-log.model";
 import { TransactionModel } from "../models/transaction.model";
 import { AuthRequest } from "../types/auth";
-import {
-    BudgetRequest,
-    BudgetResponse,
-    BudgetDeleteResponse,
-    BudgetProgressResponse,
-    BudgetProgressItem,
-    BudgetChange,
-    BudgetLogsResponse,
-} from "../types/budget";
+import { BudgetRequest, BudgetResponse, BudgetProgressItem, BudgetChange } from "../types/budget";
 import { Transaction } from "../types/transactions";
 import mongoose from "mongoose";
 import {
@@ -25,18 +17,15 @@ import {
     endOfYear,
 } from "date-fns";
 
-export const createBudget = async (
-    req: AuthRequest,
-    res: Response<BudgetResponse | { message: string }>
-): Promise<void> => {
+export const createBudget = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
         }
 
-        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category }: BudgetRequest = req.body;
+        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category } = req.body;
         if (!title || !amount || !currency || !recurrence || !startDate || !category) {
             res.status(400).json({
                 message: "Title, amount, currency, recurrence, start date, and category are required.",
@@ -87,12 +76,9 @@ export const createBudget = async (
     }
 };
 
-export const updateBudget = async (
-    req: AuthRequest,
-    res: Response<BudgetResponse | { message: string }>
-): Promise<void> => {
+export const updateBudget = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -172,7 +158,7 @@ export const updateBudget = async (
             changes.push({ field: "category", oldValue: oldBudget.category, newValue: category });
         }
 
-        console.log("Detected changes:", changes.length, changes);
+        //console.log("Detected changes:", changes.length, changes);
 
         // Create a log for the budget update
         if (changes.length > 0) {
@@ -197,12 +183,9 @@ export const updateBudget = async (
     }
 };
 
-export const deleteBudget = async (
-    req: AuthRequest,
-    res: Response<BudgetDeleteResponse | { message: string }>
-): Promise<void> => {
+export const deleteBudget = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -261,19 +244,16 @@ export const deleteBudget = async (
         console.error("Error details:", {
             message: error instanceof Error ? error.message : "Unknown error",
             stack: error instanceof Error ? error.stack : undefined,
-            userId: req.user?.id,
+            userId: (req as AuthRequest).user?.id,
             budgetId: req.params.id,
         });
         res.status(500).json({ message: "Failed to delete budget." });
     }
 };
 
-export const getBudgets = async (
-    req: AuthRequest,
-    res: Response<BudgetResponse[] | { message: string }>
-): Promise<void> => {
+export const getBudgets = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -289,12 +269,9 @@ export const getBudgets = async (
     }
 };
 
-export const getBudget = async (
-    req: AuthRequest,
-    res: Response<BudgetResponse | { message: string }>
-): Promise<void> => {
+export const getBudget = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -319,12 +296,9 @@ export const getBudget = async (
     }
 };
 
-export const getBudgetLogs = async (
-    req: AuthRequest,
-    res: Response<BudgetLogsResponse | { message: string }>
-): Promise<void> => {
+export const getBudgetLogs = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -345,12 +319,9 @@ export const getBudgetLogs = async (
     }
 };
 
-export const getBudgetProgress = async (
-    req: AuthRequest,
-    res: Response<BudgetProgressResponse | { message: string }>
-): Promise<void> => {
+export const getBudgetProgress = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
 
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });

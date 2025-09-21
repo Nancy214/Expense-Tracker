@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
-import { AuthRequest } from "../types/auth";
+//import { AuthRequest } from "../types/auth";
 import { BillFrequency } from "../types/transactions";
 import { getStartOfToday, addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
 import { s3Client, isAWSConfigured } from "../config/s3Client";
@@ -23,6 +23,7 @@ import {
     BillStatusUpdateResponse,
     DeleteResponse,
 } from "../types/transactions";
+import { AuthRequest } from "../types/auth";
 
 // Type guard to check if a transaction is a bill
 /* const isBillTransaction = (transaction: TransactionOrBill): transaction is Bill => {
@@ -131,7 +132,7 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, _: 
 
 export const getExpenses = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -173,9 +174,9 @@ export const getExpenses = async (req: Request, res: Response): Promise<void> =>
 };
 
 // New function for getting all transactions (non-recurring templates)
-export const getAllTransactions = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getAllTransactions = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -252,9 +253,9 @@ export const getAllTransactions = async (req: AuthRequest, res: Response): Promi
 };
 
 // New function for getting bills with pagination
-export const getBills = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getBills = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -299,9 +300,9 @@ export const getBills = async (req: AuthRequest, res: Response): Promise<void> =
     }
 };
 
-export const getRecurringTemplates = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getRecurringTemplates = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -348,9 +349,9 @@ export const getRecurringTemplates = async (req: AuthRequest, res: Response): Pr
     }
 };
 
-export const getTransactionSummary = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getTransactionSummary = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -425,9 +426,9 @@ export const getTransactionSummary = async (req: AuthRequest, res: Response): Pr
     }
 };
 
-export const getExpensesById = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getExpensesById = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -449,9 +450,9 @@ export const getExpensesById = async (req: AuthRequest, res: Response): Promise<
     }
 };
 
-export const createExpense = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createExpense = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -487,7 +488,7 @@ export const createExpense = async (req: AuthRequest, res: Response): Promise<vo
 
 export const updateExpense = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -553,7 +554,7 @@ export const deleteExpense = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-export const uploadReceipt = async (req: AuthRequest, res: Response): Promise<void> => {
+export const uploadReceipt = async (req: Request, res: Response): Promise<void> => {
     try {
         if (!req.file) {
             res.status(400).json({ message: "No file uploaded" });
@@ -565,7 +566,7 @@ export const uploadReceipt = async (req: AuthRequest, res: Response): Promise<vo
             return;
         }
 
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -684,7 +685,7 @@ export const deleteRecurringExpense = async (req: Request, res: Response): Promi
 };
 
 // Update bill status for transactions
-export const updateTransactionBillStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateTransactionBillStatus = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
         const { billStatus } = req.body as BillStatusUpdateRequest;
@@ -712,9 +713,9 @@ export const updateTransactionBillStatus = async (req: AuthRequest, res: Respons
 };
 
 // New function for getting all transactions for analytics (no pagination)
-export const getAllTransactionsForAnalytics = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getAllTransactionsForAnalytics = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
@@ -737,9 +738,9 @@ export const getAllTransactionsForAnalytics = async (req: AuthRequest, res: Resp
 /**
  * Manually trigger recurring transaction processing for the current user
  */
-export const triggerRecurringTransactionsJob = async (req: AuthRequest, res: Response): Promise<void> => {
+export const triggerRecurringTransactionsJob = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "Unauthorized" });
             return;
