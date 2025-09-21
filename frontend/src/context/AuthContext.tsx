@@ -80,9 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    if (isLoading) {
-        return <div>Loading...</div>; // Or your loading component
-    }
+    // Remove blocking loading state - let RouteGuard handle loading per route
 
     return (
         <AuthContext.Provider
