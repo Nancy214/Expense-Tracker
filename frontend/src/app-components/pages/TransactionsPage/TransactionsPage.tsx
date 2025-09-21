@@ -379,7 +379,7 @@ const TransactionsPage = () => {
                         onClick={() => {
                             setEditingExpense(null);
                             setIsDialogOpen(true);
-                            setPreselectedCategory("Bill");
+                            setPreselectedCategory("Bills");
                         }}
                         className="flex items-center gap-2"
                     >

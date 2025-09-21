@@ -32,9 +32,9 @@ export function DataTable({
         }
     }, [isRecurringTab, setActiveTab]);
 
-    // Filter expenses with category "Bill" for the bills tab - optimized with useMemo
+    // Filter expenses with category "Bills" for the bills tab - optimized with useMemo
     const billExpenses = useMemo(() => {
-        return data.filter((expense) => expense.category === "Bill");
+        return data.filter((expense) => expense.category === "Bills");
     }, [data]);
 
     const handleEdit = async (expense: TransactionWithId) => {

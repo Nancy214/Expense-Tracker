@@ -1,16 +1,22 @@
 import { z } from "zod";
 import { format } from "date-fns";
+import { User } from "@/types/auth";
 
 // Type definitions for budget categories
 export type BudgetCategory =
     | "All Categories"
     | "Food & Dining"
-    | "Transportation"
+    | "Groceries"
+    | "Transport"
     | "Shopping"
+    | "Work"
+    | "Household"
+    | "Car"
     | "Entertainment"
-    | "Bill"
+    | "Utilities"
+    | "Bills"
     | "Healthcare"
-    | "Travel"
+    | "Vacation"
     | "Education"
     | "Housing"
     | "Personal Care"
@@ -24,12 +30,17 @@ export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
 export const BUDGET_CATEGORIES: readonly BudgetCategory[] = [
     "All Categories",
     "Food & Dining",
-    "Transportation",
+    "Groceries",
+    "Transport",
     "Shopping",
+    "Work",
+    "Household",
+    "Car",
     "Entertainment",
-    "Bill",
+    "Utilities",
+    "Bills",
     "Healthcare",
-    "Travel",
+    "Vacation",
     "Education",
     "Housing",
     "Personal Care",
@@ -57,11 +68,29 @@ const isValidAmount = (amount: number): boolean => {
 
 // Enhanced budget schema with comprehensive validation
 export const budgetSchema = z.object({
+    title: z
+        .string({ message: "Title is required" })
+        .min(1, "Title is required")
+        .max(100, "Title cannot exceed 100 characters"),
     amount: z
         .number({ message: "Amount must be a number" })
         .positive("Amount must be greater than 0")
         .max(999999999, "Amount cannot exceed 999,999,999")
         .refine(isValidAmount, "Please enter a valid amount"),
+    currency: z
+        .string({ message: "Currency is required" })
+        .min(1, "Currency is required")
+        .max(10, "Currency code is too long"),
+    fromRate: z
+        .number({ message: "Exchange rate must be a number" })
+        .positive("Exchange rate must be greater than 0")
+        .default(1)
+        .optional(),
+    toRate: z
+        .number({ message: "Exchange rate must be a number" })
+        .positive("Exchange rate must be greater than 0")
+        .default(1)
+        .optional(),
     recurrence: z.enum(BUDGET_FREQUENCIES, {
         message: "Please select a valid recurrence",
     }),
@@ -88,7 +117,11 @@ export interface BudgetSubmissionData extends BudgetFormData {
 
 // Budget form state type for component state management
 export interface BudgetFormState {
+    title: string;
     amount: number;
+    currency: string;
+    fromRate?: number;
+    toRate?: number;
     recurrence: BudgetRecurrence;
     startDate: string;
     category: BudgetCategory;
@@ -98,6 +131,7 @@ export interface BudgetFormState {
 
 // Budget form handlers type
 export interface BudgetFormHandlers {
+    handleTitleChange: (title: string) => void;
     handleAmountChange: (amount: number) => void;
     handleRecurrenceChange: (recurrence: BudgetRecurrence) => void;
     handleStartDateChange: (date: string) => void;
@@ -118,11 +152,15 @@ export interface BudgetCategoryOption {
 }
 
 // Default values with proper typing
-export const getDefaultValues = (): BudgetFormData => ({
+export const getDefaultValues = (user?: User): BudgetFormData => ({
+    title: "",
     amount: 0,
+    currency: user?.currency || "INR",
+    fromRate: 1,
+    toRate: 1,
     recurrence: "monthly",
     startDate: format(new Date(), "dd/MM/yyyy"),
-    category: "Other",
+    category: "All Categories",
     reason: undefined,
 });
 

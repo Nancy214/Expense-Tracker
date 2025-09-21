@@ -238,7 +238,7 @@ export const updateExpense = async (id: string, expense: ExpenseUpdateData): Pro
         // Handle date conversion using the helper function
         expenseToUpdate.date = convertToISOString(expense.date) || new Date();
 
-        if (expense.category === "Bill") {
+        if (expense.category === "Bills") {
             const billUpdate: Bill = expenseToUpdate;
             billUpdate.dueDate = convertToISOString(expense.dueDate);
             billUpdate.nextDueDate = convertToISOString(expense.nextDueDate);

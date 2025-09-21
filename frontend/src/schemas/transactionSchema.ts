@@ -3,12 +3,20 @@ import { z } from "zod";
 // Type definitions for better type safety
 export type ExpenseCategory =
     | "Food & Dining"
-    | "Transportation"
+    | "Groceries"
+    | "Transport"
     | "Shopping"
+    | "Work"
+    | "Household"
+    | "Car"
     | "Entertainment"
+    | "Utilities"
     | "Healthcare"
-    | "Travel"
+    | "Vacation"
     | "Education"
+    | "Housing"
+    | "Personal Care"
+    | "Gifts"
     | "Other";
 
 export type BillCategory =
@@ -22,7 +30,7 @@ export type BillCategory =
     | "Subscriptions"
     | "Credit Card"
     | "Loan Payment"
-    | "Property Tax";
+    | "Taxes";
 
 export type IncomeCategory =
     | "Salary"
@@ -41,18 +49,26 @@ export type TransactionType = "income" | "expense";
 export type BillStatus = "unpaid" | "paid" | "pending" | "overdue";
 
 // Union types for all categories
-export type AllCategories = ExpenseCategory | IncomeCategory | "Bill";
+export type AllCategories = ExpenseCategory | IncomeCategory | "Bills";
 export type AllBillCategories = BillCategory;
 
 // Constants for validation with proper typing
 const EXPENSE_CATEGORIES: readonly ExpenseCategory[] = [
     "Food & Dining",
-    "Transportation",
+    "Groceries",
+    "Transport",
     "Shopping",
+    "Work",
+    "Household",
+    "Car",
     "Entertainment",
+    "Utilities",
     "Healthcare",
-    "Travel",
+    "Vacation",
     "Education",
+    "Housing",
+    "Personal Care",
+    "Gifts",
     "Other",
 ] as const;
 
@@ -67,7 +83,7 @@ const BILL_CATEGORIES: readonly BillCategory[] = [
     "Subscriptions",
     "Credit Card",
     "Loan Payment",
-    "Property Tax",
+    "Taxes",
 ] as const;
 
 const INCOME_CATEGORIES: readonly IncomeCategory[] = [
@@ -170,7 +186,7 @@ const regularTransactionSchema = baseTransactionSchema.extend({
 
 // Bill transaction schema with proper typing
 const billTransactionSchema = baseTransactionSchema.extend({
-    category: z.literal("Bill"),
+    category: z.literal("Bills"),
     billCategory: z.enum(BILL_CATEGORIES, {
         message: "Please select a bill category",
     }),
@@ -242,8 +258,9 @@ export const transactionFormSchema = z
     .refine(
         (data) => {
             // For bills, dueDate must be provided and not empty
-            if (data.category === "Bill") {
-                if (!data.dueDate || data.dueDate.trim() === "") {
+            if (data.category === "Bills") {
+                const billData = data as BillTransactionData;
+                if (!billData.dueDate || billData.dueDate.trim() === "") {
                     return false;
                 }
             }
@@ -262,7 +279,7 @@ export type RegularTransactionData = z.infer<typeof regularTransactionSchema>;
 export type BillTransactionData = z.infer<typeof billTransactionSchema>;
 
 // Utility types for better type safety
-export type TransactionWithCategory<T extends AllCategories> = T extends "Bill"
+export type TransactionWithCategory<T extends AllCategories> = T extends "Bills"
     ? BillTransactionData
     : T extends ExpenseCategory | IncomeCategory
     ? RegularTransactionData
@@ -356,9 +373,9 @@ export const isIncomeCategory = (category: string): category is IncomeCategory =
 };
 
 export const isBillTransaction = (transaction: TransactionFormData): transaction is BillTransactionData => {
-    return transaction.category === "Bill";
+    return transaction.category === "Bills";
 };
 
 export const isRegularTransaction = (transaction: TransactionFormData): transaction is RegularTransactionData => {
-    return transaction.category !== "Bill";
+    return transaction.category !== "Bills";
 };

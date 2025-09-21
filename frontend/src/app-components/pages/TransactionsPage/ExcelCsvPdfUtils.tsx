@@ -193,7 +193,7 @@ export function generateMonthlyStatementPDF({
 
     // Bills table
     const billsRows = monthlyTransactions
-        .filter((t) => t.category === "Bill")
+        .filter((t) => t.category === "Bills")
         .map((t) => {
             let dateObj: Date;
             if (typeof t.date === "string") {

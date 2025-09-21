@@ -68,12 +68,18 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     // Use mutation loading states
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
 
-    // Extract currency options from the cached data
+    // Extract currency options from the cached data, removing duplicates and empty values
     const currencyOptions: CurrencyOption[] = Array.isArray(countryTimezoneData)
-        ? countryTimezoneData.map((item) => ({
-              value: item.currency.code,
-              label: item.currency.code,
-          }))
+        ? countryTimezoneData
+              .map((item) => ({
+                  value: item.currency.code,
+                  label: item.currency.code,
+              }))
+              .filter((option) => option.value && option.value.trim() !== "") // Remove empty values
+              .filter(
+                  (option, index, self) => index === self.findIndex((o) => o.value === option.value) // Remove duplicates
+              )
+              .sort((a, b) => a.value.localeCompare(b.value)) // Sort alphabetically
         : [];
 
     useEffect(() => {
@@ -102,7 +108,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
             let transactionData: Transaction | Bill;
 
-            if (data.category === "Bill") {
+            if (data.category === "Bills") {
                 transactionData = {
                     title: data.title,
                     type: data.type,
@@ -172,21 +178,9 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         }
     };
 
-    // Get currency options
+    // Get currency options (already filtered and deduplicated)
     const getCurrencyOptions = (): CurrencyOption[] => {
-        return currencyOptions
-            .filter((currency) => currency.value !== "")
-            .sort((a, b) => a.value.localeCompare(b.value))
-            .reduce((acc, currency) => {
-                if (!acc.some((c) => c.value === currency.value)) {
-                    acc.push(currency);
-                }
-                return acc;
-            }, [] as typeof currencyOptions)
-            .map((currency) => ({
-                value: currency.value || "Not Defined",
-                label: currency.value,
-            }));
+        return currencyOptions;
     };
 
     return (
@@ -196,10 +190,10 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 <DialogHeader>
                     <DialogTitle>
                         {isEditing
-                            ? category === "Bill"
+                            ? category === "Bills"
                                 ? "Edit Bill"
                                 : "Edit Transaction"
-                            : category === "Bill"
+                            : category === "Bills"
                             ? "Add Bill"
                             : "Add Transaction"}
                     </DialogTitle>
@@ -284,7 +278,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </div>
                         )}
 
-                        {category === "Bill" ? (
+                        {category === "Bills" ? (
                             <div className="grid grid-cols-2 gap-4">
                                 <SelectField
                                     name="billCategory"
@@ -323,7 +317,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </div>
                         )}
 
-                        {category === "Bill" && (
+                        {category === "Bills" && (
                             <>
                                 <div className="grid grid-cols-2 gap-4">
                                     <DateField name="date" label="Date" placeholder="Pick a date" required />
@@ -361,7 +355,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         />
 
                         {/* Recurring Transaction - only show if not Bill */}
-                        {category !== "Bill" && (
+                        {category !== "Bills" && (
                             <div className="flex items-center space-x-2">
                                 <Switch
                                     {...form.register("isRecurring")}
@@ -373,7 +367,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         )}
 
                         {/* Recurring Frequency and End Date - only show if not Bill and isRecurring */}
-                        {category !== "Bill" && isRecurring && (
+                        {category !== "Bills" && isRecurring && (
                             <div className="grid grid-cols-2 gap-4">
                                 <SelectField
                                     name="recurringFrequency"
@@ -402,10 +396,10 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                 {isSubmittingForm
                                     ? "Saving..."
                                     : isEditing
-                                    ? category === "Bill"
+                                    ? category === "Bills"
                                         ? "Update Bill"
                                         : "Update Transaction"
-                                    : category === "Bill"
+                                    : category === "Bills"
                                     ? "Add Bill"
                                     : "Add Transaction"}
                             </Button>

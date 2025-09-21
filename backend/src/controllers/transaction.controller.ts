@@ -28,12 +28,12 @@ import {
 
 // Type guard to check if a transaction is a bill
 const isBillTransaction = (transaction: TransactionOrBill): transaction is Bill => {
-    return transaction.category === "Bill";
+    return transaction.category === "Bills";
 };
 
 // Type guard to check if a document is a bill document
 const isBillDocument = (doc: TransactionOrBillDocument): doc is BillDocument => {
-    return doc.category === "Bill";
+    return doc.category === "Bills";
 };
 
 // Helper function to calculate next due date for bills
@@ -270,13 +270,13 @@ export const getBills = async (req: AuthRequest, res: Response): Promise<void> =
         // Get total count for pagination (only bills)
         const total: number = await TransactionModel.countDocuments({
             userId: new Types.ObjectId(userId),
-            category: "Bill",
+            category: "Bills",
         });
 
         // Get paginated bills
         const bills: TransactionOrBillDocument[] = await TransactionModel.find({
             userId: new Types.ObjectId(userId),
-            category: "Bill",
+            category: "Bills",
         })
             .sort({ date: -1 })
             .skip(skip)
@@ -372,7 +372,7 @@ export const getTransactionSummary = async (req: AuthRequest, res: Response): Pr
         const totalTransactions: number = allNonTemplateTransactions.length;
         const totalIncome: number = allNonTemplateTransactions.filter((t) => t.type === "income").length;
         const totalExpenses: number = allNonTemplateTransactions.filter((t) => t.type === "expense").length;
-        const totalBills: number = allNonTemplateTransactions.filter((t) => t.category === "Bill").length;
+        const totalBills: number = allNonTemplateTransactions.filter((t) => t.category === "Bills").length;
         const totalRecurringTemplates: number = allTransactions.filter((t) => {
             if (isBillDocument(t)) return false; // Bills are not recurring templates
             return t.isRecurring && !t.templateId;
@@ -388,7 +388,7 @@ export const getTransactionSummary = async (req: AuthRequest, res: Response): Pr
             .reduce((sum, t) => sum + (t.amount || 0), 0);
 
         const totalBillsAmount: number = allNonTemplateTransactions
-            .filter((t) => t.category === "Bill")
+            .filter((t) => t.category === "Bills")
             .reduce((sum, t) => sum + (t.amount || 0), 0);
 
         const totalRecurringAmount: number = allTransactions
@@ -466,7 +466,7 @@ export const createExpense = async (req: AuthRequest, res: Response): Promise<vo
         };
 
         // If it's a bill, calculate nextDueDate automatically
-        if (req.body.category === "Bill" && req.body.dueDate && req.body.billFrequency) {
+        if (req.body.category === "Bills" && req.body.dueDate && req.body.billFrequency) {
             const dueDate = new Date(req.body.dueDate);
             const frequency = req.body.billFrequency as BillFrequency;
             expenseData.nextDueDate = calculateNextDueDate(dueDate, frequency);
@@ -499,7 +499,7 @@ export const updateExpense = async (req: AuthRequest, res: Response): Promise<vo
         let updateData = { ...req.body };
 
         // If it's a bill update, calculate nextDueDate automatically
-        if (req.body.category === "Bill" && req.body.dueDate && req.body.billFrequency) {
+        if (req.body.category === "Bills" && req.body.dueDate && req.body.billFrequency) {
             const dueDate = new Date(req.body.dueDate);
             const frequency = req.body.billFrequency as BillFrequency;
             updateData.nextDueDate = calculateNextDueDate(dueDate, frequency);

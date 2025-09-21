@@ -118,7 +118,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                     const expense = row.original;
                     const isRecurringInstance =
                         (!expense.isRecurring && !!expense.templateId) || (expense.isRecurring && !expense.templateId);
-                    const isBill = expense.category === "Bill";
+                    const isBill = expense.category === "Bills";
 
                     return (
                         <span className="flex items-center gap-2">

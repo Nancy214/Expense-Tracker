@@ -21,14 +21,16 @@ import { FiltersSectionProps } from "@/types/transaction";
 import { useAllTransactions, TransactionFilters } from "@/hooks/use-transactions";
 
 const EXPENSE_CATEGORIES: string[] = [
-    "Food & Dining",
-    "Transportation",
+    "Food",
+    "Transport",
     "Shopping",
     "Entertainment",
-    "Bills & Utilities",
     "Healthcare",
     "Travel",
     "Education",
+    "Housing",
+    "Personal",
+    "Gifts",
     "Other",
 ];
 

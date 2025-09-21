@@ -7,6 +7,7 @@ import { BudgetResponse, BudgetData } from "@/types/budget";
 import { budgetSchema, BudgetFormData, getDefaultValues } from "@/schemas/budgetSchema";
 import { useBudgets } from "@/hooks/use-budgets";
 import { BudgetFormError } from "@/types/error";
+import { useAuth } from "@/context/AuthContext";
 
 /**
  * Props for the useBudgetForm hook
@@ -47,10 +48,11 @@ export const useBudgetForm = ({
     onOpenChange,
 }: UseBudgetFormProps = {}): UseBudgetFormReturn => {
     const { toast } = useToast();
+    const { user } = useAuth();
     const { createBudget, updateBudget, isCreating, isUpdating } = useBudgets();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const defaultValues = getDefaultValues();
+    const defaultValues = getDefaultValues(user || undefined);
     const form = useForm<BudgetFormData>({
         resolver: zodResolver(budgetSchema),
         defaultValues,
@@ -61,13 +63,17 @@ export const useBudgetForm = ({
     useEffect(() => {
         const formValues = editingBudget
             ? {
+                  title: editingBudget.title,
                   amount: editingBudget.amount,
+                  currency: editingBudget.currency,
+                  fromRate: editingBudget.fromRate || 1,
+                  toRate: editingBudget.toRate || 1,
                   recurrence: editingBudget.recurrence,
                   startDate: format(new Date(editingBudget.startDate), "dd/MM/yyyy"),
                   category: editingBudget.category as BudgetFormData["category"],
                   reason: undefined, // Don't pre-fill reason field
               }
-            : getDefaultValues();
+            : getDefaultValues(user || undefined);
 
         // Force a reset with the values
         form.reset(formValues, {
@@ -84,7 +90,11 @@ export const useBudgetForm = ({
 
         try {
             const budgetData: BudgetData = {
+                title: data.title,
                 amount: data.amount,
+                currency: data.currency,
+                fromRate: data.fromRate,
+                toRate: data.toRate,
                 recurrence: data.recurrence,
                 startDate: parse(data.startDate, "dd/MM/yyyy", new Date()),
                 category: data.category,
@@ -105,7 +115,7 @@ export const useBudgetForm = ({
                 });
             }
 
-            form.reset(getDefaultValues());
+            form.reset(getDefaultValues(user || undefined));
             onOpenChange?.(false);
             onSuccess?.();
         } catch (error: unknown) {
@@ -137,7 +147,7 @@ export const useBudgetForm = ({
      * Handles form cancellation by resetting form data and closing dialog
      */
     const handleCancel = (): void => {
-        form.reset(getDefaultValues());
+        form.reset(getDefaultValues(user || undefined));
         onOpenChange?.(false);
     };
 

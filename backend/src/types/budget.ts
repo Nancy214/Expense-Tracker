@@ -4,7 +4,11 @@ export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface BudgetType {
     userId: Types.ObjectId;
+    title: string;
     amount: number;
+    currency: string;
+    fromRate?: number;
+    toRate?: number;
     recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
@@ -13,7 +17,11 @@ export interface BudgetType {
 }
 
 export interface BudgetRequest {
+    title: string;
     amount: number;
+    currency: string;
+    fromRate?: number;
+    toRate?: number;
     recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
@@ -23,7 +31,11 @@ export interface BudgetRequest {
 // New types for budget progress tracking
 export interface BudgetProgressItem {
     _id: Types.ObjectId;
+    title: string;
     amount: number;
+    currency: string;
+    fromRate?: number;
+    toRate?: number;
     recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
@@ -47,7 +59,11 @@ export interface BudgetProgressResponse {
 export interface BudgetResponse {
     _id: Types.ObjectId;
     userId: Types.ObjectId;
+    title: string;
     amount: number;
+    currency: string;
+    fromRate?: number;
+    toRate?: number;
     recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;

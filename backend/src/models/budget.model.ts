@@ -8,7 +8,11 @@ const budgetSchema = new Schema<BudgetType>({
         type: Schema.Types.ObjectId,
         ref: "User",
     },
+    title: { type: String, required: true },
     amount: { type: Number, required: true },
+    currency: { type: String, required: true },
+    fromRate: { type: Number, default: 1 },
+    toRate: { type: Number, default: 1 },
     recurrence: {
         type: String,
         enum: ["daily", "weekly", "monthly", "yearly"],

@@ -100,7 +100,7 @@ export function AllTransactionsTab({
                     const expense = row.original;
                     const isRecurringInstance = !expense.isRecurring && !!expense.templateId;
                     const isMainRecurringTemplate = expense.isRecurring && !expense.templateId;
-                    const isBill = expense.category === "Bill";
+                    const isBill = expense.category === "Bills";
 
                     return (
                         <span className="flex items-center gap-2">
@@ -249,7 +249,7 @@ export function AllTransactionsTab({
                 header: "Actions",
                 cell: ({ row }: { row: Row<TransactionWithId> }) => {
                     const expense: TransactionWithId = row.original;
-                    const isBill: boolean = expense.category === "Bill";
+                    const isBill: boolean = expense.category === "Bills";
 
                     return (
                         <div className="flex gap-2">

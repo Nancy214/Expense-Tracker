@@ -45,7 +45,7 @@ interface BillsQueryResult {
 // Bill form default values
 interface BillFormDefaultValues {
     title: string;
-    category: "Bill";
+    category: "Bills";
     description: string;
     amount: number;
     date: string;
@@ -281,7 +281,7 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
         if (editingBill) {
             return {
                 title: editingBill.title,
-                category: "Bill",
+                category: "Bills",
                 description: editingBill.description || "",
                 amount: editingBill.amount,
                 date: parseDateToFormat(editingBill.date),
@@ -320,7 +320,7 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
 
         return {
             title: "",
-            category: "Bill",
+            category: "Bills",
             description: "",
             amount: 0,
             date: format(new Date(), "dd/MM/yyyy"),

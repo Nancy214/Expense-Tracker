@@ -131,32 +131,38 @@ export const getBudgetProgress = async (): Promise<BudgetProgressResponse> => {
 export const processBudgetReminders = (progressData: BudgetProgressResponse): BudgetReminder[] => {
     const reminders: BudgetReminder[] = [];
 
+    // Currency symbols mapping
+    const currencySymbols: Record<string, string> = {
+        INR: "₹",
+        USD: "$",
+        EUR: "€",
+        GBP: "£",
+        JPY: "¥",
+        CAD: "C$",
+        AUD: "A$",
+        CHF: "CHF",
+        CNY: "¥",
+        KRW: "₩",
+    };
+
     progressData.budgets.forEach((budget) => {
         const progress = budget.progress;
         const remaining = budget.remaining;
         const isOverBudget = budget.isOverBudget;
+        const currency = budget.currency || "INR";
+        const symbol = currencySymbols[currency] || currency;
 
         // Check for over-budget alerts
         if (isOverBudget) {
             reminders.push({
                 id: `over-${budget._id}`,
                 budgetId: budget._id,
-                budgetName: `${budget.recurrence.charAt(0).toUpperCase() + budget.recurrence.slice(1)} Budget - ${
-                    budget.category === "Bill"
-                        ? "Bills"
-                        : budget.category === "All Categories"
-                        ? "All Categories"
-                        : budget.category
-                }`,
+                budgetName: budget.title,
                 type: "danger",
                 title: "Budget Exceeded!",
-                message: `You've exceeded your ${budget.recurrence} budget for ${
-                    budget.category === "Bill"
-                        ? "Bills"
-                        : budget.category === "All Categories"
-                        ? "All Categories"
-                        : budget.category
-                } by ₹${Math.abs(remaining).toFixed(2)}. Consider reviewing your spending in this category.`,
+                message: `You've exceeded your budget "${budget.title}" by ${symbol}${Math.abs(remaining).toFixed(
+                    2
+                )}. Consider reviewing your spending in this category.`,
                 progress,
                 remaining,
                 isOverBudget: true,
@@ -167,22 +173,12 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
             reminders.push({
                 id: `warning-${budget._id}`,
                 budgetId: budget._id,
-                budgetName: `${budget.recurrence.charAt(0).toUpperCase() + budget.recurrence.slice(1)} Budget - ${
-                    budget.category === "Bill"
-                        ? "Bills"
-                        : budget.category === "All Categories"
-                        ? "All Categories"
-                        : budget.category
-                }`,
+                budgetName: budget.title,
                 type: "warning",
                 title: "Budget Warning",
-                message: `You've used ${progress.toFixed(1)}% of your ${budget.recurrence} budget for ${
-                    budget.category === "Bill"
-                        ? "Bills"
-                        : budget.category === "All Categories"
-                        ? "All Categories"
-                        : budget.category
-                }. Only ₹${remaining.toFixed(2)} remaining.`,
+                message: `You've used ${progress.toFixed(1)}% of your budget "${
+                    budget.title
+                }". Only ${symbol}${remaining.toFixed(2)} remaining.`,
                 progress,
                 remaining,
                 isOverBudget: false,
@@ -193,22 +189,12 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
             reminders.push({
                 id: `info-${budget._id}`,
                 budgetId: budget._id,
-                budgetName: `${budget.recurrence.charAt(0).toUpperCase() + budget.recurrence.slice(1)} Budget - ${
-                    budget.category === "Bill"
-                        ? "Bills"
-                        : budget.category === "All Categories"
-                        ? "All Categories"
-                        : budget.category
-                }`,
+                budgetName: budget.title,
                 type: "warning",
                 title: "Budget Update",
-                message: `You've used ${progress.toFixed(1)}% of your ${budget.recurrence} budget for ${
-                    budget.category === "Bill"
-                        ? "Bills"
-                        : budget.category === "All Categories"
-                        ? "All Categories"
-                        : budget.category
-                }. ₹${remaining.toFixed(2)} remaining.`,
+                message: `You've used ${progress.toFixed(1)}% of your budget "${
+                    budget.title
+                }". ${symbol}${remaining.toFixed(2)} remaining.`,
                 progress,
                 remaining,
                 isOverBudget: false,

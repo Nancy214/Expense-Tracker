@@ -250,9 +250,7 @@ const BudgetPage: React.FC = () => {
                                     <CardHeader>
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <CardTitle className="text-lg font-bold">
-                                                    {budget.category === "Bill" ? "Bills" : budget.category}
-                                                </CardTitle>
+                                                <CardTitle className="text-lg font-bold">{budget.title}</CardTitle>
                                                 <div className="text-md text-primary">
                                                     {formatAmount(budget.amount)}
                                                 </div>

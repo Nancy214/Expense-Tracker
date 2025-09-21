@@ -216,7 +216,7 @@ export interface RecurringTransactionTemplate extends TransactionWithId {
 
 // Bill transaction type
 export interface BillTransaction extends TransactionWithId {
-    category: "Bill";
+    category: "Bills";
     billCategory: string;
     billStatus: BillStatus;
     dueDate: Date;

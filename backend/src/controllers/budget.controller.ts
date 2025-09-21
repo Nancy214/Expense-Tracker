@@ -38,15 +38,21 @@ export const createBudget = async (
             return;
         }
 
-        const { amount, recurrence, startDate, category }: BudgetRequest = req.body;
-        if (!amount || !recurrence || !startDate || !category) {
-            res.status(400).json({ message: "Amount, recurrence, start date, and category are required." });
+        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category }: BudgetRequest = req.body;
+        if (!title || !amount || !currency || !recurrence || !startDate || !category) {
+            res.status(400).json({
+                message: "Title, amount, currency, recurrence, start date, and category are required.",
+            });
             return;
         }
 
         const budget = new Budget({
             userId: new mongoose.Types.ObjectId(userId),
+            title,
             amount,
+            currency,
+            fromRate: fromRate || 1,
+            toRate: toRate || 1,
             recurrence,
             startDate,
             category,
@@ -64,6 +70,7 @@ export const createBudget = async (
                     field: "budget",
                     oldValue: null,
                     newValue: {
+                        title,
                         amount,
                         recurrence,
                         startDate,
@@ -94,10 +101,12 @@ export const updateBudget = async (
         }
 
         const { id } = req.params;
-        const { amount, recurrence, startDate, category }: BudgetRequest = req.body;
+        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category }: BudgetRequest = req.body;
 
-        if (!amount || !recurrence || !startDate || !category) {
-            res.status(400).json({ message: "Amount, recurrence, start date, and category are required." });
+        if (!title || !amount || !currency || !recurrence || !startDate || !category) {
+            res.status(400).json({
+                message: "Title, amount, currency, recurrence, start date, and category are required.",
+            });
             return;
         }
 
@@ -118,7 +127,11 @@ export const updateBudget = async (
                 userId: new mongoose.Types.ObjectId(userId),
             },
             {
+                title,
                 amount,
+                currency,
+                fromRate: fromRate || 1,
+                toRate: toRate || 1,
                 recurrence,
                 startDate,
                 category,
@@ -134,6 +147,7 @@ export const updateBudget = async (
         // Create changes array by comparing old and new values
         const changes: BudgetChange[] = [];
         console.log("Comparing budget values:", {
+            title: { old: oldBudget.title, new: title, changed: oldBudget.title !== title },
             amount: { old: oldBudget.amount, new: amount, changed: oldBudget.amount !== amount },
             recurrence: { old: oldBudget.recurrence, new: recurrence, changed: oldBudget.recurrence !== recurrence },
             startDate: {
@@ -144,6 +158,9 @@ export const updateBudget = async (
             category: { old: oldBudget.category, new: category, changed: oldBudget.category !== category },
         });
 
+        if (oldBudget.title !== title) {
+            changes.push({ field: "title", oldValue: oldBudget.title, newValue: title });
+        }
         if (oldBudget.amount !== amount) {
             changes.push({ field: "amount", oldValue: oldBudget.amount, newValue: amount });
         }
@@ -221,6 +238,7 @@ export const deleteBudget = async (
                 {
                     field: "budget",
                     oldValue: {
+                        title: budget.title,
                         amount: budget.amount,
                         recurrence: budget.recurrence,
                         startDate: budget.startDate,
@@ -424,9 +442,9 @@ export const getBudgetProgress = async (
 
             // Calculate total spent from budget start date
             const totalSpent: number = budgetExpenses.reduce((sum: number, expense: Transaction) => {
-                // Convert to user's currency if different
+                // Convert to budget's currency if different
                 let amount: number = expense.amount;
-                if (expense.currency !== "INR") {
+                if (expense.currency !== budget.currency) {
                     // Use exchange rates if available, otherwise assume 1:1
                     if (expense.fromRate && expense.toRate) {
                         amount = expense.amount * expense.fromRate;
@@ -441,7 +459,11 @@ export const getBudgetProgress = async (
 
             return {
                 _id: budget._id,
+                title: budget.title,
                 amount: budget.amount,
+                currency: budget.currency,
+                fromRate: budget.fromRate,
+                toRate: budget.toRate,
                 recurrence: budget.recurrence,
                 startDate: budget.startDate,
                 category: budget.category,

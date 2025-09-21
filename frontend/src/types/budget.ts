@@ -3,7 +3,11 @@ export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
 export interface Budget {
     _id: string;
     userId: string;
+    title: string;
     amount: number;
+    currency: string;
+    fromRate?: number;
+    toRate?: number;
     recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
@@ -12,7 +16,11 @@ export interface Budget {
 }
 
 export interface BudgetData {
+    title: string;
     amount: number;
+    currency: string;
+    fromRate?: number;
+    toRate?: number;
     recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
@@ -39,7 +47,11 @@ export interface BudgetLog {
 
 export interface BudgetProgress {
     _id: string;
+    title: string;
     amount: number;
+    currency: string;
+    fromRate?: number;
+    toRate?: number;
     recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;
@@ -61,7 +73,11 @@ export interface BudgetProgressResponse {
 }
 
 export interface BudgetFormData {
+    title: string;
     amount: number;
+    currency: string;
+    fromRate?: number;
+    toRate?: number;
     recurrence: BudgetRecurrence;
     startDate: Date;
     category: string;

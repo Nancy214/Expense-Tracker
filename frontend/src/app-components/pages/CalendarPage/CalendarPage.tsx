@@ -12,14 +12,17 @@ import { CalendarEvent } from "@/types/calendar";
 
 // Separate color mappings for expense and income categories
 const expenseColors: { [key: string]: string } = {
-    "Food & Dining": "#ef4444", // red-500
-    Transportation: "#3b82f6", // blue-500
+    Food: "#ef4444", // red-500
+    Transport: "#3b82f6", // blue-500
     Shopping: "#8b5cf6", // purple-500
     Entertainment: "#f59e0b", // amber-500
-    "Bills & Utilities": "#10b981", // emerald-500
+    Bills: "#10b981", // emerald-500
     Healthcare: "#06b6d4", // cyan-500
     Travel: "#f97316", // orange-500
     Education: "#84cc16", // lime-500
+    Housing: "#ec4899", // pink-500
+    Personal: "#14b8a6", // teal-500
+    Gifts: "#a855f7", // violet-500
     Other: "#6b7280", // gray-500
 };
 

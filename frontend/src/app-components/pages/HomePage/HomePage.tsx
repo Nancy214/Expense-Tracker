@@ -283,7 +283,7 @@ const HomePage = () => {
                         <Card
                             className="flex-1 flex flex-col items-center justify-center py-6 cursor-pointer transition hover:shadow-lg hover:bg-muted/60"
                             onClick={() => {
-                                setPreselectedCategory("Bill");
+                                setPreselectedCategory("Bills");
                                 setIsExpenseDialogOpen(true);
                             }}
                             tabIndex={0}
@@ -312,7 +312,7 @@ const HomePage = () => {
                 open={isExpenseDialogOpen}
                 onOpenChange={setIsExpenseDialogOpen}
                 preselectedCategory={preselectedCategory}
-                isAddBill={preselectedCategory === "Bill"}
+                isAddBill={preselectedCategory === "Bills"}
                 onSuccess={() => {
                     navigate("/transactions");
                 }}

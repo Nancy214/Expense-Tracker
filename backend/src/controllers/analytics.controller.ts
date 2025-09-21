@@ -127,7 +127,7 @@ export const getExpenseCategoryBreakdown = async (req: AuthRequest, res: Respons
         const expenses: TransactionDocument[] = await TransactionModel.find({
             userId,
             type: "expense",
-            category: { $ne: "Bill" }, // Exclude bills from regular expenses
+            category: { $ne: "Bills" }, // Exclude bills from regular expenses
             ...dateFilter,
         });
 
@@ -189,7 +189,7 @@ export const getBillsCategoryBreakdown = async (req: AuthRequest, res: Response)
         // Get bill transactions for the user within the specified period
         const bills: BillDocument[] = await TransactionModel.find({
             userId,
-            category: "Bill",
+            category: "Bills",
             ...dateFilter,
         });
 
@@ -244,11 +244,11 @@ const getTransactionsForPeriod = async (
         const income: number = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
 
         const expenses: number = transactionData
-            .filter((t) => t.type === "expense" && t.category !== "Bill")
+            .filter((t) => t.type === "expense" && t.category !== "Bills")
             .reduce((sum, t) => sum + t.amount, 0);
 
         const bills: number = transactionData
-            .filter((t) => t.category === "Bill")
+            .filter((t) => t.category === "Bills")
             .reduce((sum, t) => sum + t.amount, 0);
 
         return {

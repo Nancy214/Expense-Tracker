@@ -19,14 +19,17 @@ import { DateRange } from "react-day-picker";
 import { BudgetLogFilters as BudgetLogFiltersType } from "@/types/budget";
 
 const BUDGET_CATEGORIES: string[] = [
-    "Food & Dining",
-    "Transportation",
+    "Food",
+    "Transport",
     "Shopping",
     "Entertainment",
-    "Bills & Utilities",
+    "Bills",
     "Healthcare",
     "Travel",
     "Education",
+    "Housing",
+    "Personal",
+    "Gifts",
     "Other",
 ];
 
