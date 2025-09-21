@@ -1,0 +1,63 @@
+.fc-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 0.475rem !important;
+    font-weight: 500 !important;
+    font-size: 0.8rem !important;
+    padding: 0.5rem 0.75rem !important;
+    text-transform: capitalize !important;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke !important;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition-duration: 150ms !important;
+}
+.fc-button-primary {
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+}
+.fc-button-group {
+    border-radius: 0.475rem !important;
+}
+.fc-prev-button {
+    border-radius: 0.475rem 0 0 0.475rem !important;
+    background-color: hsl(var(--dark-primary)) !important;
+    color: black !important;
+}
+.fc-prev-button:hover {
+    background-color: black !important;
+    color: white !important;
+}
+.fc-next-button {
+    border-radius: 0 0.475rem 0.475rem 0 !important;
+    background-color: hsl(var(--dark-primary)) !important;
+    color: black !important;
+}
+.fc-next-button:hover {
+    background-color: black !important;
+    color: white !important;
+}
+.fc-dayGridMonth-button {
+    border-radius: 0.475rem 0 0 0.475rem !important;
+}
+.fc-dayGridWeek-button {
+    border-radius: 0 0.475rem 0.475rem 0 !important;
+}
+.fc-button-active {
+    background-color: hsl(var(--dark-secondary)) !important;
+    color: black !important;
+}
+.fc-toolbar-title {
+    font-weight: 600 !important;
+    font-size: 1.2rem !important;
+}
+.fc-toolbar-chunk {
+    
+}
+.fc-col-header-cell {
+    font-weight: 700 !important;
+    font-size: 0.8rem !important;
+}
+.fc-daygrid-day-top {
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+}

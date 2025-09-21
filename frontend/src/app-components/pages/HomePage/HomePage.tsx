@@ -13,6 +13,7 @@ import { useSettings } from "@/hooks/use-profile";
 import AddExpenseDialog from "../TransactionsPage/AddExpenseDialog";
 import { BudgetReminder } from "@/types/budget";
 import { FinancialOverviewData } from "@/types/transaction";
+import StatsCards from "@/app-components/utility-components/StatsCards";
 
 // Home page component
 const HomePage = () => {
@@ -128,6 +129,7 @@ const HomePage = () => {
 
     return (
         <div className="p-4 md:p-6 lg:p-4 space-y-4 max-w-full">
+            <StatsCards />
             <ExpenseReminderBanner
                 settings={settingsData}
                 dismissedReminder={dismissedExpenseReminder}

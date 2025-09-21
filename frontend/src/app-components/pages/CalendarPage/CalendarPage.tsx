@@ -9,16 +9,16 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { TransactionResponse, TransactionWithId } from "@/types/transaction";
 import { CalendarEvent } from "@/types/calendar";
-
+import "./CalendarStyle.css";
 // Separate color mappings for expense and income categories
 const expenseColors: { [key: string]: string } = {
-    Food: "#ef4444", // red-500
+    Food: "#ef4544", // red-500
     Transport: "#3b82f6", // blue-500
     Shopping: "#8b5cf6", // purple-500
     Entertainment: "#f59e0b", // amber-500
     Bills: "#10b981", // emerald-500
     Healthcare: "#06b6d4", // cyan-500
-    Travel: "#f97316", // orange-500
+    Travel: "#f37316", // orange-500
     Education: "#84cc16", // lime-500
     Housing: "#ec4899", // pink-500
     Personal: "#14b8a6", // teal-500
@@ -40,83 +40,6 @@ const incomeColors: { [key: string]: string } = {
 const CalendarPage: React.FC = () => {
     const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
     const { expenses = [], isLoading } = useExpenses();
-
-    // Inject custom styles for FullCalendar
-    useEffect(() => {
-        const styleElement = document.createElement("style");
-        styleElement.textContent = `
-            .fc-button {
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                border-radius: 0.475rem !important;
-                font-weight: 500 !important;
-                font-size: 0.8rem !important;
-                padding: 0.5rem 0.75rem !important;
-                text-transform: capitalize !important;
-                transition-property: color, background-color, border-color, text-decoration-color, fill, stroke !important;
-                transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
-                transition-duration: 150ms !important;
-            }
-            .fc-button-primary {
-                background-color: hsl(var(--primary)) !important;
-                color: hsl(var(--primary-foreground)) !important;
-            }
-            .fc-button-group {
-                border-radius: 0.475rem !important;
-            }
-            .fc-prev-button {
-                border-radius: 0.475rem 0 0 0.475rem !important;
-                background-color: hsl(var(--dark-primary)) !important;
-                color: black !important;
-            }
-            .fc-prev-button:hover {
-                background-color: black !important;
-                color: white !important;
-            }
-            .fc-next-button {
-                border-radius: 0 0.475rem 0.475rem 0 !important;
-                background-color: hsl(var(--dark-primary)) !important;
-                color: black !important;
-            }
-            .fc-next-button:hover {
-                background-color: black !important;
-                color: white !important;
-            }
-            .fc-dayGridMonth-button {
-                border-radius: 0.475rem 0 0 0.475rem !important;
-            }
-            .fc-dayGridWeek-button {
-                border-radius: 0 0.475rem 0.475rem 0 !important;
-            }
-            .fc-button-active {
-                background-color: hsl(var(--dark-secondary)) !important;
-                color: black !important;
-            }
-            .fc-toolbar-title {
-                font-weight: 600 !important;
-                font-size: 1.2rem !important;
-            }
-            .fc-toolbar-chunk {
-                
-            }
-            .fc-col-header-cell {
-                font-weight: 700 !important;
-                font-size: 0.8rem !important;
-            }
-            .fc-daygrid-day-top {
-                font-weight: 500 !important;
-                font-size: 0.85rem !important;
-            }
-        `;
-
-        document.head.appendChild(styleElement);
-
-        // Cleanup function to remove styles when component unmounts
-        return () => {
-            document.head.removeChild(styleElement);
-        };
-    }, []);
 
     // Convert expenses to FullCalendar events
     const calendarEvents: CalendarEvent[] = expenses.map((expense: TransactionWithId) => {
