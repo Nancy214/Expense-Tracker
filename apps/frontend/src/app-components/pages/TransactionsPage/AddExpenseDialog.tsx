@@ -16,15 +16,50 @@ import { showSaveError } from "@/utils/toastUtils";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
-    AddExpenseDialogProps,
-    TransactionFormData,
-    CurrencyOption,
     CategoryOption,
     Bill,
     PaymentMethod,
     BillFrequency,
-} from "@/types/transaction";
-import { Transaction } from "@/types/transaction";
+    TransactionType,
+    TransactionWithId,
+} from "../../../../../../libs/shared-types/src/transaction-frontend";
+import { Transaction } from "../../../../../../libs/shared-types/src/transaction-frontend";
+import { CurrencyOption } from "../../../../../../libs/shared-types/src/profile-frontend";
+
+// Form handling type - with string dates for UI
+export interface TransactionFormData {
+    title: string;
+    type: TransactionType;
+    amount: number;
+    currency: string;
+    category: string;
+    billCategory?: string;
+    paymentMethod?: string;
+    date: string;
+    dueDate?: string;
+    billFrequency?: string;
+    reminderDays?: number;
+    description?: string;
+    isRecurring?: boolean;
+    recurringFrequency?: string;
+    endDate?: string;
+    receipts?: File[];
+    fromRate?: number;
+    toRate?: number;
+    nextDueDate?: string;
+    lastPaidDate?: string;
+}
+
+// Dialog props types
+export interface AddExpenseDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    editingExpense?: TransactionWithId | null;
+    onSuccess?: () => void;
+    triggerButton?: React.ReactNode;
+    preselectedCategory?: string;
+    isAddBill?: boolean;
+}
 
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     open,
@@ -165,7 +200,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
     // Get category options based on transaction type
     const getCategoryOptions = (): CategoryOption[] => {
-        if (type === "expense") {
+        if (type === TransactionType.EXPENSE) {
             return TRANSACTION_CONSTANTS.EXPENSE_CATEGORIES.map((cat) => ({
                 value: cat,
                 label: cat,
@@ -218,8 +253,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                 label="Type"
                                 placeholder="Select type"
                                 options={[
-                                    { value: "expense", label: "Expense" },
-                                    { value: "income", label: "Income" },
+                                    { value: TransactionType.EXPENSE, label: "Expense" },
+                                    { value: TransactionType.INCOME, label: "Income" },
                                 ]}
                                 required
                             />

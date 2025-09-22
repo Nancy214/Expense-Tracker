@@ -1,6 +1,12 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from "axios";
-import { BudgetData, BudgetResponse, BudgetProgressResponse, BudgetReminder, BudgetLog } from "../types/budget";
-import { ApiError } from "../types/error";
+import {
+    BudgetData,
+    BudgetResponse,
+    BudgetProgressResponse,
+    BudgetReminder,
+    BudgetLog,
+} from "../../../../libs/shared-types/src/budget-frontend";
+import { ApiError } from "../../../../libs/shared-types/src/error-frontend";
 import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";

@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
-import { FiltersSectionProps } from "@/types/transaction";
+import { FiltersSectionProps } from "../../../../../../libs/shared-types/src/transaction-frontend";
 import { useAllTransactions, TransactionFilters } from "@/hooks/use-transactions";
 
 const EXPENSE_CATEGORIES: string[] = [

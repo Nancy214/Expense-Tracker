@@ -8,7 +8,7 @@ import {
 } from "@/services/analytics.service";
 import { getAllTransactionsForAnalytics } from "@/services/transaction.service";
 import { useAuth } from "@/context/AuthContext";
-import { Transaction, TransactionWithId, MonthlyStats } from "@/types/transaction";
+import { Transaction, TransactionWithId, MonthlyStats } from "../../../../libs/shared-types/src/transaction-frontend";
 import { ExpenseCategoryData, BillsCategoryData, HeatmapData } from "@/types/analytics";
 import { parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
 

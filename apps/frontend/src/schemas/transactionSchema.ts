@@ -7,7 +7,7 @@ import {
     IncomeCategory,
     BillCategory,
     TransactionType,
-} from "@/types/transaction";
+} from "../../../../libs/shared-types/src/transaction-frontend";
 import { z } from "zod";
 
 // Union types for all categories

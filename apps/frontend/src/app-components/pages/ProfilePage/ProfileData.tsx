@@ -9,7 +9,7 @@ import { SelectField } from "@/app-components/form-fields/SelectField";
 import { DateField } from "@/app-components/form-fields/DateField";
 import { useProfileForm, useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useEffect, useMemo, useCallback } from "react";
-import { CountryData, CurrencyOption, TimezoneOption } from "@/types/profile";
+import { CountryData, CurrencyOption, TimezoneOption } from "../../../../../../libs/shared-types/src/profile-frontend";
 
 const ProfileData: React.FC = () => {
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();

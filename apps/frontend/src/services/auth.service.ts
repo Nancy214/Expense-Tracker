@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
-import { LoginCredentials, AuthResponse, RegisterCredentials, User } from "@/types/auth";
+import { LoginCredentials, AuthResponse, RegisterCredentials, User } from "@expense-tracker/shared-types/src/auth";
 import { removeTokens, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";

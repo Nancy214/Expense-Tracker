@@ -1,5 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { AddBudgetDialogProps, BudgetRecurrenceOption, BudgetCategoryOption } from "@/types/budget";
+import {
+    AddBudgetDialogProps,
+    BudgetRecurrenceOption,
+    BudgetCategoryOption,
+} from "../../../../../../libs/shared-types/src/budget-frontend";
 import {
     Dialog,
     DialogContent,
@@ -18,7 +22,7 @@ import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
 import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useState, useEffect } from "react";
-import { CurrencyOption } from "@/types/transaction";
+import { CurrencyOption } from "../../../../../../libs/shared-types/src/transaction-frontend";
 
 const RECURRENCE_OPTIONS: BudgetRecurrenceOption[] = [
     { value: "daily", label: "Daily" },

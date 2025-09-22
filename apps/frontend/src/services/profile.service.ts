@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from "axios";
-import { ProfileData, ProfileResponse, SettingsData } from "@/types/profile";
+import { ProfileData, ProfileResponse, SettingsData } from "../../../../libs/shared-types/src/profile-frontend";
 import { refreshAuthTokens } from "@/utils/authUtils";
 
 // API Response Types

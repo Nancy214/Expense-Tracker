@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, ChevronDownIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
-import { BudgetLogFilters as BudgetLogFiltersType } from "@/types/budget";
+import { BudgetLogFilters as BudgetLogFiltersType } from "../../../../../../libs/shared-types/src/budget-frontend";
 
 const BUDGET_CATEGORIES: string[] = [
     "Food",

@@ -11,7 +11,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Repeat, Pencil, Trash, Receipt, CheckCircle, Clock, Star } from "lucide-react";
-import { TransactionWithId, BillStatus } from "@/types/transaction";
+import { TransactionWithId, BillStatus } from "../../../../../../libs/shared-types/src/transaction-frontend";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMemo } from "react";
@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
-import { TabComponentProps } from "@/types/transaction";
+import { TabComponentProps } from "../../../../../../libs/shared-types/src/transaction-frontend";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 export function AllTransactionsTab({

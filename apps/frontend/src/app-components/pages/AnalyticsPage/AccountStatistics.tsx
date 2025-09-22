@@ -5,7 +5,7 @@ import { getExpenses } from "@/services/transaction.service";
 import { getBudgets } from "@/services/budget.service";
 import { useAuth } from "@/context/AuthContext";
 import type { AccountStats, AnalyticsExpense as Expense, ExpensesResponse } from "@/types/analytics";
-import { BudgetResponse } from "@/types/budget";
+import { BudgetResponse } from "../../../../../../libs/shared-types/src/budget-frontend";
 
 const AccountStatistics = () => {
     const [stats, setStats] = useState<AccountStats>({

@@ -12,8 +12,8 @@ import {
     updateSettings,
 } from "@/services/profile.service";
 import { profileSchema, ProfileFormData } from "@/schemas/profileSchema";
-import { SettingsData, ProfileResponse, ProfileData } from "@/types/profile";
-import { User } from "@/types/auth";
+import { SettingsData, ProfileResponse, ProfileData } from "../../../../libs/shared-types/src/profile-frontend";
+import { User } from "@expense-tracker/shared-types/src/auth";
 import { AxiosError } from "axios";
 
 // ============================================================================

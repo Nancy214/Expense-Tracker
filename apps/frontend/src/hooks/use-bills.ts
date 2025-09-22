@@ -8,7 +8,14 @@ import { useToast } from "@/hooks/use-toast";
 import { getBills, createExpense, updateExpense, updateTransactionBillStatus } from "@/services/transaction.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
-import { Transaction, Bill, BillStatus, BillFrequency, PaymentMethod, TransactionResponse } from "@/types/transaction";
+import {
+    Transaction,
+    Bill,
+    BillStatus,
+    BillFrequency,
+    PaymentMethod,
+    TransactionResponse,
+} from "../../../../libs/shared-types/src/transaction-frontend";
 import { parseFromDisplay, getDaysDifference, getStartOfToday } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 

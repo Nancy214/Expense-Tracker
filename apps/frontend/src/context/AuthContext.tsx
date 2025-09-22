@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { login, logout } from "@/services/auth.service";
-import { LoginCredentials, AuthResponse, User } from "@/types/auth";
+import { LoginCredentials, AuthResponse, User } from "@expense-tracker/shared-types/src/auth";
 import { removeTokens } from "@/utils/authUtils";
 
 interface AuthContextType {

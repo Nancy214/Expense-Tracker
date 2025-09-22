@@ -10,7 +10,7 @@ import {
     BudgetReminder,
     BudgetPageState,
     ProgressColor,
-} from "@/types/budget";
+} from "../../../../../../libs/shared-types/src/budget-frontend";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle, History } from "lucide-react";
 import { Progress } from "@/components/ui/progress";

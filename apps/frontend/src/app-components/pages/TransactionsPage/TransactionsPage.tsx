@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { parse, format } from "date-fns";
 import { Plus, TrendingUp, UploadIcon } from "lucide-react";
-import { TransactionWithId } from "@/types/transaction";
+import { TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
 import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
 import { useBudgets } from "@/hooks/use-budgets";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
@@ -18,7 +18,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 import { useBills } from "@/hooks/use-bills";
 import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
-import { MonthFilter, TotalExpensesByCurrency } from "@/types/transaction";
+import { MonthFilter, TotalExpensesByCurrency } from "../../../../../../libs/shared-types/src/transaction-frontend";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 

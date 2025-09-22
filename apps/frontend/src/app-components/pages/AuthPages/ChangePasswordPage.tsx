@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Lock, Shield } from "lucide-react";
 import { changePassword } from "@/services/auth.service";
-import { ChangePasswordFormData, ChangePasswordErrors, ApiErrorResponse } from "@/types/auth";
+import { ChangePasswordFormData, ChangePasswordErrors, ApiErrorResponse } from "@expense-tracker/shared-types/src/auth";
 
 const ChangePasswordPage: React.FC = () => {
     const { toast } = useToast();

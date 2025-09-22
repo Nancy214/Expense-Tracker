@@ -2,10 +2,10 @@ import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.service";
-import { TransactionWithId } from "@/types/transaction";
-import { BudgetResponse } from "@/types/budget";
+import { TransactionWithId } from "../../../../libs/shared-types/src/transaction-frontend";
+import { BudgetResponse } from "../../../../libs/shared-types/src/budget-frontend";
 import { useBudgets } from "@/hooks/use-budgets";
-import { ApiError } from "@/types/error";
+import { ApiError } from "../../../../libs/shared-types/src/error-frontend";
 
 // Query keys for invalidation - matching use-transactions.ts
 const EXPENSES_QUERY_KEY = ["expenses"] as const;

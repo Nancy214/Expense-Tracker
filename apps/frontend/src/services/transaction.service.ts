@@ -8,7 +8,7 @@ import {
     MonthlyStats,
     BillStatus,
     Bill,
-} from "@/types/transaction";
+} from "../../../../libs/shared-types/src/transaction-frontend";
 import { isValid, parseISO } from "date-fns";
 import { refreshAuthTokens } from "@/utils/authUtils";
 

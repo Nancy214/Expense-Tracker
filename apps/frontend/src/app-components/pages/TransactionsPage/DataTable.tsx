@@ -1,11 +1,11 @@
-import { TransactionWithId } from "@/types/transaction";
+import { TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
 import { useEffect, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaginationWrapper } from "@/components/ui/pagination";
 import { AllTransactionsTab } from "./AllTransactionsTab";
 import { RecurringTransactionsTab } from "./RecurringTransactionsTab";
 import { BillsTab } from "./BillsTab";
-import { DataTableProps } from "@/types/transaction";
+import { DataTableProps } from "../../../../../../libs/shared-types/src/transaction-frontend";
 
 export function DataTable({
     data,

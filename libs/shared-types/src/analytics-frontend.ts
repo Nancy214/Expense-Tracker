@@ -1,4 +1,4 @@
-import type { TransactionType } from "./transaction";
+import type { TransactionType } from "./transaction-frontend";
 
 // Account Statistics types
 export interface AccountStats {

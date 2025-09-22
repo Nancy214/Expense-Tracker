@@ -28,7 +28,7 @@ import type {
     AreaChartData,
     BarChartData,
 } from "@/types/analytics";
-import type { TransactionWithId } from "@/types/transaction";
+import type { TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
 
 // AnalyticsCard component moved inline
 const AnalyticsCard: React.FC<{

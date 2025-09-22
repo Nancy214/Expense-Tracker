@@ -1,3 +1,6 @@
+import { User } from "./auth-frontend";
+import { CurrencyOption } from "./profile-frontend";
+
 export enum RecurringFrequency {
     DAILY = "daily",
     WEEKLY = "weekly",
@@ -129,30 +132,6 @@ export type TransactionWithId = Transaction & {
     reminderDays?: number;
 };
 
-// Form handling type - with string dates for UI
-export interface TransactionFormData {
-    title: string;
-    type: TransactionType;
-    amount: number;
-    currency: string;
-    category: string;
-    billCategory?: string;
-    paymentMethod?: string;
-    date: string;
-    dueDate?: string;
-    billFrequency?: string;
-    reminderDays?: number;
-    description?: string;
-    isRecurring?: boolean;
-    recurringFrequency?: string;
-    endDate?: string;
-    receipts?: File[];
-    fromRate?: number;
-    toRate?: number;
-    nextDueDate?: string;
-    lastPaidDate?: string;
-}
-
 // Financial overview data type for home page
 export interface FinancialOverviewData {
     savingsRate: number;
@@ -237,19 +216,6 @@ export interface MonthlyStatementPDFOptions {
     totalExpenseForBreakdown: number;
 }
 
-// User settings types
-export interface UserSettings {
-    billsAndBudgetsAlert?: boolean;
-    monthlyReports?: boolean;
-}
-
-// User context type - allow null to match useAuth return type
-export interface User {
-    id: string;
-    currency?: string;
-    settings?: UserSettings;
-}
-
 // Filter state types
 export interface FilterState {
     selectedCategories: string[];
@@ -263,14 +229,6 @@ export interface FilterState {
 export interface DateRange {
     from: Date;
     to?: Date;
-}
-
-// Table column types
-export interface TableColumn<T> {
-    accessorKey: keyof T;
-    header: React.ReactNode | ((props: { column: any }) => React.ReactNode);
-    size?: number;
-    cell?: (props: { row: any }) => React.ReactNode;
 }
 
 // Export data types
@@ -294,17 +252,6 @@ export interface BillTransaction extends TransactionWithId {
     billFrequency: BillFrequency;
     paymentMethod: PaymentMethod;
     reminderDays?: number;
-}
-
-// Dialog props types
-export interface AddExpenseDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    editingExpense?: TransactionWithId | null;
-    onSuccess?: () => void;
-    triggerButton?: React.ReactNode;
-    preselectedCategory?: string;
-    isAddBill?: boolean;
 }
 
 // Tab component props types
@@ -391,12 +338,12 @@ export interface FormState {
 }
 
 // Transaction mutations
-export interface TransactionMutations {
+/* export interface TransactionMutations {
     createTransaction: (data: TransactionFormData) => Promise<void>;
     updateTransaction: (params: { id: string; data: TransactionFormData }) => Promise<void>;
     isCreating: boolean;
     isUpdating: boolean;
-}
+} */
 
 // Form hook return type
 export interface TransactionFormHook {
@@ -409,12 +356,6 @@ export interface TransactionFormHook {
     isEditing: boolean;
     handleCurrencyChange: (value: string) => void;
     handleRecurringToggle: (checked: boolean) => void;
-}
-
-// Currency option type
-export interface CurrencyOption {
-    value: string;
-    label: string;
 }
 
 // Category option type

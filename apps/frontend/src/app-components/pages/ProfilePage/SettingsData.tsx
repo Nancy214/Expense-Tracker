@@ -8,8 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Settings, Save, Shield, LogOut } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useSettings, useProfileMutations } from "@/hooks/use-profile";
-import { UserSettings } from "@/types/profile";
-import { User } from "@/types/auth";
+import { UserSettings } from "../../../../../../libs/shared-types/src/profile-frontend";
+import { User } from "@expense-tracker/shared-types/src/auth";
 import { useNavigate } from "react-router-dom";
 
 interface SettingsDataProps {

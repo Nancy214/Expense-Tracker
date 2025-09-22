@@ -3,10 +3,10 @@ import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { BudgetResponse, BudgetData } from "@/types/budget";
+import { BudgetResponse, BudgetData } from "../../../../libs/shared-types/src/budget-frontend";
 import { budgetSchema, BudgetFormData, getDefaultValues } from "@/schemas/budgetSchema";
 import { useBudgets } from "@/hooks/use-budgets";
-import { BudgetFormError } from "@/types/error";
+import { BudgetFormError } from "../../../../libs/shared-types/src/error-frontend";
 import { useAuth } from "@/context/AuthContext";
 
 /**
