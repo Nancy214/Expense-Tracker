@@ -8,8 +8,14 @@ import {
 } from "@/services/analytics.service";
 import { getAllTransactionsForAnalytics } from "@/services/transaction.service";
 import { useAuth } from "@/context/AuthContext";
-import { Transaction, TransactionWithId, MonthlyStats } from "../../../../libs/shared-types/src/transaction-frontend";
-import { ExpenseCategoryData, BillsCategoryData, HeatmapData } from "@/types/analytics";
+import { Transaction, TransactionWithId, MonthlyStats } from "@expense-tracker/shared-types/src/transaction-frontend";
+import {
+    ExpenseCategoryData,
+    BillsCategoryData,
+    HeatmapData,
+    IncomeExpenseSummaryResponse,
+    MonthlySavingsTrendResponse,
+} from "@expense-tracker/shared-types/src/analytics-frontend";
 import { parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
 
 // Type definitions for analytics API responses
@@ -27,17 +33,6 @@ export interface BillsBreakdownResponse {
     totalAmount: number;
 }
 
-export interface MonthlyData {
-    month: string;
-    year: number;
-    monthIndex: number;
-    income: number;
-    expenses: number;
-    bills: number;
-    netIncome: number;
-    transactionCount: number;
-}
-
 export interface CurrentMonthData {
     period: string;
     startDate: string;
@@ -47,59 +42,6 @@ export interface CurrentMonthData {
     bills: number;
     netIncome: number;
     transactionCount: number;
-}
-
-export interface IncomeExpenseSummaryData {
-    months: MonthlyData[];
-    currentMonth: CurrentMonthData;
-}
-
-export interface IncomeExpenseSummaryResponse {
-    success: boolean;
-    data: IncomeExpenseSummaryData;
-    summary: {
-        totalIncome: number;
-        totalExpenses: number;
-        totalBills: number;
-        netIncome: number;
-        totalTransactions: number;
-    };
-}
-
-export interface SavingsTrendItem {
-    month: string;
-    year: number;
-    monthIndex: number;
-    period: string;
-    income: number;
-    expenses: number;
-    savings: number;
-    transactionCount: number;
-}
-
-export interface SavingsTrendSummary {
-    totalSavings: number;
-    averageSavings: number;
-    positiveMonths: number;
-    negativeMonths: number;
-    bestMonth: {
-        period: string;
-        savings: number;
-    };
-    worstMonth: {
-        period: string;
-        savings: number;
-    };
-}
-
-export interface MonthlySavingsTrendData {
-    trend: SavingsTrendItem[];
-    summary: SavingsTrendSummary;
-}
-
-export interface MonthlySavingsTrendResponse {
-    success: boolean;
-    data: MonthlySavingsTrendData;
 }
 
 // Query keys for analytics data

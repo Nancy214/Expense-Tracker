@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { Transaction } from "../types/transactions";
+import { TransactionDocument } from "../types/transactions";
 
 const TransactionSchema = new Schema({
     date: {
@@ -104,4 +104,4 @@ const TransactionSchema = new Schema({
     },
 });
 
-export const TransactionModel = mongoose.model<Transaction>("Transaction", TransactionSchema);
+export const TransactionModel = mongoose.model<TransactionDocument>("Transaction", TransactionSchema);

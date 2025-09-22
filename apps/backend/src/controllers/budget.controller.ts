@@ -2,9 +2,10 @@ import { Request, Response } from "express";
 import { Budget } from "../models/budget.model";
 import { BudgetLog } from "../models/budget-log.model";
 import { TransactionModel } from "../models/transaction.model";
-import { AuthRequest } from "../types/auth";
-import { BudgetRequest, BudgetResponse, BudgetProgressItem, BudgetChange } from "../types/budget";
-import { Transaction } from "../types/transactions";
+import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
+import { BudgetRequest, BudgetProgressItem } from "@expense-tracker/shared-types/src/budget-backend";
+import { BudgetResponse, BudgetChange } from "@expense-tracker/shared-types/src/budget-frontend";
+import { Transaction } from "@expense-tracker/shared-types/src/transaction-frontend";
 import mongoose from "mongoose";
 import {
     startOfDay,
@@ -16,6 +17,10 @@ import {
     startOfYear,
     endOfYear,
 } from "date-fns";
+
+export interface AuthRequest extends Request {
+    user?: TokenPayload;
+}
 
 export const createBudget = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -34,7 +39,7 @@ export const createBudget = async (req: Request, res: Response): Promise<void> =
         }
 
         const budget = new Budget({
-            userId: new mongoose.Types.ObjectId(userId),
+            userId: new mongoose.Types.ObjectId(userId).toString(),
             title,
             amount,
             currency,
@@ -45,11 +50,15 @@ export const createBudget = async (req: Request, res: Response): Promise<void> =
             category,
         });
 
-        const savedBudget: BudgetResponse | null = await budget.save();
+        const saved = await budget.save();
+        const savedBudget: BudgetResponse = {
+            ...saved.toObject(),
+            _id: saved._id.toString(),
+        } as unknown as BudgetResponse;
 
         // Create a log for the new budget
         const budgetLog = new BudgetLog({
-            budgetId: savedBudget._id,
+            budgetId: savedBudget?._id,
             userId: new mongoose.Types.ObjectId(userId),
             changeType: "created",
             changes: [

@@ -1,16 +1,15 @@
 import { Request, Response } from "express";
 import { Settings, User } from "../models/user.model";
-import { SettingsDocument, TokenPayload, UserDocument } from "../types/auth";
+import { TokenPayload, UserDocument } from "@expense-tracker/shared-types/src/auth-backend";
 import {
     ProfileUpdateRequest,
     SettingsUpdateRequest,
-    ProfileResponse,
     SettingsResponse,
     CountryTimezoneCurrencyResponse,
     UserUpdateData,
-    SettingsData,
     DefaultSettings,
-} from "../types/profile";
+} from "@expense-tracker/shared-types/src/profile-backend";
+import { ProfileResponse, SettingsData } from "@expense-tracker/shared-types/src/profile-frontend";
 import dotenv from "dotenv";
 import { s3Client, isAWSConfigured } from "../config/s3Client";
 import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -59,7 +58,7 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        let settingsDoc: SettingsDocument | null = await Settings.findById(userId);
+        let settingsDoc = await Settings.findById(userId);
         if (!settingsDoc) {
             const defaultSettings: DefaultSettings = {
                 userId,
@@ -98,7 +97,6 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             budget: userDoc.budget || false,
             budgetType: userDoc.budgetType || "",
             settings: {
-                userId: settingsDoc.userId,
                 monthlyReports: settingsDoc.monthlyReports,
                 expenseReminders: settingsDoc.expenseReminders,
                 billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
@@ -232,7 +230,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             }); // 5 minutes
         }
 
-        const settingsDoc: SettingsDocument | null = await Settings.findById(updatedUser._id);
+        const settingsDoc = await Settings.findById(updatedUser._id);
         const userWithSettings: ProfileResponse = {
             _id: updatedUser._id,
             name: updatedUser.name,
@@ -247,14 +245,12 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             budgetType: updatedUser.budgetType || "",
             settings: settingsDoc
                 ? {
-                      userId: settingsDoc.userId,
                       monthlyReports: settingsDoc.monthlyReports,
                       expenseReminders: settingsDoc.expenseReminders,
                       billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
                       expenseReminderTime: settingsDoc.expenseReminderTime,
                   }
                 : {
-                      userId: updatedUser._id,
                       monthlyReports: false,
                       expenseReminders: true,
                       billsAndBudgetsAlert: false,
@@ -292,7 +288,7 @@ export const updateSettings = async (req: Request, res: Response): Promise<void>
         if (expenseReminderTime !== undefined) settingsData.expenseReminderTime = expenseReminderTime;
 
         // Use findByIdAndUpdate with upsert to create if doesn't exist, update if exists
-        const settingsDoc: SettingsDocument = await Settings.findByIdAndUpdate(
+        const settingsDoc = await Settings.findByIdAndUpdate(
             userId,
             { ...settingsData },
             {
@@ -309,7 +305,7 @@ export const updateSettings = async (req: Request, res: Response): Promise<void>
         }
 
         const settingsResponse: SettingsResponse = {
-            userId: settingsDoc.userId,
+            userId: settingsDoc.userId.toString(),
             monthlyReports: settingsDoc.monthlyReports,
             expenseReminders: settingsDoc.expenseReminders,
             billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,

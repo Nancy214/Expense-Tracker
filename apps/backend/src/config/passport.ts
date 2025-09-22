@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { User } from "../models/user.model";
 import { generateTokens } from "../controllers/auth.controller";
-import { MongooseUserDocument } from "../types/auth";
+import { MongooseUserDocument } from "@expense-tracker/shared-types/src/auth-backend";
 
 dotenv.config();
 

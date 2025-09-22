@@ -1,20 +1,27 @@
 import { Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
-import { AuthRequest } from "../types/auth";
-import { Transaction, Bill } from "../types/transactions";
+import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
 import {
-    TransactionDocument,
-    BillDocument,
     PieChartDataPoint,
     CategoryBreakdownResponse,
-    MonthlyData,
-    IncomeExpenseSummaryResponse,
-    MonthlySavingsData,
-    MonthlySavingsTrendResponse,
     MonthDates,
     PeriodTransactionData,
     MonthSavingsData,
-} from "../types/analytics";
+} from "@expense-tracker/shared-types/src/analytics-backend";
+import {
+    IncomeExpenseSummaryResponse,
+    MonthlyData,
+    MonthlySavingsData,
+    MonthlySavingsTrendResponse,
+} from "@expense-tracker/shared-types/src/analytics-frontend";
+import { TransactionDocument, BillDocument } from "../types/transactions";
+
+export interface AuthRequest extends Request {
+    user?: TokenPayload;
+}
+
+// Union type for all transaction documents
+export type AnyTransactionDocument = TransactionDocument | BillDocument;
 
 // Helper function to get start and end dates for a month
 const getMonthDates = (year: number, month: number): MonthDates => {
@@ -134,7 +141,7 @@ export const getExpenseCategoryBreakdown = async (req: Request, res: Response): 
         // Aggregate by category
         const categoryBreakdown: { [key: string]: number } = {};
         expenses.forEach((expense: TransactionDocument) => {
-            const expenseData: Transaction = expense.toObject();
+            const expenseData: TransactionDocument = expense;
             const category: string = expenseData.category;
             categoryBreakdown[category] = (categoryBreakdown[category] || 0) + expenseData.amount;
         });
@@ -196,7 +203,7 @@ export const getBillsCategoryBreakdown = async (req: Request, res: Response): Pr
         // Aggregate by billCategory
         const billCategoryBreakdown: { [key: string]: number } = {};
         bills.forEach((bill: BillDocument) => {
-            const billData: Bill = bill.toObject();
+            const billData: BillDocument = bill;
             const billCategory: string = billData.billCategory || "Other";
             billCategoryBreakdown[billCategory] = (billCategoryBreakdown[billCategory] || 0) + billData.amount;
         });
@@ -239,7 +246,7 @@ const getTransactionsForPeriod = async (
             },
         });
 
-        const transactionData: Transaction | Bill[] = transactions.map((t) => t.toObject());
+        const transactionData: TransactionDocument[] = transactions.map((t) => t);
 
         const income: number = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
 
@@ -429,8 +436,6 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
                 totalBills: activeMonthsData.reduce((sum, month) => sum + month.bills, 0),
                 netIncome: activeMonthsData.reduce((sum, month) => sum + month.netIncome, 0),
                 totalTransactions: activeMonthsData.reduce((sum, month) => sum + month.transactionCount, 0),
-                activeMonths: activeMonthsData.length,
-                totalMonthsAnalyzed: allMonthsData.length,
             },
         };
 
@@ -456,9 +461,11 @@ const getTransactionsForMonth = async (userId: string, year: number, month: numb
             },
         });
 
-        const transactionData: Transaction | Bill[] = transactions.map((t) => t.toObject());
+        const transactionData: TransactionDocument[] = transactions.map((t) => t);
 
-        const income: number = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+        const income: number = transactionData
+            .filter((t) => t.type === "income")
+            .reduce((sum, t: TransactionDocument) => sum + t.amount, 0);
 
         const expenses: number = transactionData
             .filter((t) => t.type === "expense")

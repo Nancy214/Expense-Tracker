@@ -1,6 +1,3 @@
-import { Document, Schema, Types } from "mongoose";
-import { Request } from "express";
-
 export interface UserType {
     _id: string;
     email: string;
@@ -19,7 +16,7 @@ export interface UserType {
 }
 
 export interface SettingsType {
-    userId: Schema.Types.ObjectId;
+    userId: string;
     monthlyReports?: boolean;
     expenseReminders?: boolean;
     billsAndBudgetsAlert?: boolean;
@@ -40,19 +37,15 @@ export interface TokenPayload {
     user: UserLocalType | UserGoogleType;
 }
 
-export interface AuthRequest extends Request {
-    user?: TokenPayload;
-}
-
 export interface RefreshTokenRequest {
     refreshToken: string;
 }
 
-export interface AuthResponse {
-    user: UserLocalType | UserGoogleType;
+/* export interface AuthResponse {
+    user: UserType;
     accessToken: string;
     refreshToken: string;
-}
+} */
 
 // New types for the auth controller
 export interface RegisterRequest {
@@ -82,8 +75,8 @@ export interface JwtPayload {
     timestamp?: number;
 }
 
-export interface UserDocument extends Document {
-    _id: Types.ObjectId;
+export interface UserDocument {
+    _id: string;
     email: string;
     name: string;
     profilePicture?: string;
@@ -98,8 +91,8 @@ export interface UserDocument extends Document {
     budgetType?: string;
 }
 
-export interface SettingsDocument extends Document {
-    userId: Types.ObjectId;
+export interface SettingsDocument {
+    userId: string;
     monthlyReports: boolean;
     expenseReminders: boolean;
     billsAndBudgetsAlert: boolean;
@@ -107,7 +100,7 @@ export interface SettingsDocument extends Document {
 }
 
 export interface AuthenticatedUser {
-    _id: Types.ObjectId;
+    _id: string;
     email: string;
     name: string;
     profilePicture?: string;
@@ -124,7 +117,7 @@ export interface LoginResponse {
     accessToken: string;
     refreshToken: string;
     user: {
-        id: Types.ObjectId;
+        id: string;
         email: string;
         name: string;
         profilePicture: string;
@@ -166,8 +159,8 @@ export interface RegisterResponse {
 }
 
 // Utility type for Mongoose documents that can be used with generateTokens
-export type MongooseUserDocument = Document & {
-    _id: Types.ObjectId | string;
+export interface MongooseUserDocument {
+    _id: string;
     email: string;
     name: string;
     profilePicture?: string;
@@ -180,4 +173,4 @@ export type MongooseUserDocument = Document & {
     timezone?: string;
     budget?: boolean;
     budgetType?: string;
-};
+}

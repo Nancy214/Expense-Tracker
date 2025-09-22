@@ -6,7 +6,7 @@ import {
     BudgetReminder,
     BudgetLog,
 } from "../../../../libs/shared-types/src/budget-frontend";
-import { ApiError } from "../../../../libs/shared-types/src/error-frontend";
+import { ApiError } from "@expense-tracker/shared-types/src/error";
 import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";

@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BudgetResponse, BudgetData } from "../../../../libs/shared-types/src/budget-frontend";
 import { budgetSchema, BudgetFormData, getDefaultValues } from "@/schemas/budgetSchema";
 import { useBudgets } from "@/hooks/use-budgets";
-import { BudgetFormError } from "../../../../libs/shared-types/src/error-frontend";
+import { BudgetFormError } from "@expense-tracker/shared-types/src/error";
 import { useAuth } from "@/context/AuthContext";
 
 /**

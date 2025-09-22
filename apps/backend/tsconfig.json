@@ -16,8 +16,12 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "exactOptionalPropertyTypes": true,
-        "noImplicitReturns": true
+        "noImplicitReturns": true,
+        "baseUrl": ".",
+        "paths": {
+            "@expense-tracker/shared-types": ["../../libs/shared-types/src"]
+        }
     },
-    "include": ["src/**/*"],
+    "include": ["src/**/*", "src/types/transactions.ts", "src/types/transactions.ts"],
     "exclude": ["node_modules", "dist"]
 }

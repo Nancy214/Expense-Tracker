@@ -82,6 +82,7 @@ export enum IncomeCategory {
 
 // Base transaction interface - single source of truth
 export interface Transaction {
+    _id?: string;
     date: Date;
     title: string;
     amount: number;

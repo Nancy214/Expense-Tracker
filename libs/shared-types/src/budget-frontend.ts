@@ -150,14 +150,6 @@ export interface BudgetCategoryOption {
     label: string;
 }
 
-export interface AddBudgetDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    editingBudget: Budget | null;
-    onSuccess?: () => void;
-    triggerButton?: React.ReactNode;
-}
-
 // Filter types for budget logs
 export interface BudgetLogFilters {
     changeTypes?: string[];

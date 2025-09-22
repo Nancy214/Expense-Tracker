@@ -21,7 +21,7 @@ import {
     ChangePasswordResponse,
     RegisterResponse,
     MongooseUserDocument,
-} from "../types/auth";
+} from "@expense-tracker/shared-types/src/auth-backend";
 import bcrypt from "bcrypt";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
@@ -121,23 +121,31 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
                 });
             }
 
-            // Always fetch or create settings
-            let settingsDoc: SettingsDocument | null = await Settings.findById(user._id);
+            // Always fetch or create settings (work with Mongoose doc, then map to plain object)
+            let settingsDoc: any = await Settings.findById(user._id);
             if (!settingsDoc) {
-                settingsDoc = (await Settings.create({
+                settingsDoc = await Settings.create({
                     userId: new Types.ObjectId(user._id),
                     monthlyReports: false,
                     expenseReminders: false,
                     billsAndBudgetsAlert: false,
                     expenseReminderTime: "18:00",
-                })) as SettingsDocument;
+                });
             }
+
+            const settings: SettingsDocument = {
+                userId: settingsDoc.userId,
+                monthlyReports: settingsDoc.monthlyReports,
+                expenseReminders: settingsDoc.expenseReminders,
+                billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
+                expenseReminderTime: settingsDoc.expenseReminderTime,
+            };
 
             const loginResponse: LoginResponse = {
                 accessToken,
                 refreshToken,
                 user: {
-                    id: new Types.ObjectId(user._id),
+                    id: user._id,
                     email: user.email,
                     name: user.name || "",
                     profilePicture: profilePictureUrl,
@@ -146,7 +154,7 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
                     currency: user.currency || "",
                     country: user.country || "",
                     timezone: user.timezone || "",
-                    settings: settingsDoc,
+                    settings,
                 },
             };
 
@@ -159,17 +167,25 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
     try {
         const user = req.user as AuthenticatedUser;
 
-        // Fetch or create settings
-        let settingsDoc: SettingsDocument | null = await Settings.findById(user._id);
+        // Fetch or create settings (work with Mongoose doc, then map to plain object)
+        let settingsDoc: any = await Settings.findById(user._id);
         if (!settingsDoc) {
-            settingsDoc = (await Settings.create({
+            settingsDoc = await Settings.create({
                 userId: user._id,
                 monthlyReports: false,
                 expenseReminders: false,
                 billsAndBudgetsAlert: false,
                 expenseReminderTime: "18:00",
-            })) as SettingsDocument;
+            });
         }
+
+        const settings: SettingsDocument = {
+            userId: settingsDoc.userId,
+            monthlyReports: settingsDoc.monthlyReports,
+            expenseReminders: settingsDoc.expenseReminders,
+            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
+            expenseReminderTime: settingsDoc.expenseReminderTime,
+        };
 
         const tokens: string = encodeURIComponent(
             JSON.stringify({
@@ -185,7 +201,7 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
                     currency: user.currency || "",
                     country: user.country || "",
                     timezone: user.timezone || "",
-                    settings: settingsDoc,
+                    settings,
                 },
             })
         );

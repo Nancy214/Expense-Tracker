@@ -6,7 +6,7 @@ import type {
     IncomeExpenseSummaryResponse,
     MonthlySavingsTrendResponse,
     AnalyticsApiError,
-} from "@/types/analytics";
+} from "@expense-tracker/shared-types/src/analytics-frontend";
 
 const API_URL = "http://localhost:8000/api/analytics";
 

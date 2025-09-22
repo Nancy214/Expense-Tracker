@@ -6,7 +6,3 @@ export interface ApiError {
     };
     message?: string;
 }
-
-export interface BudgetFormError extends ApiError {
-    // Additional budget-specific error properties if needed
-}

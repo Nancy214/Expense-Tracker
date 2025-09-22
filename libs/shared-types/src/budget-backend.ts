@@ -1,9 +1,7 @@
-import { Types } from "mongoose";
-
-export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
+import { BudgetChangeType, BudgetChange, BudgetRecurrence } from "./budget-frontend";
 
 export interface BudgetType {
-    userId: Types.ObjectId;
+    userId: string;
     title: string;
     amount: number;
     currency: string;
@@ -30,7 +28,7 @@ export interface BudgetRequest {
 
 // New types for budget progress tracking
 export interface BudgetProgressItem {
-    _id: Types.ObjectId;
+    _id: string;
     title: string;
     amount: number;
     currency: string;
@@ -49,28 +47,6 @@ export interface BudgetProgressItem {
     expensesCount: number;
 }
 
-export interface BudgetProgressResponse {
-    budgets: BudgetProgressItem[];
-    totalProgress: number;
-    totalBudgetAmount: number;
-    totalSpent: number;
-}
-
-export interface BudgetResponse {
-    _id: Types.ObjectId;
-    userId: Types.ObjectId;
-    title: string;
-    amount: number;
-    currency: string;
-    fromRate?: number;
-    toRate?: number;
-    recurrence: BudgetRecurrence;
-    startDate: Date;
-    category: string;
-    createdAt: Date;
-    reason?: string;
-}
-
 export interface BudgetDeleteResponse {
     message: string;
 }
@@ -84,17 +60,9 @@ export interface BudgetSuccessResponse {
     message: string;
 }
 
-export type BudgetChangeType = "created" | "updated" | "deleted";
-
-export interface BudgetChange {
-    field: string;
-    oldValue: any;
-    newValue: any;
-}
-
 export interface BudgetLogType {
-    budgetId: Types.ObjectId;
-    userId: Types.ObjectId;
+    budgetId: string;
+    userId: string;
     changeType: BudgetChangeType;
     changes: BudgetChange[];
     reason: string;
@@ -102,9 +70,9 @@ export interface BudgetLogType {
 }
 
 export interface BudgetLogResponse {
-    _id: Types.ObjectId;
-    budgetId: Types.ObjectId;
-    userId: Types.ObjectId;
+    _id: string;
+    budgetId: string;
+    userId: string;
     changeType: BudgetChangeType;
     changes: BudgetChange[];
     reason: string;

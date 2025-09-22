@@ -1,12 +1,13 @@
 import mongoose, { Schema } from "mongoose";
-import { BudgetType } from "../types/budget";
+import { BudgetType } from "@expense-tracker/shared-types/src/budget-backend";
 
 export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
 
 const budgetSchema = new Schema<BudgetType>({
     userId: {
-        type: Schema.Types.ObjectId,
+        type: String,
         ref: "User",
+        required: true,
     },
     title: { type: String, required: true },
     amount: { type: Number, required: true },

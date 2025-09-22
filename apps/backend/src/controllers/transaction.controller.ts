@@ -23,7 +23,11 @@ import {
     BillStatusUpdateResponse,
     DeleteResponse,
 } from "../types/transactions";
-import { AuthRequest } from "../types/auth";
+import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
+
+export interface AuthRequest extends Request {
+    user?: TokenPayload;
+}
 
 // FIXME: Remove this once the shared types are updated
 // Type guard to check if a transaction is a bill

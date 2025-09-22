@@ -5,7 +5,7 @@ import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.se
 import { TransactionWithId } from "../../../../libs/shared-types/src/transaction-frontend";
 import { BudgetResponse } from "../../../../libs/shared-types/src/budget-frontend";
 import { useBudgets } from "@/hooks/use-budgets";
-import { ApiError } from "../../../../libs/shared-types/src/error-frontend";
+import { ApiError } from "@expense-tracker/shared-types/src/error";
 
 // Query keys for invalidation - matching use-transactions.ts
 const EXPENSES_QUERY_KEY = ["expenses"] as const;
