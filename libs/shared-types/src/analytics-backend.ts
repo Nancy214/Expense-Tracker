@@ -1,4 +1,4 @@
-import { Transaction, Bill } from "./transaction-frontend";
+import { Transaction, Bill } from "./transactions-frontend";
 import { CurrentMonthData } from "./analytics-frontend";
 // Pie chart data structure
 export interface PieChartDataPoint {

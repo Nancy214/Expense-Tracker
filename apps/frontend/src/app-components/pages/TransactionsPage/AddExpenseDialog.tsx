@@ -20,10 +20,10 @@ import {
     Bill,
     PaymentMethod,
     BillFrequency,
+    Transaction,
     TransactionType,
     TransactionWithId,
-} from "../../../../../../libs/shared-types/src/transaction-frontend";
-import { Transaction } from "../../../../../../libs/shared-types/src/transaction-frontend";
+} from "../../../../../../libs/shared-types/src/transactions-frontend";
 import { CurrencyOption } from "../../../../../../libs/shared-types/src/profile-frontend";
 
 // Form handling type - with string dates for UI

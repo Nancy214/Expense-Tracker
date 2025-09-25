@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { parse, format } from "date-fns";
 import { Plus, TrendingUp, UploadIcon } from "lucide-react";
-import { TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
-import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
-import { useBudgets } from "@/hooks/use-budgets";
+import { ActiveTab, TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
+//import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
+//import { useBudgets } from "@/hooks/use-budgets";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import {
     generateMonthlyStatementPDF,
@@ -55,7 +55,7 @@ const TransactionsPage = () => {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<TransactionWithId | null>(null);
-    const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
+    //const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState<"all" | "recurring" | "bills">("all");
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
 
@@ -96,7 +96,7 @@ const TransactionsPage = () => {
         }
     };
 
-    const { budgetReminders = [] } = useBudgets();
+    //const { budgetReminders = [] } = useBudgets();
 
     // Combined refresh function that invalidates both all transactions and bills
     const refreshAllTransactions = (): void => {
@@ -136,11 +136,11 @@ const TransactionsPage = () => {
         }
     }, [isDialogOpen]);
 
-    const activeReminders = budgetReminders.filter((reminder) => !dismissedReminders.has(reminder.id));
+    /*     const activeReminders = budgetReminders.filter((reminder) => !dismissedReminders.has(reminder.id));
 
     const dismissReminder = (reminderId: string): void => {
         setDismissedReminders((prev) => new Set([...prev, reminderId]));
-    };
+    }; */
 
     // Helper to get a Date object from transaction.date
     const getTransactionDate = (t: TransactionWithId): Date => {
@@ -355,7 +355,7 @@ const TransactionsPage = () => {
     return (
         <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
             {/* Budget Reminders */}
-            <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} />
+            {/* <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} /> */}
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -535,7 +535,7 @@ const TransactionsPage = () => {
                 recurringTransactions={recurringTemplates}
                 totalExpensesByCurrency={totalExpensesByCurrency}
                 parse={parse}
-                activeTab={activeTab}
+                activeTab={activeTab as ActiveTab}
                 setActiveTab={setActiveTab}
                 refreshAllTransactions={refreshAllTransactions}
                 // Pagination props - use the correct pagination based on active tab

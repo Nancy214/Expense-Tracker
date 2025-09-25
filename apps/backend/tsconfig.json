@@ -22,6 +22,6 @@
             "@expense-tracker/shared-types": ["../../libs/shared-types/src"]
         }
     },
-    "include": ["src/**/*", "src/types/transactions.ts", "src/types/transactions.ts"],
+    "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]
 }

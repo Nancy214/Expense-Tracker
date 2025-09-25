@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 //import { AuthRequest } from "../types/auth";
-import { BillFrequency } from "../types/transactions";
+import { BillFrequency } from "@expense-tracker/shared-types/src/transactions-frontend";
 import { getStartOfToday, addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
 import { s3Client, isAWSConfigured } from "../config/s3Client";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -12,8 +12,6 @@ import crypto from "crypto";
 import { Types } from "mongoose";
 import { RecurringTransactionJobService } from "../services/recurringTransactionJob.service";
 import {
-    TransactionOrBillDocument,
-    BillDocument,
     PaginationQuery,
     PaginatedResponse,
     SummaryResponse,
@@ -22,12 +20,17 @@ import {
     BillStatusUpdateRequest,
     BillStatusUpdateResponse,
     DeleteResponse,
-} from "../types/transactions";
+    TransactionDocument,
+    BillDocument,
+} from "@expense-tracker/shared-types/src/transactions-backend";
 import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
+import { isSameDay } from "date-fns";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;
 }
+
+export type TransactionOrBillDocument = TransactionDocument | BillDocument;
 
 // FIXME: Remove this once the shared types are updated
 // Type guard to check if a transaction is a bill
@@ -65,7 +68,8 @@ const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): D
 };
 
 // Helper function to create recurring instances
-const createRecurringInstances = async (template: TransactionOrBillDocument, _: Types.ObjectId): Promise<void> => {
+const createRecurringInstances = async (template: TransactionOrBillDocument, userId: Types.ObjectId): Promise<void> => {
+    const templateId = template._id;
     if (isBillDocument(template)) {
         // Handle bill frequency
         if (template.billFrequency) {
@@ -75,24 +79,20 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, _: 
             let current: Date = new Date(start);
             let end: Date = today;
 
+            const { _id, ...rest } = template;
+            const templateData = rest;
             while (!isDateAfter(current, end)) {
-                const dateStr: string = current.toISOString().slice(0, 10);
                 // Skip the template's original date
-                if (dateStr !== start.toISOString().slice(0, 10)) {
-                    const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
-                        templateId: template._id,
-                        date: current,
-                        userId: template.userId,
-                    });
-                    if (!exists) {
-                        await TransactionModel.create<TransactionOrBillDocument>({
-                            ...template.toObject(),
-                            _id: undefined,
+                if (isSameDay(current, start)) {
+                    await TransactionModel.updateOne(
+                        {
+                            templateId: templateId,
                             date: current,
-                            templateId: template._id,
-                            userId: template.userId,
-                        });
-                    }
+                            userId: userId,
+                        },
+                        { $set: { ...templateData, isRecurring: false } },
+                        { upsert: true }
+                    );
                 }
 
                 // Bill frequency logic
@@ -107,25 +107,21 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, _: 
             let current: Date = new Date(start);
             let end: Date = today;
 
+            const { _id, ...rest } = template;
+            const templateData = rest;
+
             while (!isDateAfter(current, end)) {
-                const dateStr: string = current.toISOString().slice(0, 10);
                 // Skip the template's original date
-                if (dateStr !== start.toISOString().slice(0, 10)) {
-                    const exists: TransactionOrBillDocument | null = await TransactionModel.findOne({
-                        templateId: template._id,
-                        date: current,
-                        userId: template.userId,
-                    });
-                    if (!exists) {
-                        await TransactionModel.create<TransactionOrBillDocument>({
-                            ...template.toObject(),
-                            _id: undefined,
+                if (isSameDay(current, start)) {
+                    await TransactionModel.updateOne(
+                        {
+                            templateId: templateId,
                             date: current,
-                            templateId: template._id,
-                            isRecurring: false,
-                            userId: template.userId,
-                        });
-                    }
+                            userId: userId,
+                        },
+                        { $set: { ...templateData, isRecurring: false } },
+                        { upsert: true }
+                    );
                 }
 
                 // Regular transaction frequency logic
@@ -466,17 +462,19 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
         // Prepare expense data
         let expenseData = {
             ...req.body,
-            userId: new Types.ObjectId(userId),
+            userId: userId,
         };
 
         // If it's a bill, calculate nextDueDate automatically
         if (req.body.category === "Bills" && req.body.dueDate && req.body.billFrequency) {
             const dueDate = new Date(req.body.dueDate);
-            const frequency = req.body.billFrequency as BillFrequency;
+            const frequency: BillFrequency = req.body.billFrequency;
             expenseData.nextDueDate = calculateNextDueDate(dueDate, frequency);
         }
 
-        const expense: TransactionOrBillDocument = await TransactionModel.create(expenseData);
+        const expense: TransactionOrBillDocument = (
+            await TransactionModel.create(expenseData)
+        ).toObject() as TransactionOrBillDocument;
 
         // TODO: Remove this dead code.
         //const expenseDoc: TransactionOrBill = expense.toObject() as TransactionOrBill;
@@ -487,8 +485,8 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
 
         res.json(expense);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        console.error("Error creating expense:", error);
+        res.status(500).json({ message: "Something went wrong" });
     }
 };
 

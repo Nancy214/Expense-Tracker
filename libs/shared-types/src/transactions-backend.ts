@@ -1,14 +1,15 @@
-import { Document, Types } from "mongoose";
+import {
+    RecurringFrequency,
+    TransactionType,
+    BillStatus,
+    BillFrequency,
+    PaymentMethod,
+    Transaction,
+    Bill,
+    TransactionSummary,
+} from "./transactions-frontend";
 
-export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
-export type TransactionType = "income" | "expense";
-
-// Bill-related types - ADDED
-export type BillStatus = "unpaid" | "paid" | "overdue" | "pending";
-export type BillFrequency = "monthly" | "quarterly" | "yearly" | "one-time";
-export type PaymentMethod = "manual" | "auto-pay" | "bank-transfer" | "credit-card" | "debit-card" | "cash";
-
-export interface Transaction {
+/* export interface Transaction {
     date: Date;
     title: string;
     amount: number;
@@ -18,15 +19,15 @@ export interface Transaction {
     type: TransactionType;
     fromRate?: number;
     toRate?: number;
-    userId: Types.ObjectId;
+    userId: string;
     isRecurring?: boolean;
     recurringFrequency?: RecurringFrequency;
     endDate?: Date;
-    templateId?: Types.ObjectId;
+    templateId?: string;
     receipts?: string[];
-}
+} */
 
-export type Bill = Omit<Transaction, "isRecurring" | "recurringFrequency" | "endDate" | "templateId"> & {
+/* export type Bill = Omit<Transaction, "isRecurring" | "recurringFrequency" | "endDate" | "templateId"> & {
     billCategory?: string;
     reminderDays?: number;
     dueDate?: Date;
@@ -36,14 +37,14 @@ export type Bill = Omit<Transaction, "isRecurring" | "recurringFrequency" | "end
     lastPaidDate?: Date;
     paymentMethod?: PaymentMethod;
 };
-
+ */
 // Extended types for better type safety
-export interface TransactionDocument extends Document, Transaction {
-    _id: Types.ObjectId;
+export interface TransactionDocument extends Transaction {
+    _id: string;
 }
 
-export interface BillDocument extends Document, Bill {
-    _id: Types.ObjectId;
+export interface BillDocument extends Bill {
+    _id: string;
 }
 
 export type TransactionOrBill = Transaction | Bill;
@@ -70,7 +71,7 @@ export interface PaginatedResponse<T> {
     pagination: PaginationResponse;
 }
 
-export interface TransactionSummary {
+/* export interface TransactionSummary {
     totalTransactions: number;
     totalIncome: number;
     totalExpenses: number;
@@ -81,7 +82,7 @@ export interface TransactionSummary {
     totalBillsAmount: number;
     totalRecurringAmount: number;
     averageTransactionAmount: number;
-}
+} */
 
 export interface SummaryResponse {
     summary: TransactionSummary;

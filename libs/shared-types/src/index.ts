@@ -9,4 +9,5 @@ export * from "./calendar-frontend";
 export * from "./error";
 export * from "./profile-frontend";
 export * from "./profile-backend";
-export * from "./transaction-frontend";
+export * from "./transactions-frontend";
+export * from "./transactions-backend";

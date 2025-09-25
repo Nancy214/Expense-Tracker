@@ -48,7 +48,6 @@ export enum ExpenseCategory {
     HEALTHCARE = "Healthcare",
     VACATION = "Vacation",
     EDUCATION = "Education",
-    HOUSING = "Housing",
     PERSONAL_CARE = "Personal Care",
     GIFTS = "Gifts",
     OTHER = "Other",

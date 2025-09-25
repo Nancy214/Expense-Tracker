@@ -20,7 +20,7 @@ import {
     RecurringTransactionTemplate,
     RecurringFrequency,
     TransactionType,
-} from "../../../../libs/shared-types/src/transaction-frontend";
+} from "../../../../libs/shared-types/src/transactions-frontend";
 import { parseFromDisplay } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 

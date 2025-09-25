@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { format } from "date-fns";
-import { User } from "@expense-tracker/shared-types/src/auth";
+import { User } from "@expense-tracker/shared-types/src/auth-frontend";
 import { BudgetRecurrence, BudgetCategory } from "../../../../libs/shared-types/src/budget-frontend";
 
 // Budget categories array with proper typing
@@ -19,7 +19,6 @@ export const BUDGET_CATEGORIES: readonly BudgetCategory[] = [
     BudgetCategory.HEALTHCARE,
     BudgetCategory.VACATION,
     BudgetCategory.EDUCATION,
-    BudgetCategory.HOUSING,
     BudgetCategory.PERSONAL_CARE,
     BudgetCategory.GIFTS,
     BudgetCategory.OTHER,

@@ -10,7 +10,11 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Repeat, Pencil, Trash, Calendar, CheckCircle, Clock, Receipt } from "lucide-react";
-import { TransactionWithId, BillStatus } from "../../../../../../libs/shared-types/src/transaction-frontend";
+import {
+    TransactionWithId,
+    BillStatus,
+    TabComponentProps,
+} from "../../../../../../libs/shared-types/src/transactions-frontend";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +22,6 @@ import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { format, isBefore, startOfDay } from "date-fns";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
-import { TabComponentProps } from "../../../../../../libs/shared-types/src/transaction-frontend";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTransactions }: TabComponentProps) {

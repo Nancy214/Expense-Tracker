@@ -14,7 +14,7 @@ import {
     MonthlySavingsData,
     MonthlySavingsTrendResponse,
 } from "@expense-tracker/shared-types/src/analytics-frontend";
-import { TransactionDocument, BillDocument } from "../types/transactions";
+import { TransactionDocument, BillDocument } from "@expense-tracker/shared-types/src/transactions-backend";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;

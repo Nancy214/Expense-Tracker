@@ -7,19 +7,19 @@ import {
     BudgetLog,
 } from "../../../../libs/shared-types/src/budget-frontend";
 import { ApiError } from "@expense-tracker/shared-types/src/error";
-import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
+import { refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 
 // Define API response types
-interface RefreshTokenResponse {
+/* interface RefreshTokenResponse {
     accessToken: string;
 }
 
 interface RefreshTokenRequest {
     refreshToken: string;
 }
-
+ */
 // Create axios instance with auth interceptor
 const budgetApi: AxiosInstance = axios.create({
     baseURL: API_URL,

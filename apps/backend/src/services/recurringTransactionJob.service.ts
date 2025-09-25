@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { TransactionModel } from "../models/transaction.model";
 import { User } from "../models/user.model";
-import { TransactionOrBillDocument } from "../types/transactions";
+import { TransactionOrBillDocument } from "@expense-tracker/shared-types/src/transactions-backend";
 import { addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
 import { getTodayInTimezone } from "../utils/timezoneUtils";
 
@@ -9,6 +9,7 @@ import { getTodayInTimezone } from "../utils/timezoneUtils";
  * Service for handling recurring transaction jobs
  * Processes recurring transactions based on their frequency and user timezone
  */
+
 export class RecurringTransactionJobService {
     /**
      * Process all recurring transactions for all users
@@ -131,7 +132,7 @@ export class RecurringTransactionJobService {
         }
 
         // Calculate the next due date based on the template's last occurrence
-        const lastOccurrence = await this.getLastOccurrence(template._id, userId);
+        const lastOccurrence = await this.getLastOccurrence(new Types.ObjectId(template._id), userId);
         const nextDueDate = this.calculateNextDueDate(template, lastOccurrence, frequency);
 
         // Check if we should create a new instance today
@@ -242,13 +243,13 @@ export class RecurringTransactionJobService {
         date: Date,
         userId: Types.ObjectId
     ): Promise<void> {
-        const instanceData = {
-            ...template.toObject(),
-            _id: undefined,
+        const instanceData: TransactionOrBillDocument = {
+            ...template,
+            _id: "",
             date: date,
             templateId: template._id,
             isRecurring: false,
-            userId: userId,
+            userId: userId.toString(),
         };
 
         await TransactionModel.create<TransactionOrBillDocument>(instanceData);

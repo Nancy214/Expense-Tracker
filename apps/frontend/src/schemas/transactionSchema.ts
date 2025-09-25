@@ -7,7 +7,7 @@ import {
     IncomeCategory,
     BillCategory,
     TransactionType,
-} from "../../../../libs/shared-types/src/transaction-frontend";
+} from "../../../../libs/shared-types/src/transactions-frontend";
 import { z } from "zod";
 
 // Union types for all categories
@@ -28,7 +28,6 @@ const EXPENSE_CATEGORIES: readonly ExpenseCategory[] = [
     ExpenseCategory.HEALTHCARE,
     ExpenseCategory.VACATION,
     ExpenseCategory.EDUCATION,
-    ExpenseCategory.HOUSING,
     ExpenseCategory.PERSONAL_CARE,
     ExpenseCategory.GIFTS,
     ExpenseCategory.OTHER,

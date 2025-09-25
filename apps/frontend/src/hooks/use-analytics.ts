@@ -8,7 +8,7 @@ import {
 } from "@/services/analytics.service";
 import { getAllTransactionsForAnalytics } from "@/services/transaction.service";
 import { useAuth } from "@/context/AuthContext";
-import { Transaction, TransactionWithId, MonthlyStats } from "@expense-tracker/shared-types/src/transaction-frontend";
+import { Transaction, TransactionWithId, MonthlyStats } from "@expense-tracker/shared-types/src/transactions-frontend";
 import {
     ExpenseCategoryData,
     BillsCategoryData,
