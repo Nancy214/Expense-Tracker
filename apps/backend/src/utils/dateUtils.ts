@@ -1,4 +1,14 @@
-import { addDays, addWeeks, addMonths, addYears, addQuarters, isAfter } from "date-fns";
+import {
+    addDays,
+    addWeeks,
+    addMonths,
+    addYears,
+    addQuarters,
+    isAfter,
+    startOfMonth,
+    endOfMonth,
+    format,
+} from "date-fns";
 
 // Get start of day (midnight) for a given date
 export const getStartOfDay = (date: Date): Date => {
@@ -47,4 +57,18 @@ export const formatDateForAPI = (date: Date): string => {
 // Parse date from API request
 export const parseDateFromAPI = (dateStr: string | Date): Date => {
     return dateStr instanceof Date ? dateStr : new Date(dateStr);
+};
+
+// Helper function to get start and end dates for a month
+export const getMonthDates = (year: number, month: number): { startDate: Date; endDate: Date } => {
+    const date = new Date(year, month, 1);
+    const startDate = startOfMonth(date);
+    const endDate = endOfMonth(date);
+    return { startDate, endDate };
+};
+
+// Helper function to get month name
+export const getMonthName = (month: number): string => {
+    const date = new Date(2024, month, 1); // Use any year, we only need the month
+    return format(date, "MMMM");
 };

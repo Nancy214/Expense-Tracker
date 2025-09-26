@@ -14,15 +14,15 @@ import type {
     BarChartProps,
     TransformedBarData,
     BarChartMonthNetData as MonthData,
-    BarChartTooltipProps as TooltipProps,
-} from "@/types/analytics";
+    ChartTooltipProps,
+} from "@expense-tracker/shared-types/src/analytics";
 import { TimePeriod } from "./TimePeriodSelector";
 import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
 
-const COLORS = [
-    "#10b981", // Green for Income
-    "#ef4444", // Red for Expenses
-];
+const COLORS = {
+    income: "#10b981", // Green for Income
+    expense: "#ef4444", // Red for Expenses
+};
 
 const BarChartComponent: React.FC<BarChartProps> = ({
     title,
@@ -85,6 +85,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
             // Convert to array format for the chart
             return Object.entries(dailyData).map(([date, values]) => ({
                 name: date,
+                type: "bar",
                 Income: values.Income,
                 Expense: values.Expense,
             }));
@@ -94,7 +95,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         const categories: string[] = [...new Set(data.map((item) => item.category || ""))];
 
         return timePeriods.map((period: string) => {
-            const periodData: TransformedBarData = { name: period, Income: 0, Expense: 0 };
+            const periodData: TransformedBarData = { name: period, type: "bar", Income: 0, Expense: 0 };
             categories.forEach((category: string) => {
                 const item: BarChartData = data.find((d) => d.name === period && d.category === category) || {
                     name: period,
@@ -202,28 +203,27 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     };
 
     // Custom tooltip formatter
-    const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
+    const CustomTooltip: React.FC<ChartTooltipProps> = ({ active, payload, label }) => {
         if (active && payload && payload.length > 0) {
-            const data: TransformedBarData = payload[0].payload;
+            const data = payload[0].payload;
+            // Use type discrimination to check if it's TransformedBarData
+            if (data.type === "bar") {
+                const barData: TransformedBarData = data;
 
-            // For grouped bar chart, we need to show both income and expense for the month
-            const income: number = data.Income || 0;
-            const expense: number = data.Expense || 0;
-            const net: number = income - expense;
+                // For grouped bar chart, we need to show both income and expense for the month
+                const income: number = barData.Income || 0;
+                const expense: number = barData.Expense || 0;
 
-            return (
-                <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                    <p className="font-semibold text-gray-800 dark:text-gray-100">{label}</p>
-                    <div className="space-y-1">
-                        <p className="text-sm text-green-600 dark:text-green-400">Income: {formatAmount(income)}</p>
-                        <p className="text-sm text-red-600 dark:text-red-400">Expense: {formatAmount(expense)}</p>
-                        <p className={`text-sm font-semibold ${net >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            Net: {net >= 0 ? "+" : ""}
-                            {formatAmount(net)}
-                        </p>
+                return (
+                    <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                        <p className="font-semibold text-gray-800 dark:text-gray-100">{label}</p>
+                        <div className="space-y-1">
+                            <p className="text-sm text-green-600 dark:text-green-400">Income: {formatAmount(income)}</p>
+                            <p className="text-sm text-red-600 dark:text-red-400">Expense: {formatAmount(expense)}</p>
+                        </div>
                     </div>
-                </div>
-            );
+                );
+            }
         }
         return null;
     };
@@ -271,8 +271,8 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                                 />
                                 <Tooltip content={<CustomTooltip />} />
                                 {showLegend && <Legend />}
-                                <Bar dataKey="Income" fill={colors[0]} radius={[4, 4, 0, 0]} name="Income" />
-                                <Bar dataKey="Expense" fill={colors[1]} radius={[4, 4, 0, 0]} name="Expense" />
+                                <Bar dataKey="Income" fill={colors.income} radius={[4, 4, 0, 0]} name="Income" />
+                                <Bar dataKey="Expense" fill={colors.expense} radius={[4, 4, 0, 0]} name="Expense" />
                             </RechartsBarChart>
                         </ResponsiveContainer>
                     </div>

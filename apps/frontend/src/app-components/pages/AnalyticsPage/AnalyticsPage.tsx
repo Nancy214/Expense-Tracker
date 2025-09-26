@@ -20,15 +20,14 @@ import PieChartComponent from "./PieChart";
 import BarChartComponent from "./BarChart";
 import AreaChartComponent from "./AreaChart";
 import type {
-    ExpenseCategoryData,
-    BillsCategoryData,
-    AnalyticsMonthData as MonthData,
-    SavingsTrendItem,
+    MonthlyIncomeExpenseData,
+    MonthlySavingsData,
     HeatmapData,
     AreaChartData,
     BarChartData,
-} from "@/types/analytics";
-import type { TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
+    PieChartData,
+} from "@expense-tracker/shared-types/src/analytics";
+import type { TransactionWithId } from "@expense-tracker/shared-types/src/transactions-frontend";
 
 // AnalyticsCard component moved inline
 const AnalyticsCard: React.FC<{
@@ -36,8 +35,8 @@ const AnalyticsCard: React.FC<{
     onPeriodChange: (period: TimePeriod) => void;
     selectedSubPeriod: string;
     onSubPeriodChange: (subPeriod: string) => void;
-    expenseCategoryData: ExpenseCategoryData[];
-    billsCategoryData: BillsCategoryData[];
+    expenseCategoryData: PieChartData[];
+    billsCategoryData: PieChartData[];
     incomeExpenseData: BarChartData[];
     savingsTrendData: AreaChartData[];
     isLoading: boolean;
@@ -296,19 +295,20 @@ const AnalyticsPage = () => {
         expenseBreakdownError || billsBreakdownError || incomeExpenseError || savingsTrendError;
 
     // Transform data for charts
-    const expenseCategoryData: ExpenseCategoryData[] = expenseBreakdown?.data || [];
-    const billsCategoryData: BillsCategoryData[] = billsBreakdown?.data || [];
+    const expenseCategoryData: PieChartData[] = expenseBreakdown?.data || [];
+    const billsCategoryData: PieChartData[] = billsBreakdown?.data || [];
 
     // Transform income/expense data for bar chart
     const incomeExpenseData: BarChartData[] =
-        incomeExpenseResponse?.data?.months?.flatMap((monthData: MonthData) => [
+        incomeExpenseResponse?.data?.months?.flatMap((monthData: MonthlyIncomeExpenseData) => [
             { name: monthData.month, value: monthData.income, category: "Income" },
             { name: monthData.month, value: monthData.expenses, category: "Expense" },
         ]) || [];
 
     // Transform savings trend data for area chart
     const savingsTrendData: AreaChartData[] =
-        savingsTrendResponse?.data?.trend?.map((item: SavingsTrendItem) => ({
+        savingsTrendResponse?.data?.trend?.map((item: MonthlySavingsData) => ({
+            type: "area",
             name: item.month,
             savings: item.savings,
             income: item.income,

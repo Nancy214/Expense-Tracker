@@ -10,25 +10,25 @@ import { getAllTransactionsForAnalytics } from "@/services/transaction.service";
 import { useAuth } from "@/context/AuthContext";
 import { Transaction, TransactionWithId, MonthlyStats } from "@expense-tracker/shared-types/src/transactions-frontend";
 import {
-    ExpenseCategoryData,
-    BillsCategoryData,
+    ExpenseCategoryBreakdownResponse,
+    BillsCategoryBreakdownResponse,
     HeatmapData,
     IncomeExpenseSummaryResponse,
     MonthlySavingsTrendResponse,
-} from "@expense-tracker/shared-types/src/analytics-frontend";
+} from "@expense-tracker/shared-types/src/analytics";
 import { parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
 
 // Type definitions for analytics API responses
 export interface ExpenseBreakdownResponse {
     success: boolean;
-    data: ExpenseCategoryData[];
+    data: ExpenseCategoryBreakdownResponse[];
     totalExpenses: number;
     totalAmount: number;
 }
 
 export interface BillsBreakdownResponse {
     success: boolean;
-    data: BillsCategoryData[];
+    data: BillsCategoryBreakdownResponse[];
     totalBills: number;
     totalAmount: number;
 }
@@ -62,10 +62,10 @@ export type AnalyticsQueryKey = (typeof ANALYTICS_QUERY_KEYS)[keyof typeof ANALY
 export function useExpenseCategoryBreakdown(
     period?: string,
     subPeriod?: string
-): UseQueryResult<ExpenseBreakdownResponse, Error> {
+): UseQueryResult<ExpenseCategoryBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
-    return useQuery<ExpenseBreakdownResponse, Error>({
+    return useQuery({
         queryKey: ANALYTICS_QUERY_KEYS.expenseBreakdown(period, subPeriod),
         queryFn: () => getExpenseCategoryBreakdown(period, subPeriod),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
@@ -78,10 +78,10 @@ export function useExpenseCategoryBreakdown(
 export function useBillsCategoryBreakdown(
     period?: string,
     subPeriod?: string
-): UseQueryResult<BillsBreakdownResponse, Error> {
+): UseQueryResult<BillsCategoryBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
-    return useQuery<BillsBreakdownResponse, Error>({
+    return useQuery({
         queryKey: ANALYTICS_QUERY_KEYS.billsBreakdown(period, subPeriod),
         queryFn: () => getBillsCategoryBreakdown(period, subPeriod),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes

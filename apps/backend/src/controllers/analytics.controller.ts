@@ -1,20 +1,29 @@
 import { Request, Response } from "express";
+import {
+    startOfMonth,
+    endOfMonth,
+    startOfQuarter,
+    endOfQuarter,
+    startOfYear,
+    endOfYear,
+    addMonths,
+    parse,
+} from "date-fns";
 import { TransactionModel } from "../models/transaction.model";
 import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
 import {
-    PieChartDataPoint,
-    CategoryBreakdownResponse,
-    MonthDates,
-    PeriodTransactionData,
-    MonthSavingsData,
-} from "@expense-tracker/shared-types/src/analytics-backend";
-import {
     IncomeExpenseSummaryResponse,
-    MonthlyData,
+    MonthlyIncomeExpenseData,
+    SpecificPeriodIncomeExpenseData,
     MonthlySavingsData,
     MonthlySavingsTrendResponse,
-} from "@expense-tracker/shared-types/src/analytics-frontend";
+    PieChartData,
+    BillsCategoryBreakdownResponse,
+    ExpenseCategoryBreakdownResponse,
+    SavingsDataForSpecificMonth,
+} from "@expense-tracker/shared-types/src/analytics";
 import { TransactionDocument, BillDocument } from "@expense-tracker/shared-types/src/transactions-backend";
+import { getMonthDates, getMonthName } from "../utils/dateUtils";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;
@@ -22,32 +31,6 @@ export interface AuthRequest extends Request {
 
 // Union type for all transaction documents
 export type AnyTransactionDocument = TransactionDocument | BillDocument;
-
-// Helper function to get start and end dates for a month
-const getMonthDates = (year: number, month: number): MonthDates => {
-    const startDate = new Date(year, month, 1);
-    const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
-    return { startDate, endDate };
-};
-
-// Helper function to get month name
-const getMonthName = (month: number): string => {
-    const monthNames = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-    ];
-    return monthNames[month];
-};
 
 // Helper function to get date range based on period and subPeriod
 const getDateRange = (period: string, subPeriod: string): { startDate: Date; endDate: Date } => {
@@ -57,47 +40,36 @@ const getDateRange = (period: string, subPeriod: string): { startDate: Date; end
 
     switch (period) {
         case "monthly":
-            const monthIndex = [
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December",
-            ].indexOf(subPeriod);
+            // Parse the month name to get the month index using date-fns
+            const monthDate = parse(subPeriod, "MMMM", new Date());
+            const monthIndex = monthDate.getMonth();
             // For monthly view, always use current year for recent months (Oct, Nov, Dec)
             // unless we're specifically looking at a past year
-            const year = currentYear;
-            return getMonthDates(year, monthIndex);
+            return getMonthDates(currentYear, monthIndex);
 
         case "quarterly":
             const quarter = parseInt(subPeriod.replace("Q", ""));
             const quarterStartMonth = (quarter - 1) * 3;
             // For quarterly view, always use current year for recent quarters (Q4 includes Oct, Nov, Dec)
-            const quarterYear = currentYear;
-            const quarterStart = new Date(quarterYear, quarterStartMonth, 1);
-            const quarterEnd = new Date(quarterYear, quarterStartMonth + 3, 0, 23, 59, 59, 999);
+            const quarterStartDate = new Date(currentYear, quarterStartMonth, 1);
+            const quarterStart = startOfQuarter(quarterStartDate);
+            const quarterEnd = endOfQuarter(quarterStartDate);
             return { startDate: quarterStart, endDate: quarterEnd };
 
         case "half-yearly":
             const half = parseInt(subPeriod.replace("H", ""));
             const halfStartMonth = (half - 1) * 6;
             // For half-yearly view, always use current year for recent half-years (H2 includes Jul-Dec)
-            const halfYear = currentYear;
-            const halfStart = new Date(halfYear, halfStartMonth, 1);
-            const halfEnd = new Date(halfYear, halfStartMonth + 6, 0, 23, 59, 59, 999);
+            const halfStartDate = new Date(currentYear, halfStartMonth, 1);
+            const halfStart = startOfMonth(halfStartDate);
+            const halfEnd = endOfMonth(addMonths(halfStartDate, 5));
             return { startDate: halfStart, endDate: halfEnd };
 
         case "yearly":
             const yearNum = parseInt(subPeriod);
-            const yearStart = new Date(yearNum, 0, 1);
-            const yearEnd = new Date(yearNum, 11, 31, 23, 59, 59, 999);
+            const yearDate = new Date(yearNum, 0, 1);
+            const yearStart = startOfYear(yearDate);
+            const yearEnd = endOfYear(yearDate);
             return { startDate: yearStart, endDate: yearEnd };
 
         default:
@@ -147,12 +119,12 @@ export const getExpenseCategoryBreakdown = async (req: Request, res: Response): 
         });
 
         // Convert to array format for pie chart
-        const pieChartData: PieChartDataPoint[] = Object.entries(categoryBreakdown).map(([name, value]) => ({
+        const pieChartData: PieChartData[] = Object.entries(categoryBreakdown).map(([name, value]) => ({
             name,
             value,
         }));
 
-        const response: CategoryBreakdownResponse = {
+        const response: ExpenseCategoryBreakdownResponse = {
             success: true,
             data: pieChartData,
             totalExpenses: expenses.length,
@@ -209,12 +181,12 @@ export const getBillsCategoryBreakdown = async (req: Request, res: Response): Pr
         });
 
         // Convert to array format for pie chart
-        const pieChartData: PieChartDataPoint[] = Object.entries(billCategoryBreakdown).map(([name, value]) => ({
+        const pieChartData: PieChartData[] = Object.entries(billCategoryBreakdown).map(([name, value]) => ({
             name,
             value,
         }));
 
-        const response: CategoryBreakdownResponse = {
+        const response: BillsCategoryBreakdownResponse = {
             success: true,
             data: pieChartData,
             totalBills: bills.length,
@@ -236,7 +208,7 @@ const getTransactionsForPeriod = async (
     userId: string,
     startDate: Date,
     endDate: Date
-): Promise<PeriodTransactionData> => {
+): Promise<SpecificPeriodIncomeExpenseData> => {
     try {
         const transactions: TransactionDocument[] = await TransactionModel.find({
             userId,
@@ -287,7 +259,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
         const currentYear: number = now.getFullYear();
         const currentMonth: number = now.getMonth();
 
-        let allMonthsData: MonthlyData[] = [];
+        let allMonthsData: MonthlyIncomeExpenseData[] = [];
 
         if (subPeriod && typeof subPeriod === "string") {
             // Get data for specific period
@@ -392,8 +364,8 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
                 const year: number = currentYear + Math.floor(monthIndex / 12);
                 const month: number = ((monthIndex % 12) + 12) % 12;
 
-                const monthDates: MonthDates = getMonthDates(year, month);
-                const monthData: PeriodTransactionData = await getTransactionsForPeriod(
+                const monthDates: { startDate: Date; endDate: Date } = getMonthDates(year, month);
+                const monthData: SpecificPeriodIncomeExpenseData = await getTransactionsForPeriod(
                     userId,
                     monthDates.startDate,
                     monthDates.endDate
@@ -409,10 +381,10 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
         }
 
         // Filter to only include months where user was active
-        const activeMonthsData: MonthlyData[] = allMonthsData.filter((month) => month.isActive);
+        const activeMonthsData: MonthlyIncomeExpenseData[] = allMonthsData.filter((month) => month.isActive);
 
         // Get current month data
-        const currentMonthData: PeriodTransactionData = await getTransactionsForPeriod(
+        const currentMonthData: SpecificPeriodIncomeExpenseData = await getTransactionsForPeriod(
             userId,
             getMonthDates(currentYear, currentMonth).startDate,
             getMonthDates(currentYear, currentMonth).endDate
@@ -450,9 +422,13 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
 };
 
 // Helper function to get transactions for a specific month
-const getTransactionsForMonth = async (userId: string, year: number, month: number): Promise<MonthSavingsData> => {
+const getTransactionsForMonth = async (
+    userId: string,
+    year: number,
+    month: number
+): Promise<SavingsDataForSpecificMonth> => {
     try {
-        const monthDates: MonthDates = getMonthDates(year, month);
+        const monthDates: { startDate: Date; endDate: Date } = getMonthDates(year, month);
         const transactions: TransactionDocument[] = await TransactionModel.find({
             userId,
             date: {
@@ -488,7 +464,7 @@ const getTransactionsForMonth = async (userId: string, year: number, month: numb
 // Helper function to get daily transactions for a specific month
 const getDailyTransactionsForMonth = async (userId: string, year: number, month: number): Promise<any[]> => {
     try {
-        const monthDates: MonthDates = getMonthDates(year, month);
+        const monthDates: { startDate: Date; endDate: Date } = getMonthDates(year, month);
         const transactions: TransactionDocument[] = await TransactionModel.find({
             userId,
             date: {
@@ -651,7 +627,7 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
                 const year: number = currentYear + Math.floor(monthIndex / 12);
                 const month: number = ((monthIndex % 12) + 12) % 12;
 
-                const monthData: MonthSavingsData = await getTransactionsForMonth(userId, year, month);
+                const monthData: SavingsDataForSpecificMonth = await getTransactionsForMonth(userId, year, month);
 
                 allMonthsData.push({
                     month: getMonthName(month),

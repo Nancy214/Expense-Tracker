@@ -9,7 +9,7 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-import type { AreaChartData, AreaChartProps, AreaChartTooltipProps as TooltipProps } from "@/types/analytics";
+import type { AreaChartData, AreaChartProps, ChartTooltipProps } from "@expense-tracker/shared-types/src/analytics";
 import { TimePeriod } from "./TimePeriodSelector";
 import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
 
@@ -163,23 +163,31 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     };
 
     // Custom tooltip formatter
-    const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
+    const CustomTooltip: React.FC<ChartTooltipProps> = ({ active, payload, label }) => {
         if (active && payload && payload.length > 0) {
-            const data: AreaChartData = payload[0].payload;
-            return (
-                <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                    <p className="font-semibold text-gray-800 dark:text-gray-100">{label}</p>
-                    <p className="text-sm text-green-600 dark:text-green-400">Savings: {formatAmount(data.savings)}</p>
-                    {data.income !== undefined && (
-                        <p className="text-sm text-blue-600 dark:text-blue-400">Income: {formatAmount(data.income)}</p>
-                    )}
-                    {data.expenses !== undefined && (
-                        <p className="text-sm text-red-600 dark:text-red-400">
-                            Expenses: {formatAmount(data.expenses)}
+            const data = payload[0].payload;
+            // Use type discrimination to check if it's AreaChartData
+            if (data.type === "area") {
+                const areaData: AreaChartData = data;
+                return (
+                    <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                        <p className="font-semibold text-gray-800 dark:text-gray-100">{label}</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                            Savings: {formatAmount(areaData.savings)}
                         </p>
-                    )}
-                </div>
-            );
+                        {areaData.income !== undefined && (
+                            <p className="text-sm text-blue-600 dark:text-blue-400">
+                                Income: {formatAmount(areaData.income)}
+                            </p>
+                        )}
+                        {areaData.expenses !== undefined && (
+                            <p className="text-sm text-red-600 dark:text-red-400">
+                                Expenses: {formatAmount(areaData.expenses)}
+                            </p>
+                        )}
+                    </div>
+                );
+            }
         }
         return null;
     };
@@ -187,18 +195,14 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     // Format data based on time period
     const formattedData = formatChartData(data, timePeriod as TimePeriod, subPeriod);
 
-    // For monthly period, we need to transform the data to match AreaChartData format
-    let chartData = formattedData;
-
-    if (timePeriod === "monthly") {
-        // Transform daily data to AreaChartData format
-        chartData = formattedData.map((item) => ({
-            name: item.name, // Date like "01/01"
-            savings: item.savings || 0,
-            income: item.income || 0,
-            expenses: item.expenses || 0,
-        }));
-    }
+    // Transform all data to ensure it has the proper AreaChartData format with type property
+    const chartData = formattedData.map((item) => ({
+        type: "area" as const,
+        name: item.name,
+        savings: item.savings || 0,
+        income: item.income || 0,
+        expenses: item.expenses || 0,
+    }));
 
     // Get dynamic labels and titles
     const dynamicTitle = getChartTitle(title, timePeriod as TimePeriod, subPeriod);
