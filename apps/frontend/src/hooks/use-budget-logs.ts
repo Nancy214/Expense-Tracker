@@ -1,6 +1,6 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { getBudgetLogs } from "../services/budget.service";
-import { BudgetLog, BudgetLogFilters } from "../types/budget";
+import { BudgetLog, BudgetLogFilters } from "../../../../libs/shared-types/src/budget-frontend";
 import { useAuth } from "@/context/AuthContext";
 import { useMemo } from "react";
 import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";

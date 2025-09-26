@@ -1,6 +1,28 @@
 import { Request, Response } from "express";
 import axios, { AxiosResponse } from "axios";
-import { ExchangeRateResponse, FxRatesApiResponse, ApiErrorResponse } from "../types/currency";
+
+interface ExchangeRateResponse {
+    success: boolean;
+    rate: number;
+    data: FxRatesApiResponse;
+}
+
+interface FxRatesApiResponse {
+    success: boolean;
+    info: {
+        rate: number;
+        timestamp: number;
+        from: string;
+        to: string;
+        amount: number;
+    };
+    result: number;
+    date: string;
+}
+
+interface ApiErrorResponse {
+    message: string;
+}
 
 /* export const initCurrencies = async (req: Request, res: Response): Promise<void> => {
     try {

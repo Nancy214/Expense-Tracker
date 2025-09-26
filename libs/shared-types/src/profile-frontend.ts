@@ -10,10 +10,10 @@ export interface ProfileData {
 }
 
 export interface SettingsData {
-    monthlyReports: boolean;
-    expenseReminders: boolean;
-    billsAndBudgetsAlert: boolean;
-    expenseReminderTime: string;
+    monthlyReports?: boolean;
+    expenseReminders?: boolean;
+    billsAndBudgetsAlert?: boolean;
+    expenseReminderTime?: string;
 }
 
 export interface ProfileResponse {

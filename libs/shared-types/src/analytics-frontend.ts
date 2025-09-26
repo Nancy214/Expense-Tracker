@@ -1,4 +1,4 @@
-import type { TransactionType } from "./transaction";
+import type { TransactionType } from "./transactions-frontend";
 
 // Account Statistics types
 export interface AccountStats {
@@ -222,12 +222,13 @@ export interface MonthlyData {
     bills: number;
     netIncome: number;
     transactionCount: number;
+    isActive: boolean;
 }
 
 export interface CurrentMonthData {
     period: string;
-    startDate: string;
-    endDate: string;
+    startDate: Date;
+    endDate: Date;
     income: number;
     expenses: number;
     bills: number;
@@ -235,12 +236,8 @@ export interface CurrentMonthData {
     transactionCount: number;
 }
 
-export interface IncomeExpenseSummaryData {
-    months: MonthlyData[];
-    currentMonth: CurrentMonthData;
-}
-
-export interface IncomeExpenseSummarySummary {
+// Summary statistics
+export interface SummaryStats {
     totalIncome: number;
     totalExpenses: number;
     totalBills: number;
@@ -248,10 +245,14 @@ export interface IncomeExpenseSummarySummary {
     totalTransactions: number;
 }
 
+// Income/Expense summary response
 export interface IncomeExpenseSummaryResponse {
     success: boolean;
-    data: IncomeExpenseSummaryData;
-    summary: IncomeExpenseSummarySummary;
+    data: {
+        months: MonthlyData[];
+        currentMonth: CurrentMonthData;
+    };
+    summary: SummaryStats;
 }
 
 export interface SavingsTrendSummary {
@@ -269,14 +270,44 @@ export interface SavingsTrendSummary {
     };
 }
 
-export interface MonthlySavingsTrendData {
-    trend: SavingsTrendItem[];
-    summary: SavingsTrendSummary;
+// Savings summary statistics
+export interface SavingsSummaryStats {
+    totalSavings: number;
+    averageSavings: number;
+    positiveMonths: number;
+    negativeMonths: number;
+    activeMonths: number;
+    totalMonthsAnalyzed: number;
+    bestMonth: {
+        period: string;
+        savings: number;
+    } | null;
+    worstMonth: {
+        period: string;
+        savings: number;
+    } | null;
 }
 
+// Monthly savings data structure
+export interface MonthlySavingsData {
+    month: string;
+    year: number;
+    monthIndex: number;
+    period: string;
+    income: number;
+    expenses: number;
+    savings: number;
+    transactionCount: number;
+    isActive: boolean;
+}
+
+// Monthly savings trend response
 export interface MonthlySavingsTrendResponse {
     success: boolean;
-    data: MonthlySavingsTrendData;
+    data: {
+        trend: MonthlySavingsData[];
+        summary: SavingsSummaryStats;
+    };
 }
 
 // API Error Response Type

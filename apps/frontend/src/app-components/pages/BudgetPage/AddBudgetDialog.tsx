@@ -1,5 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { AddBudgetDialogProps, BudgetRecurrenceOption, BudgetCategoryOption } from "@/types/budget";
+import {
+    BudgetRecurrenceOption,
+    BudgetCategoryOption,
+    Budget,
+    BudgetRecurrence,
+} from "../../../../../../libs/shared-types/src/budget-frontend";
 import {
     Dialog,
     DialogContent,
@@ -18,13 +23,21 @@ import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
 import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useState, useEffect } from "react";
-import { CurrencyOption } from "@/types/transaction";
+import { CurrencyOption } from "../../../../../../libs/shared-types/src/profile-frontend";
+
+export interface AddBudgetDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    editingBudget: Budget | null;
+    onSuccess?: () => void;
+    triggerButton?: React.ReactNode;
+}
 
 const RECURRENCE_OPTIONS: BudgetRecurrenceOption[] = [
-    { value: "daily", label: "Daily" },
-    { value: "weekly", label: "Weekly" },
-    { value: "monthly", label: "Monthly" },
-    { value: "yearly", label: "Yearly" },
+    { value: BudgetRecurrence.DAILY, label: "Daily" },
+    { value: BudgetRecurrence.WEEKLY, label: "Weekly" },
+    { value: BudgetRecurrence.MONTHLY, label: "Monthly" },
+    { value: BudgetRecurrence.YEARLY, label: "Yearly" },
 ];
 
 const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({

@@ -8,7 +8,14 @@ import { useToast } from "@/hooks/use-toast";
 import { getBills, createExpense, updateExpense, updateTransactionBillStatus } from "@/services/transaction.service";
 import { getExchangeRate } from "@/services/currency.service";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
-import { Transaction, Bill, BillStatus, BillFrequency, PaymentMethod, TransactionResponse } from "@/types/transaction";
+import {
+    Transaction,
+    Bill,
+    BillStatus,
+    BillFrequency,
+    PaymentMethod,
+    TransactionResponse,
+} from "../../../../libs/shared-types/src/transactions-frontend";
 import { parseFromDisplay, getDaysDifference, getStartOfToday } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 
@@ -309,11 +316,11 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
                 dueDate: editingBill.dueDate
                     ? parseDateToFormat(editingBill.dueDate)
                     : format(new Date(), "dd/MM/yyyy"),
-                billStatus: editingBill.billStatus || "unpaid",
-                billFrequency: editingBill.billFrequency || "monthly",
+                billStatus: editingBill.billStatus || BillStatus.UNPAID,
+                billFrequency: editingBill.billFrequency || BillFrequency.MONTHLY,
                 nextDueDate: editingBill.nextDueDate ? parseDateToFormat(editingBill.nextDueDate) : undefined,
                 lastPaidDate: editingBill.lastPaidDate ? parseDateToFormat(editingBill.lastPaidDate) : undefined,
-                paymentMethod: editingBill.paymentMethod || "manual",
+                paymentMethod: editingBill.paymentMethod || PaymentMethod.MANUAL,
                 receipts: editingBill.receipts || [],
             };
         }
@@ -334,11 +341,11 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
             billCategory: "Rent/Mortgage",
             reminderDays: 3,
             dueDate: format(new Date(), "dd/MM/yyyy"),
-            billStatus: "unpaid" as const,
-            billFrequency: "monthly" as const,
+            billStatus: BillStatus.UNPAID as const,
+            billFrequency: BillFrequency.MONTHLY as const,
             nextDueDate: undefined,
             lastPaidDate: undefined,
-            paymentMethod: "manual" as const,
+            paymentMethod: PaymentMethod.MANUAL as const,
             receipts: [],
         };
     }, [editingBill, user?.currency, parseDateToFormat]);

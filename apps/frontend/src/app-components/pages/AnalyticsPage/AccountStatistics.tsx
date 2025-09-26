@@ -4,8 +4,12 @@ import { TrendingUp } from "lucide-react";
 import { getExpenses } from "@/services/transaction.service";
 import { getBudgets } from "@/services/budget.service";
 import { useAuth } from "@/context/AuthContext";
-import type { AccountStats, AnalyticsExpense as Expense, ExpensesResponse } from "@/types/analytics";
-import { BudgetResponse } from "@/types/budget";
+import type {
+    AccountStats,
+    AnalyticsExpense as Expense,
+    ExpensesResponse,
+} from "@expense-tracker/shared-types/src/analytics-frontend";
+import { BudgetResponse } from "@expense-tracker/shared-types/src/budget-frontend";
 
 const AccountStatistics = () => {
     const [stats, setStats] = useState<AccountStats>({

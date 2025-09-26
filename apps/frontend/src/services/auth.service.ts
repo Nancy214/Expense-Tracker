@@ -1,5 +1,10 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
-import { LoginCredentials, AuthResponse, RegisterCredentials, User } from "@/types/auth";
+import {
+    LoginCredentials,
+    AuthResponse,
+    RegisterCredentials,
+    User,
+} from "@expense-tracker/shared-types/src/auth-frontend";
 import { removeTokens, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
@@ -92,10 +97,10 @@ export const register = async (credentials: RegisterCredentials): Promise<AuthRe
         formData.append("password", credentials.password);
 
         // Add profile picture if it exists
-        if (credentials.profilePicture) {
+        /* if (credentials.profilePicture) {
             formData.append("profilePicture", credentials.profilePicture);
         }
-
+ */
         const response: AxiosResponse<AuthResponse> = await authApi.post("/auth/register", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",

@@ -1,5 +1,5 @@
-import { TransactionWithId } from "@/types/transaction";
-import { MonthlyStatementPDFOptions } from "@/types/transaction";
+import { TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
+import { MonthlyStatementPDFOptions } from "../../../../../../libs/shared-types/src/transaction-frontend";
 
 // Utility to convert array of objects to CSV, excluding _id, userId, templateId
 export function arrayToCSV(data: TransactionWithId[]): string {

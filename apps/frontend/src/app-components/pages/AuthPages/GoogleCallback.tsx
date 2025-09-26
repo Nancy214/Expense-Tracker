@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { GoogleCallbackTokens, ApiErrorResponse } from "@/types/auth";
+import { GoogleCallbackTokens, ApiErrorResponse } from "@expense-tracker/shared-types/src/auth";
 
 const GoogleCallback: React.FC = () => {
     const navigate = useNavigate();

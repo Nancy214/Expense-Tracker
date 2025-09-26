@@ -1,5 +1,3 @@
-import { Types } from "mongoose";
-
 // Profile update request body interface
 export interface ProfileUpdateRequest {
     name?: string;
@@ -20,8 +18,8 @@ export interface SettingsUpdateRequest {
 }
 
 // Profile response interface
-export interface ProfileResponse {
-    _id: Types.ObjectId | string;
+/* export interface ProfileResponse {
+    _id: string;
     name: string;
     email: string;
     profilePicture: string;
@@ -34,10 +32,10 @@ export interface ProfileResponse {
     budgetType?: string;
     settings: SettingsResponse;
 }
-
+ */
 // Settings response interface
 export interface SettingsResponse {
-    userId: Types.ObjectId | string;
+    userId: string;
     monthlyReports: boolean;
     expenseReminders: boolean;
     billsAndBudgetsAlert: boolean;
@@ -75,13 +73,13 @@ export interface UserUpdateData {
 }
 
 // Settings data interface
-export interface SettingsData {
+/* export interface SettingsData {
     monthlyReports?: boolean;
     expenseReminders?: boolean;
     billsAndBudgetsAlert?: boolean;
     expenseReminderTime?: string;
 }
-
+ */
 // Default settings interface
 export interface DefaultSettings {
     userId: string;

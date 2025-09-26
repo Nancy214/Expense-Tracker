@@ -7,17 +7,16 @@ import {
     BudgetRecurrence,
     BudgetResponse,
     BudgetProgress,
-    BudgetReminder,
     BudgetPageState,
     ProgressColor,
-} from "@/types/budget";
+} from "../../../../../../libs/shared-types/src/budget-frontend";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle, History } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import BudgetLogs from "@/app-components/pages/BudgetPage/BudgetLogs";
-import { useAuth } from "@/context/AuthContext";
-import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
+//import { useAuth } from "@/context/AuthContext";
+//import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { useBudgets } from "@/hooks/use-budgets";
@@ -32,11 +31,11 @@ const BudgetPage: React.FC = () => {
     const [showBudgetHistory, setShowBudgetHistory] = useState(false);
 
     const { toast } = useToast();
-    const { user } = useAuth();
+    //const { user } = useAuth();
     const {
         budgets = [],
         budgetProgress = { budgets: [] },
-        budgetReminders = [],
+        //budgetReminders = [],
         isBudgetsLoading: isLoading,
         budgetsError,
     } = useBudgets();
@@ -81,7 +80,7 @@ const BudgetPage: React.FC = () => {
         }
     }, [budgetsError, toast]);
 
-    const dismissReminder = (reminderId: string): void => {
+    /*    const dismissReminder = (reminderId: string): void => {
         setPageState((prev) => ({
             ...prev,
             dismissedReminders: new Set([...prev.dismissedReminders, reminderId]),
@@ -95,7 +94,7 @@ const BudgetPage: React.FC = () => {
     const activeReminders: BudgetReminder[] = budgetReminders.filter(
         (reminder) => !pageState.dismissedReminders.has(reminder.id)
     );
-
+ */
     const handleEdit = (budget: BudgetResponse): void => {
         setPageState((prev: BudgetPageState) => ({
             ...prev,
@@ -125,10 +124,10 @@ const BudgetPage: React.FC = () => {
     };
 
     const getProgressColor = (progress: number, isOverBudget: boolean): ProgressColor => {
-        if (isOverBudget) return "danger";
-        if (progress >= 80) return "warning";
-        if (progress >= 60) return "default";
-        return "success";
+        if (isOverBudget) return ProgressColor.DANGER;
+        if (progress >= 80) return ProgressColor.WARNING;
+        if (progress >= 60) return ProgressColor.DEFAULT;
+        return ProgressColor.SUCCESS;
     };
 
     const getProgressIcon = (progress: number, isOverBudget: boolean): React.ReactElement => {
@@ -159,7 +158,7 @@ const BudgetPage: React.FC = () => {
         <>
             <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
                 {/* Budget Reminders */}
-                <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} />
+                {/* <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} /> */}
 
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>

@@ -12,8 +12,8 @@ import {
     updateSettings,
 } from "@/services/profile.service";
 import { profileSchema, ProfileFormData } from "@/schemas/profileSchema";
-import { SettingsData, ProfileResponse, ProfileData } from "@/types/profile";
-import { User } from "@/types/auth";
+import { SettingsData, ProfileResponse, ProfileData } from "../../../../libs/shared-types/src/profile-frontend";
+import { User } from "@expense-tracker/shared-types/src/auth-frontend";
 import { AxiosError } from "axios";
 
 // ============================================================================
@@ -192,7 +192,14 @@ export function useProfileMutations(): ProfileMutationsReturn {
                 currency: data.currency,
                 country: data.country,
                 timezone: data.timezone,
-                settings: data.settings,
+                settings: data.settings
+                    ? {
+                          monthlyReports: data.settings.monthlyReports ?? false,
+                          expenseReminders: data.settings.expenseReminders ?? true,
+                          billsAndBudgetsAlert: data.settings.billsAndBudgetsAlert ?? false,
+                          expenseReminderTime: data.settings.expenseReminderTime ?? "18:00",
+                      }
+                    : undefined,
             };
 
             // Update local storage and auth context
@@ -357,7 +364,14 @@ export function useProfileForm(): ProfileFormReturn {
                 currency: profileData.currency,
                 country: profileData.country,
                 timezone: profileData.timezone,
-                settings: profileData.settings,
+                settings: profileData.settings
+                    ? {
+                          monthlyReports: profileData.settings.monthlyReports ?? false,
+                          expenseReminders: profileData.settings.expenseReminders ?? true,
+                          billsAndBudgetsAlert: profileData.settings.billsAndBudgetsAlert ?? false,
+                          expenseReminderTime: profileData.settings.expenseReminderTime ?? "18:00",
+                      }
+                    : undefined,
             };
 
             localStorage.setItem("user", JSON.stringify(userForAuth));

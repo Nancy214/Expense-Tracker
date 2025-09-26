@@ -20,7 +20,7 @@ import {
     TransactionSummary,
     PaginationInfo,
     TransactionResponse,
-} from "@/types/transaction";
+} from "../../../../libs/shared-types/src/transactions-frontend";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 
 const QUERY_KEYS = {

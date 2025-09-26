@@ -6,6 +6,7 @@ import { useBillMutations } from "@/hooks/use-bills";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { formatToHumanReadableDate, parseFromAPI, parseFromDisplay } from "@/utils/dateUtils";
 import { useState } from "react";
+import { BillStatus } from "@expense-tracker/shared-types/src/transactions-frontend";
 
 export function useBillsAndReminders() {
     const { upcomingAndOverdueBills, billReminders } = useBillsSelector();
@@ -102,7 +103,7 @@ export function BillAlertsUI({
     const handlePayBill = async (billId: string) => {
         setIsUpdating(billId);
         try {
-            await updateBillStatus({ id: billId, status: "paid" });
+            await updateBillStatus({ id: billId, status: BillStatus.PAID });
             // Success toast is handled by the mutation hook
         } catch (error) {
             console.error("Error updating bill status:", error);
@@ -210,7 +211,7 @@ export function BillAlertsUI({
                                 <AccordionTrigger
                                     className={`text-sm ${config.descColor} hover:${config.textColor} py-2 px-3 bg-white/50 hover:bg-white/70 rounded-lg transition-colors`}
                                 >
-                                    View All Bills ({sortedBills.length})
+                                    Pay This Bill ({sortedBills.length})
                                 </AccordionTrigger>
                                 <AccordionContent>
                                     <div className="space-y-3 mt-3">

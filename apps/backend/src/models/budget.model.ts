@@ -1,26 +1,32 @@
 import mongoose, { Schema } from "mongoose";
-import { BudgetType } from "../types/budget";
+import { BudgetType } from "@expense-tracker/shared-types/src/budget-backend";
 
 export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";
 
-const budgetSchema = new Schema<BudgetType>({
-    userId: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
+const budgetSchema = new Schema<BudgetType>(
+    {
+        userId: {
+            type: String,
+            ref: "User",
+            required: true,
+        },
+        title: { type: String, required: true },
+        amount: { type: Number, required: true },
+        currency: { type: String, required: true },
+        fromRate: { type: Number, default: 1 },
+        toRate: { type: Number, default: 1 },
+        recurrence: {
+            type: String,
+            enum: ["daily", "weekly", "monthly", "yearly"],
+            required: true,
+        },
+        startDate: { type: Date, required: true },
+        category: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
     },
-    title: { type: String, required: true },
-    amount: { type: Number, required: true },
-    currency: { type: String, required: true },
-    fromRate: { type: Number, default: 1 },
-    toRate: { type: Number, default: 1 },
-    recurrence: {
-        type: String,
-        enum: ["daily", "weekly", "monthly", "yearly"],
-        required: true,
-    },
-    startDate: { type: Date, required: true },
-    category: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-});
+    {
+        versionKey: false,
+    }
+);
 
 export const Budget = mongoose.model<BudgetType>("Budget", budgetSchema);

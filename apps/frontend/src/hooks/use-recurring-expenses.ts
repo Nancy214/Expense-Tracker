@@ -18,16 +18,39 @@ import {
     Transaction,
     TransactionResponse,
     RecurringTransactionTemplate,
-    TransactionFormData,
     RecurringFrequency,
     TransactionType,
-} from "@/types/transaction";
+} from "../../../../libs/shared-types/src/transactions-frontend";
 import { parseFromDisplay } from "@/utils/dateUtils";
 import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
+
+// Form handling type - with string dates for UI
+export interface TransactionFormData {
+    title: string;
+    type: TransactionType;
+    amount: number;
+    currency: string;
+    category: string;
+    billCategory?: string;
+    paymentMethod?: string;
+    date: string;
+    dueDate?: string;
+    billFrequency?: string;
+    reminderDays?: number;
+    description?: string;
+    isRecurring?: boolean;
+    recurringFrequency?: string;
+    endDate?: string;
+    receipts?: File[];
+    fromRate?: number;
+    toRate?: number;
+    nextDueDate?: string;
+    lastPaidDate?: string;
+}
 
 interface PaginationInfo {
     page: number;
@@ -294,9 +317,9 @@ export const useRecurringExpenseForm = ({
             amount: 0,
             date: format(new Date(), "dd/MM/yyyy"),
             currency: user?.currency || "INR",
-            type: "expense" as const,
+            type: TransactionType.EXPENSE,
             isRecurring: true, // Always true for recurring expenses
-            recurringFrequency: "monthly" as const,
+            recurringFrequency: RecurringFrequency.MONTHLY,
             fromRate: 1,
             toRate: 1,
             endDate: undefined,

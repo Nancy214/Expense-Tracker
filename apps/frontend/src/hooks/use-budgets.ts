@@ -7,7 +7,12 @@ import {
     getBudgetProgress,
     processBudgetReminders,
 } from "../services/budget.service";
-import { BudgetData, BudgetResponse, BudgetProgressResponse, BudgetReminder } from "../types/budget";
+import {
+    BudgetData,
+    BudgetResponse,
+    BudgetProgressResponse,
+    BudgetReminder,
+} from "../../../../libs/shared-types/src/budget-frontend";
 import { useAuth } from "@/context/AuthContext";
 
 // Define the return type interface for the useBudgets hook

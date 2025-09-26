@@ -1,7 +1,7 @@
 import { Notification } from "@/app-components/utility-components/Notification";
 import { useSettings } from "@/hooks/use-profile";
-import { User } from "@/types/auth";
-import { BudgetReminder } from "@/types/budget";
+import { User } from "@expense-tracker/shared-types/src/auth-frontend";
+import { BudgetReminder } from "../../../../../libs/shared-types/src/budget-frontend";
 
 interface BudgetRemindersUIProps {
     user: User | null;

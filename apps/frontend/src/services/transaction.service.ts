@@ -8,7 +8,7 @@ import {
     MonthlyStats,
     BillStatus,
     Bill,
-} from "@/types/transaction";
+} from "../../../../libs/shared-types/src/transactions-frontend";
 import { isValid, parseISO } from "date-fns";
 import { refreshAuthTokens } from "@/utils/authUtils";
 
@@ -231,7 +231,6 @@ export const createExpense = async (expense: Transaction): Promise<TransactionRe
 
 export const updateExpense = async (id: string, expense: ExpenseUpdateData): Promise<TransactionResponse> => {
     try {
-        console.log(expense);
         // Create a copy of the expense to avoid mutating the original
         const expenseToUpdate: Transaction | Bill = { ...expense };
 

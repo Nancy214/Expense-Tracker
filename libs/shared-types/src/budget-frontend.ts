@@ -20,7 +20,6 @@ export enum BudgetCategory {
     HEALTHCARE = "Healthcare",
     VACATION = "Vacation",
     EDUCATION = "Education",
-    HOUSING = "Housing",
     PERSONAL_CARE = "Personal Care",
     GIFTS = "Gifts",
     OTHER = "Other",
@@ -148,14 +147,6 @@ export interface BudgetRecurrenceOption {
 export interface BudgetCategoryOption {
     value: string;
     label: string;
-}
-
-export interface AddBudgetDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    editingBudget: Budget | null;
-    onSuccess?: () => void;
-    triggerButton?: React.ReactNode;
 }
 
 // Filter types for budget logs

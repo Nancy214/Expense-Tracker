@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { TokenPayload, AuthRequest } from "../types/auth";
+import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
+
+export interface AuthRequest extends Request {
+    user?: TokenPayload;
+}
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
     const authHeader: string | undefined = req.headers.authorization;

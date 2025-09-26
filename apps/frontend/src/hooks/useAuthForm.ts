@@ -14,7 +14,7 @@ import {
     ResetPasswordFormData,
     ForgotPasswordFormData,
 } from "@/schemas/authSchema";
-import { ApiErrorResponse } from "@/types/auth";
+import { ApiErrorResponse } from "@expense-tracker/shared-types/src/auth";
 
 // Return type interfaces for each hook
 interface UseLoginFormReturn {

@@ -11,8 +11,8 @@ import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "luci
 import { useBudgets } from "@/hooks/use-budgets";
 import { useSettings } from "@/hooks/use-profile";
 import AddExpenseDialog from "../TransactionsPage/AddExpenseDialog";
-import { BudgetReminder } from "@/types/budget";
-import { FinancialOverviewData } from "@/types/transaction";
+import { BudgetReminder } from "../../../../../../libs/shared-types/src/budget-frontend";
+import { FinancialOverviewData } from "../../../../../../libs/shared-types/src/transaction-frontend";
 import StatsCards from "@/app-components/utility-components/StatsCards";
 
 // Home page component

@@ -4,8 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile, removeProfilePicture } from "@/services/profile.service";
 import { profileSchema, ProfileFormData, validateProfilePicture } from "@/schemas/profileSchema";
-import { User } from "@/types/auth";
-import { ProfileResponse } from "@/types/profile";
+import { User } from "@expense-tracker/shared-types/src/auth";
+import { ProfileResponse } from "../../../../libs/shared-types/src/profile-frontend";
 
 // Return type interface for the hook
 interface UseProfileFormReturn {
