@@ -7,8 +7,8 @@ import { useExpenses } from "@/hooks/use-transactions";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { TransactionType, TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
-import { CalendarEvent } from "../../../../../../libs/shared-types/src/calendar-frontend";
+import { TransactionType, TransactionWithId } from "@expense-tracker/shared-types/src/transactions-frontend";
+import { CalendarEvent } from "@expense-tracker/shared-types/src/calendar";
 import "./CalendarStyle.css";
 // Separate color mappings for expense and income categories
 const expenseColors: { [key: string]: string } = {
