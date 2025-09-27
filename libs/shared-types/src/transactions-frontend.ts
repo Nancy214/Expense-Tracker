@@ -1,4 +1,4 @@
-import { User } from "./auth-frontend";
+import { UserType } from "./auth";
 import { CurrencyOption } from "./profile-frontend";
 
 export enum RecurringFrequency {
@@ -307,7 +307,7 @@ export interface FiltersSectionProps {
     loadingMonths?: boolean;
     availableMonths?: MonthFilter[];
     downloadMonthlyStatementForMonth?: (month: { year: number; month: number }) => void;
-    user?: User | null;
+    user?: UserType | null;
     activeTab?: ActiveTab;
     setActiveTab?: (tab: ActiveTab) => void;
     onRefresh?: () => void;

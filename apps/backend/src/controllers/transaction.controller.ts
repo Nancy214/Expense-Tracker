@@ -23,7 +23,7 @@ import {
     TransactionDocument,
     BillDocument,
 } from "@expense-tracker/shared-types/src/transactions-backend";
-import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
+import { TokenPayload } from "@expense-tracker/shared-types/src/auth";
 import { isSameDay } from "date-fns";
 
 export interface AuthRequest extends Request {

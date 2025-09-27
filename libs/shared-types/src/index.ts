@@ -1,7 +1,6 @@
 // Export all shared types
 export * from "./analytics";
-export * from "./auth-frontend";
-export * from "./auth-backend";
+export * from "./auth";
 export * from "./budget-frontend";
 export * from "./budget-backend";
 export * from "./calendar-frontend";

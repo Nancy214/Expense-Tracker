@@ -14,7 +14,7 @@ import {
     ResetPasswordFormData,
     ForgotPasswordFormData,
 } from "@/schemas/authSchema";
-import { ApiErrorResponse } from "@expense-tracker/shared-types/src/auth";
+import { ApiError } from "@expense-tracker/shared-types/src/error";
 
 // Return type interfaces for each hook
 interface UseLoginFormReturn {
@@ -66,7 +66,7 @@ export const useLoginForm = (): UseLoginFormReturn => {
             await authLogin(data);
             navigate("/");
         } catch (error: unknown) {
-            const apiError = error as ApiErrorResponse;
+            const apiError = error as ApiError;
             const errorMessage: string =
                 apiError.response?.data?.message ||
                 apiError.message ||
@@ -104,7 +104,7 @@ export const useRegisterForm = (): UseRegisterFormReturn => {
             await register(data);
             navigate("/login");
         } catch (error: unknown) {
-            const apiError = error as ApiErrorResponse;
+            const apiError = error as ApiError;
             const errorMessage: string =
                 apiError.response?.data?.message || apiError.message || "Failed to register. Please try again.";
             setError(errorMessage);
@@ -149,7 +149,7 @@ export const useResetPasswordForm = (): UseResetPasswordFormReturn => {
                 navigate("/login");
             }, 2000);
         } catch (error: unknown) {
-            const apiError = error as ApiErrorResponse;
+            const apiError = error as ApiError;
             const errorMessage: string =
                 apiError.response?.data?.message || apiError.message || "Failed to reset password.";
             setError(errorMessage);
@@ -186,7 +186,7 @@ export const useForgotPasswordForm = (): UseForgotPasswordFormReturn => {
             await forgotPassword(data.email);
             setSuccess("Password reset email sent successfully. Please check your email.");
         } catch (error: unknown) {
-            const apiError = error as ApiErrorResponse;
+            const apiError = error as ApiError;
             const errorMessage: string =
                 apiError.response?.data?.message || apiError.message || "Failed to send reset email.";
             setError(errorMessage);

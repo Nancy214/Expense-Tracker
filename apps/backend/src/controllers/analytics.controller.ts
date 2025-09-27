@@ -10,7 +10,7 @@ import {
     parse,
 } from "date-fns";
 import { TransactionModel } from "../models/transaction.model";
-import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
+import { TokenPayload } from "@expense-tracker/shared-types/src/auth";
 import {
     IncomeExpenseSummaryResponse,
     MonthlyIncomeExpenseData,

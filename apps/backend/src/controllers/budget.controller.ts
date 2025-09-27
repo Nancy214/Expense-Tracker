@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { Budget } from "../models/budget.model";
 import { BudgetLog } from "../models/budget-log.model";
 import { TransactionModel } from "../models/transaction.model";
-import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
+import { TokenPayload } from "@expense-tracker/shared-types/src/auth";
 import { BudgetRequest, BudgetProgressItem } from "@expense-tracker/shared-types/src/budget-backend";
 import { BudgetResponse, BudgetChange } from "@expense-tracker/shared-types/src/budget-frontend";
 import { Transaction } from "@expense-tracker/shared-types/src/transactions-frontend";
