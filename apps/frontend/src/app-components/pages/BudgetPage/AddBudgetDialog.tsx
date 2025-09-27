@@ -1,10 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-    BudgetRecurrenceOption,
-    BudgetCategoryOption,
-    Budget,
-    BudgetRecurrence,
-} from "../../../../../../libs/shared-types/src/budget-frontend";
+import { BudgetType, BudgetRecurrence, BudgetCategory } from "@expense-tracker/shared-types/src/budget";
 import {
     Dialog,
     DialogContent,
@@ -28,12 +23,12 @@ import { CurrencyOption } from "../../../../../../libs/shared-types/src/profile-
 export interface AddBudgetDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    editingBudget: Budget | null;
+    editingBudget: BudgetType | null;
     onSuccess?: () => void;
     triggerButton?: React.ReactNode;
 }
 
-const RECURRENCE_OPTIONS: BudgetRecurrenceOption[] = [
+const RECURRENCE_OPTIONS: { value: BudgetRecurrence; label: string }[] = [
     { value: BudgetRecurrence.DAILY, label: "Daily" },
     { value: BudgetRecurrence.WEEKLY, label: "Weekly" },
     { value: BudgetRecurrence.MONTHLY, label: "Monthly" },
@@ -59,10 +54,12 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
         onOpenChange,
     });
 
-    const categoryOptions: BudgetCategoryOption[] = BUDGET_CATEGORIES.map((category: string) => ({
-        value: category,
-        label: category === "Bills" ? "Bills" : category,
-    }));
+    const categoryOptions: { value: BudgetCategory; label: string }[] = BUDGET_CATEGORIES.map(
+        (category: BudgetCategory) => ({
+            value: category,
+            label: category === "Bills" ? "Bills" : category,
+        })
+    );
 
     // Extract currency options from the cached data, removing duplicates and empty values
     const currencyOptions: CurrencyOption[] = Array.isArray(countryTimezoneData)

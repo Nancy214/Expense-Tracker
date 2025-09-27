@@ -1,6 +1,6 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { getBudgetLogs } from "../services/budget.service";
-import { BudgetLog, BudgetLogFilters } from "../../../../libs/shared-types/src/budget-frontend";
+import { BudgetLogType } from "@expense-tracker/shared-types/src/budget";
 import { useAuth } from "@/context/AuthContext";
 import { useMemo } from "react";
 import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
@@ -10,12 +10,20 @@ interface UseBudgetLogsOptions {
     enabled?: boolean;
     changeType?: "created" | "updated" | "deleted";
     limit?: number;
-    filters?: BudgetLogFilters;
+    filters?: {
+        changeTypes?: string[];
+        dateRange?: {
+            from?: Date;
+            to?: Date;
+        };
+        searchQuery?: string;
+        categories?: string[];
+    };
 }
 
 interface UseBudgetLogsReturn {
-    budgetLogs: BudgetLog[];
-    filteredLogs: BudgetLog[];
+    budgetLogs: BudgetLogType[];
+    filteredLogs: BudgetLogType[];
     isLoading: boolean;
     error: Error | null;
     refetch: () => void;
@@ -32,7 +40,7 @@ export const useBudgetLogs = (options: UseBudgetLogsOptions = {}): UseBudgetLogs
     // Create a unique query key based on whether we're fetching all logs or specific budget logs
     const queryKey = budgetId ? ["budgetLogs", budgetId] : ["budgetLogs"];
 
-    const query: UseQueryResult<BudgetLog[], Error> = useQuery({
+    const query: UseQueryResult<BudgetLogType[], Error> = useQuery({
         queryKey,
         queryFn: () => getBudgetLogs(budgetId),
         staleTime: 30 * 1000, // Consider data fresh for 30 seconds

@@ -354,7 +354,10 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                         <div className="space-y-1 sm:space-y-2">
                             {chartData.length > 0 ? (
                                 generateInsights(chartData).map((insight, index) => (
-                                    <div key={index} className="text-xs text-muted-foreground rounded">
+                                    <div
+                                        key={`insight-${index}-${insight.slice(0, 20)}`}
+                                        className="text-xs text-muted-foreground rounded"
+                                    >
                                         {insight}
                                     </div>
                                 ))

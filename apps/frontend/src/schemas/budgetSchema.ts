@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { format } from "date-fns";
-import { User } from "@expense-tracker/shared-types/src/auth-frontend";
-import { BudgetRecurrence, BudgetCategory } from "../../../../libs/shared-types/src/budget-frontend";
+import { UserType } from "@expense-tracker/shared-types/src/auth";
+import { BudgetRecurrence, BudgetCategory } from "@expense-tracker/shared-types/src/budget";
 
 // Budget categories array with proper typing
 export const BUDGET_CATEGORIES: readonly BudgetCategory[] = [
@@ -121,19 +121,8 @@ export interface BudgetFormHandlers {
     resetForm: () => void;
 }
 
-// Budget option types for dropdowns
-export interface BudgetRecurrenceOption {
-    value: BudgetRecurrence;
-    label: string;
-}
-
-export interface BudgetCategoryOption {
-    value: BudgetCategory;
-    label: string;
-}
-
 // Default values with proper typing
-export const getDefaultValues = (user?: User): BudgetFormData => ({
+export const getDefaultValues = (user?: UserType): BudgetFormData => ({
     title: "",
     amount: 0,
     currency: user?.currency || "INR",
@@ -146,7 +135,7 @@ export const getDefaultValues = (user?: User): BudgetFormData => ({
 });
 
 // Helper function to create budget recurrence options
-export const getBudgetRecurrenceOptions = (): BudgetRecurrenceOption[] => [
+export const getBudgetRecurrenceOptions = (): { value: BudgetRecurrence; label: string }[] => [
     { value: BudgetRecurrence.DAILY, label: "Daily" },
     { value: BudgetRecurrence.WEEKLY, label: "Weekly" },
     { value: BudgetRecurrence.MONTHLY, label: "Monthly" },
@@ -154,8 +143,8 @@ export const getBudgetRecurrenceOptions = (): BudgetRecurrenceOption[] => [
 ];
 
 // Helper function to create budget category options
-export const getBudgetCategoryOptions = (): BudgetCategoryOption[] =>
-    BUDGET_CATEGORIES.map((category) => ({
+export const getBudgetCategoryOptions = (): { value: BudgetCategory; label: string }[] =>
+    BUDGET_CATEGORIES.map((category: BudgetCategory) => ({
         value: category,
         label: category === BudgetCategory.ALL_CATEGORIES ? BudgetCategory.ALL_CATEGORIES : category,
     }));

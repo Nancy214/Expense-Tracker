@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BudgetLog, BudgetLogFilters } from "../../../../../../libs/shared-types/src/budget-frontend";
+import { BudgetLogType } from "@expense-tracker/shared-types/src/budget";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,15 @@ interface BudgetLogsProps {
 }
 
 const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
-    const [filters, setFilters] = useState<BudgetLogFilters>({});
+    const [filters, setFilters] = useState<{
+        changeTypes?: string[];
+        dateRange?: {
+            from?: Date;
+            to?: Date;
+        };
+        searchQuery?: string;
+        categories?: string[];
+    }>({});
     const [hasActiveFilters, setHasActiveFilters] = useState(false);
 
     const { filteredLogs, isLoading, error } = useBudgetLogs({ budgetId, filters });
@@ -21,7 +29,15 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
     const errorMessage = error ? "Failed to fetch budget logs" : null;
 
     // Filter handlers
-    const handleFiltersChange = (newFilters: BudgetLogFilters) => {
+    const handleFiltersChange = (newFilters: {
+        changeTypes?: string[];
+        dateRange?: {
+            from?: Date;
+            to?: Date;
+        };
+        searchQuery?: string;
+        categories?: string[];
+    }) => {
         setFilters(newFilters);
         setHasActiveFilters(
             !!(
@@ -65,14 +81,14 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
         return String(value);
     };
 
-    const renderChangeDetails = (changes: BudgetLog["changes"]) => {
+    const renderChangeDetails = (changes: BudgetLogType["changes"]) => {
         return changes.map((change, index) => {
             if (change.field === "budget") {
                 // Handle full budget changes (creation/deletion)
                 const action = change.oldValue === null ? "Created" : "Deleted";
                 const values = change.oldValue || change.newValue;
                 return (
-                    <div key={index} className="mb-2">
+                    <div key={`budget-${change.field}-${index}-${action}`} className="mb-2">
                         <p className="text-sm font-medium">{action} budget with:</p>
                         <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
                             <li>Amount: ₹{values.amount}</li>
@@ -85,7 +101,10 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
             } else {
                 // Handle individual field changes
                 return (
-                    <div key={index} className="mb-1 text-sm">
+                    <div
+                        key={`field-${change.field}-${index}-${change.oldValue}-${change.newValue}`}
+                        className="mb-1 text-sm"
+                    >
                         <span className="font-medium">{change.field}: </span>
                         <span className="text-gray-600 dark:text-gray-400">
                             {formatChangeValue(change.oldValue)} → {formatChangeValue(change.newValue)}
@@ -141,7 +160,7 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
 
             <ScrollArea className="h-[400px] pr-4 border border-gray-200 p-4">
                 {filteredLogs.map((log) => (
-                    <div key={log._id} className="mb-6 last:mb-0 p-3 border border-gray-100 rounded">
+                    <div key={log.id} className="mb-6 last:mb-0 p-3 border border-gray-100 rounded">
                         <div className="flex items-center gap-2 mb-2">
                             <Badge className={getChangeTypeColor(log.changeType)}>
                                 {log.changeType.charAt(0).toUpperCase() + log.changeType.slice(1)}

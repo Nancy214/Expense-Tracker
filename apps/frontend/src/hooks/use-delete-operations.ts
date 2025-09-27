@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.service";
 import { TransactionWithId } from "../../../../libs/shared-types/src/transactions-frontend";
-import { BudgetResponse } from "../../../../libs/shared-types/src/budget-frontend";
+import { BudgetType } from "@expense-tracker/shared-types/src/budget";
 import { useBudgets } from "@/hooks/use-budgets";
 import { ApiError } from "@expense-tracker/shared-types/src/error";
 
@@ -25,7 +25,7 @@ interface DeleteOperationsState {
     expenseToDelete: string | null;
     recurringToDelete: TransactionWithId | null;
     billToDelete: string | null;
-    budgetToDelete: BudgetResponse | null;
+    budgetToDelete: BudgetType | null;
     isDeleteDialogOpen: boolean;
 }
 
@@ -45,7 +45,7 @@ interface DeleteOperationsHandlers {
     cancelBillDelete: () => void;
 
     // Budget operations
-    handleBudgetDelete: (budget: BudgetResponse) => Promise<void>;
+    handleBudgetDelete: (budget: BudgetType) => Promise<void>;
     confirmBudgetDelete: () => Promise<void>;
 
     // Generic operations
@@ -68,7 +68,7 @@ export function useDeleteOperations({
     const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
     const [recurringToDelete, setRecurringToDelete] = useState<TransactionWithId | null>(null);
     const [billToDelete, setBillToDelete] = useState<string | null>(null);
-    const [budgetToDelete, setBudgetToDelete] = useState<BudgetResponse | null>(null);
+    const [budgetToDelete, setBudgetToDelete] = useState<BudgetType | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const { toast } = useToast();
@@ -188,7 +188,7 @@ export function useDeleteOperations({
     }, []);
 
     // Budget delete operations
-    const handleBudgetDelete = useCallback(async (budget: BudgetResponse): Promise<void> => {
+    const handleBudgetDelete = useCallback(async (budget: BudgetType): Promise<void> => {
         setBudgetToDelete(budget);
         setIsDeleteDialogOpen(true);
     }, []);
@@ -197,7 +197,7 @@ export function useDeleteOperations({
         if (!budgetToDelete) return;
 
         try {
-            await deleteBudget(budgetToDelete._id);
+            await deleteBudget(budgetToDelete.id);
             toast({
                 title: "Success",
                 description: "Budget deleted successfully!",

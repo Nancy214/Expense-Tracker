@@ -369,7 +369,10 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                         </h4>
                         <div className="space-y-1 sm:space-y-2">
                             {generateInsights(data).map((insight: string, index: number) => (
-                                <div key={index} className="text-xs text-muted-foreground rounded">
+                                <div
+                                    key={`insight-${index}-${insight.slice(0, 20)}`}
+                                    className="text-xs text-muted-foreground rounded"
+                                >
                                     {insight}
                                 </div>
                             ))}

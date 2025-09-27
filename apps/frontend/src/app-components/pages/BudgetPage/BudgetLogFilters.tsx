@@ -16,7 +16,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, ChevronDownIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
-import { BudgetLogFilters as BudgetLogFiltersType } from "../../../../../../libs/shared-types/src/budget-frontend";
 
 const BUDGET_CATEGORIES: string[] = [
     "Food",
@@ -36,7 +35,15 @@ const BUDGET_CATEGORIES: string[] = [
 const CHANGE_TYPES: string[] = ["created", "updated", "deleted"];
 
 interface BudgetLogFiltersProps {
-    onFiltersChange: (filters: BudgetLogFiltersType) => void;
+    onFiltersChange: (filters: {
+        changeTypes?: string[];
+        dateRange?: {
+            from?: Date;
+            to?: Date;
+        };
+        searchQuery?: string;
+        categories?: string[];
+    }) => void;
     onClearFilters: () => void;
     hasActiveFilters: boolean;
 }
@@ -49,7 +56,15 @@ export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFil
     const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
     // Create filters object
-    const filters: BudgetLogFiltersType = {
+    const filters: {
+        changeTypes?: string[];
+        dateRange?: {
+            from?: Date;
+            to?: Date;
+        };
+        searchQuery?: string;
+        categories?: string[];
+    } = {
         changeTypes: selectedChangeTypes.includes("all") ? undefined : selectedChangeTypes,
         categories: selectedCategories.includes("all") ? undefined : selectedCategories,
         dateRange: dateRangeForFilter,

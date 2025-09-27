@@ -3,8 +3,7 @@ import { Budget } from "../models/budget.model";
 import { BudgetLog } from "../models/budget-log.model";
 import { TransactionModel } from "../models/transaction.model";
 import { TokenPayload } from "@expense-tracker/shared-types/src/auth";
-import { BudgetRequest, BudgetProgressItem } from "@expense-tracker/shared-types/src/budget-backend";
-import { BudgetResponse, BudgetChange } from "@expense-tracker/shared-types/src/budget-frontend";
+import { BudgetChange, BudgetData, BudgetProgress, BudgetType } from "@expense-tracker/shared-types/src/budget";
 import { Transaction } from "@expense-tracker/shared-types/src/transactions-frontend";
 import mongoose from "mongoose";
 import {
@@ -30,14 +29,14 @@ export const createBudget = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
-        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category } = req.body;
+        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category }: BudgetData = req.body;
         if (!title || !amount || !currency || !recurrence || !startDate || !category) {
             res.status(400).json({
                 message: "Title, amount, currency, recurrence, start date, and category are required.",
             });
             return;
         }
-
+        console.log("Creating budget:", { title, amount, currency, fromRate, toRate, recurrence, startDate, category });
         const budget = new Budget({
             userId: new mongoose.Types.ObjectId(userId).toString(),
             title,
@@ -51,15 +50,16 @@ export const createBudget = async (req: Request, res: Response): Promise<void> =
         });
 
         const saved = await budget.save();
-        const savedBudget: BudgetResponse = {
+        const savedBudget: BudgetType = {
             ...saved.toObject(),
-            _id: saved._id.toString(),
-        } as unknown as BudgetResponse;
+            id: saved._id.toString(),
+        } as unknown as BudgetType;
 
         // Create a log for the new budget
         const budgetLog = new BudgetLog({
-            budgetId: savedBudget?._id,
-            userId: new mongoose.Types.ObjectId(userId),
+            id: new mongoose.Types.ObjectId().toString(),
+            budgetId: saved._id.toString(),
+            userId: userId,
             changeType: "created",
             changes: [
                 {
@@ -81,6 +81,12 @@ export const createBudget = async (req: Request, res: Response): Promise<void> =
         res.status(201).json(savedBudget);
     } catch (error: unknown) {
         console.error("Budget creation error:", error);
+        console.error("Error details:", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            userId: (req as AuthRequest).user?.id,
+            body: req.body,
+        });
         res.status(500).json({ message: "Failed to create budget." });
     }
 };
@@ -94,7 +100,7 @@ export const updateBudget = async (req: Request, res: Response): Promise<void> =
         }
 
         const { id } = req.params;
-        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category }: BudgetRequest = req.body;
+        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category }: BudgetData = req.body;
 
         if (!title || !amount || !currency || !recurrence || !startDate || !category) {
             res.status(400).json({
@@ -114,7 +120,7 @@ export const updateBudget = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
-        const budget: BudgetResponse | null = await Budget.findOneAndUpdate(
+        const budget = await Budget.findOneAndUpdate(
             {
                 _id: new mongoose.Types.ObjectId(id),
                 userId: new mongoose.Types.ObjectId(userId),
@@ -173,8 +179,9 @@ export const updateBudget = async (req: Request, res: Response): Promise<void> =
         if (changes.length > 0) {
             console.log("Creating budget update log...");
             const budgetLog = new BudgetLog({
-                budgetId: budget._id,
-                userId: new mongoose.Types.ObjectId(userId),
+                id: new mongoose.Types.ObjectId().toString(),
+                budgetId: budget._id.toString(),
+                userId: userId,
                 changeType: "updated",
                 changes,
                 reason: req.body.reason || "Budget update",
@@ -185,7 +192,13 @@ export const updateBudget = async (req: Request, res: Response): Promise<void> =
             console.log("No changes detected, skipping log creation");
         }
 
-        res.status(200).json(budget);
+        // Transform the budget to include id field
+        const transformedBudget: BudgetType = {
+            ...budget.toObject(),
+            id: budget._id.toString(),
+        } as BudgetType;
+
+        res.status(200).json(transformedBudget);
     } catch (error) {
         console.error("Budget update error:", error);
         res.status(500).json({ message: "Failed to update budget." });
@@ -208,7 +221,7 @@ export const deleteBudget = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
-        const budget: BudgetResponse | null = await Budget.findOneAndDelete({
+        const budget = await Budget.findOneAndDelete({
             _id: new mongoose.Types.ObjectId(id),
             userId: new mongoose.Types.ObjectId(userId),
         });
@@ -221,8 +234,9 @@ export const deleteBudget = async (req: Request, res: Response): Promise<void> =
         // Create a log for the budget deletion
         const reasonForDeletion = (req as any)?.body?.reason || "Budget deletion";
         const budgetLog = new BudgetLog({
-            budgetId: budget._id,
-            userId: new mongoose.Types.ObjectId(userId),
+            id: new mongoose.Types.ObjectId().toString(),
+            budgetId: budget._id.toString(),
+            userId: userId,
             changeType: "deleted",
             changes: [
                 {
@@ -268,10 +282,17 @@ export const getBudgets = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        const budgets: BudgetResponse[] = await Budget.find({
+        const budgets = await Budget.find({
             userId: new mongoose.Types.ObjectId(userId),
         });
-        res.status(200).json(budgets);
+
+        // Transform the budgets to include id field
+        const transformedBudgets: BudgetType[] = budgets.map((budget) => ({
+            ...budget.toObject(),
+            id: budget._id.toString(),
+        })) as BudgetType[];
+
+        res.status(200).json(transformedBudgets);
     } catch (error: unknown) {
         console.error("Budget fetch error:", error);
         res.status(500).json({ message: "Failed to fetch budgets." });
@@ -288,7 +309,7 @@ export const getBudget = async (req: Request, res: Response): Promise<void> => {
 
         const { id } = req.params;
 
-        const budget: BudgetResponse | null = await Budget.findOne({
+        const budget = await Budget.findOne({
             _id: new mongoose.Types.ObjectId(id),
             userId: new mongoose.Types.ObjectId(userId),
         });
@@ -298,7 +319,13 @@ export const getBudget = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        res.status(200).json(budget);
+        // Transform the budget to include id field
+        const transformedBudget: BudgetType = {
+            ...budget.toObject(),
+            id: budget._id.toString(),
+        } as BudgetType;
+
+        res.status(200).json(transformedBudget);
     } catch (error: unknown) {
         console.error("Budget fetch error:", error);
         res.status(500).json({ message: "Failed to fetch budget." });
@@ -338,7 +365,7 @@ export const getBudgetProgress = async (req: Request, res: Response): Promise<vo
         }
 
         // Get all budgets for the user
-        const budgets: BudgetResponse[] = await Budget.find({
+        const budgets: BudgetType[] = await Budget.find({
             userId: new mongoose.Types.ObjectId(userId),
         });
 
@@ -358,7 +385,7 @@ export const getBudgetProgress = async (req: Request, res: Response): Promise<vo
             type: "expense", // Only consider expenses, not income
         });
 
-        const budgetProgress = budgets.map((budget: BudgetResponse) => {
+        const budgetProgress = budgets.map((budget: BudgetType) => {
             const now: Date = new Date();
             const budgetStartDate: Date = new Date(budget.startDate);
 
@@ -436,7 +463,7 @@ export const getBudgetProgress = async (req: Request, res: Response): Promise<vo
             const isOverBudget: boolean = totalSpent > budgetAmount;
 
             return {
-                _id: budget._id,
+                id: budget.id,
                 title: budget.title,
                 amount: budget.amount,
                 currency: budget.currency,
@@ -460,11 +487,11 @@ export const getBudgetProgress = async (req: Request, res: Response): Promise<vo
 
         // Calculate overall progress
         const totalBudgetAmount: number = activeBudgetProgress.reduce(
-            (sum: number, budget: BudgetProgressItem) => sum + budget.amount,
+            (sum: number, budget: BudgetProgress) => sum + budget.amount,
             0
         );
         const totalSpent: number = activeBudgetProgress.reduce(
-            (sum: number, budget: BudgetProgressItem) => sum + budget.totalSpent,
+            (sum: number, budget: BudgetProgress) => sum + budget.totalSpent,
             0
         );
         const totalProgress: number = totalBudgetAmount > 0 ? (totalSpent / totalBudgetAmount) * 100 : 0;

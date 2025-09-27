@@ -9,16 +9,16 @@ import {
 } from "../services/budget.service";
 import {
     BudgetData,
-    BudgetResponse,
+    BudgetType,
     BudgetProgressResponse,
     BudgetReminder,
-} from "../../../../libs/shared-types/src/budget-frontend";
+} from "@expense-tracker/shared-types/src/budget";
 import { useAuth } from "@/context/AuthContext";
 
 // Define the return type interface for the useBudgets hook
 interface UseBudgetsReturn {
     // Data
-    budgets: BudgetResponse[];
+    budgets: BudgetType[];
     budgetProgress: BudgetProgressResponse;
     budgetReminders: BudgetReminder[];
 
@@ -33,8 +33,8 @@ interface UseBudgetsReturn {
     remindersError: Error | null;
 
     // Mutation functions
-    createBudget: (budgetData: BudgetData) => Promise<BudgetResponse>;
-    updateBudget: (params: { id: string; budgetData: BudgetData }) => Promise<BudgetResponse>;
+    createBudget: (budgetData: BudgetData) => Promise<BudgetType>;
+    updateBudget: (params: { id: string; budgetData: BudgetData }) => Promise<BudgetType>;
     deleteBudget: (id: string) => Promise<void>;
 
     // Mutation states
@@ -48,7 +48,7 @@ export const useBudgets = (): UseBudgetsReturn => {
     const { isAuthenticated } = useAuth();
 
     // Query for fetching all budgets
-    const budgetsQuery: UseQueryResult<BudgetResponse[], Error> = useQuery({
+    const budgetsQuery: UseQueryResult<BudgetType[], Error> = useQuery({
         queryKey: ["budgets"],
         queryFn: getBudgets,
         staleTime: 30 * 1000, // Consider data fresh for 30 seconds
@@ -73,7 +73,7 @@ export const useBudgets = (): UseBudgetsReturn => {
         : [];
 
     // Mutation for creating a budget
-    const createBudgetMutation: UseMutationResult<BudgetResponse, Error, BudgetData> = useMutation({
+    const createBudgetMutation: UseMutationResult<BudgetType, Error, BudgetData> = useMutation({
         mutationFn: (budgetData: BudgetData) => createBudget(budgetData),
         onSuccess: () => {
             // Invalidate and refetch budgets, progress, and logs queries
@@ -96,7 +96,7 @@ export const useBudgets = (): UseBudgetsReturn => {
     });
 
     // Mutation for updating a budget
-    const updateBudgetMutation: UseMutationResult<BudgetResponse, Error, { id: string; budgetData: BudgetData }> =
+    const updateBudgetMutation: UseMutationResult<BudgetType, Error, { id: string; budgetData: BudgetData }> =
         useMutation({
             mutationFn: ({ id, budgetData }: { id: string; budgetData: BudgetData }) => updateBudget(id, budgetData),
             onSuccess: () => {
