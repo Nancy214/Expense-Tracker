@@ -1,5 +1,4 @@
 import { UserType } from "./auth";
-import { CurrencyOption } from "./profile-frontend";
 
 export enum RecurringFrequency {
     DAILY = "daily",

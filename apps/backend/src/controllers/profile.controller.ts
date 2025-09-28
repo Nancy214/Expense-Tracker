@@ -1,15 +1,8 @@
 import { Request, Response } from "express";
 import { Settings, User } from "../models/user.model";
 import { TokenPayload, UserType } from "@expense-tracker/shared-types/src/auth";
-import {
-    ProfileUpdateRequest,
-    SettingsUpdateRequest,
-    SettingsResponse,
-    CountryTimezoneCurrencyResponse,
-    UserUpdateData,
-    DefaultSettings,
-} from "@expense-tracker/shared-types/src/profile-backend";
-import { ProfileResponse, SettingsData } from "@expense-tracker/shared-types/src/profile-frontend";
+import { ProfileData, SettingsData, CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src/profile";
+import { AuthenticatedUser } from "@expense-tracker/shared-types/src/auth";
 import dotenv from "dotenv";
 import { s3Client, isAWSConfigured } from "../config/s3Client";
 import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -60,8 +53,8 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
 
         let settingsDoc = await Settings.findById(userId);
         if (!settingsDoc) {
-            const defaultSettings: DefaultSettings = {
-                userId,
+            const defaultSettings: SettingsData = {
+                //userId,
                 monthlyReports: false,
                 expenseReminders: true,
                 billsAndBudgetsAlert: false,
@@ -84,8 +77,8 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             }); // 5 minutes
         }
 
-        const profileResponse: ProfileResponse = {
-            _id: userDoc.id,
+        const profileResponse: AuthenticatedUser = {
+            id: userDoc.id,
             name: userDoc.name || "",
             email: userDoc.email,
             profilePicture: profilePictureUrl,
@@ -129,7 +122,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
         const currentUser: UserType | null = await User.findById(userId).select("profilePicture");
         const oldProfilePictureKey: string | undefined = currentUser?.profilePicture;
 
-        const { name, email, phoneNumber, dateOfBirth, currency, country, timezone }: ProfileUpdateRequest = req.body;
+        const { name, email, phoneNumber, dateOfBirth, currency, country, timezone }: ProfileData = req.body;
 
         // Check if email is being changed and if it's already taken
         if (email) {
@@ -140,7 +133,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             }
         }
 
-        const updateData: UserUpdateData = {};
+        const updateData: ProfileData = {};
         if (name !== undefined) updateData.name = name;
         if (email !== undefined) updateData.email = email;
         if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
@@ -231,8 +224,8 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
         }
 
         const settingsDoc = await Settings.findById(updatedUser.id);
-        const userWithSettings: ProfileResponse = {
-            _id: updatedUser.id,
+        const userWithSettings: AuthenticatedUser = {
+            id: updatedUser.id,
             name: updatedUser.name || "",
             email: updatedUser.email,
             profilePicture: profilePictureUrl,
@@ -278,8 +271,7 @@ export const updateSettings = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        const { monthlyReports, expenseReminders, billsAndBudgetsAlert, expenseReminderTime }: SettingsUpdateRequest =
-            req.body;
+        const { monthlyReports, expenseReminders, billsAndBudgetsAlert, expenseReminderTime }: SettingsData = req.body;
 
         const settingsData: SettingsData = {};
         if (monthlyReports !== undefined) settingsData.monthlyReports = monthlyReports;
@@ -304,8 +296,7 @@ export const updateSettings = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        const settingsResponse: SettingsResponse = {
-            userId: settingsDoc.userId.toString(),
+        const settingsResponse: SettingsData = {
             monthlyReports: settingsDoc.monthlyReports,
             expenseReminders: settingsDoc.expenseReminders,
             billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
@@ -348,7 +339,7 @@ export const getCountryTimezoneCurrency = async (_: Request, res: Response): Pro
     try {
         const countryTimezoneCurrency = await CountryTimezoneCurrency.find().sort({ country: 1 });
 
-        const result: CountryTimezoneCurrencyResponse[] = countryTimezoneCurrency.map((item) => ({
+        const result: CountryTimezoneCurrencyData[] = countryTimezoneCurrency.map((item) => ({
             _id: item._id.toString(),
             country: item.country,
             currency: item.currency,

@@ -18,7 +18,6 @@ import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
 import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useState, useEffect } from "react";
-import { CurrencyOption } from "../../../../../../libs/shared-types/src/profile-frontend";
 
 export interface AddBudgetDialogProps {
     open: boolean;
@@ -62,7 +61,7 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
     );
 
     // Extract currency options from the cached data, removing duplicates and empty values
-    const currencyOptions: CurrencyOption[] = Array.isArray(countryTimezoneData)
+    const currencyOptions: { value: string; label: string }[] = Array.isArray(countryTimezoneData)
         ? countryTimezoneData
               .map((item) => ({
                   value: item.currency.code,

@@ -24,7 +24,6 @@ import {
     TransactionType,
     TransactionWithId,
 } from "../../../../../../libs/shared-types/src/transactions-frontend";
-import { CurrencyOption } from "../../../../../../libs/shared-types/src/profile-frontend";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -104,7 +103,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
 
     // Extract currency options from the cached data, removing duplicates and empty values
-    const currencyOptions: CurrencyOption[] = Array.isArray(countryTimezoneData)
+    const currencyOptions: { value: string; label: string }[] = Array.isArray(countryTimezoneData)
         ? countryTimezoneData
               .map((item) => ({
                   value: item.currency.code,
@@ -214,7 +213,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     };
 
     // Get currency options (already filtered and deduplicated)
-    const getCurrencyOptions = (): CurrencyOption[] => {
+    const getCurrencyOptions = (): { value: string; label: string }[] => {
         return currencyOptions;
     };
 

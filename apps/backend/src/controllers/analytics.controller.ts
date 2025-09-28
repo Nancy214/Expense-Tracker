@@ -21,25 +21,25 @@ import {
     BillsCategoryBreakdownResponse,
     ExpenseCategoryBreakdownResponse,
     SavingsDataForSpecificMonth,
-} from "@expense-tracker/shared-types/src/analytics";
-import { TransactionDocument, BillDocument } from "@expense-tracker/shared-types/src/transactions-backend";
+    TransactionDocument,
+    BillDocument,
+    Period,
+} from "@expense-tracker/shared-types/src";
 import { getMonthDates, getMonthName } from "../utils/dateUtils";
-
 export interface AuthRequest extends Request {
     user?: TokenPayload;
 }
 
 // Union type for all transaction documents
 export type AnyTransactionDocument = TransactionDocument | BillDocument;
-
 // Helper function to get date range based on period and subPeriod
-const getDateRange = (period: string, subPeriod: string): { startDate: Date; endDate: Date } => {
+const getDateRange = (period: Period, subPeriod: string): { startDate: Date; endDate: Date } => {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
     switch (period) {
-        case "monthly":
+        case Period.MONTHLY:
             // Parse the month name to get the month index using date-fns
             const monthDate = parse(subPeriod, "MMMM", new Date());
             const monthIndex = monthDate.getMonth();
@@ -47,7 +47,7 @@ const getDateRange = (period: string, subPeriod: string): { startDate: Date; end
             // unless we're specifically looking at a past year
             return getMonthDates(currentYear, monthIndex);
 
-        case "quarterly":
+        case Period.QUARTERLY:
             const quarter = parseInt(subPeriod.replace("Q", ""));
             const quarterStartMonth = (quarter - 1) * 3;
             // For quarterly view, always use current year for recent quarters (Q4 includes Oct, Nov, Dec)
@@ -56,7 +56,7 @@ const getDateRange = (period: string, subPeriod: string): { startDate: Date; end
             const quarterEnd = endOfQuarter(quarterStartDate);
             return { startDate: quarterStart, endDate: quarterEnd };
 
-        case "half-yearly":
+        case Period.HALF_YEARLY:
             const half = parseInt(subPeriod.replace("H", ""));
             const halfStartMonth = (half - 1) * 6;
             // For half-yearly view, always use current year for recent half-years (H2 includes Jul-Dec)
@@ -65,7 +65,7 @@ const getDateRange = (period: string, subPeriod: string): { startDate: Date; end
             const halfEnd = endOfMonth(addMonths(halfStartDate, 5));
             return { startDate: halfStart, endDate: halfEnd };
 
-        case "yearly":
+        case Period.YEARLY:
             const yearNum = parseInt(subPeriod);
             const yearDate = new Date(yearNum, 0, 1);
             const yearStart = startOfYear(yearDate);
@@ -88,12 +88,12 @@ export const getExpenseCategoryBreakdown = async (req: Request, res: Response): 
         }
 
         // Get time period parameters from query
-        const { period = "monthly", subPeriod } = req.query;
+        const { period = Period.MONTHLY, subPeriod } = req.query;
 
         // Get date range based on period
         let dateFilter: any = {};
         if (subPeriod && typeof subPeriod === "string") {
-            const { startDate, endDate } = getDateRange(period as string, subPeriod);
+            const { startDate, endDate } = getDateRange(period as Period, subPeriod);
             dateFilter = {
                 date: {
                     $gte: startDate,
@@ -151,12 +151,12 @@ export const getBillsCategoryBreakdown = async (req: Request, res: Response): Pr
         }
 
         // Get time period parameters from query
-        const { period = "monthly", subPeriod } = req.query;
+        const { period = Period.MONTHLY, subPeriod } = req.query;
 
         // Get date range based on period
         let dateFilter: any = {};
         if (subPeriod && typeof subPeriod === "string") {
-            const { startDate, endDate } = getDateRange(period as string, subPeriod);
+            const { startDate, endDate } = getDateRange(period as Period, subPeriod);
             dateFilter = {
                 date: {
                     $gte: startDate,
@@ -263,7 +263,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
 
         if (subPeriod && typeof subPeriod === "string") {
             // Get data for specific period
-            const { startDate } = getDateRange(period as string, subPeriod);
+            const { startDate } = getDateRange(period as Period, subPeriod);
 
             // For specific periods, we'll get data for that period and a few periods before for comparison
 
@@ -535,7 +535,7 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
 
         if (subPeriod && typeof subPeriod === "string") {
             // Get data for specific period
-            const { startDate } = getDateRange(period as string, subPeriod);
+            const { startDate } = getDateRange(period as Period, subPeriod);
 
             switch (period) {
                 case "monthly":

@@ -1,5 +1,5 @@
-import { TimePeriod } from "@/app-components/pages/AnalyticsPage/TimePeriodSelector";
 import { formatToHumanReadableDate } from "./dateUtils";
+import { Period } from "@expense-tracker/shared-types/src";
 
 // Utility functions for chart x-axis formatting based on time period
 
@@ -10,11 +10,11 @@ import { formatToHumanReadableDate } from "./dateUtils";
  * @param dataLength - Number of data points to generate labels for
  * @returns Array of x-axis labels
  */
-export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataLength: number): string[] => {
+export const generateXAxisLabels = (period: Period, subPeriod: string, dataLength: number): string[] => {
     const labels: string[] = [];
 
     switch (period) {
-        case "monthly":
+        case Period.MONTHLY:
             // For monthly view, show all dates in DD/MM format for the entire month
             const monthNames = [
                 "January",
@@ -53,7 +53,7 @@ export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataL
             }
             break;
 
-        case "quarterly":
+        case Period.QUARTERLY:
             // For quarterly view, show the correct months for the selected quarter
             const quarterMonthNames = [
                 "Jan",
@@ -87,7 +87,7 @@ export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataL
             }
             break;
 
-        case "half-yearly":
+        case Period.HALF_YEARLY:
             // For half-yearly view, show the correct months for the selected half-year
             const halfYearMonthNames = [
                 "Jan",
@@ -121,7 +121,7 @@ export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataL
             }
             break;
 
-        case "yearly":
+        case Period.YEARLY:
             // For yearly view, show months for the selected year
             const yearlyMonthNames = [
                 "Jan",
@@ -159,12 +159,12 @@ export const generateXAxisLabels = (period: TimePeriod, subPeriod: string, dataL
  * @param period - The selected time period
  * @returns X-axis label string
  */
-export const getXAxisLabel = (period: TimePeriod): string => {
+export const getXAxisLabel = (period: Period): string => {
     switch (period) {
-        case "monthly":
-        case "quarterly":
-        case "half-yearly":
-        case "yearly":
+        case Period.MONTHLY:
+        case Period.QUARTERLY:
+        case Period.HALF_YEARLY:
+        case Period.YEARLY:
             return "";
         default:
             return "Time Period";
@@ -194,11 +194,11 @@ export const getYAxisLabel = (chartType: string): string => {
  * @param subPeriod - Selected sub-period
  * @returns Formatted data with appropriate x-axis labels
  */
-export const formatChartData = (data: any[], period: TimePeriod, subPeriod: string): any[] => {
+export const formatChartData = (data: any[], period: Period, subPeriod: string): any[] => {
     if (!data || data.length === 0) return data;
 
     // For monthly period, format the dates using formatToHumanReadableDate
-    if (period === "monthly") {
+    if (period === Period.MONTHLY) {
         return data.map((item) => {
             // Parse the date string properly
             let date;
@@ -229,7 +229,7 @@ export const formatChartData = (data: any[], period: TimePeriod, subPeriod: stri
 
     // For yearly, quarterly, and half-yearly periods, use the backend month names
     // as they are already correct and match the actual data
-    if (period === "yearly" || period === "quarterly" || period === "half-yearly") {
+    if (period === Period.YEARLY || period === Period.QUARTERLY || period === Period.HALF_YEARLY) {
         return data.map((item) => ({
             ...item,
             originalName: item.name, // Keep original name for reference
@@ -253,16 +253,16 @@ export const formatChartData = (data: any[], period: TimePeriod, subPeriod: stri
  * @param subPeriod - Selected sub-period
  * @returns Formatted chart title
  */
-export const getChartTitle = (baseTitle: string, period: TimePeriod, subPeriod: string): string => {
+export const getChartTitle = (baseTitle: string, period: Period, subPeriod: string): string => {
     switch (period) {
-        case "monthly":
+        case Period.MONTHLY:
             // For monthly, show only month name without date ranges
             return `${baseTitle} - ${subPeriod}`;
-        case "quarterly":
+        case Period.QUARTERLY:
             return `${baseTitle} - ${subPeriod}`;
-        case "half-yearly":
+        case Period.HALF_YEARLY:
             return `${baseTitle} - ${subPeriod}`;
-        case "yearly":
+        case Period.YEARLY:
             return `${baseTitle} - ${subPeriod}`;
         default:
             return baseTitle;
@@ -275,16 +275,16 @@ export const getChartTitle = (baseTitle: string, period: TimePeriod, subPeriod: 
  * @param period - Selected time period
  * @returns Formatted chart description
  */
-export const getChartDescription = (baseDescription: string, period: TimePeriod): string => {
+export const getChartDescription = (baseDescription: string, period: Period): string => {
     switch (period) {
-        case "monthly":
+        case Period.MONTHLY:
             // For monthly, return base description without date-related additions
             return baseDescription;
-        case "quarterly":
+        case Period.QUARTERLY:
             return `${baseDescription} - Monthly view within the selected quarter`;
-        case "half-yearly":
+        case Period.HALF_YEARLY:
             return `${baseDescription} - Monthly view within the selected half-year`;
-        case "yearly":
+        case Period.YEARLY:
             return `${baseDescription} - Monthly view within the selected year`;
         default:
             return baseDescription;
@@ -298,18 +298,18 @@ export const getChartDescription = (baseDescription: string, period: TimePeriod)
  * @param subPeriod - Selected sub-period
  * @returns Current period data or null if not found
  */
-export const getCurrentPeriodData = (data: any[], period: TimePeriod, subPeriod: string): any | null => {
+export const getCurrentPeriodData = (data: any[], period: Period, subPeriod: string): any | null => {
     if (!data || data.length === 0) return null;
 
     // Define month names array at the top level
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     switch (period) {
-        case "monthly":
+        case Period.MONTHLY:
             // For monthly, find the data that matches the selected month
             return data.find((item) => item.name === subPeriod || item.originalName === subPeriod) || null;
 
-        case "quarterly":
+        case Period.QUARTERLY:
             // For quarterly, find the last month in the selected quarter
             if (subPeriod.startsWith("Q")) {
                 const quarter = parseInt(subPeriod.replace("Q", ""));
@@ -319,7 +319,7 @@ export const getCurrentPeriodData = (data: any[], period: TimePeriod, subPeriod:
             }
             return null;
 
-        case "half-yearly":
+        case Period.HALF_YEARLY:
             // For half-yearly, find the last month in the selected half-year
             if (subPeriod.startsWith("H")) {
                 const half = parseInt(subPeriod.replace("H", ""));
@@ -329,7 +329,7 @@ export const getCurrentPeriodData = (data: any[], period: TimePeriod, subPeriod:
             }
             return null;
 
-        case "yearly":
+        case Period.YEARLY:
             // For yearly, find the last month (December) of the selected year
             return data.find((item) => item.name === "Dec" || item.originalName === "Dec") || null;
 

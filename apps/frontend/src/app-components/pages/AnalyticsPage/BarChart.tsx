@@ -15,8 +15,8 @@ import type {
     TransformedBarData,
     BarChartMonthNetData as MonthData,
     ChartTooltipProps,
+    Period,
 } from "@expense-tracker/shared-types/src/analytics";
-import { TimePeriod } from "./TimePeriodSelector";
 import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
 
 const COLORS = {
@@ -229,13 +229,13 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     };
 
     // Format data based on time period
-    const formattedData = formatChartData(data, timePeriod as TimePeriod, subPeriod);
+    const formattedData = formatChartData(data, timePeriod as Period, subPeriod);
     const transformedData: TransformedBarData[] = transformDataForGroupedBars(formattedData);
 
     // Get dynamic labels and titles
-    const dynamicTitle = getChartTitle(title, timePeriod as TimePeriod, subPeriod);
-    const dynamicDescription = getChartDescription(description || "", timePeriod as TimePeriod);
-    const xAxisLabel = getXAxisLabel(timePeriod as TimePeriod);
+    const dynamicTitle = getChartTitle(title, timePeriod as Period, subPeriod);
+    const dynamicDescription = getChartDescription(description || "", timePeriod as Period);
+    const xAxisLabel = getXAxisLabel(timePeriod as Period);
 
     return (
         <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">

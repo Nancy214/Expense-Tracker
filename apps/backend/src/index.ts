@@ -13,12 +13,14 @@ import currencyRoutes from "./routes/currency.routes";
 import cron from "node-cron";
 import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 import morgan from "morgan";
+import expressStatusMonitor from "express-status-monitor";
 
 dotenv.config();
 
 const app = express();
 
 app.use(morgan("dev"));
+app.use(expressStatusMonitor());
 // Middleware
 app.use(express.json());
 app.use(

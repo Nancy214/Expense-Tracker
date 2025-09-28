@@ -9,8 +9,7 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-import type { AreaChartData, AreaChartProps, ChartTooltipProps } from "@expense-tracker/shared-types/src/analytics";
-import { TimePeriod } from "./TimePeriodSelector";
+import { AreaChartData, AreaChartProps, ChartTooltipProps, Period } from "@expense-tracker/shared-types/src";
 import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
 
 const COLORS = {
@@ -27,7 +26,7 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     currency = "$",
     showGrid = true,
     showLegend = true,
-    timePeriod = "monthly",
+    timePeriod = Period.MONTHLY,
     subPeriod = "",
 }) => {
     // Format amount with currency
@@ -193,7 +192,7 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     };
 
     // Format data based on time period
-    const formattedData = formatChartData(data, timePeriod as TimePeriod, subPeriod);
+    const formattedData = formatChartData(data, timePeriod as Period, subPeriod);
 
     // Transform all data to ensure it has the proper AreaChartData format with type property
     const chartData = formattedData.map((item) => ({
@@ -205,9 +204,9 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     }));
 
     // Get dynamic labels and titles
-    const dynamicTitle = getChartTitle(title, timePeriod as TimePeriod, subPeriod);
-    const dynamicDescription = getChartDescription(description, timePeriod as TimePeriod);
-    const xAxisLabel = getXAxisLabel(timePeriod as TimePeriod);
+    const dynamicTitle = getChartTitle(title, timePeriod, subPeriod);
+    const dynamicDescription = getChartDescription(description, timePeriod);
+    const xAxisLabel = getXAxisLabel(timePeriod);
 
     return (
         <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">

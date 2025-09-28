@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from "axios";
-import { ProfileData, ProfileResponse, SettingsData } from "../../../../libs/shared-types/src/profile-frontend";
+import { CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types/src/profile";
 import { refreshAuthTokens } from "@/utils/authUtils";
+import { AuthenticatedUser } from "@expense-tracker/shared-types/src/auth";
 
 // API Response Types
 interface ApiResponse<T> {
@@ -9,15 +10,15 @@ interface ApiResponse<T> {
     data?: T;
 }
 
-interface ProfileApiResponse extends ApiResponse<{ user: ProfileResponse }> {
-    user: ProfileResponse;
+interface ProfileApiResponse extends ApiResponse<{ user: AuthenticatedUser }> {
+    user: AuthenticatedUser;
 }
 
 interface DeleteProfilePictureResponse extends ApiResponse<void> {
     message: string;
 }
 
-interface CountryTimezoneCurrencyResponse {
+/* interface CountryTimezoneCurrencyResponse {
     _id: string;
     country: string;
     currency: {
@@ -28,7 +29,7 @@ interface CountryTimezoneCurrencyResponse {
     dateFormat: string;
     timeFormat: string;
     timezones: string[];
-}
+} */
 
 const API_URL = "http://localhost:8000/api/profile";
 
@@ -67,7 +68,7 @@ profileApi.interceptors.response.use(
     }
 );
 
-export const getProfile = async (userId: string): Promise<ProfileResponse> => {
+export const getProfile = async (userId: string): Promise<AuthenticatedUser> => {
     try {
         const response: AxiosResponse<ProfileApiResponse> = await profileApi.get(`/${userId}`);
         return response.data.user;
@@ -77,7 +78,7 @@ export const getProfile = async (userId: string): Promise<ProfileResponse> => {
     }
 };
 
-export const updateProfile = async (profileData: ProfileData): Promise<ProfileResponse> => {
+export const updateProfile = async (profileData: ProfileData): Promise<AuthenticatedUser> => {
     try {
         const formData = new FormData();
 
@@ -125,9 +126,9 @@ export const removeProfilePicture = async (): Promise<DeleteProfilePictureRespon
     return response.data;
 };
 
-export const getCountryTimezoneCurrency = async (): Promise<CountryTimezoneCurrencyResponse[]> => {
+export const getCountryTimezoneCurrency = async (): Promise<CountryTimezoneCurrencyData[]> => {
     try {
-        const response: AxiosResponse<CountryTimezoneCurrencyResponse[]> = await profileApi.get(
+        const response: AxiosResponse<CountryTimezoneCurrencyData[]> = await profileApi.get(
             "/country-timezone-currency"
         );
         return response.data;

@@ -4,8 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile, removeProfilePicture } from "@/services/profile.service";
 import { profileSchema, ProfileFormData, validateProfilePicture } from "@/schemas/profileSchema";
-import { User } from "@expense-tracker/shared-types/src/auth";
-import { ProfileResponse } from "../../../../libs/shared-types/src/profile-frontend";
+import { AuthenticatedUser, UserType } from "@expense-tracker/shared-types/src/auth";
 
 // Return type interface for the hook
 interface UseProfileFormReturn {
@@ -19,7 +18,7 @@ interface UseProfileFormReturn {
     onSubmit: (data: ProfileFormData) => Promise<void>;
     handleCancel: () => void;
     setIsEditing: (editing: boolean) => void;
-    user: User | null;
+    user: UserType | null;
 }
 
 export const useProfileForm = (): UseProfileFormReturn => {
@@ -91,7 +90,7 @@ export const useProfileForm = (): UseProfileFormReturn => {
                 }
                 console.log("data", data);
 
-                const updatedProfile: ProfileResponse = await updateProfile(data);
+                const updatedProfile: AuthenticatedUser = await updateProfile(data);
                 form.reset({
                     name: user?.name || "",
                     email: user?.email || "",
@@ -104,8 +103,8 @@ export const useProfileForm = (): UseProfileFormReturn => {
                 });
 
                 // Convert ProfileResponse to User type for AuthContext
-                const userForAuth: User = {
-                    id: updatedProfile._id,
+                const userForAuth: AuthenticatedUser = {
+                    id: updatedProfile.id,
                     email: updatedProfile.email,
                     name: updatedProfile.name,
                     profilePicture: updatedProfile.profilePicture,

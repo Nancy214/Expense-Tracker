@@ -11,12 +11,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-
-export type TimePeriod = "monthly" | "quarterly" | "half-yearly" | "yearly";
+import { Period } from "@expense-tracker/shared-types/src";
 
 export interface TimePeriodSelectorProps {
-    selectedPeriod: TimePeriod;
-    onPeriodChange: (period: TimePeriod) => void;
+    selectedPeriod: Period;
+    onPeriodChange: (period: Period) => void;
     selectedSubPeriod?: string;
     onSubPeriodChange?: (subPeriod: string) => void;
 }
@@ -29,34 +28,34 @@ const TimePeriodSelector: React.FC<TimePeriodSelectorProps> = ({
 }) => {
     const periods = [
         {
-            key: "monthly" as TimePeriod,
+            key: Period.MONTHLY,
             label: "Monthly",
             icon: Calendar,
             description: "View data by individual months",
         },
         {
-            key: "quarterly" as TimePeriod,
+            key: Period.QUARTERLY,
             label: "Quarterly",
             icon: BarChart3,
             description: "View data by quarters (Q1, Q2, Q3, Q4)",
         },
         {
-            key: "half-yearly" as TimePeriod,
+            key: Period.HALF_YEARLY,
             label: "Half-Yearly",
             icon: TrendingUp,
             description: "View data by half-years (H1, H2)",
         },
         {
-            key: "yearly" as TimePeriod,
+            key: Period.YEARLY,
             label: "Yearly",
             icon: PieChart,
             description: "View data by full years",
         },
     ];
 
-    const getSubPeriods = (period: TimePeriod): string[] => {
+    const getSubPeriods = (period: Period): string[] => {
         switch (period) {
-            case "monthly":
+            case Period.MONTHLY:
                 return [
                     "January",
                     "February",
@@ -71,11 +70,11 @@ const TimePeriodSelector: React.FC<TimePeriodSelectorProps> = ({
                     "November",
                     "December",
                 ];
-            case "quarterly":
+            case Period.QUARTERLY:
                 return ["Q1", "Q2", "Q3", "Q4"];
-            case "half-yearly":
+            case Period.HALF_YEARLY:
                 return ["H1", "H2"];
-            case "yearly":
+            case Period.YEARLY:
                 return ["2025", "2024", "2023", "2022", "2021", "2020"];
             default:
                 return [];
@@ -87,9 +86,9 @@ const TimePeriodSelector: React.FC<TimePeriodSelectorProps> = ({
     const getCurrentQuarter = () => Math.floor(getCurrentMonth() / 3) + 1;
     const getCurrentHalfYear = () => (getCurrentMonth() < 6 ? 1 : 2);
 
-    const getDefaultSubPeriod = (period: TimePeriod): string => {
+    const getDefaultSubPeriod = (period: Period): string => {
         switch (period) {
-            case "monthly":
+            case Period.MONTHLY:
                 return [
                     "January",
                     "February",
@@ -104,11 +103,11 @@ const TimePeriodSelector: React.FC<TimePeriodSelectorProps> = ({
                     "November",
                     "December",
                 ][getCurrentMonth()];
-            case "quarterly":
+            case Period.QUARTERLY:
                 return `Q${getCurrentQuarter()}`;
-            case "half-yearly":
+            case Period.HALF_YEARLY:
                 return `H${getCurrentHalfYear()}`;
-            case "yearly":
+            case Period.YEARLY:
                 return getCurrentYear().toString();
             default:
                 return "";
@@ -134,7 +133,7 @@ const TimePeriodSelector: React.FC<TimePeriodSelectorProps> = ({
                     {/* Main Period Selector */}
                     <Select
                         value={selectedPeriod}
-                        onValueChange={(value: TimePeriod) => {
+                        onValueChange={(value: Period) => {
                             onPeriodChange(value);
                             if (onSubPeriodChange) {
                                 onSubPeriodChange(getDefaultSubPeriod(value));

@@ -1,5 +1,3 @@
-import type { TransactionType } from "./transactions-frontend";
-
 // Shared insight type
 export enum InsightType {
     SUCCESS = "success",
@@ -115,7 +113,7 @@ export interface ChartProps {
     yAxisLabel?: string;
     showGrid?: boolean;
     showLegend?: boolean;
-    timePeriod?: string;
+    timePeriod?: Period;
     subPeriod?: string;
 }
 
@@ -238,4 +236,11 @@ export interface AnalyticsMonthData {
     month: string;
     income: number;
     expenses: number;
+}
+
+export enum Period {
+    MONTHLY = "monthly",
+    QUARTERLY = "quarterly",
+    HALF_YEARLY = "half-yearly",
+    YEARLY = "yearly",
 }
