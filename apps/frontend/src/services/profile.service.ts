@@ -1,7 +1,11 @@
-import axios, { AxiosResponse } from "axios";
-import { CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types/src/profile";
 import { refreshAuthTokens } from "@/utils/authUtils";
-import { AuthenticatedUser } from "@expense-tracker/shared-types/src/auth";
+import {
+    AuthenticatedUser,
+    CountryTimezoneCurrencyData,
+    ProfileData,
+    SettingsData,
+} from "@expense-tracker/shared-types/src";
+import axios, { AxiosResponse } from "axios";
 
 // API Response Types
 interface ApiResponse<T> {

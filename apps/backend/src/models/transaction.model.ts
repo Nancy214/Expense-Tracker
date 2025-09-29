@@ -1,12 +1,16 @@
 import { Transaction } from "@expense-tracker/shared-types/src/transactions-frontend";
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-interface TransactionDocument extends Document, Transaction {
+/* interface TransactionDocument extends Document, Transaction {
     _id: string;
 }
-
+ */
 const TransactionSchema = new Schema(
     {
+        id: {
+            type: String,
+            required: true,
+        },
         date: {
             type: Date,
             required: true,
@@ -113,4 +117,4 @@ const TransactionSchema = new Schema(
     }
 );
 
-export const TransactionModel = mongoose.model<TransactionDocument>("Transaction", TransactionSchema);
+export const TransactionModel = mongoose.model<Transaction>("Transaction", TransactionSchema);

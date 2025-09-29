@@ -1,8 +1,8 @@
+import ProfileData from "@/app-components/pages/ProfilePage/ProfileData";
+import SettingsData from "@/app-components/pages/ProfilePage/SettingsData";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import ProfileData from "@/app-components/pages/ProfilePage/ProfileData";
-import SettingsData from "@/app-components/pages/ProfilePage/SettingsData";
 
 const ProfilePage: React.FC = () => {
     const { user, logout } = useAuth();

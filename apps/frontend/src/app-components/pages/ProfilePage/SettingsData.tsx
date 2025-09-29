@@ -1,15 +1,14 @@
-import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { Settings, Save, Shield, LogOut } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useSettings, useProfileMutations } from "@/hooks/use-profile";
-import { SettingsData as SettingsDataType } from "@expense-tracker/shared-types/src/profile";
-import { AuthenticatedUser } from "@expense-tracker/shared-types/src/auth";
+import { useAuth } from "@/context/AuthContext";
+import { useProfileMutations, useSettings } from "@/hooks/use-profile";
+import { useToast } from "@/hooks/use-toast";
+import { AuthenticatedUser, SettingsData as SettingsDataType } from "@expense-tracker/shared-types/src";
+import { LogOut, Save, Settings, Shield } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface SettingsDataProps {

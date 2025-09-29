@@ -21,8 +21,8 @@ import {
     BillsCategoryBreakdownResponse,
     ExpenseCategoryBreakdownResponse,
     SavingsDataForSpecificMonth,
-    TransactionDocument,
-    BillDocument,
+    Transaction,
+    Bill,
     Period,
 } from "@expense-tracker/shared-types/src";
 import { getMonthDates, getMonthName } from "../utils/dateUtils";
@@ -31,7 +31,7 @@ export interface AuthRequest extends Request {
 }
 
 // Union type for all transaction documents
-export type AnyTransactionDocument = TransactionDocument | BillDocument;
+export type AnyTransactionDocument = Transaction | Bill;
 // Helper function to get date range based on period and subPeriod
 const getDateRange = (period: Period, subPeriod: string): { startDate: Date; endDate: Date } => {
     const now = new Date();
@@ -103,7 +103,7 @@ export const getExpenseCategoryBreakdown = async (req: Request, res: Response): 
         }
 
         // Get expense transactions for the user (excluding bills) within the specified period
-        const expenses: TransactionDocument[] = await TransactionModel.find({
+        const expenses: Transaction[] = await TransactionModel.find({
             userId,
             type: "expense",
             category: { $ne: "Bills" }, // Exclude bills from regular expenses
@@ -112,8 +112,8 @@ export const getExpenseCategoryBreakdown = async (req: Request, res: Response): 
 
         // Aggregate by category
         const categoryBreakdown: { [key: string]: number } = {};
-        expenses.forEach((expense: TransactionDocument) => {
-            const expenseData: TransactionDocument = expense;
+        expenses.forEach((expense: Transaction) => {
+            const expenseData: Transaction = expense;
             const category: string = expenseData.category;
             categoryBreakdown[category] = (categoryBreakdown[category] || 0) + expenseData.amount;
         });
@@ -166,7 +166,7 @@ export const getBillsCategoryBreakdown = async (req: Request, res: Response): Pr
         }
 
         // Get bill transactions for the user within the specified period
-        const bills: BillDocument[] = await TransactionModel.find({
+        const bills: Bill[] = await TransactionModel.find({
             userId,
             category: "Bills",
             ...dateFilter,
@@ -174,8 +174,8 @@ export const getBillsCategoryBreakdown = async (req: Request, res: Response): Pr
 
         // Aggregate by billCategory
         const billCategoryBreakdown: { [key: string]: number } = {};
-        bills.forEach((bill: BillDocument) => {
-            const billData: BillDocument = bill;
+        bills.forEach((bill: Bill) => {
+            const billData: Bill = bill;
             const billCategory: string = billData.billCategory || "Other";
             billCategoryBreakdown[billCategory] = (billCategoryBreakdown[billCategory] || 0) + billData.amount;
         });
@@ -210,7 +210,7 @@ const getTransactionsForPeriod = async (
     endDate: Date
 ): Promise<SpecificPeriodIncomeExpenseData> => {
     try {
-        const transactions: TransactionDocument[] = await TransactionModel.find({
+        const transactions: Transaction[] = await TransactionModel.find({
             userId,
             date: {
                 $gte: startDate,
@@ -218,7 +218,7 @@ const getTransactionsForPeriod = async (
             },
         });
 
-        const transactionData: TransactionDocument[] = transactions.map((t) => t);
+        const transactionData: Transaction[] = transactions.map((t) => t);
 
         const income: number = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
 
@@ -429,7 +429,7 @@ const getTransactionsForMonth = async (
 ): Promise<SavingsDataForSpecificMonth> => {
     try {
         const monthDates: { startDate: Date; endDate: Date } = getMonthDates(year, month);
-        const transactions: TransactionDocument[] = await TransactionModel.find({
+        const transactions: Transaction[] = await TransactionModel.find({
             userId,
             date: {
                 $gte: monthDates.startDate,
@@ -437,11 +437,11 @@ const getTransactionsForMonth = async (
             },
         });
 
-        const transactionData: TransactionDocument[] = transactions.map((t) => t);
+        const transactionData: Transaction[] = transactions.map((t) => t);
 
         const income: number = transactionData
             .filter((t) => t.type === "income")
-            .reduce((sum, t: TransactionDocument) => sum + t.amount, 0);
+            .reduce((sum, t: Transaction) => sum + t.amount, 0);
 
         const expenses: number = transactionData
             .filter((t) => t.type === "expense")
@@ -465,7 +465,7 @@ const getTransactionsForMonth = async (
 const getDailyTransactionsForMonth = async (userId: string, year: number, month: number): Promise<any[]> => {
     try {
         const monthDates: { startDate: Date; endDate: Date } = getMonthDates(year, month);
-        const transactions: TransactionDocument[] = await TransactionModel.find({
+        const transactions: Transaction[] = await TransactionModel.find({
             userId,
             date: {
                 $gte: monthDates.startDate,

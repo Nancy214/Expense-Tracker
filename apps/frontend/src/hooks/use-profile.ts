@@ -1,20 +1,24 @@
-import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
-import { useForm, UseFormReturn } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileFormData, profileSchema } from "@/schemas/profileSchema";
 import {
-    getProfile,
-    updateProfile,
-    removeProfilePicture,
     getCountryTimezoneCurrency,
+    getProfile,
+    removeProfilePicture,
+    updateProfile,
     updateSettings,
 } from "@/services/profile.service";
-import { profileSchema, ProfileFormData } from "@/schemas/profileSchema";
-import { SettingsData, ProfileData, CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src/profile";
-import { AuthenticatedUser } from "@expense-tracker/shared-types/src/auth";
+import {
+    AuthenticatedUser,
+    CountryTimezoneCurrencyData,
+    ProfileData,
+    SettingsData,
+} from "@expense-tracker/shared-types/src";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { AxiosError } from "axios";
+import { useEffect, useRef, useState } from "react";
+import { useForm, UseFormReturn } from "react-hook-form";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -40,7 +44,7 @@ interface DeleteProfilePictureResponse {
 // Mutation Function Types
 
 // Utility Types
-type ProfileDataUnion = AuthenticatedUser | AuthenticatedUser | null;
+type ProfileDataUnion = AuthenticatedUser | null;
 type FileValidationResult = {
     isValid: boolean;
     errorMessage?: string;
@@ -300,7 +304,7 @@ export function useProfileForm(): ProfileFormReturn {
 
     // Use profile data from query if available, otherwise fall back to auth context
     // Prioritize fresh API data over potentially stale localStorage data
-    const currentProfileData = profileData || user;
+    const currentProfileData = profileData ?? user ?? null;
 
     const form = useForm<ProfileFormData>({
         resolver: zodResolver(profileSchema),

@@ -1,38 +1,39 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, TrendingUp, PieChart, BarChart3, LineChart } from "lucide-react";
-import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useExpenses } from "@/hooks/use-transactions";
 import {
-    useExpenseCategoryBreakdown,
+    transformExpensesToHeatmapData,
+    useAllTransactionsForAnalytics,
     useBillsCategoryBreakdown,
+    useExpenseCategoryBreakdown,
     useIncomeExpenseSummary,
     useMonthlySavingsTrend,
-    useAllTransactionsForAnalytics,
-    transformExpensesToHeatmapData,
 } from "@/hooks/use-analytics";
-import "react-calendar-heatmap/dist/styles.css";
-import CalendarHeatmapComponent from "./CalendarHeatmap";
-import TimePeriodSelector, { TimePeriod } from "./TimePeriodSelector";
-import PieChartComponent from "./PieChart";
-import BarChartComponent from "./BarChart";
-import AreaChartComponent from "./AreaChart";
+import { useExpenses } from "@/hooks/use-transactions";
 import type {
-    MonthlyIncomeExpenseData,
-    MonthlySavingsData,
-    HeatmapData,
     AreaChartData,
     BarChartData,
+    HeatmapData,
+    MonthlyIncomeExpenseData,
+    MonthlySavingsData,
     PieChartData,
-} from "@expense-tracker/shared-types/src/analytics";
-import type { TransactionWithId } from "@expense-tracker/shared-types/src/transactions-frontend";
+    TransactionOrBill,
+} from "@expense-tracker/shared-types/src";
+import { Period } from "@expense-tracker/shared-types/src/analytics";
+import { AlertCircle, BarChart3, LineChart, PieChart, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import "react-calendar-heatmap/dist/styles.css";
+import AreaChartComponent from "./AreaChart";
+import BarChartComponent from "./BarChart";
+import CalendarHeatmapComponent from "./CalendarHeatmap";
+import PieChartComponent from "./PieChart";
+import TimePeriodSelector from "./TimePeriodSelector";
 
 // AnalyticsCard component moved inline
 const AnalyticsCard: React.FC<{
-    selectedPeriod: TimePeriod;
-    onPeriodChange: (period: TimePeriod) => void;
+    selectedPeriod: Period;
+    onPeriodChange: (period: Period) => void;
     selectedSubPeriod: string;
     onSubPeriodChange: (subPeriod: string) => void;
     expenseCategoryData: PieChartData[];
@@ -244,7 +245,7 @@ const AnalyticsPage = () => {
     const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactionsForAnalytics();
 
     // Time period selector state
-    const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("monthly");
+    const [selectedPeriod, setSelectedPeriod] = useState<Period>(Period.MONTHLY);
     const [selectedSubPeriod, setSelectedSubPeriod] = useState<string>(() => {
         // Initialize with current month as default
         const currentMonth = new Date().getMonth();
@@ -320,7 +321,7 @@ const AnalyticsPage = () => {
     const expenseHeatmapData: HeatmapData[] =
         allTransactions.length > 0
             ? transformExpensesToHeatmapData(
-                  allTransactions.filter((t: TransactionWithId) => t.type === "expense") // Only include expenses for the heatmap
+                  allTransactions.filter((t: TransactionOrBill) => t.type === "expense") // Only include expenses for the heatmap
               )
             : [];
 

@@ -14,7 +14,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import StatsCards from "@/app-components/utility-components/StatsCards";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -84,10 +83,7 @@ function LayoutContent({ children }: LayoutProps) {
                                     <span className="sr-only">Toggle sidebar</span>
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent
-                                side="left"
-                                className="w-72 p-0 transition-all duration-300 ease-out"
-                            >
+                            <SheetContent side="left" className="w-72 p-0 transition-all duration-300 ease-out">
                                 <div className="animate-in slide-in-from-left duration-300">
                                     <SidebarContent onItemClick={() => setSidebarOpen(false)} />
                                 </div>
@@ -149,9 +145,7 @@ function LayoutContent({ children }: LayoutProps) {
 
                 {/* Main content */}
                 <main className={cn("flex-1 transition-all duration-300 ease-in-out", "md:ml-0")}>
-                    <div className="animate-in fade-in slide-in-from-right duration-300">
-                        {children}
-                    </div>
+                    <div className="animate-in fade-in slide-in-from-right duration-300">{children}</div>
                 </main>
             </div>
         </div>
@@ -163,7 +157,7 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
     const navRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 
     // Find the index of the currently active item
-    const activeIndex = navLinks.findIndex(link => link.path === location.pathname);
+    const activeIndex = navLinks.findIndex((link) => link.path === location.pathname);
 
     // Calculate the position of the sliding indicator using actual element positions
     const [indicatorTop, setIndicatorTop] = useState(0);
@@ -241,7 +235,7 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
                                     : "text-gray-700 hover:bg-gradient-to-r hover:from-gray-50/50 hover:to-gray-100/50 hover:text-gray-900"
                             )}
                             style={{
-                                animationDelay: `${index * 50}ms`
+                                animationDelay: `${index * 50}ms`,
                             }}
                         >
                             {/* Icon with animation */}

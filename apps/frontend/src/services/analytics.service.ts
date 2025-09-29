@@ -1,12 +1,12 @@
-import axios, { AxiosResponse, AxiosError } from "axios";
 import { refreshAuthTokens } from "@/utils/authUtils";
 import type {
-    ExpenseCategoryBreakdownResponse,
     BillsCategoryBreakdownResponse,
+    ExpenseCategoryBreakdownResponse,
     IncomeExpenseSummaryResponse,
     MonthlySavingsTrendResponse,
-} from "@expense-tracker/shared-types/src/analytics";
-import { ApiError } from "@expense-tracker/shared-types/src/error";
+} from "@expense-tracker/shared-types/src";
+import { ApiError } from "@expense-tracker/shared-types/src";
+import axios, { AxiosError, AxiosResponse } from "axios";
 
 const API_URL = "http://localhost:8000/api/analytics";
 

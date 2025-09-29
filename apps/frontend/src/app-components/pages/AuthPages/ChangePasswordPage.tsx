@@ -1,14 +1,13 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Lock, Shield } from "lucide-react";
 import { changePassword } from "@/services/auth.service";
-import { ChangePasswordFormData } from "@expense-tracker/shared-types/src/auth";
-import { ApiError } from "@expense-tracker/shared-types/src/error";
+import { ApiError, ChangePasswordFormData } from "@expense-tracker/shared-types/src";
+import { ArrowLeft, Eye, EyeOff, Lock, Shield } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const ChangePasswordPage: React.FC = () => {
     const { toast } = useToast();

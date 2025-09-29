@@ -1,14 +1,13 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useExpenses } from "@/hooks/use-transactions";
+import { format } from "date-fns";
+import { useState } from "react";
 // FullCalendar components
-import FullCalendar from "@fullcalendar/react";
+import { TransactionOrBill, TransactionType } from "@expense-tracker/shared-types/src";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { TransactionType, TransactionWithId } from "@expense-tracker/shared-types/src/transactions-frontend";
-import { CalendarEvent } from "@expense-tracker/shared-types/src/calendar";
+import FullCalendar from "@fullcalendar/react";
 import "./CalendarStyle.css";
 // Separate color mappings for expense and income categories
 const expenseColors: { [key: string]: string } = {
@@ -37,12 +36,30 @@ const incomeColors: { [key: string]: string } = {
     "Other Income": "#4b5563", // gray-600
 };
 
+// Calendar event type for FullCalendar
+interface CalendarEvent {
+    id: string;
+    title: string;
+    date: string;
+    backgroundColor: string;
+    borderColor: string;
+    textColor: string;
+    extendedProps: {
+        category: string;
+        description: string;
+        amount: number;
+        currency: string;
+        isRecurring?: boolean;
+        recurringFrequency?: string;
+    };
+}
+
 const CalendarPage: React.FC = () => {
     const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
     const { expenses = [], isLoading } = useExpenses();
 
     // Convert expenses to FullCalendar events
-    const calendarEvents: CalendarEvent[] = expenses.map((expense: TransactionWithId) => {
+    const calendarEvents: CalendarEvent[] = expenses.map((expense: TransactionOrBill) => {
         const currency: string = expense.currency || "INR";
         const currencySymbols: { [key: string]: string } = {
             INR: "₹",
@@ -68,7 +85,7 @@ const CalendarPage: React.FC = () => {
         }
 
         return {
-            id: expense._id || "",
+            id: expense.id || "",
             title: `${expense.title} - ${symbol}${expense.amount}`,
             date: new Date(dateStr.split("/").reverse().join("-")).toISOString(), // Convert dd/MM/yyyy to ISO format
             backgroundColor: getCategoryColor(expense.type, expense.category),
@@ -79,8 +96,8 @@ const CalendarPage: React.FC = () => {
                 description: expense.description,
                 amount: expense.amount,
                 currency: currency,
-                isRecurring: expense.isRecurring,
-                recurringFrequency: expense.recurringFrequency,
+                isRecurring: "isRecurring" in expense ? expense.isRecurring : false,
+                recurringFrequency: "recurringFrequency" in expense ? expense.recurringFrequency : undefined,
             },
         };
     });

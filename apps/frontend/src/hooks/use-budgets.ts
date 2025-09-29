@@ -1,19 +1,14 @@
-import { useMutation, useQuery, useQueryClient, UseQueryResult, UseMutationResult } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
+import { BudgetData, BudgetProgressResponse, BudgetReminder, BudgetType } from "@expense-tracker/shared-types/src";
+import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import {
-    getBudgets,
     createBudget,
-    updateBudget,
     deleteBudget,
     getBudgetProgress,
+    getBudgets,
     processBudgetReminders,
+    updateBudget,
 } from "../services/budget.service";
-import {
-    BudgetData,
-    BudgetType,
-    BudgetProgressResponse,
-    BudgetReminder,
-} from "@expense-tracker/shared-types/src/budget";
-import { useAuth } from "@/context/AuthContext";
 
 // Define the return type interface for the useBudgets hook
 interface UseBudgetsReturn {

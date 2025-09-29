@@ -1,7 +1,6 @@
-import { z } from "zod";
 import { format } from "date-fns";
-import { UserType } from "@expense-tracker/shared-types/src/auth";
-import { BudgetRecurrence, BudgetCategory } from "@expense-tracker/shared-types/src/budget";
+import { z } from "zod";
+import { BudgetCategory, BudgetRecurrence } from "@expense-tracker/shared-types/src/budget";
 
 // Budget categories array with proper typing
 export const BUDGET_CATEGORIES: readonly BudgetCategory[] = [
@@ -122,7 +121,8 @@ export interface BudgetFormHandlers {
 }
 
 // Default values with proper typing
-export const getDefaultValues = (user?: UserType): BudgetFormData => ({
+type HasCurrency = { currency?: string };
+export const getDefaultValues = (user?: HasCurrency): BudgetFormData => ({
     title: "",
     amount: 0,
     currency: user?.currency || "INR",

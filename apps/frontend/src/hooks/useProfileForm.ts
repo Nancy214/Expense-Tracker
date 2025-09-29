@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile, removeProfilePicture } from "@/services/profile.service";
 import { profileSchema, ProfileFormData, validateProfilePicture } from "@/schemas/profileSchema";
-import { AuthenticatedUser, UserType } from "@expense-tracker/shared-types/src/auth";
+import { AuthenticatedUser } from "@expense-tracker/shared-types/src";
 
 // Return type interface for the hook
 interface UseProfileFormReturn {
@@ -18,7 +18,7 @@ interface UseProfileFormReturn {
     onSubmit: (data: ProfileFormData) => Promise<void>;
     handleCancel: () => void;
     setIsEditing: (editing: boolean) => void;
-    user: UserType | null;
+    user: AuthenticatedUser | null;
 }
 
 export const useProfileForm = (): UseProfileFormReturn => {
@@ -158,6 +158,6 @@ export const useProfileForm = (): UseProfileFormReturn => {
         onSubmit,
         handleCancel,
         setIsEditing,
-        user,
+        user: user ?? null,
     };
 };

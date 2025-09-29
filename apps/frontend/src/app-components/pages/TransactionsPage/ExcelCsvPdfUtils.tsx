@@ -1,8 +1,24 @@
-import { TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
-import { MonthlyStatementPDFOptions } from "../../../../../../libs/shared-types/src/transaction-frontend";
+import { TransactionOrBill } from "@expense-tracker/shared-types/src";
+
+export interface MonthlyStatementPDFOptions {
+    allExpenses: TransactionOrBill[];
+    filteredTransactions: TransactionOrBill[];
+    userCurrency: string;
+    now: Date;
+    monthName: string;
+    currentYear: number;
+    totalIncome: number;
+    totalExpenses: number;
+    netBalance: number;
+    savingsRate: number;
+    totalTransactions: number;
+    avgTransaction: number;
+    expenseByCategory: Record<string, number>;
+    totalExpenseForBreakdown: number;
+}
 
 // Utility to convert array of objects to CSV, excluding _id, userId, templateId
-export function arrayToCSV(data: TransactionWithId[]): string {
+export function arrayToCSV(data: TransactionOrBill[]): string {
     if (!data.length) return "";
 
     const replacer = (_key: string, value: unknown) => (value === null || value === undefined ? "" : value);
@@ -47,7 +63,7 @@ export function arrayToCSV(data: TransactionWithId[]): string {
     return csv;
 }
 
-export function downloadCSV(data: TransactionWithId[], filename = "expenses.csv"): void {
+export function downloadCSV(data: TransactionOrBill[], filename = "expenses.csv"): void {
     const csv = arrayToCSV(data);
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -62,7 +78,7 @@ export function downloadCSV(data: TransactionWithId[], filename = "expenses.csv"
 
 // Utility to export to Excel using xlsx
 import * as XLSX from "xlsx";
-export function downloadExcel(data: TransactionWithId[], filename = "expenses.xlsx"): void {
+export function downloadExcel(data: TransactionOrBill[], filename = "expenses.xlsx"): void {
     if (!data.length) return;
 
     const exclude = ["_id", "userId", "templateId"];
@@ -88,9 +104,9 @@ export function downloadExcel(data: TransactionWithId[], filename = "expenses.xl
 }
 
 // PDF Generation utilities
+import { format, parse } from "date-fns";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { parse, format } from "date-fns";
 
 export function generateMonthlyStatementPDF({
     allExpenses,
@@ -156,7 +172,7 @@ export function generateMonthlyStatementPDF({
 
     // Recurring expenses table
     const recurringRows = monthlyTransactions
-        .filter((t) => t.isRecurring)
+        .filter((t) => "isRecurring" in t && t.isRecurring)
         .map((t) => {
             let dateObj: Date;
             if (typeof t.date === "string") {
@@ -168,15 +184,15 @@ export function generateMonthlyStatementPDF({
                 dateObj = t.date;
             }
             let endDateStr = "";
-            if (t.endDate) {
+            if ("endDate" in t && t.endDate) {
                 let endDateObj: Date;
-                if (typeof t.endDate === "string") {
-                    endDateObj = parse(t.endDate, "dd/MM/yyyy", new Date());
+                if (typeof (t as any).endDate === "string") {
+                    endDateObj = parse((t as any).endDate, "dd/MM/yyyy", new Date());
                     if (isNaN(endDateObj.getTime())) {
-                        endDateObj = new Date(t.endDate);
+                        endDateObj = new Date((t as any).endDate);
                     }
                 } else {
-                    endDateObj = t.endDate;
+                    endDateObj = (t as any).endDate;
                 }
                 endDateStr = format(endDateObj, "dd/MM/yyyy");
             }
@@ -184,9 +200,9 @@ export function generateMonthlyStatementPDF({
                 format(dateObj, "dd/MM/yyyy"),
                 t.title || "",
                 t.type ? t.type.charAt(0).toUpperCase() + t.type.slice(1) : "",
-                t.amount !== undefined ? t.amount.toFixed(2) : "",
+                t.amount !== undefined ? t.amount.toFixed(2) : "0.00",
                 t.category || "",
-                t.recurringFrequency || "",
+                "recurringFrequency" in t ? t.recurringFrequency || "" : "",
                 endDateStr,
             ];
         });
@@ -206,15 +222,15 @@ export function generateMonthlyStatementPDF({
             }
 
             let dueDateStr = "";
-            if (t.dueDate) {
+            if ("dueDate" in t && t.dueDate) {
                 let dueDateObj: Date;
-                if (typeof t.dueDate === "string") {
-                    dueDateObj = parse(t.dueDate, "dd/MM/yyyy", new Date());
+                if (typeof (t as any).dueDate === "string") {
+                    dueDateObj = parse((t as any).dueDate, "dd/MM/yyyy", new Date());
                     if (isNaN(dueDateObj.getTime())) {
-                        dueDateObj = new Date(t.dueDate);
+                        dueDateObj = new Date((t as any).dueDate);
                     }
                 } else {
-                    dueDateObj = t.dueDate;
+                    dueDateObj = (t as any).dueDate;
                 }
                 dueDateStr = format(dueDateObj, "dd/MM/yyyy");
             }
