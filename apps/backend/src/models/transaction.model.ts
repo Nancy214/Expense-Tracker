@@ -1,4 +1,4 @@
-import { Transaction } from "@expense-tracker/shared-types/src/transactions-frontend";
+import { Transaction } from "@expense-tracker/shared-types/src";
 import mongoose, { Schema } from "mongoose";
 
 /* interface TransactionDocument extends Document, Transaction {
@@ -7,10 +7,6 @@ import mongoose, { Schema } from "mongoose";
  */
 const TransactionSchema = new Schema(
     {
-        id: {
-            type: String,
-            required: true,
-        },
         date: {
             type: Date,
             required: true,
@@ -114,7 +110,28 @@ const TransactionSchema = new Schema(
     },
     {
         versionKey: false,
+        toJSON: {
+            virtuals: true,
+            versionKey: false,
+            transform: (_doc, ret) => {
+                delete ret._id;
+                return ret;
+            },
+        },
+        toObject: {
+            virtuals: true,
+            versionKey: false,
+            transform: (_doc, ret) => {
+                delete ret._id;
+                return ret;
+            },
+        },
     }
 );
+
+// Virtual id that mirrors MongoDB's _id
+TransactionSchema.virtual("id").get(function (this: any) {
+    return this._id?.toString();
+});
 
 export const TransactionModel = mongoose.model<Transaction>("Transaction", TransactionSchema);

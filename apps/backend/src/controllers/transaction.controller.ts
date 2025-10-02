@@ -15,13 +15,13 @@ import {
     TransactionSummary,
 } from "@expense-tracker/shared-types/src";
 import crypto from "crypto";
-import { isSameDay } from "date-fns";
 import { Types } from "mongoose";
 import path from "path";
 import sharp from "sharp";
 import { isAWSConfigured, s3Client } from "../config/s3Client";
 import { RecurringTransactionJobService } from "../services/recurringTransactionJob.service";
-import { addTimeByFrequency, getStartOfToday, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
+import { addTimeByFrequency } from "../utils/dateUtils";
+import { startOfToday, startOfDay, isAfter, addMonths, addQuarters, addYears } from "date-fns";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;
@@ -42,26 +42,22 @@ const isBillDocument = (doc: TransactionOrBillDocument): doc is Bill => {
 
 // Helper function to calculate next due date for bills
 const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): Date => {
-    const nextDate = new Date(currentDueDate);
-
+    console.log("currentDueDate", currentDueDate);
+    console.log("frequency", frequency);
+    console.log(addMonths(currentDueDate, 1));
     switch (frequency) {
         case "monthly":
-            nextDate.setMonth(nextDate.getMonth() + 1);
-            break;
+            return addMonths(currentDueDate, 1);
         case "quarterly":
-            nextDate.setMonth(nextDate.getMonth() + 3);
-            break;
+            return addQuarters(currentDueDate, 1);
         case "yearly":
-            nextDate.setFullYear(nextDate.getFullYear() + 1);
-            break;
+            return addYears(currentDueDate, 1);
         case "one-time":
             // For one-time bills, return the same date
-            return nextDate;
+            return new Date(currentDueDate);
         default:
-            return nextDate;
+            return new Date(currentDueDate);
     }
-
-    return nextDate;
 };
 
 // Helper function to create recurring instances
@@ -71,55 +67,76 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, use
         // Handle bill frequency
         if (template.billFrequency) {
             const start: Date = new Date(template.date);
-            const today: Date = new Date();
-            today.setHours(0, 0, 0, 0);
+            const today: Date = startOfToday();
             let current: Date = new Date(start);
+            let currentDueDate: Date | undefined = template.dueDate ? new Date(template.dueDate) : undefined;
+            // Bills do not currently support endDate; generate up to today
             let end: Date = today;
 
             const { id: _id, ...rest } = template;
             const templateData = rest;
-            while (!isDateAfter(current, end)) {
-                // Skip the template's original date
-                if (isSameDay(current, start)) {
-                    await TransactionModel.updateOne(
-                        {
-                            templateId: templateId,
-                            date: current,
-                            userId: userId,
-                        },
-                        { $set: { ...templateData, isRecurring: false } },
-                        { upsert: true }
-                    );
-                }
 
-                // Bill frequency logic
+            // Skip creating an instance on the start date to avoid duplicate for the initial bill
+            current = addTimeByFrequency(current, template.billFrequency);
+            if (currentDueDate) {
+                currentDueDate = addTimeByFrequency(currentDueDate, template.billFrequency);
+            }
+
+            while (!isAfter(startOfDay(current), startOfDay(end))) {
+                // Calculate next due date for this instance
+                const nextDueDate = currentDueDate
+                    ? addTimeByFrequency(currentDueDate, template.billFrequency)
+                    : undefined;
+
+                const instanceData = {
+                    ...templateData,
+                    isRecurring: false,
+                    date: current,
+                    templateId: templateId,
+                    ...(currentDueDate && { dueDate: currentDueDate }),
+                    ...(nextDueDate && { nextDueDate }),
+                };
+
+                await TransactionModel.updateOne(
+                    {
+                        templateId: templateId,
+                        date: current,
+                        userId: userId,
+                    },
+                    { $set: instanceData },
+                    { upsert: true }
+                );
+
+                // Bill frequency logic - advance both date and due date
                 current = addTimeByFrequency(current, template.billFrequency);
+                if (currentDueDate) {
+                    currentDueDate = addTimeByFrequency(currentDueDate, template.billFrequency);
+                }
             }
         }
     } else {
         // Handle regular transaction frequency
         if (template.isRecurring && template.recurringFrequency) {
-            const start: Date = parseDateFromAPI(template.date);
-            const today: Date = getStartOfToday();
+            const start: Date = new Date(template.date);
+            const today: Date = startOfToday();
             let current: Date = new Date(start);
-            let end: Date = today;
+            // Respect endDate if provided, otherwise use today
+            const providedEnd: Date | undefined = template.endDate ? new Date(template.endDate) : undefined;
+            let end: Date = providedEnd && !isAfter(startOfDay(providedEnd), startOfDay(today)) ? providedEnd : today;
 
             const { id: _id, ...rest } = template;
             const templateData = rest;
 
-            while (!isDateAfter(current, end)) {
-                // Skip the template's original date
-                if (isSameDay(current, start)) {
-                    await TransactionModel.updateOne(
-                        {
-                            templateId: templateId,
-                            date: current,
-                            userId: userId,
-                        },
-                        { $set: { ...templateData, isRecurring: false } },
-                        { upsert: true }
-                    );
-                }
+            while (!isAfter(startOfDay(current), startOfDay(end))) {
+                await TransactionModel.updateOne(
+                    {
+                        templateId: templateId,
+                        date: current,
+                        userId: userId,
+                    },
+                    { $set: { ...templateData, isRecurring: false, date: current, templateId: templateId } },
+                    { upsert: true }
+                );
 
                 // Regular transaction frequency logic
                 current = addTimeByFrequency(current, template.recurringFrequency);
@@ -690,6 +707,12 @@ export const updateTransactionBillStatus = async (req: Request, res: Response): 
     try {
         const { id } = req.params;
         const { billStatus } = req.body as { billStatus: BillStatus };
+
+        // Validate ObjectId format
+        if (!Types.ObjectId.isValid(id)) {
+            res.status(400).json({ message: "Invalid transaction ID format" });
+            return;
+        }
 
         const transaction: TransactionOrBillDocument | null = await TransactionModel.findByIdAndUpdate(
             new Types.ObjectId(id),

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TransactionFilters, useAllTransactions } from "@/hooks/use-transactions";
+// import { TransactionFilters, useAllTransactions } from "@/hooks/use-transactions";
 import { cn } from "@/lib/utils";
 import {
     ActiveTab,
@@ -55,6 +55,7 @@ interface FiltersSectionProps {
 }
 
 export function FiltersSection({
+    filteredTransactions,
     handleEdit,
     handleDelete,
     recurringTransactions = [],
@@ -72,6 +73,7 @@ export function FiltersSection({
     totalItems = 0,
     itemsPerPage = 20,
     apiRecurringTemplates,
+    isLoading = false,
 }: FiltersSectionProps) {
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
@@ -80,19 +82,8 @@ export function FiltersSection({
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
-    // Create filters object for the API
-    const filters: TransactionFilters = {
-        categories: selectedCategories.includes("all") ? undefined : selectedCategories,
-        types: selectedTypes.includes("all") ? undefined : selectedTypes,
-        dateRange: dateRangeForFilter,
-        searchQuery: searchQuery || undefined,
-    };
-
-    // Fetch filtered data from the API
-    const { transactions: paginatedData, isLoading } = useAllTransactions(currentPage, itemsPerPage, filters);
-
-    // We'll implement server-side filtering later
-    // For now, we're just using the paginated data from the backend
+    // NOTE: We intentionally use the data passed from parent for the active tab.
+    // The parent already fetches the correct dataset (all, recurring, bills) and passes pagination props.
 
     const handleCategoryFilterChange = (category: string, checked: boolean) => {
         let newCategories: string[];
@@ -263,7 +254,7 @@ export function FiltersSection({
 
                 <div className="mt-6">
                     <DataTable
-                        data={paginatedData}
+                        data={filteredTransactions}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         showRecurringIcon={true}
