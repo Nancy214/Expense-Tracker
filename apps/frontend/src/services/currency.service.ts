@@ -1,5 +1,5 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from "axios";
-import { handleTokenExpiration, refreshAuthTokens } from "@/utils/authUtils";
+import { refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -7,10 +7,6 @@ const API_URL = "http://localhost:8000/api";
 interface ExchangeRateResponse {
     rate: number;
     data: any;
-}
-
-interface RefreshTokenResponse {
-    accessToken: string;
 }
 
 interface CurrencyApiRequestConfig extends InternalAxiosRequestConfig {

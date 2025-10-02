@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { User } from "../models/user.model";
 import { generateTokens } from "../controllers/auth.controller";
-import { MongooseUserDocument } from "@expense-tracker/shared-types/src/auth-backend";
+import { UserType } from "@expense-tracker/shared-types/src/auth";
 
 dotenv.config();
 
@@ -78,7 +78,7 @@ passport.use(
                 });
                 if (user) {
                     //console.log("User found");
-                    const userDoc = user as MongooseUserDocument;
+                    const userDoc = user as UserType;
                     const { accessToken, refreshToken } = generateTokens(userDoc);
                     const userWithTokens = {
                         ...user.toJSON(),
@@ -94,7 +94,7 @@ passport.use(
                         name: profile.displayName,
                         profilePicture: profile.photos[0].value,
                     });
-                    const newUserDoc = newUser as MongooseUserDocument;
+                    const newUserDoc = newUser as UserType;
                     const { accessToken, refreshToken } = generateTokens(newUserDoc);
                     const userWithTokens = {
                         ...newUser.toJSON(),

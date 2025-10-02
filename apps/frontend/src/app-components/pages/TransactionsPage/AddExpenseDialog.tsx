@@ -1,30 +1,28 @@
-import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { FormProvider } from "react-hook-form";
-import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { uploadReceipt } from "@/services/transaction.service";
-import { useTransactionMutations, useTransactionForm } from "@/hooks/use-transactions";
-import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
-import { TRANSACTION_CONSTANTS } from "@/schemas/transactionSchema";
-import { InputField } from "@/app-components/form-fields/InputField";
-import { SelectField } from "@/app-components/form-fields/SelectField";
 import { DateField } from "@/app-components/form-fields/DateField";
 import { FileUploadField } from "@/app-components/form-fields/FileUploadField";
-import { showSaveError } from "@/utils/toastUtils";
-import { Switch } from "@/components/ui/switch";
+import { InputField } from "@/app-components/form-fields/InputField";
+import { SelectField } from "@/app-components/form-fields/SelectField";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/context/AuthContext";
+import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
+import { useToast } from "@/hooks/use-toast";
+import { useTransactionForm, useTransactionMutations } from "@/hooks/use-transactions";
+import { TRANSACTION_CONSTANTS } from "@/schemas/transactionSchema";
+import { uploadReceipt } from "@/services/transaction.service";
+import { showSaveError } from "@/utils/toastUtils";
 import {
-    CategoryOption,
     Bill,
-    PaymentMethod,
     BillFrequency,
+    PaymentMethod,
     Transaction,
+    TransactionOrBill,
     TransactionType,
-    TransactionWithId,
-} from "../../../../../../libs/shared-types/src/transactions-frontend";
-import { CurrencyOption } from "../../../../../../libs/shared-types/src/profile-frontend";
+} from "@expense-tracker/shared-types/src";
+import React, { useEffect, useState } from "react";
+import { FormProvider } from "react-hook-form";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -54,7 +52,7 @@ export interface TransactionFormData {
 export interface AddExpenseDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    editingExpense?: TransactionWithId | null;
+    editingExpense?: TransactionOrBill | null;
     onSuccess?: () => void;
     triggerButton?: React.ReactNode;
     preselectedCategory?: string;
@@ -104,7 +102,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
 
     // Extract currency options from the cached data, removing duplicates and empty values
-    const currencyOptions: CurrencyOption[] = Array.isArray(countryTimezoneData)
+    const currencyOptions: { value: string; label: string }[] = Array.isArray(countryTimezoneData)
         ? countryTimezoneData
               .map((item) => ({
                   value: item.currency.code,
@@ -179,8 +177,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 };
             }
 
-            if (isEditing && editingExpense && editingExpense._id) {
-                await updateTransaction({ id: editingExpense._id, data: transactionData });
+            if (isEditing && editingExpense && editingExpense.id) {
+                await updateTransaction({ id: editingExpense.id, data: transactionData });
             } else {
                 await createTransaction(transactionData);
             }
@@ -199,7 +197,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     };
 
     // Get category options based on transaction type
-    const getCategoryOptions = (): CategoryOption[] => {
+    const getCategoryOptions = (): { value: string; label: string }[] => {
         if (type === TransactionType.EXPENSE) {
             return TRANSACTION_CONSTANTS.EXPENSE_CATEGORIES.map((cat) => ({
                 value: cat,
@@ -214,7 +212,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     };
 
     // Get currency options (already filtered and deduplicated)
-    const getCurrencyOptions = (): CurrencyOption[] => {
+    const getCurrencyOptions = (): { value: string; label: string }[] => {
         return currencyOptions;
     };
 

@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Lock, Shield } from "lucide-react";
 import { changePassword } from "@/services/auth.service";
-import { ChangePasswordFormData, ChangePasswordErrors, ApiErrorResponse } from "@expense-tracker/shared-types/src/auth";
+import { ApiError, ChangePasswordFormData } from "@expense-tracker/shared-types/src";
+import { ArrowLeft, Eye, EyeOff, Lock, Shield } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const ChangePasswordPage: React.FC = () => {
     const { toast } = useToast();
@@ -23,7 +23,7 @@ const ChangePasswordPage: React.FC = () => {
         confirmPassword: "",
     });
 
-    const [errors, setErrors] = useState<ChangePasswordErrors>({
+    const [errors, setErrors] = useState<ChangePasswordFormData>({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
@@ -35,7 +35,7 @@ const ChangePasswordPage: React.FC = () => {
             [field]: value,
         });
         // Clear error when user starts typing
-        if (errors[field as keyof ChangePasswordErrors]) {
+        if (errors[field as keyof ChangePasswordFormData]) {
             setErrors({
                 ...errors,
                 [field]: "",
@@ -44,7 +44,7 @@ const ChangePasswordPage: React.FC = () => {
     };
 
     const validateForm = (): boolean => {
-        const newErrors: ChangePasswordErrors = {
+        const newErrors: ChangePasswordFormData = {
             currentPassword: "",
             newPassword: "",
             confirmPassword: "",
@@ -101,7 +101,7 @@ const ChangePasswordPage: React.FC = () => {
             navigate("/profile");
         } catch (error: unknown) {
             //console.error("Error changing password:", error);
-            const apiError = error as ApiErrorResponse;
+            const apiError = error as ApiError;
             toast({
                 title: "Error",
                 description: apiError.response?.data?.message || "Failed to change password. Please try again.",

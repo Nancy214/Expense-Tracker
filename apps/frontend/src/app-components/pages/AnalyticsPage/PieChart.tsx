@@ -1,6 +1,6 @@
+import type { PieChartData, PieChartProps } from "@expense-tracker/shared-types/src";
 import React from "react";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import type { PieChartData, PieChartProps } from "@/types/analytics";
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 const EXPENSE_COLORS = [
     "#3B82F6", // Muted blue

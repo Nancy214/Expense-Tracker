@@ -1,15 +1,14 @@
-import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/context/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { Settings, Save, Shield, LogOut } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useSettings, useProfileMutations } from "@/hooks/use-profile";
-import { UserSettings } from "../../../../../../libs/shared-types/src/profile-frontend";
-import { User } from "@expense-tracker/shared-types/src/auth";
+import { useAuth } from "@/context/AuthContext";
+import { useProfileMutations, useSettings } from "@/hooks/use-profile";
+import { useToast } from "@/hooks/use-toast";
+import { AuthenticatedUser, SettingsData as SettingsDataType } from "@expense-tracker/shared-types/src";
+import { LogOut, Save, Settings, Shield } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface SettingsDataProps {
@@ -29,7 +28,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
     const hasInitialized = useRef<boolean>(false);
 
     // Initialize settings state with defaults or localStorage backup
-    const getInitialSettings = (): UserSettings => {
+    const getInitialSettings = (): SettingsDataType => {
         try {
             const storedSettings: string | null = localStorage.getItem("userSettings");
             if (storedSettings) {
@@ -52,13 +51,15 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
         };
     };
 
-    const [settings, setSettings] = useState<UserSettings>(getInitialSettings);
-    const [expenseReminderTime, setExpenseReminderTime] = useState<string>(getInitialSettings().expenseReminderTime);
+    const [settings, setSettings] = useState<SettingsDataType>(getInitialSettings);
+    const [expenseReminderTime, setExpenseReminderTime] = useState<string>(
+        getInitialSettings().expenseReminderTime || "18:00"
+    );
 
     // Update local state when settings data is loaded
     useEffect(() => {
         if (settingsData && !isInitialLoading && !hasInitialized.current) {
-            const newSettings: UserSettings = {
+            const newSettings: SettingsDataType = {
                 monthlyReports: settingsData.monthlyReports ?? false,
                 expenseReminders: settingsData.expenseReminders ?? false,
                 billsAndBudgetsAlert: settingsData.billsAndBudgetsAlert ?? false,
@@ -91,7 +92,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
         hasInitialized.current = false;
     }, [user?.id]);
 
-    const handleSettingsChange = (field: keyof UserSettings, value: boolean | string): void => {
+    const handleSettingsChange = (field: keyof SettingsDataType, value: boolean | string): void => {
         setSettings({
             ...settings,
             [field]: value,
@@ -104,7 +105,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
     // When saving, convert to 24h
     const handleSaveSettings = async (): Promise<void> => {
         try {
-            const updatedSettings: UserSettings = await updateSettingsMutation({
+            const updatedSettings: SettingsDataType = await updateSettingsMutation({
                 settings: {
                     ...settings,
                     expenseReminderTime: expenseReminderTime,
@@ -117,7 +118,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
             }
 
             // Update local state with the response
-            const newSettings: UserSettings = {
+            const newSettings: SettingsDataType = {
                 monthlyReports: updatedSettings.monthlyReports ?? false,
                 expenseReminders: updatedSettings.expenseReminders ?? false,
                 billsAndBudgetsAlert: updatedSettings.billsAndBudgetsAlert ?? false,
@@ -130,7 +131,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
             localStorage.setItem("userSettings", JSON.stringify(newSettings));
 
             // Update user context and localStorage with new settings
-            const updatedUser: User = {
+            const updatedUser: AuthenticatedUser = {
                 id: String(user?.id ?? ""),
                 email: String(user?.email ?? ""),
                 name: String(user?.name ?? ""),
@@ -140,7 +141,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
                 currency: String(user?.currency ?? ""),
                 country: String(user?.country ?? ""),
                 settings: {
-                    ...(user as User)?.settings,
+                    ...user?.settings,
                     ...updatedSettings,
                     expenseReminderTime: updatedSettings.expenseReminderTime || "18:00",
                 },

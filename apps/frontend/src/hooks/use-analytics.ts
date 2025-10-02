@@ -1,34 +1,36 @@
-import { useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
-import { useMemo, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
 import {
-    getExpenseCategoryBreakdown,
     getBillsCategoryBreakdown,
+    getExpenseCategoryBreakdown,
     getIncomeExpenseSummary,
     getMonthlySavingsTrend,
 } from "@/services/analytics.service";
 import { getAllTransactionsForAnalytics } from "@/services/transaction.service";
-import { useAuth } from "@/context/AuthContext";
-import { Transaction, TransactionWithId, MonthlyStats } from "@expense-tracker/shared-types/src/transactions-frontend";
+import { isInCurrentMonth, parseFromDisplay } from "@/utils/dateUtils";
 import {
-    ExpenseCategoryData,
-    BillsCategoryData,
+    BillsCategoryBreakdownResponse,
+    ExpenseCategoryBreakdownResponse,
     HeatmapData,
     IncomeExpenseSummaryResponse,
     MonthlySavingsTrendResponse,
-} from "@expense-tracker/shared-types/src/analytics-frontend";
-import { parseFromDisplay, isInCurrentMonth } from "@/utils/dateUtils";
+    MonthlyStats,
+    Transaction,
+    TransactionOrBill,
+} from "@expense-tracker/shared-types/src";
+import { useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 
 // Type definitions for analytics API responses
 export interface ExpenseBreakdownResponse {
     success: boolean;
-    data: ExpenseCategoryData[];
+    data: ExpenseCategoryBreakdownResponse[];
     totalExpenses: number;
     totalAmount: number;
 }
 
 export interface BillsBreakdownResponse {
     success: boolean;
-    data: BillsCategoryData[];
+    data: BillsCategoryBreakdownResponse[];
     totalBills: number;
     totalAmount: number;
 }
@@ -62,10 +64,10 @@ export type AnalyticsQueryKey = (typeof ANALYTICS_QUERY_KEYS)[keyof typeof ANALY
 export function useExpenseCategoryBreakdown(
     period?: string,
     subPeriod?: string
-): UseQueryResult<ExpenseBreakdownResponse, Error> {
+): UseQueryResult<ExpenseCategoryBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
-    return useQuery<ExpenseBreakdownResponse, Error>({
+    return useQuery({
         queryKey: ANALYTICS_QUERY_KEYS.expenseBreakdown(period, subPeriod),
         queryFn: () => getExpenseCategoryBreakdown(period, subPeriod),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
@@ -78,10 +80,10 @@ export function useExpenseCategoryBreakdown(
 export function useBillsCategoryBreakdown(
     period?: string,
     subPeriod?: string
-): UseQueryResult<BillsBreakdownResponse, Error> {
+): UseQueryResult<BillsCategoryBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
-    return useQuery<BillsBreakdownResponse, Error>({
+    return useQuery({
         queryKey: ANALYTICS_QUERY_KEYS.billsBreakdown(period, subPeriod),
         queryFn: () => getBillsCategoryBreakdown(period, subPeriod),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
@@ -266,19 +268,19 @@ export function useInvalidateAnalytics(): AnalyticsInvalidationReturn {
     };
 }
 
-export function useAllTransactionsForAnalytics(): UseQueryResult<{ transactions: TransactionWithId[] }> & {
-    transactions: TransactionWithId[];
+export function useAllTransactionsForAnalytics(): UseQueryResult<{ transactions: TransactionOrBill[] }> & {
+    transactions: TransactionOrBill[];
     invalidateAnalytics: () => void;
 } {
     const { isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
 
-    const query = useQuery<{ transactions: TransactionWithId[] }>({
+    const query = useQuery<{ transactions: TransactionOrBill[] }>({
         queryKey: ["all-transactions", "analytics"],
         staleTime: 30 * 1000,
         gcTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false,
-        queryFn: async (): Promise<{ transactions: TransactionWithId[] }> => {
+        queryFn: async (): Promise<{ transactions: TransactionOrBill[] }> => {
             if (!isAuthenticated) return { transactions: [] };
             const response = await getAllTransactionsForAnalytics();
             return { transactions: response?.transactions || [] };
@@ -295,7 +297,7 @@ export function useAllTransactionsForAnalytics(): UseQueryResult<{ transactions:
 
 // Derived Data Hook types
 interface ExpensesSelectorReturn {
-    expenses: TransactionWithId[];
+    expenses: TransactionOrBill[];
     isLoading: boolean;
     invalidateExpenses: () => void;
     monthlyStats: MonthlyStats;
@@ -309,7 +311,7 @@ export function useExpensesSelector(): ExpensesSelectorReturn {
 
     const monthlyStats = useMemo((): MonthlyStats => {
         // Use all transactions for accurate monthly stats calculation
-        const currentMonthTransactions = allTransactions.filter((t: TransactionWithId) => {
+        const currentMonthTransactions = allTransactions.filter((t: TransactionOrBill) => {
             // Include all transactions for stats calculation - both regular and recurring
             // The backend should only return actual transactions, not templates
 
@@ -332,12 +334,12 @@ export function useExpensesSelector(): ExpensesSelectorReturn {
         });
 
         const totalIncome = currentMonthTransactions
-            .filter((t: TransactionWithId) => t.type === "income")
-            .reduce((sum: number, t: TransactionWithId) => sum + (t.amount || 0), 0);
+            .filter((t: TransactionOrBill) => t.type === "income")
+            .reduce((sum: number, t: TransactionOrBill) => sum + (t.amount || 0), 0);
 
         const totalExpenses = currentMonthTransactions
-            .filter((t: TransactionWithId) => t.type === "expense")
-            .reduce((sum: number, t: TransactionWithId) => sum + (t.amount || 0), 0);
+            .filter((t: TransactionOrBill) => t.type === "expense")
+            .reduce((sum: number, t: TransactionOrBill) => sum + (t.amount || 0), 0);
 
         return {
             totalIncome,

@@ -1,36 +1,33 @@
 import { Request, Response } from "express";
 import { TransactionModel } from "../models/transaction.model";
 //import { AuthRequest } from "../types/auth";
-import { BillFrequency } from "@expense-tracker/shared-types/src/transactions-frontend";
-import { getStartOfToday, addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
-import { s3Client, isAWSConfigured } from "../config/s3Client";
-import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import path from "path";
-import sharp from "sharp";
+import {
+    Bill,
+    BillFrequency,
+    BillStatus,
+    PaginatedResponse,
+    PaginationQuery,
+    TokenPayload,
+    Transaction,
+    TransactionOrBill,
+    TransactionSummary,
+} from "@expense-tracker/shared-types/src";
 import crypto from "crypto";
 import { Types } from "mongoose";
+import path from "path";
+import sharp from "sharp";
+import { isAWSConfigured, s3Client } from "../config/s3Client";
 import { RecurringTransactionJobService } from "../services/recurringTransactionJob.service";
-import {
-    PaginationQuery,
-    PaginatedResponse,
-    SummaryResponse,
-    ReceiptUploadResponse,
-    ReceiptUrlResponse,
-    BillStatusUpdateRequest,
-    BillStatusUpdateResponse,
-    DeleteResponse,
-    TransactionDocument,
-    BillDocument,
-} from "@expense-tracker/shared-types/src/transactions-backend";
-import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
-import { isSameDay } from "date-fns";
+import { addTimeByFrequency } from "../utils/dateUtils";
+import { startOfToday, startOfDay, isAfter, addMonths, addQuarters, addYears } from "date-fns";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;
 }
 
-export type TransactionOrBillDocument = TransactionDocument | BillDocument;
+export type TransactionOrBillDocument = Transaction | Bill;
 
 // FIXME: Remove this once the shared types are updated
 // Type guard to check if a transaction is a bill
@@ -39,90 +36,107 @@ export type TransactionOrBillDocument = TransactionDocument | BillDocument;
 }; */
 
 // Type guard to check if a document is a bill document
-const isBillDocument = (doc: TransactionOrBillDocument): doc is BillDocument => {
+const isBillDocument = (doc: TransactionOrBillDocument): doc is Bill => {
     return doc.category === "Bills";
 };
 
 // Helper function to calculate next due date for bills
 const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): Date => {
-    const nextDate = new Date(currentDueDate);
-
+    console.log("currentDueDate", currentDueDate);
+    console.log("frequency", frequency);
+    console.log(addMonths(currentDueDate, 1));
     switch (frequency) {
         case "monthly":
-            nextDate.setMonth(nextDate.getMonth() + 1);
-            break;
+            return addMonths(currentDueDate, 1);
         case "quarterly":
-            nextDate.setMonth(nextDate.getMonth() + 3);
-            break;
+            return addQuarters(currentDueDate, 1);
         case "yearly":
-            nextDate.setFullYear(nextDate.getFullYear() + 1);
-            break;
+            return addYears(currentDueDate, 1);
         case "one-time":
             // For one-time bills, return the same date
-            return nextDate;
+            return new Date(currentDueDate);
         default:
-            return nextDate;
+            return new Date(currentDueDate);
     }
-
-    return nextDate;
 };
 
 // Helper function to create recurring instances
 const createRecurringInstances = async (template: TransactionOrBillDocument, userId: Types.ObjectId): Promise<void> => {
-    const templateId = template._id;
+    const templateId = template.id;
     if (isBillDocument(template)) {
         // Handle bill frequency
         if (template.billFrequency) {
             const start: Date = new Date(template.date);
-            const today: Date = new Date();
-            today.setHours(0, 0, 0, 0);
+            const today: Date = startOfToday();
             let current: Date = new Date(start);
+            let currentDueDate: Date | undefined = template.dueDate ? new Date(template.dueDate) : undefined;
+            // Bills do not currently support endDate; generate up to today
             let end: Date = today;
 
-            const { _id, ...rest } = template;
+            const { id: _id, ...rest } = template;
             const templateData = rest;
-            while (!isDateAfter(current, end)) {
-                // Skip the template's original date
-                if (isSameDay(current, start)) {
-                    await TransactionModel.updateOne(
-                        {
-                            templateId: templateId,
-                            date: current,
-                            userId: userId,
-                        },
-                        { $set: { ...templateData, isRecurring: false } },
-                        { upsert: true }
-                    );
-                }
 
-                // Bill frequency logic
+            // Skip creating an instance on the start date to avoid duplicate for the initial bill
+            current = addTimeByFrequency(current, template.billFrequency);
+            if (currentDueDate) {
+                currentDueDate = addTimeByFrequency(currentDueDate, template.billFrequency);
+            }
+
+            while (!isAfter(startOfDay(current), startOfDay(end))) {
+                // Calculate next due date for this instance
+                const nextDueDate = currentDueDate
+                    ? addTimeByFrequency(currentDueDate, template.billFrequency)
+                    : undefined;
+
+                const instanceData = {
+                    ...templateData,
+                    isRecurring: false,
+                    date: current,
+                    templateId: templateId,
+                    ...(currentDueDate && { dueDate: currentDueDate }),
+                    ...(nextDueDate && { nextDueDate }),
+                };
+
+                await TransactionModel.updateOne(
+                    {
+                        templateId: templateId,
+                        date: current,
+                        userId: userId,
+                    },
+                    { $set: instanceData },
+                    { upsert: true }
+                );
+
+                // Bill frequency logic - advance both date and due date
                 current = addTimeByFrequency(current, template.billFrequency);
+                if (currentDueDate) {
+                    currentDueDate = addTimeByFrequency(currentDueDate, template.billFrequency);
+                }
             }
         }
     } else {
         // Handle regular transaction frequency
         if (template.isRecurring && template.recurringFrequency) {
-            const start: Date = parseDateFromAPI(template.date);
-            const today: Date = getStartOfToday();
+            const start: Date = new Date(template.date);
+            const today: Date = startOfToday();
             let current: Date = new Date(start);
-            let end: Date = today;
+            // Respect endDate if provided, otherwise use today
+            const providedEnd: Date | undefined = template.endDate ? new Date(template.endDate) : undefined;
+            let end: Date = providedEnd && !isAfter(startOfDay(providedEnd), startOfDay(today)) ? providedEnd : today;
 
-            const { _id, ...rest } = template;
+            const { id: _id, ...rest } = template;
             const templateData = rest;
 
-            while (!isDateAfter(current, end)) {
-                // Skip the template's original date
-                if (isSameDay(current, start)) {
-                    await TransactionModel.updateOne(
-                        {
-                            templateId: templateId,
-                            date: current,
-                            userId: userId,
-                        },
-                        { $set: { ...templateData, isRecurring: false } },
-                        { upsert: true }
-                    );
-                }
+            while (!isAfter(startOfDay(current), startOfDay(end))) {
+                await TransactionModel.updateOne(
+                    {
+                        templateId: templateId,
+                        date: current,
+                        userId: userId,
+                    },
+                    { $set: { ...templateData, isRecurring: false, date: current, templateId: templateId } },
+                    { upsert: true }
+                );
 
                 // Regular transaction frequency logic
                 current = addTimeByFrequency(current, template.recurringFrequency);
@@ -148,14 +162,14 @@ export const getExpenses = async (req: Request, res: Response): Promise<void> =>
         const total: number = await TransactionModel.countDocuments({ userId: new Types.ObjectId(userId) });
 
         // Get paginated expenses
-        const expenses: TransactionOrBillDocument[] = await TransactionModel.find({
+        const expenses: TransactionOrBill[] = await TransactionModel.find({
             userId: new Types.ObjectId(userId),
         })
             .sort({ date: -1 })
             .skip(skip)
             .limit(limit);
 
-        const response: PaginatedResponse<TransactionOrBillDocument> = {
+        const response: PaginatedResponse<TransactionOrBill> = {
             expenses,
             pagination: {
                 page,
@@ -405,8 +419,8 @@ export const getTransactionSummary = async (req: Request, res: Response): Promis
                   allNonTemplateTransactions.length
                 : 0;
 
-        const response: SummaryResponse = {
-            summary: {
+        const response = {
+            summary: <TransactionSummary>{
                 totalTransactions,
                 totalIncome,
                 totalExpenses,
@@ -550,7 +564,7 @@ export const deleteExpense = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        const response: DeleteResponse = { message: "Expense deleted" };
+        const response: { message: string } = { message: "Expense deleted" };
         res.json(response);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
@@ -616,7 +630,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
 
         await s3Client.send(uploadCommand);
 
-        const response: ReceiptUploadResponse = { key: s3Key };
+        const response: string = s3Key;
         res.json(response);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
@@ -639,7 +653,7 @@ export const getReceiptUrl = async (req: Request, res: Response): Promise<void> 
 
         const url: string = await getSignedUrl(s3Client, command, { expiresIn: 300 });
 
-        const response: ReceiptUrlResponse = { url };
+        const response: { url: string } = { url };
         res.json(response);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
@@ -677,7 +691,7 @@ export const deleteRecurringExpense = async (req: Request, res: Response): Promi
         // Delete the template itself
         await TransactionModel.findByIdAndDelete(new Types.ObjectId(id));
 
-        const response: DeleteResponse = {
+        const response: { message: string } = {
             message: "Recurring transaction and all its instances deleted successfully",
         };
         res.json(response);
@@ -692,7 +706,13 @@ export const deleteRecurringExpense = async (req: Request, res: Response): Promi
 export const updateTransactionBillStatus = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
-        const { billStatus } = req.body as BillStatusUpdateRequest;
+        const { billStatus } = req.body as { billStatus: BillStatus };
+
+        // Validate ObjectId format
+        if (!Types.ObjectId.isValid(id)) {
+            res.status(400).json({ message: "Invalid transaction ID format" });
+            return;
+        }
 
         const transaction: TransactionOrBillDocument | null = await TransactionModel.findByIdAndUpdate(
             new Types.ObjectId(id),
@@ -705,7 +725,7 @@ export const updateTransactionBillStatus = async (req: Request, res: Response): 
             return;
         }
 
-        const response: BillStatusUpdateResponse = {
+        const response: { message: string; transaction: TransactionOrBill } = {
             message: "Bill status updated successfully",
             transaction,
         };

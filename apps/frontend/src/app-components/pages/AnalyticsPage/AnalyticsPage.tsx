@@ -1,43 +1,43 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, TrendingUp, PieChart, BarChart3, LineChart } from "lucide-react";
-import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useExpenses } from "@/hooks/use-transactions";
 import {
-    useExpenseCategoryBreakdown,
+    transformExpensesToHeatmapData,
+    useAllTransactionsForAnalytics,
     useBillsCategoryBreakdown,
+    useExpenseCategoryBreakdown,
     useIncomeExpenseSummary,
     useMonthlySavingsTrend,
-    useAllTransactionsForAnalytics,
-    transformExpensesToHeatmapData,
 } from "@/hooks/use-analytics";
-import "react-calendar-heatmap/dist/styles.css";
-import CalendarHeatmapComponent from "./CalendarHeatmap";
-import TimePeriodSelector, { TimePeriod } from "./TimePeriodSelector";
-import PieChartComponent from "./PieChart";
-import BarChartComponent from "./BarChart";
-import AreaChartComponent from "./AreaChart";
+import { useExpenses } from "@/hooks/use-transactions";
 import type {
-    ExpenseCategoryData,
-    BillsCategoryData,
-    AnalyticsMonthData as MonthData,
-    SavingsTrendItem,
-    HeatmapData,
     AreaChartData,
     BarChartData,
-} from "@/types/analytics";
-import type { TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
+    HeatmapData,
+    MonthlyIncomeExpenseData,
+    MonthlySavingsData,
+    PieChartData,
+    TransactionOrBill,
+} from "@expense-tracker/shared-types/src";
+import { Period } from "@expense-tracker/shared-types/src/analytics";
+import { AlertCircle, BarChart3, LineChart, PieChart, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import "react-calendar-heatmap/dist/styles.css";
+import AreaChartComponent from "./AreaChart";
+import BarChartComponent from "./BarChart";
+import CalendarHeatmapComponent from "./CalendarHeatmap";
+import PieChartComponent from "./PieChart";
+import TimePeriodSelector from "./TimePeriodSelector";
 
 // AnalyticsCard component moved inline
 const AnalyticsCard: React.FC<{
-    selectedPeriod: TimePeriod;
-    onPeriodChange: (period: TimePeriod) => void;
+    selectedPeriod: Period;
+    onPeriodChange: (period: Period) => void;
     selectedSubPeriod: string;
     onSubPeriodChange: (subPeriod: string) => void;
-    expenseCategoryData: ExpenseCategoryData[];
-    billsCategoryData: BillsCategoryData[];
+    expenseCategoryData: PieChartData[];
+    billsCategoryData: PieChartData[];
     incomeExpenseData: BarChartData[];
     savingsTrendData: AreaChartData[];
     isLoading: boolean;
@@ -245,7 +245,7 @@ const AnalyticsPage = () => {
     const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactionsForAnalytics();
 
     // Time period selector state
-    const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("monthly");
+    const [selectedPeriod, setSelectedPeriod] = useState<Period>(Period.MONTHLY);
     const [selectedSubPeriod, setSelectedSubPeriod] = useState<string>(() => {
         // Initialize with current month as default
         const currentMonth = new Date().getMonth();
@@ -296,19 +296,20 @@ const AnalyticsPage = () => {
         expenseBreakdownError || billsBreakdownError || incomeExpenseError || savingsTrendError;
 
     // Transform data for charts
-    const expenseCategoryData: ExpenseCategoryData[] = expenseBreakdown?.data || [];
-    const billsCategoryData: BillsCategoryData[] = billsBreakdown?.data || [];
+    const expenseCategoryData: PieChartData[] = expenseBreakdown?.data || [];
+    const billsCategoryData: PieChartData[] = billsBreakdown?.data || [];
 
     // Transform income/expense data for bar chart
     const incomeExpenseData: BarChartData[] =
-        incomeExpenseResponse?.data?.months?.flatMap((monthData: MonthData) => [
+        incomeExpenseResponse?.data?.months?.flatMap((monthData: MonthlyIncomeExpenseData) => [
             { name: monthData.month, value: monthData.income, category: "Income" },
             { name: monthData.month, value: monthData.expenses, category: "Expense" },
         ]) || [];
 
     // Transform savings trend data for area chart
     const savingsTrendData: AreaChartData[] =
-        savingsTrendResponse?.data?.trend?.map((item: SavingsTrendItem) => ({
+        savingsTrendResponse?.data?.trend?.map((item: MonthlySavingsData) => ({
+            type: "area",
             name: item.month,
             savings: item.savings,
             income: item.income,
@@ -320,7 +321,7 @@ const AnalyticsPage = () => {
     const expenseHeatmapData: HeatmapData[] =
         allTransactions.length > 0
             ? transformExpensesToHeatmapData(
-                  allTransactions.filter((t: TransactionWithId) => t.type === "expense") // Only include expenses for the heatmap
+                  allTransactions.filter((t: TransactionOrBill) => t.type === "expense") // Only include expenses for the heatmap
               )
             : [];
 

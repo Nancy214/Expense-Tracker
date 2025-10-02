@@ -1,52 +1,52 @@
-import axios from "axios";
-import {
-    Transaction,
-    TransactionResponse,
-    TransactionWithId,
-    PaginationInfo,
-    TransactionSummary,
-    MonthlyStats,
-    BillStatus,
-    Bill,
-} from "../../../../libs/shared-types/src/transactions-frontend";
-import { isValid, parseISO } from "date-fns";
 import { refreshAuthTokens } from "@/utils/authUtils";
+import {
+    Bill,
+    BillStatus,
+    MonthlyStats,
+    PaginationInfo,
+    Transaction,
+    TransactionOrBill,
+    TransactionResponse,
+    TransactionSummary,
+} from "@expense-tracker/shared-types/src";
+import axios from "axios";
+import { isValid, parseISO } from "date-fns";
 
 const API_URL = "http://localhost:8000/api/expenses";
 
 // API Response interfaces
-interface PaginatedResponse<T> {
+/* interface PaginatedResponse<T> {
     [key: string]: T[] | PaginationInfo;
     pagination: PaginationInfo;
 }
 
-interface ExpensesResponse extends PaginatedResponse<TransactionWithId> {
-    expenses: TransactionWithId[];
+interface ExpensesResponse extends PaginatedResponse<TransactionOrBill> {
+    expenses: TransactionOrBill[];
 }
 
-interface TransactionsResponse extends PaginatedResponse<TransactionWithId> {
-    transactions: TransactionWithId[];
+interface TransactionsResponse extends PaginatedResponse<TransactionOrBill> {
+    transactions: TransactionOrBill[];
 }
 
-interface BillsResponse extends PaginatedResponse<TransactionWithId> {
-    bills: TransactionWithId[];
+interface BillsResponse extends PaginatedResponse<TransactionOrBill> {
+    bills: TransactionOrBill[];
 }
 
-interface RecurringTemplatesResponse extends PaginatedResponse<TransactionWithId> {
-    recurringTemplates: TransactionWithId[];
+interface RecurringTemplatesResponse extends PaginatedResponse<TransactionOrBill> {
+    recurringTemplates: TransactionOrBill[];
 }
 
 interface AnalyticsResponse {
-    transactions: TransactionWithId[];
+    transactions: TransactionOrBill[];
 }
 
 interface TransactionSummaryResponse {
     summary: TransactionSummary;
-}
+} */
 
-interface ReceiptUploadResponse {
+/* interface ReceiptUploadResponse {
     key: string;
-}
+} */
 
 // Type for expense updates that can include bill-specific fields
 type ExpenseUpdateData = Transaction & {
@@ -119,7 +119,10 @@ expenseApi.interceptors.response.use(
     }
 );
 
-export const getExpenses = async (page: number = 1, limit: number = 20): Promise<ExpensesResponse> => {
+export const getExpenses = async (
+    page: number = 1,
+    limit: number = 20
+): Promise<{ expenses: TransactionOrBill[]; pagination: PaginationInfo }> => {
     try {
         const response = await expenseApi.get(`/get-expenses?page=${page}&limit=${limit}`);
         return response.data;
@@ -143,7 +146,7 @@ export const getAllTransactions = async (
     page: number = 1,
     limit: number = 20,
     filters?: TransactionFilters
-): Promise<TransactionsResponse> => {
+): Promise<{ transactions: TransactionOrBill[]; pagination: PaginationInfo }> => {
     try {
         const params = new URLSearchParams({
             page: page.toString(),
@@ -176,7 +179,7 @@ export const getAllTransactions = async (
     }
 };
 
-export const getAllTransactionsForAnalytics = async (): Promise<AnalyticsResponse> => {
+export const getAllTransactionsForAnalytics = async (): Promise<{ transactions: TransactionOrBill[] }> => {
     try {
         const response = await expenseApi.get(`/get-all-transactions-analytics`);
         return response.data;
@@ -186,7 +189,10 @@ export const getAllTransactionsForAnalytics = async (): Promise<AnalyticsRespons
     }
 };
 
-export const getBills = async (page: number = 1, limit: number = 20): Promise<BillsResponse> => {
+export const getBills = async (
+    page: number = 1,
+    limit: number = 20
+): Promise<{ bills: TransactionOrBill[]; pagination: PaginationInfo }> => {
     try {
         const response = await expenseApi.get(`/get-bills?page=${page}&limit=${limit}`);
         return response.data;
@@ -199,7 +205,7 @@ export const getBills = async (page: number = 1, limit: number = 20): Promise<Bi
 export const getRecurringTemplates = async (
     page: number = 1,
     limit: number = 20
-): Promise<RecurringTemplatesResponse> => {
+): Promise<{ recurringTemplates: TransactionOrBill[]; pagination: PaginationInfo }> => {
     try {
         const response = await expenseApi.get(`/get-recurring-templates?page=${page}&limit=${limit}`);
         return response.data;
@@ -209,7 +215,7 @@ export const getRecurringTemplates = async (
     }
 };
 
-export const getTransactionSummary = async (): Promise<TransactionSummaryResponse> => {
+export const getTransactionSummary = async (): Promise<{ summary: TransactionSummary }> => {
     try {
         const response = await expenseApi.get("/transaction-summary");
         return response.data;
@@ -277,19 +283,19 @@ export const getMonthlyStats = async (): Promise<MonthlyStats> => {
         const currentYear = now.getFullYear();
 
         // Filter expenses for current month
-        const monthlyExpenses = expenses.filter((expense: TransactionWithId) => {
+        const monthlyExpenses = expenses.filter((expense: TransactionOrBill) => {
             const expenseDate = new Date(expense.date);
             return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
         });
 
         // Calculate totals
         const totalIncome = monthlyExpenses
-            .filter((expense: TransactionWithId) => expense.type === "income")
-            .reduce((sum: number, expense: TransactionWithId) => sum + expense.amount, 0);
+            .filter((expense: TransactionOrBill) => expense.type === "income")
+            .reduce((sum: number, expense: TransactionOrBill) => sum + expense.amount, 0);
 
         const totalExpenses = monthlyExpenses
-            .filter((expense: TransactionWithId) => expense.type === "expense")
-            .reduce((sum: number, expense: TransactionWithId) => sum + expense.amount, 0);
+            .filter((expense: TransactionOrBill) => expense.type === "expense")
+            .reduce((sum: number, expense: TransactionOrBill) => sum + expense.amount, 0);
 
         const balance = totalIncome - totalExpenses;
 
@@ -318,7 +324,7 @@ export const triggerRecurringExpensesJob = async (): Promise<void> => {
 export const uploadReceipt = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await expenseApi.post<ReceiptUploadResponse>("/upload-receipt", formData, {
+    const response = await expenseApi.post<{ key: string }>("/upload-receipt", formData, {
         headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data.key;

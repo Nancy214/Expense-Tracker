@@ -1,39 +1,33 @@
-import { Button } from "@/components/ui/button";
-import {
-    BudgetRecurrenceOption,
-    BudgetCategoryOption,
-    Budget,
-    BudgetRecurrence,
-} from "../../../../../../libs/shared-types/src/budget-frontend";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-    DialogFooter,
-    DialogDescription,
-} from "@/components/ui/dialog";
-import { FormProvider } from "react-hook-form";
 import { DateField } from "@/app-components/form-fields/DateField";
 import { InputField } from "@/app-components/form-fields/InputField";
 import { SelectField } from "@/app-components/form-fields/SelectField";
-import { useBudgetForm } from "@/hooks/useBudgetForm";
-import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
-import { useState, useEffect } from "react";
-import { CurrencyOption } from "../../../../../../libs/shared-types/src/profile-frontend";
+import { useBudgetForm } from "@/hooks/useBudgetForm";
+import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
+import { BudgetCategory, BudgetRecurrence, BudgetType } from "@expense-tracker/shared-types/src";
+import { useEffect, useState } from "react";
+import { FormProvider } from "react-hook-form";
 
 export interface AddBudgetDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    editingBudget: Budget | null;
+    editingBudget: BudgetType | null;
     onSuccess?: () => void;
     triggerButton?: React.ReactNode;
 }
 
-const RECURRENCE_OPTIONS: BudgetRecurrenceOption[] = [
+const RECURRENCE_OPTIONS: { value: BudgetRecurrence; label: string }[] = [
     { value: BudgetRecurrence.DAILY, label: "Daily" },
     { value: BudgetRecurrence.WEEKLY, label: "Weekly" },
     { value: BudgetRecurrence.MONTHLY, label: "Monthly" },
@@ -59,13 +53,15 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
         onOpenChange,
     });
 
-    const categoryOptions: BudgetCategoryOption[] = BUDGET_CATEGORIES.map((category: string) => ({
-        value: category,
-        label: category === "Bills" ? "Bills" : category,
-    }));
+    const categoryOptions: { value: BudgetCategory; label: string }[] = BUDGET_CATEGORIES.map(
+        (category: BudgetCategory) => ({
+            value: category,
+            label: category === "Bills" ? "Bills" : category,
+        })
+    );
 
     // Extract currency options from the cached data, removing duplicates and empty values
-    const currencyOptions: CurrencyOption[] = Array.isArray(countryTimezoneData)
+    const currencyOptions: { value: string; label: string }[] = Array.isArray(countryTimezoneData)
         ? countryTimezoneData
               .map((item) => ({
                   value: item.currency.code,

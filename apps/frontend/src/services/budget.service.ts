@@ -1,13 +1,13 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from "axios";
+import { refreshAuthTokens } from "@/utils/authUtils";
 import {
+    ApiError,
     BudgetData,
-    BudgetResponse,
+    BudgetLogType,
     BudgetProgressResponse,
     BudgetReminder,
-    BudgetLog,
-} from "../../../../libs/shared-types/src/budget-frontend";
-import { ApiError } from "@expense-tracker/shared-types/src/error";
-import { refreshAuthTokens } from "@/utils/authUtils";
+    BudgetType,
+} from "@expense-tracker/shared-types/src";
+import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -58,11 +58,11 @@ budgetApi.interceptors.response.use(
     }
 );
 
-export const createBudget = async (budgetData: BudgetData): Promise<BudgetResponse> => {
+export const createBudget = async (budgetData: BudgetData): Promise<BudgetType> => {
     try {
-        const response: AxiosResponse<BudgetResponse> = await budgetApi.post<
-            BudgetResponse,
-            AxiosResponse<BudgetResponse>,
+        const response: AxiosResponse<BudgetType> = await budgetApi.post<
+            BudgetType,
+            AxiosResponse<BudgetType>,
             BudgetData
         >("/budget", budgetData);
         return response.data;
@@ -73,11 +73,11 @@ export const createBudget = async (budgetData: BudgetData): Promise<BudgetRespon
     }
 };
 
-export const updateBudget = async (id: string, budgetData: BudgetData): Promise<BudgetResponse> => {
+export const updateBudget = async (id: string, budgetData: BudgetData): Promise<BudgetType> => {
     try {
-        const response: AxiosResponse<BudgetResponse> = await budgetApi.put<
-            BudgetResponse,
-            AxiosResponse<BudgetResponse>,
+        const response: AxiosResponse<BudgetType> = await budgetApi.put<
+            BudgetType,
+            AxiosResponse<BudgetType>,
             BudgetData
         >(`/budget/${id}`, budgetData);
         return response.data;
@@ -98,9 +98,9 @@ export const deleteBudget = async (id: string): Promise<void> => {
     }
 };
 
-export const getBudgets = async (): Promise<BudgetResponse[]> => {
+export const getBudgets = async (): Promise<BudgetType[]> => {
     try {
-        const response: AxiosResponse<BudgetResponse[]> = await budgetApi.get<BudgetResponse[]>("/budget");
+        const response: AxiosResponse<BudgetType[]> = await budgetApi.get<BudgetType[]>("/budget");
         return response.data;
     } catch (error: unknown) {
         const apiError = error as AxiosError<ApiError>;
@@ -109,9 +109,9 @@ export const getBudgets = async (): Promise<BudgetResponse[]> => {
     }
 };
 
-export const getBudget = async (id: string): Promise<BudgetResponse> => {
+export const getBudget = async (id: string): Promise<BudgetType> => {
     try {
-        const response: AxiosResponse<BudgetResponse> = await budgetApi.get<BudgetResponse>(`/budget/${id}`);
+        const response: AxiosResponse<BudgetType> = await budgetApi.get<BudgetType>(`/budget/${id}`);
         return response.data;
     } catch (error: unknown) {
         const apiError = error as AxiosError<ApiError>;
@@ -161,8 +161,8 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
         // Check for over-budget alerts
         if (isOverBudget) {
             reminders.push({
-                id: `over-${budget._id}`,
-                budgetId: budget._id,
+                id: `over-${budget.id}`,
+                budgetId: budget.id,
                 budgetName: budget.title,
                 type: "danger",
                 title: "Budget Exceeded!",
@@ -177,8 +177,8 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
         // Check for warning alerts (80% or more spent)
         else if (progress >= 80 && progress < 100) {
             reminders.push({
-                id: `warning-${budget._id}`,
-                budgetId: budget._id,
+                id: `warning-${budget.id}`,
+                budgetId: budget.id,
                 budgetName: budget.title,
                 type: "warning",
                 title: "Budget Warning",
@@ -193,8 +193,8 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
         // Check for approaching limit (60% or more spent)
         else if (progress >= 60 && progress < 80) {
             reminders.push({
-                id: `info-${budget._id}`,
-                budgetId: budget._id,
+                id: `info-${budget.id}`,
+                budgetId: budget.id,
                 budgetName: budget.title,
                 type: "warning",
                 title: "Budget Update",
@@ -236,10 +236,10 @@ export const getReminderPriority = (reminder: BudgetReminder): number => {
     return 0;
 };
 
-export const getBudgetLogs = async (budgetId?: string): Promise<BudgetLog[]> => {
+export const getBudgetLogs = async (budgetId?: string): Promise<BudgetLogType[]> => {
     try {
         const url = budgetId ? `/budget/logs/${budgetId}` : "/budget/logs";
-        const response: AxiosResponse<{ logs: BudgetLog[] }> = await budgetApi.get(url);
+        const response: AxiosResponse<{ logs: BudgetLogType[] }> = await budgetApi.get(url);
         return response.data.logs;
     } catch (error: unknown) {
         const apiError = error as AxiosError<ApiError>;

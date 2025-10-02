@@ -6,42 +6,34 @@ import {
     UserGoogleType,
     UserLocalType,
     TokenPayload,
-    RegisterRequest,
-    ForgotPasswordRequest,
     ResetPasswordRequest,
     JwtPayload,
-    UserDocument,
-    SettingsDocument,
-    AuthenticatedUser,
-    LoginResponse,
+    UserType,
+    SettingsType,
     RefreshTokenResponse,
-    LogoutResponse,
-    ForgotPasswordResponse,
-    ResetPasswordResponse,
-    ChangePasswordResponse,
-    RegisterResponse,
-    MongooseUserDocument,
-} from "@expense-tracker/shared-types/src/auth-backend";
+    PasswordResponse,
+    RegisterCredentials,
+    AuthResponse,
+} from "@expense-tracker/shared-types/src/auth";
 import bcrypt from "bcrypt";
-import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import { s3Client } from "../config/s3Client";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sgMail, { MailDataRequired } from "@sendgrid/mail";
-import crypto from "crypto";
 import { Types } from "mongoose";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
 
 // Generate tokens
-export const generateTokens = (user: MongooseUserDocument): { accessToken: string; refreshToken: string } => {
-    const accessToken = jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET || "your-secret-key", {
+export const generateTokens = (user: UserType): { accessToken: string; refreshToken: string } => {
+    const accessToken = jwt.sign({ id: user.id.toString() }, process.env.JWT_SECRET || "your-secret-key", {
         expiresIn: "15m",
     });
 
     const refreshToken = jwt.sign(
-        { id: user._id.toString() },
+        { id: user.id.toString() },
         process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key",
         { expiresIn: "1h" }
     );
@@ -50,38 +42,26 @@ export const generateTokens = (user: MongooseUserDocument): { accessToken: strin
 };
 
 export const register = async (
-    req: Request<{}, RegisterResponse, RegisterRequest>,
-    res: Response<RegisterResponse>
+    req: Request<{}, AuthResponse, RegisterCredentials>,
+    res: Response<AuthResponse>
 ): Promise<void> => {
     try {
         const { email, password, name } = req.body;
-        let profilePictureName = "";
+        //let profilePictureName = "";
 
         // Check if user exists
-        const existingUser: UserDocument | null = await User.findOne({ email });
+        const existingUser: UserType | null = await User.findOne({ email });
         if (existingUser) {
             //console.log("User already exists");
             res.status(400).json({ message: "User already exists" });
             return;
         }
 
-        if (req.file) {
-            profilePictureName = crypto.createHash("sha256").update(req.file.originalname).digest("hex");
-            const uploadCommand: PutObjectCommand = new PutObjectCommand({
-                Bucket: AWS_BUCKET_NAME,
-                Key: profilePictureName,
-                Body: req.file.buffer,
-                ContentType: req.file.mimetype,
-            });
-
-            await s3Client.send(uploadCommand);
-        }
-
         const user = new User({
             email,
             password: bcrypt.hashSync(password, 10),
             name,
-            profilePicture: profilePictureName,
+            //profilePicture: profilePictureName,
         });
 
         await user.save();
@@ -107,7 +87,7 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
             }
 
             // Generate tokens - cast to MongooseUserDocument for token generation
-            const userDoc = user as MongooseUserDocument;
+            const userDoc: UserType = user;
             const { accessToken, refreshToken } = generateTokens(userDoc);
 
             let profilePictureUrl = "";
@@ -122,10 +102,10 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
             }
 
             // Always fetch or create settings (work with Mongoose doc, then map to plain object)
-            let settingsDoc: any = await Settings.findById(user._id);
+            let settingsDoc: any = await Settings.findById(user.id);
             if (!settingsDoc) {
                 settingsDoc = await Settings.create({
-                    userId: new Types.ObjectId(user._id),
+                    userId: new Types.ObjectId(user.id),
                     monthlyReports: false,
                     expenseReminders: false,
                     billsAndBudgetsAlert: false,
@@ -133,7 +113,7 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
                 });
             }
 
-            const settings: SettingsDocument = {
+            const settings: SettingsType = {
                 userId: settingsDoc.userId,
                 monthlyReports: settingsDoc.monthlyReports,
                 expenseReminders: settingsDoc.expenseReminders,
@@ -141,11 +121,11 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
                 expenseReminderTime: settingsDoc.expenseReminderTime,
             };
 
-            const loginResponse: LoginResponse = {
+            const loginResponse: AuthResponse = {
                 accessToken,
                 refreshToken,
                 user: {
-                    id: user._id,
+                    id: user.id,
                     email: user.email,
                     name: user.name || "",
                     profilePicture: profilePictureUrl,
@@ -154,7 +134,12 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
                     currency: user.currency || "",
                     country: user.country || "",
                     timezone: user.timezone || "",
-                    settings,
+                    settings: {
+                        monthlyReports: settings.monthlyReports || false,
+                        expenseReminders: settings.expenseReminders || false,
+                        billsAndBudgetsAlert: settings.billsAndBudgetsAlert || false,
+                        expenseReminderTime: settings.expenseReminderTime || "18:00",
+                    },
                 },
             };
 
@@ -165,13 +150,13 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
 
 export const googleAuthCallback = async (req: Request, res: Response): Promise<void> => {
     try {
-        const user = req.user as AuthenticatedUser;
+        const response = req.user as AuthResponse;
 
         // Fetch or create settings (work with Mongoose doc, then map to plain object)
-        let settingsDoc: any = await Settings.findById(user._id);
+        let settingsDoc: any = await Settings.findById(response?.user?.id);
         if (!settingsDoc) {
             settingsDoc = await Settings.create({
-                userId: user._id,
+                userId: response?.user?.id,
                 monthlyReports: false,
                 expenseReminders: false,
                 billsAndBudgetsAlert: false,
@@ -179,7 +164,7 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
             });
         }
 
-        const settings: SettingsDocument = {
+        const settings: SettingsType = {
             userId: settingsDoc.userId,
             monthlyReports: settingsDoc.monthlyReports,
             expenseReminders: settingsDoc.expenseReminders,
@@ -189,18 +174,18 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
 
         const tokens: string = encodeURIComponent(
             JSON.stringify({
-                accessToken: user?.accessToken,
-                refreshToken: user?.refreshToken,
+                accessToken: response?.accessToken || "",
+                refreshToken: response?.refreshToken || "",
                 user: {
-                    id: user._id,
-                    email: user.email,
-                    name: user.name || "",
-                    profilePicture: user.profilePicture || "",
-                    phoneNumber: user.phoneNumber || "",
-                    dateOfBirth: user.dateOfBirth || "",
-                    currency: user.currency || "",
-                    country: user.country || "",
-                    timezone: user.timezone || "",
+                    id: response?.user?.id,
+                    email: response?.user?.email,
+                    name: response?.user?.name || "",
+                    profilePicture: response?.user?.profilePicture || "",
+                    phoneNumber: response?.user?.phoneNumber || "",
+                    dateOfBirth: response?.user?.dateOfBirth || "",
+                    currency: response?.user?.currency || "",
+                    country: response?.user?.country || "",
+                    timezone: response?.user?.timezone || "",
                     settings,
                 },
             })
@@ -232,14 +217,14 @@ export const refreshToken = async (
         ) as JwtPayload;
 
         // Find user
-        const user: UserDocument | null = await User.findById(decoded.id);
+        const user: UserType | null = await User.findById(decoded.id);
         if (!user) {
             res.status(401).json({ message: "Invalid refresh token", accessToken: "", refreshToken: "" });
             return;
         }
 
         // Generate new tokens - cast to MongooseUserDocument for token generation
-        const userDoc = user as MongooseUserDocument;
+        const userDoc: UserType = user;
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokens(userDoc);
 
         const refreshResponse: RefreshTokenResponse = {
@@ -254,7 +239,7 @@ export const refreshToken = async (
     }
 };
 
-export const logout = async (req: Request, res: Response<LogoutResponse>): Promise<void> => {
+export const logout = async (req: Request, res: Response<{ success: boolean; message: string }>): Promise<void> => {
     try {
         // Clear any auth cookies
         res.clearCookie("connect.sid"); // Clear session cookie
@@ -279,7 +264,7 @@ export const logout = async (req: Request, res: Response<LogoutResponse>): Promi
             });
         }
 
-        const logoutResponse: LogoutResponse = {
+        const logoutResponse: { success: boolean; message: string } = {
             success: true,
             message: "Successfully logged out",
         };
@@ -289,7 +274,7 @@ export const logout = async (req: Request, res: Response<LogoutResponse>): Promi
         console.error("Logout error:", error);
         // Even if there's an error, we still want to send a success response
         // since the client will clear tokens anyway
-        const logoutResponse: LogoutResponse = {
+        const logoutResponse: { success: boolean; message: string } = {
             success: true,
             message: "Successfully logged out",
         };
@@ -298,21 +283,22 @@ export const logout = async (req: Request, res: Response<LogoutResponse>): Promi
 };
 
 export const forgotPassword = async (
-    req: Request<{}, ForgotPasswordResponse, ForgotPasswordRequest>,
-    res: Response<ForgotPasswordResponse>
+    req: Request<{}, PasswordResponse, { email: string }>,
+    res: Response<PasswordResponse>
 ): Promise<void> => {
     const { email } = req.body;
 
     if (!email) {
-        res.status(400).json({ message: "Email is required" });
+        res.status(400).json({ success: false, message: "Email is required" });
         return;
     }
 
     try {
         // Check if user exists in our database
-        const user: UserDocument | null = await User.findOne({ email });
+        const user: UserType | null = await User.findOne({ email });
         if (!user) {
             res.status(400).json({
+                success: false,
                 message: "No account found with this email address.",
             });
             return;
@@ -321,7 +307,7 @@ export const forgotPassword = async (
         // Generate a stateless reset token with user info embedded
         const resetToken: string = jwt.sign(
             {
-                id: user._id.toString(),
+                id: user.id.toString(),
                 email: user.email,
                 type: "password_reset",
                 timestamp: Date.now(),
@@ -367,7 +353,8 @@ export const forgotPassword = async (
 
         await sgMail.send(msg);
 
-        const forgotPasswordResponse: ForgotPasswordResponse = {
+        const forgotPasswordResponse: PasswordResponse = {
+            success: true,
             message: "Password reset email sent successfully. Please check your email.",
         };
 
@@ -375,7 +362,8 @@ export const forgotPassword = async (
     } catch (error: unknown) {
         console.error("Error sending reset email:", error);
 
-        const forgotPasswordResponse: ForgotPasswordResponse = {
+        const forgotPasswordResponse: PasswordResponse = {
+            success: false,
             message: "Failed to send reset email. Please try again later.",
         };
 
@@ -384,13 +372,14 @@ export const forgotPassword = async (
 };
 
 export const resetPassword = async (
-    req: Request<{}, ResetPasswordResponse, ResetPasswordRequest>,
-    res: Response<ResetPasswordResponse>
+    req: Request<{}, PasswordResponse, ResetPasswordRequest>,
+    res: Response<PasswordResponse>
 ): Promise<void> => {
     const { token, newPassword } = req.body;
 
     if (!token || !newPassword) {
         res.status(400).json({
+            success: false,
             message: "Token and new password are required",
         });
         return;
@@ -403,6 +392,7 @@ export const resetPassword = async (
         // Verify it's a password reset token
         if (decoded.type !== "password_reset") {
             res.status(400).json({
+                success: false,
                 message: "Invalid token type",
             });
             return;
@@ -414,6 +404,7 @@ export const resetPassword = async (
             const maxAge: number = 600000; // 10 minutes in milliseconds (matching JWT expiration)
             if (tokenAge > maxAge) {
                 res.status(400).json({
+                    success: false,
                     message: "Reset token has expired",
                 });
                 return;
@@ -421,13 +412,14 @@ export const resetPassword = async (
         }
 
         // Find user by ID and email
-        const user: UserDocument | null = await User.findOne({
-            _id: decoded.id,
+        const user: UserType | null = await User.findOne({
+            id: decoded.id,
             email: decoded.email,
         });
 
         if (!user) {
             res.status(400).json({
+                success: false,
                 message: "User not found",
             });
             return;
@@ -437,20 +429,22 @@ export const resetPassword = async (
         const hashedPassword: string = bcrypt.hashSync(newPassword, 10);
 
         // Update user's password using findOneAndUpdate to avoid validation issues
-        const updatedUser: UserDocument | null = await User.findOneAndUpdate(
-            { _id: decoded.id },
+        const updatedUser: UserType | null = await User.findOneAndUpdate(
+            { id: decoded.id },
             { password: hashedPassword },
             { new: true, runValidators: false }
         );
 
         if (!updatedUser) {
             res.status(500).json({
+                success: false,
                 message: "Failed to update password",
             });
             return;
         }
 
-        const resetPasswordResponse: ResetPasswordResponse = {
+        const resetPasswordResponse: PasswordResponse = {
+            success: true,
             message: "Password reset successfully",
         };
 
@@ -458,7 +452,8 @@ export const resetPassword = async (
     } catch (error: unknown) {
         console.error("Password reset error:", error);
 
-        const resetPasswordResponse: ResetPasswordResponse = {
+        const resetPasswordResponse: PasswordResponse = {
+            success: false,
             message: "Failed to reset password. Please try again.",
         };
 
@@ -466,13 +461,13 @@ export const resetPassword = async (
     }
 };
 
-export const changePassword = async (req: Request, res: Response<ChangePasswordResponse>): Promise<void> => {
+export const changePassword = async (req: Request, res: Response<PasswordResponse>): Promise<void> => {
     try {
         const user = req.user as TokenPayload | undefined;
         const userId: string | undefined = user?.id;
 
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated", success: false });
+            res.status(401).json({ success: false, message: "User not authenticated" });
             return;
         }
 
@@ -480,23 +475,23 @@ export const changePassword = async (req: Request, res: Response<ChangePasswordR
 
         if (!currentPassword || !newPassword) {
             res.status(400).json({
-                message: "Current password and new password are required",
                 success: false,
+                message: "Current password and new password are required",
             });
             return;
         }
 
         // Find user and verify current password
-        const userDoc: UserDocument | null = await User.findById(userId);
+        const userDoc: UserType | null = await User.findById(userId);
         if (!userDoc) {
-            res.status(404).json({ message: "User not found", success: false });
+            res.status(404).json({ success: false, message: "User not found" });
             return;
         }
 
         // Verify current password
         const isCurrentPasswordValid: boolean = bcrypt.compareSync(currentPassword, userDoc.password);
         if (!isCurrentPasswordValid) {
-            res.status(400).json({ message: "Current password is incorrect", success: false });
+            res.status(400).json({ success: false, message: "Current password is incorrect" });
             return;
         }
 
@@ -504,8 +499,8 @@ export const changePassword = async (req: Request, res: Response<ChangePasswordR
         const isNewPasswordSame: boolean = bcrypt.compareSync(newPassword, userDoc.password);
         if (isNewPasswordSame) {
             res.status(400).json({
-                message: "New password must be different from current password",
                 success: false,
+                message: "New password must be different from current password",
             });
             return;
         }
@@ -514,18 +509,18 @@ export const changePassword = async (req: Request, res: Response<ChangePasswordR
         const hashedNewPassword: string = bcrypt.hashSync(newPassword, 10);
 
         // Update user's password
-        const updatedUser: UserDocument | null = await User.findByIdAndUpdate(
+        const updatedUser: UserType | null = await User.findByIdAndUpdate(
             userId,
             { password: hashedNewPassword },
             { new: true, runValidators: true }
         );
 
         if (!updatedUser) {
-            res.status(500).json({ message: "Failed to update password", success: false });
+            res.status(500).json({ success: false, message: "Failed to update password" });
             return;
         }
 
-        const changePasswordResponse: ChangePasswordResponse = {
+        const changePasswordResponse: PasswordResponse = {
             success: true,
             message: "Password changed successfully",
         };
@@ -534,7 +529,7 @@ export const changePassword = async (req: Request, res: Response<ChangePasswordR
     } catch (error: unknown) {
         console.error("Change password error:", error);
 
-        const changePasswordResponse: ChangePasswordResponse = {
+        const changePasswordResponse: PasswordResponse = {
             message: "Failed to change password. Please try again.",
             success: false,
         };

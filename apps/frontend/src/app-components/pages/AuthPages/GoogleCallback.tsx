@@ -1,7 +1,7 @@
+import { useAuth } from "@/context/AuthContext";
+import { ApiError, AuthResponse } from "@expense-tracker/shared-types/src";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { GoogleCallbackTokens, ApiErrorResponse } from "@expense-tracker/shared-types/src/auth";
 
 const GoogleCallback: React.FC = () => {
     const navigate = useNavigate();
@@ -18,11 +18,11 @@ const GoogleCallback: React.FC = () => {
                     throw new Error("No tokens received");
                 }
 
-                const tokens: GoogleCallbackTokens = JSON.parse(decodeURIComponent(tokensParam));
+                const tokens: AuthResponse = JSON.parse(decodeURIComponent(tokensParam));
 
                 // Store tokens in localStorage
-                localStorage.setItem("accessToken", tokens.accessToken);
-                localStorage.setItem("refreshToken", tokens.refreshToken);
+                localStorage.setItem("accessToken", tokens.accessToken || "");
+                localStorage.setItem("refreshToken", tokens.refreshToken || "");
                 localStorage.setItem("user", JSON.stringify(tokens.user));
 
                 // Update auth context
@@ -32,7 +32,7 @@ const GoogleCallback: React.FC = () => {
                 navigate("/", { replace: true });
             } catch (error: unknown) {
                 //console.error("Google callback error:", error);
-                const apiError = error as ApiErrorResponse;
+                const apiError = error as ApiError;
                 setError(apiError.message || "Failed to authenticate with Google");
                 // Redirect to login page after a delay
                 setTimeout(() => {

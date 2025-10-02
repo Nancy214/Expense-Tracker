@@ -1,20 +1,19 @@
-import { useState, useEffect } from "react";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { useAuth } from "@/context/AuthContext";
+import { useBudgets } from "@/hooks/use-budgets";
+import { useToast } from "@/hooks/use-toast";
+import { BudgetFormData, budgetSchema, getDefaultValues } from "@/schemas/budgetSchema";
+import { ApiError, BudgetData, BudgetType } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
-import { BudgetResponse, BudgetData } from "../../../../libs/shared-types/src/budget-frontend";
-import { budgetSchema, BudgetFormData, getDefaultValues } from "@/schemas/budgetSchema";
-import { useBudgets } from "@/hooks/use-budgets";
-import { BudgetFormError } from "@expense-tracker/shared-types/src/error";
-import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { useForm, UseFormReturn } from "react-hook-form";
 
 /**
  * Props for the useBudgetForm hook
  */
 interface UseBudgetFormProps {
     /** The budget being edited, if any */
-    editingBudget?: BudgetResponse | null;
+    editingBudget?: BudgetType | null;
     /** Callback function called when form submission is successful */
     onSuccess?: () => void;
     /** Callback function called when dialog open state changes */
@@ -102,7 +101,7 @@ export const useBudgetForm = ({
             };
 
             if (editingBudget) {
-                await updateBudget({ id: editingBudget._id, budgetData });
+                await updateBudget({ id: editingBudget.id, budgetData });
                 toast({
                     title: "Success",
                     description: "Budget updated successfully!",
@@ -126,7 +125,7 @@ export const useBudgetForm = ({
 
             if (error && typeof error === "object") {
                 if ("response" in error) {
-                    const apiError = error as BudgetFormError;
+                    const apiError = error as ApiError;
                     errorMessage = apiError.response?.data?.message || errorMessage;
                 } else if ("message" in error) {
                     errorMessage = (error as Error).message;

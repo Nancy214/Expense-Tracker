@@ -1,13 +1,13 @@
 import {
-    BillStatus,
-    PaymentMethod,
+    BillCategory,
     BillFrequency,
-    RecurringFrequency,
+    BillStatus,
     ExpenseCategory,
     IncomeCategory,
-    BillCategory,
+    PaymentMethod,
+    RecurringFrequency,
     TransactionType,
-} from "../../../../libs/shared-types/src/transactions-frontend";
+} from "@expense-tracker/shared-types/src";
 import { z } from "zod";
 
 // Union types for all categories

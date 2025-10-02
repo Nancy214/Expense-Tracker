@@ -1,18 +1,13 @@
+import { refreshAuthTokens, removeTokens } from "@/utils/authUtils";
+import { AuthResponse, LoginCredentials, RegisterCredentials, UserType } from "@expense-tracker/shared-types/src";
 import axios, { AxiosError, AxiosResponse } from "axios";
-import {
-    LoginCredentials,
-    AuthResponse,
-    RegisterCredentials,
-    User,
-} from "@expense-tracker/shared-types/src/auth-frontend";
-import { removeTokens, refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 
 // Store tokens in localStorage
 const storeTokens = (tokens: AuthResponse): void => {
-    localStorage.setItem("accessToken", tokens.accessToken);
-    localStorage.setItem("refreshToken", tokens.refreshToken);
+    localStorage.setItem("accessToken", tokens.accessToken || "");
+    localStorage.setItem("refreshToken", tokens.refreshToken || "");
 };
 
 // Remove tokens from localStorage - using utility function
@@ -93,7 +88,7 @@ export const register = async (credentials: RegisterCredentials): Promise<AuthRe
         // Create FormData for multipart/form-data
         const formData = new FormData();
         formData.append("email", credentials.email);
-        formData.append("name", credentials.name);
+        formData.append("name", credentials.name || "");
         formData.append("password", credentials.password);
 
         // Add profile picture if it exists
@@ -150,9 +145,9 @@ export const resetPassword = async (token: string, newPassword: string): Promise
     }
 };
 
-export const getProfile = async (): Promise<User> => {
+export const getProfile = async (): Promise<UserType> => {
     try {
-        const response: AxiosResponse<User> = await authApi.get("/auth/profile");
+        const response: AxiosResponse<UserType> = await authApi.get("/auth/profile");
         return response.data;
     } catch (error: unknown) {
         console.error("Get profile error:", error);

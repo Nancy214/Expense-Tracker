@@ -1,12 +1,12 @@
-import axios, { AxiosResponse, AxiosError } from "axios";
 import { refreshAuthTokens } from "@/utils/authUtils";
 import type {
-    ExpenseCategoryBreakdownResponse,
     BillsCategoryBreakdownResponse,
+    ExpenseCategoryBreakdownResponse,
     IncomeExpenseSummaryResponse,
     MonthlySavingsTrendResponse,
-    AnalyticsApiError,
-} from "@expense-tracker/shared-types/src/analytics-frontend";
+} from "@expense-tracker/shared-types/src";
+import { ApiError } from "@expense-tracker/shared-types/src";
+import axios, { AxiosError, AxiosResponse } from "axios";
 
 const API_URL = "http://localhost:8000/api/analytics";
 
@@ -60,7 +60,7 @@ export const getExpenseCategoryBreakdown = async (
         return response.data;
     } catch (error) {
         console.error("Error fetching expense category breakdown:", error);
-        throw error as AnalyticsApiError;
+        throw error as ApiError;
     }
 };
 
@@ -80,7 +80,7 @@ export const getBillsCategoryBreakdown = async (
         return response.data;
     } catch (error) {
         console.error("Error fetching bills category breakdown:", error);
-        throw error as AnalyticsApiError;
+        throw error as ApiError;
     }
 };
 
@@ -100,7 +100,7 @@ export const getIncomeExpenseSummary = async (
         return response.data;
     } catch (error) {
         console.error("Error fetching income and expense summary:", error);
-        throw error as AnalyticsApiError;
+        throw error as ApiError;
     }
 };
 
@@ -120,6 +120,6 @@ export const getMonthlySavingsTrend = async (
         return response.data;
     } catch (error) {
         console.error("Error fetching monthly savings trend:", error);
-        throw error as AnalyticsApiError;
+        throw error as ApiError;
     }
 };

@@ -1,11 +1,36 @@
-import { TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
-import { useEffect, useMemo } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaginationWrapper } from "@/components/ui/pagination";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ActiveTab, TransactionOrBill } from "@expense-tracker/shared-types/src";
+import { useEffect, useMemo } from "react";
 import { AllTransactionsTab } from "./AllTransactionsTab";
-import { RecurringTransactionsTab } from "./RecurringTransactionsTab";
 import { BillsTab } from "./BillsTab";
-import { DataTableProps } from "../../../../../../libs/shared-types/src/transaction-frontend";
+import { RecurringTransactionsTab } from "./RecurringTransactionsTab";
+
+// Data table props types
+interface DataTableProps {
+    data: TransactionOrBill[];
+    onEdit: (expense: TransactionOrBill) => void;
+    onDelete: (expenseId: string) => void;
+    showRecurringIcon?: boolean;
+    showRecurringBadge?: boolean;
+    isRecurringTab?: boolean;
+    parse?: (date: string, format: string, baseDate: Date) => Date;
+    onRefresh?: () => void;
+    setAllExpenses?: (expenses: TransactionOrBill[]) => void;
+    setAvailableMonths?: (months: { label: string; value: { year: number; month: number }; sortKey: number }[]) => void;
+    recurringTransactions?: TransactionOrBill[];
+    totalExpensesByCurrency?: { [currency: string]: { income: number; expense: number; net: number } };
+    refreshAllTransactions?: () => void;
+    activeTab?: ActiveTab;
+    setActiveTab?: (tab: ActiveTab) => void;
+    currentPage?: number;
+    totalPages?: number;
+    onPageChange?: (page: number) => void;
+    totalItems?: number;
+    itemsPerPage?: number;
+    apiRecurringTemplates?: TransactionOrBill[];
+    isLoading?: boolean;
+}
 
 export function DataTable({
     data,
@@ -14,9 +39,8 @@ export function DataTable({
     showRecurringBadge = false,
     isRecurringTab = false,
     recurringTransactions = [],
-    totalExpensesByCurrency = {},
     refreshAllTransactions,
-    activeTab = "all",
+    activeTab = ActiveTab.ALL,
     setActiveTab,
     currentPage = 1,
     totalPages = 1,
@@ -28,7 +52,7 @@ export function DataTable({
     // Sync activeTab with isRecurringTab prop
     useEffect(() => {
         if (isRecurringTab && setActiveTab) {
-            setActiveTab("recurring");
+            setActiveTab(ActiveTab.RECURRING);
         }
     }, [isRecurringTab, setActiveTab]);
 
@@ -37,7 +61,7 @@ export function DataTable({
         return data.filter((expense) => expense.category === "Bills");
     }, [data]);
 
-    const handleEdit = async (expense: TransactionWithId) => {
+    const handleEdit = async (expense: TransactionOrBill) => {
         onEdit(expense);
     };
 
@@ -47,11 +71,11 @@ export function DataTable({
             return data;
         }
         switch (activeTab) {
-            case "all":
+            case ActiveTab.ALL:
                 return data;
-            case "bills":
+            case ActiveTab.BILLS:
                 return billExpenses;
-            case "recurring":
+            case ActiveTab.RECURRING:
                 return recurringTransactions;
             default:
                 return data;
@@ -63,11 +87,7 @@ export function DataTable({
     return (
         <>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-                <Tabs
-                    value={activeTab}
-                    onValueChange={(value) => setActiveTab?.(value as "all" | "recurring" | "bills")}
-                    className=""
-                >
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab?.(value as ActiveTab)} className="">
                     <TabsList>
                         <TabsTrigger value="all">All Transactions</TabsTrigger>
                         <TabsTrigger value="recurring">Recurring Transactions</TabsTrigger>
@@ -77,7 +97,7 @@ export function DataTable({
             </div>
 
             {/* Render appropriate tab component */}
-            {activeTab === "all" && (
+            {activeTab === ActiveTab.ALL && (
                 <AllTransactionsTab
                     data={tabData}
                     onEdit={handleEdit}
@@ -87,7 +107,7 @@ export function DataTable({
                 />
             )}
 
-            {activeTab === "recurring" && (
+            {activeTab === ActiveTab.RECURRING && (
                 <RecurringTransactionsTab
                     data={tabData}
                     onEdit={handleEdit}
@@ -95,7 +115,7 @@ export function DataTable({
                 />
             )}
 
-            {activeTab === "bills" && (
+            {activeTab === ActiveTab.BILLS && (
                 <BillsTab
                     data={tabData}
                     onEdit={handleEdit}

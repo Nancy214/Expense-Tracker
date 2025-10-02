@@ -1,26 +1,24 @@
-import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
-import { parse, format } from "date-fns";
+import { format, parse } from "date-fns";
 import { Plus, TrendingUp, UploadIcon } from "lucide-react";
-import { ActiveTab, TransactionWithId } from "../../../../../../libs/shared-types/src/transaction-frontend";
-//import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
-//import { useBudgets } from "@/hooks/use-budgets";
+import { useEffect, useMemo, useState } from "react";
+
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import {
-    generateMonthlyStatementPDF,
     downloadCSV,
     downloadExcel,
+    generateMonthlyStatementPDF,
 } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
-import { useSearchParams } from "react-router-dom";
-import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
-import { useBills } from "@/hooks/use-bills";
-import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
-import { MonthFilter, TotalExpensesByCurrency } from "../../../../../../libs/shared-types/src/transaction-frontend";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useBills } from "@/hooks/use-bills";
+import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
+import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
+import { ActiveTab, TransactionOrBill } from "@expense-tracker/shared-types/src";
+import { useSearchParams } from "react-router-dom";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
@@ -54,7 +52,7 @@ const TransactionsPage = () => {
     const { summary } = useTransactionSummary();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingExpense, setEditingExpense] = useState<TransactionWithId | null>(null);
+    const [editingExpense, setEditingExpense] = useState<TransactionOrBill | null>(null);
     //const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState<"all" | "recurring" | "bills">("all");
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
@@ -143,7 +141,7 @@ const TransactionsPage = () => {
     }; */
 
     // Helper to get a Date object from transaction.date
-    const getTransactionDate = (t: TransactionWithId): Date => {
+    const getTransactionDate = (t: TransactionOrBill): Date => {
         if (typeof t.date === "string") {
             // Try dd/MM/yyyy first, fallback to ISO
             const parsed = parse(t.date, "dd/MM/yyyy", new Date());
@@ -161,7 +159,7 @@ const TransactionsPage = () => {
     const recurringTemplates = apiRecurringTemplates;
 
     // Get the appropriate data based on active tab
-    const getCurrentData = (): TransactionWithId[] => {
+    const getCurrentData = (): TransactionOrBill[] => {
         switch (activeTab) {
             case "all":
                 return allTransactions;
@@ -177,44 +175,52 @@ const TransactionsPage = () => {
     const currentData = getCurrentData();
 
     // Calculate total expenses by currency
-    const totalExpensesByCurrency: TotalExpensesByCurrency = currentData.reduce((acc, transaction) => {
-        const currency = transaction.currency || "INR";
-        const amount = transaction.amount;
-        const type = transaction.type || "expense";
+    const totalExpensesByCurrency: { [currency: string]: { income: number; expense: number; net: number } } =
+        currentData.reduce(
+            (acc: { [currency: string]: { income: number; expense: number; net: number } }, transaction) => {
+                const currency = transaction.currency || "INR";
+                const amount = transaction.amount;
+                const type = transaction.type || "expense";
 
-        // Add original amount
-        if (!acc[currency]) {
-            acc[currency] = { income: 0, expense: 0, net: 0 };
-        }
+                // Add original amount
+                if (!acc[currency]) {
+                    acc[currency] = { income: 0, expense: 0, net: 0 };
+                }
 
-        if (type === "income") {
-            acc[currency].income += amount;
-        } else {
-            acc[currency].expense += amount;
-        }
+                if (type === "income") {
+                    acc[currency].income += amount;
+                } else {
+                    acc[currency].expense += amount;
+                }
 
-        acc[currency].net = acc[currency].income - acc[currency].expense;
+                acc[currency].net = acc[currency].income - acc[currency].expense;
 
-        // Add converted amount if exchange rates are available
-        if (transaction.fromRate && transaction.toRate && (transaction.fromRate !== 1 || transaction.toRate !== 1)) {
-            const convertedAmount = amount * transaction.fromRate;
-            const userCurrency = user?.currency || "INR";
+                // Add converted amount if exchange rates are available
+                if (
+                    transaction.fromRate &&
+                    transaction.toRate &&
+                    (transaction.fromRate !== 1 || transaction.toRate !== 1)
+                ) {
+                    const convertedAmount = amount * transaction.fromRate;
+                    const userCurrency = user?.currency || "INR";
 
-            if (!acc[userCurrency]) {
-                acc[userCurrency] = { income: 0, expense: 0, net: 0 };
-            }
+                    if (!acc[userCurrency]) {
+                        acc[userCurrency] = { income: 0, expense: 0, net: 0 };
+                    }
 
-            if (type === "income") {
-                acc[userCurrency].income += convertedAmount;
-            } else {
-                acc[userCurrency].expense += convertedAmount;
-            }
+                    if (type === "income") {
+                        acc[userCurrency].income += convertedAmount;
+                    } else {
+                        acc[userCurrency].expense += convertedAmount;
+                    }
 
-            acc[userCurrency].net = acc[userCurrency].income - acc[userCurrency].expense;
-        }
+                    acc[userCurrency].net = acc[userCurrency].income - acc[userCurrency].expense;
+                }
 
-        return acc;
-    }, {} as TotalExpensesByCurrency);
+                return acc;
+            },
+            {}
+        );
 
     // Handle page change for different tabs
     const handlePageChange = (page: number): void => {
@@ -240,29 +246,30 @@ const TransactionsPage = () => {
     };
 
     // Get available months for filtering
-    const availableMonths: MonthFilter[] = useMemo(() => {
-        const monthSet = new Set<string>();
-        allTransactions.forEach((expense) => {
-            const date = getTransactionDate(expense);
-            const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-            monthSet.add(monthKey);
-        });
+    const availableMonths: { label: string; value: { year: number; month: number }; sortKey: number }[] =
+        useMemo(() => {
+            const monthSet = new Set<string>();
+            allTransactions.forEach((expense) => {
+                const date = getTransactionDate(expense);
+                const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+                monthSet.add(monthKey);
+            });
 
-        // Sort months descending (latest first)
-        const monthsArr = Array.from(monthSet).map((str) => {
-            const [year, month] = str.split("-").map(Number);
-            const date = new Date(year, month, 1);
-            return {
-                label: `${date.toLocaleString("default", {
-                    month: "long",
-                })} ${year}`,
-                value: { year, month },
-                sortKey: year * 12 + month,
-            };
-        });
-        monthsArr.sort((a, b) => b.sortKey - a.sortKey);
-        return monthsArr;
-    }, [allTransactions]);
+            // Sort months descending (latest first)
+            const monthsArr = Array.from(monthSet).map((str) => {
+                const [year, month] = str.split("-").map(Number);
+                const date = new Date(year, month, 1);
+                return {
+                    label: `${date.toLocaleString("default", {
+                        month: "long",
+                    })} ${year}`,
+                    value: { year, month },
+                    sortKey: year * 12 + month,
+                };
+            });
+            monthsArr.sort((a, b) => b.sortKey - a.sortKey);
+            return monthsArr;
+        }, [allTransactions]);
 
     const currencySymbols: Record<string, string> = {
         INR: "₹",
@@ -526,7 +533,7 @@ const TransactionsPage = () => {
                         ? bills
                         : allTransactions
                 }
-                handleEdit={(expense) => {
+                handleEdit={(expense: TransactionOrBill) => {
                     setEditingExpense(expense);
                     setIsDialogOpen(true);
                 }}

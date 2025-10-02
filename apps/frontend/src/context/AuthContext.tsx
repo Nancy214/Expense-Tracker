@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { login, logout } from "@/services/auth.service";
-import { LoginCredentials, AuthResponse, User } from "@expense-tracker/shared-types/src/auth-frontend";
+import { LoginCredentials, AuthResponse, AuthenticatedUser } from "@expense-tracker/shared-types/src";
 import { removeTokens } from "@/utils/authUtils";
 
 interface AuthContextType {
     isAuthenticated: boolean;
     user: AuthResponse["user"] | null;
     login: (credentials: LoginCredentials) => Promise<void>;
-    loginWithGoogle: (userData: User) => void;
+    loginWithGoogle: (userData: AuthenticatedUser) => void;
     logout: () => Promise<void>;
     updateUser: (userData: AuthResponse["user"]) => void;
     //register: (credentials: LoginCredentials) => Promise<void>;
@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const userData: string | null = localStorage.getItem("user");
 
                 if (accessToken && (accessToken !== "undefined" || accessToken !== null) && userData) {
-                    const parsedUser: User = JSON.parse(userData);
+                    const parsedUser: AuthenticatedUser = JSON.parse(userData);
                     setUser(parsedUser);
                     setIsAuthenticated(true);
                 } else {
@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const handleGoogleLogin = (userData: User): void => {
+    const handleGoogleLogin = (userData: AuthenticatedUser): void => {
         setUser(userData);
         setIsAuthenticated(true);
     };

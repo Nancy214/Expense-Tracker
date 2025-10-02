@@ -1,12 +1,11 @@
-import React, { useState, useMemo } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatToHumanReadableDate } from "@/utils/dateUtils";
+import type { CalendarHeatmapProps, HeatmapData } from "@expense-tracker/shared-types/src";
+import React, { useMemo, useState } from "react";
 import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import type { HeatmapData, CalendarHeatmapProps, Insight } from "@/types/analytics";
-import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 const DEFAULT_COLORS = [
     "#ebedf0", // No data
@@ -20,7 +19,6 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
     title,
     description,
     data,
-    showInsights = true,
     currency = "$",
     colorScale = DEFAULT_COLORS,
     showLegend = true,

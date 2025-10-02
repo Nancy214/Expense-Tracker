@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { TransactionModel } from "../models/transaction.model";
 import { User } from "../models/user.model";
-import { TransactionOrBillDocument } from "@expense-tracker/shared-types/src/transactions-backend";
+import { TransactionOrBill } from "@expense-tracker/shared-types/src";
 import { addTimeByFrequency, isDateAfter, parseDateFromAPI } from "../utils/dateUtils";
 import { getTodayInTimezone } from "../utils/timezoneUtils";
 
@@ -17,23 +17,17 @@ export class RecurringTransactionJobService {
      */
     static async processAllRecurringTransactions(): Promise<void> {
         try {
-            console.log(
-                `[RecurringTransactionJob] Starting recurring transaction processing at ${new Date().toISOString()}`
-            );
-
             // Get all users with their timezones
             const users = await User.find({ timezone: { $exists: true, $ne: null } });
-            console.log(`[RecurringTransactionJob] Found ${users.length} users with timezone settings`);
 
             // Get all recurring transactions
             const recurringTransactions = await TransactionModel.find({
                 isRecurring: true,
                 userId: { $exists: true, $ne: null },
             });
-            console.log(`[RecurringTransactionJob] Found ${recurringTransactions.length} recurring transactions`);
 
             // Group transactions by user
-            const transactionsByUser = new Map<string, TransactionOrBillDocument[]>();
+            const transactionsByUser = new Map<string, TransactionOrBill[]>();
             for (const transaction of recurringTransactions) {
                 if (transaction.userId) {
                     const userId = transaction.userId.toString();
@@ -56,10 +50,6 @@ export class RecurringTransactionJobService {
                     continue;
                 }
 
-                console.log(
-                    `[RecurringTransactionJob] Processing ${userTransactions.length} transactions for user ${user._id} in timezone ${userTimezone}`
-                );
-
                 const { processed, created } = await this.processUserRecurringTransactions(
                     new Types.ObjectId(user._id),
                     userTransactions,
@@ -69,10 +59,6 @@ export class RecurringTransactionJobService {
                 totalProcessed += processed;
                 totalCreated += created;
             }
-
-            console.log(
-                `[RecurringTransactionJob] Completed processing: ${totalProcessed} transactions processed, ${totalCreated} new instances created`
-            );
         } catch (error) {
             console.error("[RecurringTransactionJob] Error processing recurring transactions:", error);
             throw error;
@@ -88,7 +74,7 @@ export class RecurringTransactionJobService {
      */
     static async processUserRecurringTransactions(
         userId: Types.ObjectId,
-        transactions: TransactionOrBillDocument[],
+        transactions: TransactionOrBill[],
         timezone: string
     ): Promise<{ processed: number; created: number }> {
         let processed = 0;
@@ -102,7 +88,7 @@ export class RecurringTransactionJobService {
                 }
                 processed++;
             } catch (error) {
-                console.error(`[RecurringTransactionJob] Error processing transaction ${template._id}:`, error);
+                console.error(`[RecurringTransactionJob] Error processing transaction ${template.id}:`, error);
             }
         }
 
@@ -117,7 +103,7 @@ export class RecurringTransactionJobService {
      * @returns Object indicating if a new instance was created
      */
     static async processRecurringTransaction(
-        template: TransactionOrBillDocument,
+        template: TransactionOrBill,
         userId: Types.ObjectId,
         timezone: string
     ): Promise<{ created: boolean }> {
@@ -127,19 +113,19 @@ export class RecurringTransactionJobService {
         // Determine the frequency to use
         const frequency = this.getTransactionFrequency(template);
         if (!frequency) {
-            console.warn(`[RecurringTransactionJob] No frequency found for transaction ${template._id}`);
+            console.warn(`[RecurringTransactionJob] No frequency found for transaction ${template.id}`);
             return { created: false };
         }
 
         // Calculate the next due date based on the template's last occurrence
-        const lastOccurrence = await this.getLastOccurrence(new Types.ObjectId(template._id), userId);
+        const lastOccurrence = await this.getLastOccurrence(new Types.ObjectId(template.id), userId);
         const nextDueDate = this.calculateNextDueDate(template, lastOccurrence, frequency);
 
         // Check if we should create a new instance today
         if (this.shouldCreateInstanceToday(template, nextDueDate, todayDate, timezone)) {
             // Check if an instance for today already exists
             const existingInstance = await TransactionModel.findOne({
-                templateId: template._id,
+                templateId: template.id,
                 date: todayInUserTimezone,
                 userId: userId,
             });
@@ -147,7 +133,7 @@ export class RecurringTransactionJobService {
             if (!existingInstance) {
                 await this.createRecurringInstance(template, todayDate, userId);
                 console.log(
-                    `[RecurringTransactionJob] Created new instance for transaction ${template._id} on ${todayInUserTimezone}`
+                    `[RecurringTransactionJob] Created new instance for transaction ${template.id} on ${todayInUserTimezone}`
                 );
                 return { created: true };
             }
@@ -159,7 +145,7 @@ export class RecurringTransactionJobService {
     /**
      * Get the frequency for a transaction (handles both regular and bill transactions)
      */
-    private static getTransactionFrequency(template: TransactionOrBillDocument): string | null {
+    private static getTransactionFrequency(template: TransactionOrBill): string | null {
         // Check if it's a bill with billFrequency
         if ("billFrequency" in template && template.billFrequency) {
             return template.billFrequency;
@@ -189,7 +175,7 @@ export class RecurringTransactionJobService {
      * Calculate the next due date for a recurring transaction
      */
     private static calculateNextDueDate(
-        template: TransactionOrBillDocument,
+        template: TransactionOrBill,
         lastOccurrence: Date | null,
         frequency: string
     ): Date {
@@ -206,7 +192,7 @@ export class RecurringTransactionJobService {
      * Check if we should create a new instance today
      */
     private static shouldCreateInstanceToday(
-        template: TransactionOrBillDocument,
+        template: TransactionOrBill,
         nextDueDate: Date,
         todayDate: Date,
         _: string
@@ -239,20 +225,64 @@ export class RecurringTransactionJobService {
      * Create a new instance of a recurring transaction
      */
     private static async createRecurringInstance(
-        template: TransactionOrBillDocument,
+        template: TransactionOrBill,
         date: Date,
         userId: Types.ObjectId
     ): Promise<void> {
-        const instanceData: TransactionOrBillDocument = {
+        const frequency = this.getTransactionFrequency(template);
+        if (!frequency) {
+            console.warn(`[RecurringTransactionJob] No frequency found for transaction ${template.id}`);
+            return;
+        }
+
+        // Calculate the due date for this instance
+        // For bills, the due date should be the same as the date (when the bill is due)
+        // For regular transactions, we don't need a due date
+        let dueDate: Date | undefined;
+        let nextDueDate: Date | undefined;
+
+        if ("dueDate" in template && template.dueDate) {
+            // This is a bill with a due date
+            const templateDueDate = parseDateFromAPI(template.dueDate);
+
+            // Find the last occurrence to calculate the correct due date for this instance
+            const lastOccurrence = await this.getLastOccurrence(new Types.ObjectId(template.id), userId);
+
+            if (lastOccurrence) {
+                // Calculate due date based on the last occurrence's due date
+                const lastInstance = await TransactionModel.findOne({
+                    templateId: template.id,
+                    userId: userId,
+                }).sort({ date: -1 });
+
+                if (lastInstance && "dueDate" in lastInstance && lastInstance.dueDate) {
+                    const lastDueDate = parseDateFromAPI(lastInstance.dueDate as string | Date);
+                    dueDate = addTimeByFrequency(lastDueDate, frequency);
+                } else {
+                    // Fallback to template due date
+                    dueDate = templateDueDate;
+                }
+            } else {
+                // First instance, use template due date
+                dueDate = templateDueDate;
+            }
+
+            // Calculate next due date for this instance
+            nextDueDate = addTimeByFrequency(dueDate, frequency);
+        }
+
+        const instanceData: TransactionOrBill = {
             ...template,
-            _id: "",
+            id: "",
             date: date,
-            templateId: template._id,
+            templateId: template.id,
             isRecurring: false,
             userId: userId.toString(),
+            ...(dueDate && { dueDate }),
+            ...(nextDueDate && { nextDueDate }),
         };
 
-        await TransactionModel.create<TransactionOrBillDocument>(instanceData);
+        await TransactionModel.create<TransactionOrBill>(instanceData);
     }
 
     /**

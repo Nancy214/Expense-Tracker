@@ -1,8 +1,12 @@
 import mongoose, { Schema } from "mongoose";
-import { BudgetLogType } from "@expense-tracker/shared-types/src/budget-backend";
+import { BudgetLogType } from "@expense-tracker/shared-types/src/budget";
 
 const budgetLogSchema = new Schema<BudgetLogType>(
     {
+        id: {
+            type: String,
+            required: true,
+        },
         budgetId: {
             type: String,
             ref: "Budget",

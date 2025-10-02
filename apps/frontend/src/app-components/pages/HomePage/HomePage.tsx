@@ -1,19 +1,28 @@
-import { useState, useEffect } from "react";
+import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
+import { BillAlertsUI, useBillsAndReminders } from "@/app-components/reminders-and-alerts/BillAlert";
+import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
+import { ExpenseReminderBanner } from "@/app-components/reminders-and-alerts/ExpenseReminderBanner";
+import StatsCards from "@/app-components/utility-components/StatsCards";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
-import { ExpenseReminderBanner } from "@/app-components/reminders-and-alerts/ExpenseReminderBanner";
-import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
-import { useBillsAndReminders, BillAlertsUI } from "@/app-components/reminders-and-alerts/BillAlert";
 import { useExpensesSelector } from "@/hooks/use-analytics";
-import { TrendingUp, DollarSign, TrendingDown, Target, Receipt, Zap } from "lucide-react";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useSettings } from "@/hooks/use-profile";
+import { BudgetReminder } from "@expense-tracker/shared-types/src";
+import { DollarSign, Receipt, Target, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AddExpenseDialog from "../TransactionsPage/AddExpenseDialog";
-import { BudgetReminder } from "../../../../../../libs/shared-types/src/budget-frontend";
-import { FinancialOverviewData } from "../../../../../../libs/shared-types/src/transaction-frontend";
-import StatsCards from "@/app-components/utility-components/StatsCards";
+
+interface FinancialOverviewData {
+    savingsRate: number;
+    expenseRate: number;
+    totalBudgets: number;
+    overBudgetCount: number;
+    warningBudgetCount: number;
+    onTrackBudgetCount: number;
+    averageBudgetProgress: number;
+}
 
 // Home page component
 const HomePage = () => {

@@ -1,11 +1,11 @@
 import mongoose, { Schema } from "mongoose";
-import { UserLocalType, UserGoogleType } from "@expense-tracker/shared-types/src/auth-backend";
+import { UserLocalType, UserGoogleType } from "@expense-tracker/shared-types/src/auth";
 
 const userSchema = new Schema(
     {
         _id: {
             type: Schema.Types.ObjectId,
-            default: () => new mongoose.Types.ObjectId(),
+            //default: () => new mongoose.Types.ObjectId(),
         },
         email: {
             type: String,
@@ -50,7 +50,7 @@ const userSchema = new Schema(
             type: String,
             required: false,
         },
-        budget: {
+        /* budget: {
             type: Boolean,
             required: false,
             default: false,
@@ -59,6 +59,11 @@ const userSchema = new Schema(
             type: String,
             required: false,
             default: "monthly",
+        }, */
+        settings: {
+            type: Schema.Types.Mixed,
+            ref: "Settings",
+            required: false,
         },
     },
     {

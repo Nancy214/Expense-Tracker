@@ -1,27 +1,31 @@
-import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
-import { useForm, UseFormReturn } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileFormData, profileSchema } from "@/schemas/profileSchema";
 import {
-    getProfile,
-    updateProfile,
-    removeProfilePicture,
     getCountryTimezoneCurrency,
+    getProfile,
+    removeProfilePicture,
+    updateProfile,
     updateSettings,
 } from "@/services/profile.service";
-import { profileSchema, ProfileFormData } from "@/schemas/profileSchema";
-import { SettingsData, ProfileResponse, ProfileData } from "../../../../libs/shared-types/src/profile-frontend";
-import { User } from "@expense-tracker/shared-types/src/auth-frontend";
+import {
+    AuthenticatedUser,
+    CountryTimezoneCurrencyData,
+    ProfileData,
+    SettingsData,
+} from "@expense-tracker/shared-types/src";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { AxiosError } from "axios";
+import { useEffect, useRef, useState } from "react";
+import { useForm, UseFormReturn } from "react-hook-form";
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
 
 // API Response Types
-interface CountryTimezoneCurrencyResponse {
+/* interface CountryTimezoneCurrencyResponse {
     _id: string;
     country: string;
     currency: {
@@ -30,7 +34,7 @@ interface CountryTimezoneCurrencyResponse {
         name: string;
     };
     timezones: string[];
-}
+} */
 
 interface DeleteProfilePictureResponse {
     success: boolean;
@@ -40,7 +44,7 @@ interface DeleteProfilePictureResponse {
 // Mutation Function Types
 
 // Utility Types
-type ProfileDataUnion = User | ProfileResponse | null;
+type ProfileDataUnion = AuthenticatedUser | null;
 type FileValidationResult = {
     isValid: boolean;
     errorMessage?: string;
@@ -48,7 +52,7 @@ type FileValidationResult = {
 
 // Hook Return Types
 interface ProfileMutationsReturn {
-    updateProfile: (data: ProfileData) => Promise<ProfileResponse>;
+    updateProfile: (data: ProfileData) => Promise<AuthenticatedUser>;
     removeProfilePicture: () => Promise<DeleteProfilePictureResponse>;
     updateSettings: (variables: { settings: SettingsData; userId: string }) => Promise<SettingsData>;
     isUpdatingProfile: boolean;
@@ -115,12 +119,12 @@ const PROFILE_QUERY_KEYS = {
 // QUERY HOOKS
 // ============================================================================
 
-export function useProfile(): UseQueryResult<ProfileResponse, AxiosError> {
+export function useProfile(): UseQueryResult<AuthenticatedUser, AxiosError> {
     const { isAuthenticated } = useAuth();
     const { user } = useAuth();
     const userId = user?.id;
 
-    return useQuery<ProfileResponse, AxiosError>({
+    return useQuery<AuthenticatedUser, AxiosError>({
         queryKey: PROFILE_QUERY_KEYS.profile,
         queryFn: () => getProfile(userId || ""),
         staleTime: 0, // Always consider data stale to ensure fresh profile picture URLs
@@ -130,8 +134,8 @@ export function useProfile(): UseQueryResult<ProfileResponse, AxiosError> {
     });
 }
 
-export function useCountryTimezoneCurrency(): UseQueryResult<CountryTimezoneCurrencyResponse[], AxiosError> {
-    return useQuery<CountryTimezoneCurrencyResponse[], AxiosError>({
+export function useCountryTimezoneCurrency(): UseQueryResult<CountryTimezoneCurrencyData[], AxiosError> {
+    return useQuery<CountryTimezoneCurrencyData[], AxiosError>({
         queryKey: PROFILE_QUERY_KEYS.countryTimezoneCurrency,
         queryFn: getCountryTimezoneCurrency,
         staleTime: 30 * 60 * 1000, // Consider data fresh for 30 minutes (country data rarely changes)
@@ -173,17 +177,17 @@ export function useProfileMutations(): ProfileMutationsReturn {
     const { toast } = useToast();
     const { updateUser } = useAuth();
 
-    const updateProfileMutation = useMutation<ProfileResponse, AxiosError, ProfileData>({
+    const updateProfileMutation = useMutation<AuthenticatedUser, AxiosError, ProfileData>({
         mutationFn: updateProfile,
-        onSuccess: (data: ProfileResponse) => {
+        onSuccess: (data: AuthenticatedUser) => {
             toast({
                 title: "Success",
                 description: "Profile updated successfully",
             });
 
             // Convert ProfileResponse to User type for auth context
-            const userForAuth: User = {
-                id: data._id,
+            const userForAuth: AuthenticatedUser = {
+                id: data.id,
                 email: data.email,
                 name: data.name,
                 profilePicture: data.profilePicture,
@@ -300,7 +304,7 @@ export function useProfileForm(): ProfileFormReturn {
 
     // Use profile data from query if available, otherwise fall back to auth context
     // Prioritize fresh API data over potentially stale localStorage data
-    const currentProfileData = profileData || user;
+    const currentProfileData = profileData ?? user ?? null;
 
     const form = useForm<ProfileFormData>({
         resolver: zodResolver(profileSchema),
@@ -353,9 +357,9 @@ export function useProfileForm(): ProfileFormReturn {
 
     // Update AuthContext with fresh profile data to keep localStorage in sync
     useEffect((): void => {
-        if (profileData && profileData._id !== lastUpdatedProfileId.current) {
+        if (profileData && profileData.id !== lastUpdatedProfileId.current) {
             const userForAuth = {
-                id: profileData._id,
+                id: profileData.id,
                 email: profileData.email,
                 name: profileData.name,
                 profilePicture: profileData.profilePicture,
@@ -376,7 +380,7 @@ export function useProfileForm(): ProfileFormReturn {
 
             localStorage.setItem("user", JSON.stringify(userForAuth));
             updateUser(userForAuth);
-            lastUpdatedProfileId.current = profileData._id;
+            lastUpdatedProfileId.current = profileData.id;
         }
     }, [profileData]);
 
@@ -431,7 +435,7 @@ export function useProfileForm(): ProfileFormReturn {
                 await removeProfilePicture();
             }
 
-            const response: ProfileResponse = await updateProfile(data);
+            const response: AuthenticatedUser = await updateProfile(data);
             setIsEditing(false);
             setPhotoRemoved(false);
 

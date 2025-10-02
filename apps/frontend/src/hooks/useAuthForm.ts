@@ -1,20 +1,20 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useForm, UseFormReturn } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
-import { register, resetPassword, forgotPassword } from "@/services/auth.service";
 import {
-    loginSchema,
-    registerSchema,
-    resetPasswordSchema,
+    ForgotPasswordFormData,
     forgotPasswordSchema,
     LoginFormData,
+    loginSchema,
     RegisterFormData,
+    registerSchema,
     ResetPasswordFormData,
-    ForgotPasswordFormData,
+    resetPasswordSchema,
 } from "@/schemas/authSchema";
-import { ApiErrorResponse } from "@expense-tracker/shared-types/src/auth";
+import { forgotPassword, register, resetPassword } from "@/services/auth.service";
+import { ApiError } from "@expense-tracker/shared-types/src";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm, UseFormReturn } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 
 // Return type interfaces for each hook
 interface UseLoginFormReturn {
@@ -66,7 +66,7 @@ export const useLoginForm = (): UseLoginFormReturn => {
             await authLogin(data);
             navigate("/");
         } catch (error: unknown) {
-            const apiError = error as ApiErrorResponse;
+            const apiError = error as ApiError;
             const errorMessage: string =
                 apiError.response?.data?.message ||
                 apiError.message ||
@@ -104,7 +104,7 @@ export const useRegisterForm = (): UseRegisterFormReturn => {
             await register(data);
             navigate("/login");
         } catch (error: unknown) {
-            const apiError = error as ApiErrorResponse;
+            const apiError = error as ApiError;
             const errorMessage: string =
                 apiError.response?.data?.message || apiError.message || "Failed to register. Please try again.";
             setError(errorMessage);
@@ -149,7 +149,7 @@ export const useResetPasswordForm = (): UseResetPasswordFormReturn => {
                 navigate("/login");
             }, 2000);
         } catch (error: unknown) {
-            const apiError = error as ApiErrorResponse;
+            const apiError = error as ApiError;
             const errorMessage: string =
                 apiError.response?.data?.message || apiError.message || "Failed to reset password.";
             setError(errorMessage);
@@ -186,7 +186,7 @@ export const useForgotPasswordForm = (): UseForgotPasswordFormReturn => {
             await forgotPassword(data.email);
             setSuccess("Password reset email sent successfully. Please check your email.");
         } catch (error: unknown) {
-            const apiError = error as ApiErrorResponse;
+            const apiError = error as ApiError;
             const errorMessage: string =
                 apiError.response?.data?.message || apiError.message || "Failed to send reset email.";
             setError(errorMessage);

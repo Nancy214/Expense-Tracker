@@ -1,51 +1,61 @@
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { DataTable } from "@/app-components/pages/TransactionsPage/DataTable";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent } from "@/components/ui/card";
 import {
     DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
     DropdownMenuCheckboxItem,
+    DropdownMenuContent,
     DropdownMenuLabel,
     DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ChevronDownIcon } from "lucide-react";
+// import { TransactionFilters, useAllTransactions } from "@/hooks/use-transactions";
 import { cn } from "@/lib/utils";
+import {
+    ActiveTab,
+    ExpenseCategory,
+    IncomeCategory,
+    TransactionOrBill,
+    UserType,
+} from "@expense-tracker/shared-types/src";
+import { format } from "date-fns";
+import { CalendarIcon, ChevronDownIcon } from "lucide-react";
+import { useState } from "react";
 import { DateRange } from "react-day-picker";
-import { FiltersSectionProps } from "../../../../../../libs/shared-types/src/transaction-frontend";
-import { useAllTransactions, TransactionFilters } from "@/hooks/use-transactions";
 
-const EXPENSE_CATEGORIES: string[] = [
-    "Food",
-    "Transport",
-    "Shopping",
-    "Entertainment",
-    "Healthcare",
-    "Travel",
-    "Education",
-    "Housing",
-    "Personal",
-    "Gifts",
-    "Other",
-];
-
-const INCOME_CATEGORIES: string[] = [
-    "Salary",
-    "Freelance",
-    "Business",
-    "Investment",
-    "Rental Income",
-    "Gifts",
-    "Refunds",
-    "Other Income",
-];
+// Filters section props types
+interface FiltersSectionProps {
+    filteredTransactions: TransactionOrBill[];
+    handleEdit: (expense: TransactionOrBill) => void;
+    handleDelete: (id: string) => void;
+    handleDeleteRecurring: (templateId: string) => void;
+    recurringTransactions?: TransactionOrBill[];
+    totalExpensesByCurrency: { [currency: string]: { income: number; expense: number; net: number } };
+    parse?: (date: string, format: string, baseDate: Date) => Date;
+    loadingMonths?: boolean;
+    availableMonths?: { label: string; value: { year: number; month: number }; sortKey: number }[];
+    downloadMonthlyStatementForMonth?: (month: { year: number; month: number }) => void;
+    user?: UserType | null;
+    activeTab?: ActiveTab;
+    setActiveTab?: (tab: ActiveTab) => void;
+    onRefresh?: () => void;
+    setAllExpenses?: (expenses: TransactionOrBill[]) => void;
+    setAvailableMonths?: (months: { label: string; value: { year: number; month: number }; sortKey: number }[]) => void;
+    refreshAllTransactions?: () => void;
+    currentPage?: number;
+    totalPages?: number;
+    onPageChange?: (page: number) => void;
+    totalItems?: number;
+    itemsPerPage?: number;
+    apiRecurringTemplates?: TransactionOrBill[];
+    isLoading?: boolean;
+}
 
 export function FiltersSection({
+    filteredTransactions,
     handleEdit,
     handleDelete,
     recurringTransactions = [],
@@ -55,14 +65,15 @@ export function FiltersSection({
     setAvailableMonths,
     parse,
     refreshAllTransactions,
-    activeTab = "all",
-    setActiveTab,
+    activeTab = ActiveTab.ALL,
+    setActiveTab = () => {},
     currentPage = 1,
     totalPages = 1,
     onPageChange,
     totalItems = 0,
     itemsPerPage = 20,
     apiRecurringTemplates,
+    isLoading = false,
 }: FiltersSectionProps) {
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
@@ -71,19 +82,8 @@ export function FiltersSection({
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
-    // Create filters object for the API
-    const filters: TransactionFilters = {
-        categories: selectedCategories.includes("all") ? undefined : selectedCategories,
-        types: selectedTypes.includes("all") ? undefined : selectedTypes,
-        dateRange: dateRangeForFilter,
-        searchQuery: searchQuery || undefined,
-    };
-
-    // Fetch filtered data from the API
-    const { transactions: paginatedData, isLoading } = useAllTransactions(currentPage, itemsPerPage, filters);
-
-    // We'll implement server-side filtering later
-    // For now, we're just using the paginated data from the backend
+    // NOTE: We intentionally use the data passed from parent for the active tab.
+    // The parent already fetches the correct dataset (all, recurring, bills) and passes pagination props.
 
     const handleCategoryFilterChange = (category: string, checked: boolean) => {
         let newCategories: string[];
@@ -145,7 +145,7 @@ export function FiltersSection({
                             </DropdownMenuCheckboxItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel>Expense Categories</DropdownMenuLabel>
-                            {EXPENSE_CATEGORIES.map((category) => (
+                            {Object.values(ExpenseCategory).map((category) => (
                                 <DropdownMenuCheckboxItem
                                     key={category}
                                     checked={selectedCategories.includes(category)}
@@ -156,7 +156,7 @@ export function FiltersSection({
                             ))}
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel>Income Categories</DropdownMenuLabel>
-                            {INCOME_CATEGORIES.map((category) => (
+                            {Object.values(IncomeCategory).map((category) => (
                                 <DropdownMenuCheckboxItem
                                     key={category}
                                     checked={selectedCategories.includes(category)}
@@ -254,7 +254,7 @@ export function FiltersSection({
 
                 <div className="mt-6">
                     <DataTable
-                        data={paginatedData}
+                        data={filteredTransactions}
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         showRecurringIcon={true}

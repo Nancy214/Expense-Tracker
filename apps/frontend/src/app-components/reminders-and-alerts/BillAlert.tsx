@@ -1,12 +1,11 @@
-import { differenceInCalendarDays } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, Clock, Bell, CreditCard, Loader2 } from "lucide-react";
-import { useBillsSelector } from "@/hooks/use-bills";
-import { useBillMutations } from "@/hooks/use-bills";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { useBillMutations, useBillsSelector } from "@/hooks/use-bills";
 import { formatToHumanReadableDate, parseFromAPI, parseFromDisplay } from "@/utils/dateUtils";
+import { BillStatus } from "@expense-tracker/shared-types/src";
+import { differenceInCalendarDays } from "date-fns";
+import { AlertTriangle, Bell, Clock, CreditCard, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { BillStatus } from "@expense-tracker/shared-types/src/transactions-frontend";
 
 export function useBillsAndReminders() {
     const { upcomingAndOverdueBills, billReminders } = useBillsSelector();
@@ -44,7 +43,7 @@ const BillItem = ({
             : parseFromDisplay(bill.dueDate);
     const formattedDueDate: string = formatToHumanReadableDate(dueDate);
     const daysLeft: number = differenceInCalendarDays(dueDate, new Date());
-    const isThisBillUpdating: boolean = isUpdating === bill._id;
+    const isThisBillUpdating: boolean = isUpdating === bill.id;
 
     // Determine bill status for styling
     const getBillStatus = () => {
@@ -76,7 +75,7 @@ const BillItem = ({
             </div>
             <Button
                 size="sm"
-                onClick={() => onPay(bill._id)}
+                onClick={() => onPay(bill.id)}
                 className="ml-4"
                 disabled={bill.billStatus === "paid" || isThisBillUpdating}
             >
@@ -117,7 +116,7 @@ export function BillAlertsUI({
     const allBills = [...overdueBills, ...upcomingBills, ...billReminders];
 
     const uniqueBills = allBills
-        .filter((bill, index, self) => index === self.findIndex((b) => b._id === bill._id))
+        .filter((bill, index, self) => index === self.findIndex((b) => b.id === bill.id))
         .filter((bill) => bill.billStatus !== "paid");
 
     if (!billsAndBudgetsAlertEnabled || uniqueBills.length === 0) {
@@ -217,7 +216,7 @@ export function BillAlertsUI({
                                     <div className="space-y-3 mt-3">
                                         {sortedBills.map((bill) => (
                                             <BillItem
-                                                key={bill._id}
+                                                key={bill.id}
                                                 bill={bill}
                                                 onPay={handlePayBill}
                                                 isUpdating={isUpdating}

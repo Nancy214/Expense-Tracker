@@ -1,3 +1,12 @@
+import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useDeleteOperations } from "@/hooks/use-delete-operations";
+import { useToast } from "@/hooks/use-toast";
+import { updateTransactionBillStatus } from "@/services/transaction.service";
+import { formatToHumanReadableDate } from "@/utils/dateUtils";
+import { BillStatus, TransactionOrBill } from "@expense-tracker/shared-types/src";
 import {
     Column,
     ColumnDef,
@@ -7,22 +16,18 @@ import {
     Row,
     useReactTable,
 } from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Repeat, Pencil, Trash, Calendar, CheckCircle, Clock, Receipt } from "lucide-react";
-import {
-    TransactionWithId,
-    BillStatus,
-    TabComponentProps,
-} from "../../../../../../libs/shared-types/src/transactions-frontend";
-import { Badge } from "@/components/ui/badge";
-import { useMemo } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useDeleteOperations } from "@/hooks/use-delete-operations";
-import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { format, isBefore, startOfDay } from "date-fns";
-import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
-import { formatToHumanReadableDate } from "@/utils/dateUtils";
+import { ArrowUpDown, Calendar, CheckCircle, Clock, Pencil, Receipt, Repeat, Trash } from "lucide-react";
+import { useMemo } from "react";
+
+// Tab component props types
+export interface TabComponentProps {
+    data: TransactionOrBill[];
+    onEdit: (expense: TransactionOrBill) => void;
+    showRecurringIcon?: boolean;
+    showRecurringBadge?: boolean;
+    refreshAllTransactions?: () => void;
+}
 
 export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTransactions }: TabComponentProps) {
     const { toast } = useToast();
@@ -39,7 +44,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
         setIsDeleteDialogOpen,
     } = useDeleteOperations();
 
-    const handleEdit = async (expense: TransactionWithId) => {
+    const handleEdit = async (expense: TransactionOrBill) => {
         onEdit(expense);
     };
 
@@ -87,11 +92,11 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
         }
     };
 
-    const columns: ColumnDef<TransactionWithId>[] = useMemo(
+    const columns: ColumnDef<TransactionOrBill>[] = useMemo(
         () => [
             {
                 accessorKey: "date",
-                header: ({ column }: { column: Column<TransactionWithId> }) => {
+                header: ({ column }: { column: Column<TransactionOrBill> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Date
@@ -100,7 +105,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                     );
                 },
                 size: 100,
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const date = row.getValue("date");
                     if (!date || (typeof date !== "string" && !(date instanceof Date))) return "-";
                     return <span>{formatToHumanReadableDate(date)}</span>;
@@ -108,7 +113,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
             },
             {
                 accessorKey: "title",
-                header: ({ column }: { column: Column<TransactionWithId> }) => {
+                header: ({ column }: { column: Column<TransactionOrBill> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Title
@@ -117,10 +122,12 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                     );
                 },
                 size: 200,
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const expense = row.original;
                     const isRecurringInstance =
-                        (!expense.isRecurring && !!expense.templateId) || (expense.isRecurring && !expense.templateId);
+                        !("isRecurring" in expense) ||
+                        (!expense.isRecurring && !!expense.templateId) ||
+                        ("isRecurring" in expense && expense.isRecurring && !expense.templateId);
                     const isBill = expense.category === "Bills";
 
                     return (
@@ -144,7 +151,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
             },
             {
                 accessorKey: "billCategory",
-                header: ({ column }: { column: Column<TransactionWithId> }) => {
+                header: ({ column }: { column: Column<TransactionOrBill> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Bill Category
@@ -153,14 +160,14 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                     );
                 },
                 size: 150,
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const expense = row.original;
-                    return expense.billCategory || "-";
+                    return "billCategory" in expense ? expense.billCategory : "-";
                 },
             },
             {
                 accessorKey: "amount",
-                header: ({ column }: { column: Column<TransactionWithId> }) => {
+                header: ({ column }: { column: Column<TransactionOrBill> }) => {
                     return (
                         <div className="text-right">
                             <Button variant="ghost" onClick={() => column.toggleSorting()}>
@@ -170,7 +177,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                         </div>
                     );
                 },
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const amount = parseFloat(row.getValue("amount") as string);
                     const currency = row.original.currency || "INR";
                     const type = row.original.type || "expense";
@@ -203,25 +210,26 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
             {
                 accessorKey: "billStatus",
                 header: "Status",
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const expense = row.original;
-                    const status = expense.billStatus || "unpaid";
-                    const dueDate = expense.dueDate;
+                    const status =
+                        ("billStatus" in expense ? expense.billStatus : BillStatus.UNPAID) || BillStatus.UNPAID;
+                    const dueDate = "dueDate" in expense ? expense.dueDate : new Date();
 
                     if (!dueDate) {
                         return <Badge variant="outline">{status}</Badge>;
                     }
 
-                    return getStatusBadge(status, new Date(dueDate));
+                    return getStatusBadge(status, dueDate);
                 },
                 size: 100,
             },
             {
                 accessorKey: "dueDate",
                 header: "Due Date",
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const expense = row.original;
-                    if (!expense.dueDate) {
+                    if (!("dueDate" in expense) || !expense.dueDate) {
                         return "-";
                     }
 
@@ -245,7 +253,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
             {
                 id: "actions",
                 header: "Actions",
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const expense = row.original;
 
                     return (
@@ -257,7 +265,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => {
-                                    if (expense.isRecurring && !expense.templateId) {
+                                    if ("isRecurring" in expense && expense.isRecurring && !expense.templateId) {
                                         toast({
                                             title: "Warning",
                                             description:
@@ -266,29 +274,29 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                                         });
                                         setRecurringForDelete(expense);
                                     } else {
-                                        handleDelete(expense._id!);
+                                        handleDelete(expense.id!);
                                     }
                                 }}
                                 aria-label="Delete"
                             >
                                 <Trash className="h-4 w-4" />
                             </Button>
-                            {expense.billStatus !== "paid" && (
+                            {"billStatus" in expense && expense.billStatus !== BillStatus.PAID && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleBillStatusUpdate(expense._id!, BillStatus.PAID)}
+                                    onClick={() => handleBillStatusUpdate(expense.id!, BillStatus.PAID)}
                                     title="Mark as Paid"
                                     aria-label="Mark as Paid"
                                 >
                                     <CheckCircle className="h-4 w-4" />
                                 </Button>
                             )}
-                            {expense.billStatus === "paid" && (
+                            {"billStatus" in expense && expense.billStatus === BillStatus.PAID && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleBillStatusUpdate(expense._id!, BillStatus.UNPAID)}
+                                    onClick={() => handleBillStatusUpdate(expense.id!, BillStatus.UNPAID)}
                                     title="Mark as Unpaid"
                                     aria-label="Mark as Unpaid"
                                 >
@@ -360,7 +368,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                 onOpenChange={(open) => !open && clearRecurringDelete()}
                 onConfirm={async () => {
                     if (recurringToDelete) {
-                        await handleRecurringDelete(recurringToDelete._id!);
+                        await handleRecurringDelete(recurringToDelete.id!);
                         clearRecurringDelete();
                         if (refreshAllTransactions) {
                             refreshAllTransactions();

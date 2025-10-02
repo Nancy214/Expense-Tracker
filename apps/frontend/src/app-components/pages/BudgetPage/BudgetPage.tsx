@@ -1,29 +1,25 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import {
-    BudgetRecurrence,
-    BudgetResponse,
-    BudgetProgress,
-    BudgetPageState,
-    ProgressColor,
-} from "../../../../../../libs/shared-types/src/budget-frontend";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, TrendingUp, TrendingDown, AlertTriangle, History } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import BudgetLogs from "@/app-components/pages/BudgetPage/BudgetLogs";
-//import { useAuth } from "@/context/AuthContext";
-//import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
-import { useDeleteOperations } from "@/hooks/use-delete-operations";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { BudgetProgress, BudgetRecurrence, BudgetType, ProgressColor } from "@expense-tracker/shared-types/src";
+import { AlertTriangle, Edit, History, Plus, Trash2, TrendingDown, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { useBudgets } from "@/hooks/use-budgets";
+import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 const BudgetPage: React.FC = () => {
-    const [pageState, setPageState] = useState<BudgetPageState>({
+    const [pageState, setPageState] = useState<{
+        isDialogOpen: boolean;
+        editingBudget: BudgetType | null;
+        dismissedReminders: Set<string>;
+    }>({
         isDialogOpen: false,
         editingBudget: null,
         dismissedReminders: new Set(),
@@ -95,20 +91,24 @@ const BudgetPage: React.FC = () => {
         (reminder) => !pageState.dismissedReminders.has(reminder.id)
     );
  */
-    const handleEdit = (budget: BudgetResponse): void => {
-        setPageState((prev: BudgetPageState) => ({
-            ...prev,
-            editingBudget: budget,
-            isDialogOpen: true,
-        }));
+    const handleEdit = (budget: BudgetType): void => {
+        setPageState(
+            (prev: { isDialogOpen: boolean; editingBudget: BudgetType | null; dismissedReminders: Set<string> }) => ({
+                ...prev,
+                editingBudget: budget,
+                isDialogOpen: true,
+            })
+        );
     };
 
     const handleAddBudget = (): void => {
-        setPageState((prev: BudgetPageState) => ({
-            ...prev,
-            editingBudget: null,
-            isDialogOpen: true,
-        }));
+        setPageState(
+            (prev: { isDialogOpen: boolean; editingBudget: BudgetType | null; dismissedReminders: Set<string> }) => ({
+                ...prev,
+                editingBudget: null,
+                isDialogOpen: true,
+            })
+        );
     };
 
     const formatRecurrence = (recurrence: BudgetRecurrence): string => {
@@ -192,19 +192,29 @@ const BudgetPage: React.FC = () => {
                                 </div>
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                                     <div className="text-2xl font-bold text-green-600">
-                                        {formatAmount(budgetProgress.budgets.reduce((sum, b) => sum + b.amount, 0))}
+                                        {formatAmount(
+                                            budgetProgress.budgets.reduce(
+                                                (sum: number, b: BudgetProgress) => sum + b.amount,
+                                                0
+                                            )
+                                        )}
                                     </div>
                                     <div className="text-sm text-muted-foreground">Total Budget</div>
                                 </div>
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                                     <div className="text-2xl font-bold text-blue-600">
-                                        {formatAmount(budgetProgress.budgets.reduce((sum, b) => sum + b.totalSpent, 0))}
+                                        {formatAmount(
+                                            budgetProgress.budgets.reduce(
+                                                (sum: number, b: BudgetProgress) => sum + b.totalSpent,
+                                                0
+                                            )
+                                        )}
                                     </div>
                                     <div className="text-sm text-muted-foreground">Total Spent</div>
                                 </div>
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                                     <div className="text-2xl font-bold text-purple-600">
-                                        {budgetProgress.budgets.filter((b) => b.isOverBudget).length}
+                                        {budgetProgress.budgets.filter((b: BudgetProgress) => b.isOverBudget).length}
                                     </div>
                                     <div className="text-sm text-muted-foreground">Over Budget</div>
                                 </div>
@@ -217,15 +227,27 @@ const BudgetPage: React.FC = () => {
                 <AddBudgetDialog
                     open={pageState.isDialogOpen}
                     onOpenChange={(open: boolean) =>
-                        setPageState((prev: BudgetPageState) => ({
-                            ...prev,
-                            isDialogOpen: open,
-                            editingBudget: open ? prev.editingBudget : null,
-                        }))
+                        setPageState(
+                            (prev: {
+                                isDialogOpen: boolean;
+                                editingBudget: BudgetType | null;
+                                dismissedReminders: Set<string>;
+                            }) => ({
+                                ...prev,
+                                isDialogOpen: open,
+                                editingBudget: open ? prev.editingBudget : null,
+                            })
+                        )
                     }
                     editingBudget={pageState.editingBudget}
                     onSuccess={() => {
-                        setPageState((prev: BudgetPageState) => ({ ...prev, editingBudget: null }));
+                        setPageState(
+                            (prev: {
+                                isDialogOpen: boolean;
+                                editingBudget: BudgetType | null;
+                                dismissedReminders: Set<string>;
+                            }) => ({ ...prev, editingBudget: null })
+                        );
                     }}
                 />
 
@@ -240,16 +262,17 @@ const BudgetPage: React.FC = () => {
                     </Card>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {budgets.map((budget: BudgetResponse) => {
+                        {budgets.map((budget: BudgetType) => {
                             const progress: BudgetProgress | undefined = budgetProgress.budgets.find(
-                                (p: BudgetProgress) => p._id === budget._id
+                                (p: BudgetProgress) => p.id === budget.id
                             );
                             return (
-                                <Card key={budget._id}>
+                                <Card key={budget.id}>
                                     <CardHeader>
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <CardTitle className="text-lg font-bold">{budget.title}</CardTitle>
+                                                <div className="text-md text-primary">Category: {budget.category}</div>
                                                 <div className="text-md text-primary">
                                                     {formatAmount(budget.amount)}
                                                 </div>

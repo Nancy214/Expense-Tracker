@@ -1,3 +1,13 @@
+import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useDeleteOperations } from "@/hooks/use-delete-operations";
+import { useToast } from "@/hooks/use-toast";
+import { updateTransactionBillStatus } from "@/services/transaction.service";
+import { formatToHumanReadableDate } from "@/utils/dateUtils";
+import { BillStatus, TransactionOrBill } from "@expense-tracker/shared-types/src";
 import {
     Column,
     ColumnDef,
@@ -8,19 +18,16 @@ import {
     Row,
     useReactTable,
 } from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Repeat, Pencil, Trash, Receipt, CheckCircle, Clock, Star } from "lucide-react";
-import { TransactionWithId, BillStatus } from "../../../../../../libs/shared-types/src/transaction-frontend";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowUpDown, CheckCircle, Clock, Pencil, Receipt, Repeat, Star, Trash } from "lucide-react";
 import { useMemo } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useDeleteOperations } from "@/hooks/use-delete-operations";
-import { updateTransactionBillStatus } from "@/services/transaction.service";
-import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
-import { TabComponentProps } from "../../../../../../libs/shared-types/src/transaction-frontend";
-import { formatToHumanReadableDate } from "@/utils/dateUtils";
+
+interface TabComponentProps {
+    data: TransactionOrBill[];
+    onEdit: (expense: TransactionOrBill) => void;
+    showRecurringIcon?: boolean;
+    showRecurringBadge?: boolean;
+    refreshAllTransactions?: () => void;
+}
 
 export function AllTransactionsTab({
     data,
@@ -43,7 +50,7 @@ export function AllTransactionsTab({
         setIsDeleteDialogOpen,
     } = useDeleteOperations();
 
-    const handleEdit = async (expense: TransactionWithId) => {
+    const handleEdit = async (expense: TransactionOrBill) => {
         onEdit(expense);
     };
 
@@ -66,11 +73,11 @@ export function AllTransactionsTab({
         }
     };
 
-    const columns: ColumnDef<TransactionWithId>[] = useMemo(
+    const columns: ColumnDef<TransactionOrBill>[] = useMemo(
         () => [
             {
                 accessorKey: "date",
-                header: ({ column }: { column: Column<TransactionWithId> }) => {
+                header: ({ column }: { column: Column<TransactionOrBill> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Date
@@ -79,7 +86,7 @@ export function AllTransactionsTab({
                     );
                 },
                 size: 100,
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const date = row.getValue("date");
                     if (!date || (typeof date !== "string" && !(date instanceof Date))) return "-";
                     return <span>{formatToHumanReadableDate(date)}</span>;
@@ -87,7 +94,7 @@ export function AllTransactionsTab({
             },
             {
                 accessorKey: "title",
-                header: ({ column }: { column: Column<TransactionWithId> }) => {
+                header: ({ column }: { column: Column<TransactionOrBill> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Title
@@ -96,10 +103,12 @@ export function AllTransactionsTab({
                     );
                 },
                 size: 200,
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const expense = row.original;
-                    const isRecurringInstance = !expense.isRecurring && !!expense.templateId;
-                    const isMainRecurringTemplate = expense.isRecurring && !expense.templateId;
+                    const isRecurringInstance =
+                        !("isRecurring" in expense) || (!expense.isRecurring && !!expense.templateId);
+                    const isMainRecurringTemplate =
+                        "isRecurring" in expense && expense.isRecurring && !expense.templateId;
                     const isBill = expense.category === "Bills";
 
                     return (
@@ -142,7 +151,7 @@ export function AllTransactionsTab({
                                     </Tooltip>
                                 </TooltipProvider>
                             )}
-                            {showRecurringBadge && expense.recurringFrequency && (
+                            {showRecurringBadge && "recurringFrequency" in expense && expense.recurringFrequency && (
                                 <Badge
                                     variant={isMainRecurringTemplate ? "default" : "secondary"}
                                     className={`flex items-center gap-1 text-xs ${
@@ -154,8 +163,9 @@ export function AllTransactionsTab({
                                     ) : (
                                         <Repeat className="h-3 w-3 text-blue-500" />
                                     )}
-                                    {expense.recurringFrequency.charAt(0).toUpperCase() +
-                                        expense.recurringFrequency.slice(1)}
+                                    {"recurringFrequency" in expense &&
+                                        expense.recurringFrequency.charAt(0).toUpperCase() +
+                                            expense.recurringFrequency.slice(1)}
                                     {isMainRecurringTemplate && " (Template)"}
                                 </Badge>
                             )}
@@ -165,7 +175,7 @@ export function AllTransactionsTab({
             },
             {
                 accessorKey: "category",
-                header: ({ column }: { column: Column<TransactionWithId> }) => {
+                header: ({ column }: { column: Column<TransactionOrBill> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Category
@@ -177,7 +187,7 @@ export function AllTransactionsTab({
             },
             {
                 accessorKey: "type",
-                header: ({ column }: { column: Column<TransactionWithId> }) => {
+                header: ({ column }: { column: Column<TransactionOrBill> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Type
@@ -185,7 +195,7 @@ export function AllTransactionsTab({
                         </Button>
                     );
                 },
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const type = row.getValue("type") as string;
                     return (
                         <Badge
@@ -204,7 +214,7 @@ export function AllTransactionsTab({
             },
             {
                 accessorKey: "amount",
-                header: ({ column }: { column: Column<TransactionWithId> }) => {
+                header: ({ column }: { column: Column<TransactionOrBill> }) => {
                     return (
                         <div className="text-right">
                             <Button variant="ghost" onClick={() => column.toggleSorting()}>
@@ -214,7 +224,7 @@ export function AllTransactionsTab({
                         </div>
                     );
                 },
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const amount: number = parseFloat(row.getValue("amount") as string);
                     const currency: string = row.original.currency || "INR";
                     const type: string = row.original.type || "expense";
@@ -247,8 +257,8 @@ export function AllTransactionsTab({
             {
                 id: "actions",
                 header: "Actions",
-                cell: ({ row }: { row: Row<TransactionWithId> }) => {
-                    const expense: TransactionWithId = row.original;
+                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
+                    const expense: TransactionOrBill = row.original;
                     const isBill: boolean = expense.category === "Bills";
 
                     return (
@@ -260,7 +270,7 @@ export function AllTransactionsTab({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => {
-                                    if (expense.isRecurring && !expense.templateId) {
+                                    if ("isRecurring" in expense && expense.isRecurring && !expense.templateId) {
                                         toast({
                                             title: "Warning",
                                             description:
@@ -269,29 +279,29 @@ export function AllTransactionsTab({
                                         });
                                         setRecurringForDelete(expense);
                                     } else {
-                                        handleDelete(expense._id!);
+                                        handleDelete(expense.id!);
                                     }
                                 }}
                                 aria-label="Delete"
                             >
                                 <Trash className="h-4 w-4" />
                             </Button>
-                            {isBill && expense.billStatus !== "paid" && (
+                            {isBill && "billStatus" in expense && expense.billStatus !== BillStatus.PAID && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleBillStatusUpdate(expense._id!, "paid")}
+                                    onClick={() => handleBillStatusUpdate(expense.id!, BillStatus.PAID)}
                                     title="Mark as Paid"
                                     aria-label="Mark as Paid"
                                 >
                                     <CheckCircle className="h-4 w-4" />
                                 </Button>
                             )}
-                            {isBill && expense.billStatus === "paid" && (
+                            {isBill && "billStatus" in expense && expense.billStatus === BillStatus.PAID && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleBillStatusUpdate(expense._id!, "unpaid")}
+                                    onClick={() => handleBillStatusUpdate(expense.id!, BillStatus.UNPAID)}
                                     title="Mark as Unpaid"
                                     aria-label="Mark as Unpaid"
                                 >
@@ -323,7 +333,7 @@ export function AllTransactionsTab({
                 <div className="rounded-md border w-full overflow-hidden">
                     <Table>
                         <TableHeader>
-                            {table.getHeaderGroups().map((headerGroup: HeaderGroup<TransactionWithId>) => (
+                            {table.getHeaderGroups().map((headerGroup: HeaderGroup<TransactionOrBill>) => (
                                 <TableRow key={headerGroup.id}>
                                     {headerGroup.headers.map((header) => {
                                         return (
@@ -363,7 +373,7 @@ export function AllTransactionsTab({
                 onOpenChange={(open) => !open && clearRecurringDelete()}
                 onConfirm={async () => {
                     if (recurringToDelete) {
-                        await handleRecurringDelete(recurringToDelete._id!);
+                        await handleRecurringDelete(recurringToDelete.id!);
                         clearRecurringDelete();
                         if (refreshAllTransactions) {
                             refreshAllTransactions();

@@ -1,11 +1,9 @@
-import { useState, useCallback } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.service";
-import { TransactionWithId } from "../../../../libs/shared-types/src/transactions-frontend";
-import { BudgetResponse } from "../../../../libs/shared-types/src/budget-frontend";
 import { useBudgets } from "@/hooks/use-budgets";
-import { ApiError } from "@expense-tracker/shared-types/src/error";
+import { useToast } from "@/hooks/use-toast";
+import { deleteExpense, deleteRecurringExpense } from "@/services/transaction.service";
+import { ApiError, BudgetType, TransactionOrBill } from "@expense-tracker/shared-types/src";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
 
 // Query keys for invalidation - matching use-transactions.ts
 const EXPENSES_QUERY_KEY = ["expenses"] as const;
@@ -23,9 +21,9 @@ interface UseDeleteOperationsProps {
 
 interface DeleteOperationsState {
     expenseToDelete: string | null;
-    recurringToDelete: TransactionWithId | null;
+    recurringToDelete: TransactionOrBill | null;
     billToDelete: string | null;
-    budgetToDelete: BudgetResponse | null;
+    budgetToDelete: BudgetType | null;
     isDeleteDialogOpen: boolean;
 }
 
@@ -36,7 +34,7 @@ interface DeleteOperationsHandlers {
 
     // Recurring operations
     handleRecurringDelete: (templateId: string) => Promise<void>;
-    setRecurringForDelete: (expense: TransactionWithId | null) => void;
+    setRecurringForDelete: (expense: TransactionOrBill | null) => void;
     clearRecurringDelete: () => void;
 
     // Bill operations
@@ -45,7 +43,7 @@ interface DeleteOperationsHandlers {
     cancelBillDelete: () => void;
 
     // Budget operations
-    handleBudgetDelete: (budget: BudgetResponse) => Promise<void>;
+    handleBudgetDelete: (budget: BudgetType) => Promise<void>;
     confirmBudgetDelete: () => Promise<void>;
 
     // Generic operations
@@ -66,9 +64,9 @@ export function useDeleteOperations({
     onBudgetRemindersRefresh,
 }: UseDeleteOperationsProps = {}): DeleteOperationsReturn {
     const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
-    const [recurringToDelete, setRecurringToDelete] = useState<TransactionWithId | null>(null);
+    const [recurringToDelete, setRecurringToDelete] = useState<TransactionOrBill | null>(null);
     const [billToDelete, setBillToDelete] = useState<string | null>(null);
-    const [budgetToDelete, setBudgetToDelete] = useState<BudgetResponse | null>(null);
+    const [budgetToDelete, setBudgetToDelete] = useState<BudgetType | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const { toast } = useToast();
@@ -139,7 +137,7 @@ export function useDeleteOperations({
         [queryClient, toast]
     );
 
-    const setRecurringForDelete = useCallback((expense: TransactionWithId | null): void => {
+    const setRecurringForDelete = useCallback((expense: TransactionOrBill | null): void => {
         setRecurringToDelete(expense);
     }, []);
 
@@ -188,7 +186,7 @@ export function useDeleteOperations({
     }, []);
 
     // Budget delete operations
-    const handleBudgetDelete = useCallback(async (budget: BudgetResponse): Promise<void> => {
+    const handleBudgetDelete = useCallback(async (budget: BudgetType): Promise<void> => {
         setBudgetToDelete(budget);
         setIsDeleteDialogOpen(true);
     }, []);
@@ -197,7 +195,7 @@ export function useDeleteOperations({
         if (!budgetToDelete) return;
 
         try {
-            await deleteBudget(budgetToDelete._id);
+            await deleteBudget(budgetToDelete.id);
             toast({
                 title: "Success",
                 description: "Budget deleted successfully!",

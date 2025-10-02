@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { TokenPayload } from "@expense-tracker/shared-types/src/auth-backend";
+import { TokenPayload } from "@expense-tracker/shared-types/src/auth";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;

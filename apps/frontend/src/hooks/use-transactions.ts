@@ -1,27 +1,27 @@
-import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
-import { useForm, UseFormReturn } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { format, parse, isValid, parseISO } from "date-fns";
-import { useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { transactionFormSchema } from "@/schemas/transactionSchema";
+import { getExchangeRate } from "@/services/currency.service";
 import {
-    getExpenses,
-    getAllTransactions,
-    getTransactionSummary,
     createExpense,
+    getAllTransactions,
+    getExpenses,
+    getTransactionSummary,
     updateExpense,
 } from "@/services/transaction.service";
-import { getExchangeRate } from "@/services/currency.service";
-import { transactionFormSchema } from "@/schemas/transactionSchema";
+import { showCreateSuccess, showSaveError, showUpdateSuccess } from "@/utils/toastUtils";
 import {
-    Transaction,
-    TransactionWithId,
-    TransactionSummary,
     PaginationInfo,
+    Transaction,
+    TransactionOrBill,
     TransactionResponse,
-} from "../../../../libs/shared-types/src/transactions-frontend";
-import { showUpdateSuccess, showCreateSuccess, showSaveError } from "@/utils/toastUtils";
+    TransactionSummary,
+} from "@expense-tracker/shared-types/src";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
+import { format, isValid, parse, parseISO } from "date-fns";
+import { useCallback, useMemo } from "react";
+import { useForm, UseFormReturn } from "react-hook-form";
 
 const QUERY_KEYS = {
     expenses: ["expenses"] as const,
@@ -63,12 +63,12 @@ const DEFAULT_SUMMARY: TransactionSummary = {
  */
 // Query response types
 interface ExpensesQueryResponse {
-    expenses: TransactionWithId[];
+    expenses: TransactionOrBill[];
     pagination: PaginationInfo | null;
 }
 
 interface AllTransactionsQueryResponse {
-    transactions: TransactionWithId[];
+    transactions: TransactionOrBill[];
     pagination: PaginationInfo | null;
 }
 
@@ -77,7 +77,7 @@ export function useExpenses(
     page: number = 1,
     limit: number = 20
 ): UseQueryResult<ExpensesQueryResponse> & {
-    expenses: TransactionWithId[];
+    expenses: TransactionOrBill[];
     pagination: PaginationInfo | null;
     invalidateExpenses: () => void;
 } {
@@ -118,7 +118,7 @@ export function useAllTransactions(
     limit: number = 20,
     filters?: TransactionFilters
 ): {
-    transactions: TransactionWithId[];
+    transactions: TransactionOrBill[];
     pagination: PaginationInfo | null;
     invalidateAllTransactions: () => void;
     isLoading: boolean;
@@ -229,7 +229,7 @@ export function useTransactionMutations(): TransactionMutationsReturn {
 
 // Form Hook types
 interface UseTransactionFormProps {
-    editingExpense?: TransactionWithId | null;
+    editingExpense?: TransactionOrBill | null;
     preselectedCategory?: string;
     isAddBill?: boolean;
 }
@@ -273,16 +273,27 @@ export const useTransactionForm = ({
                 date: parseDateToFormat(editingExpense.date),
                 currency: editingExpense.currency,
                 type: editingExpense.type,
-                isRecurring: editingExpense.isRecurring ?? false,
-                recurringFrequency: editingExpense.recurringFrequency as any,
+                isRecurring: "isRecurring" in editingExpense ? editingExpense.isRecurring ?? false : false,
+                recurringFrequency:
+                    "recurringFrequency" in editingExpense ? (editingExpense.recurringFrequency as any) : undefined,
                 fromRate: editingExpense.fromRate || 1,
                 toRate: editingExpense.toRate || 1,
-                endDate: editingExpense.endDate ? parseDateToFormat(editingExpense.endDate) : undefined,
-                dueDate: editingExpense.dueDate ? parseDateToFormat(editingExpense.dueDate) : undefined,
-                billCategory: (editingExpense.billCategory as any) || "Rent/Mortgage",
-                paymentMethod: (editingExpense.paymentMethod as any) || "manual",
-                billFrequency: (editingExpense.billFrequency as any) || "monthly",
-                reminderDays: editingExpense.reminderDays || 0,
+                endDate:
+                    "endDate" in editingExpense
+                        ? editingExpense.endDate
+                            ? parseDateToFormat(editingExpense.endDate)
+                            : undefined
+                        : undefined,
+                dueDate:
+                    "dueDate" in editingExpense
+                        ? editingExpense.dueDate
+                            ? parseDateToFormat(editingExpense.dueDate)
+                            : undefined
+                        : undefined,
+                billCategory: "billCategory" in editingExpense ? (editingExpense.billCategory as any) : "Rent/Mortgage",
+                paymentMethod: "paymentMethod" in editingExpense ? (editingExpense.paymentMethod as any) : "manual",
+                billFrequency: "billFrequency" in editingExpense ? (editingExpense.billFrequency as any) : "monthly",
+                reminderDays: "reminderDays" in editingExpense ? editingExpense.reminderDays || 0 : 0,
                 receipts: editingExpense.receipts || [],
             };
         }

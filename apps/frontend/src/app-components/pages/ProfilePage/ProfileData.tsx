@@ -1,25 +1,25 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Camera, Save, Edit3 } from "lucide-react";
-import { FormProvider } from "react-hook-form";
-import { Input } from "@/components/ui/input";
+import { DateField } from "@/app-components/form-fields/DateField";
 import { InputField } from "@/app-components/form-fields/InputField";
 import { SelectField } from "@/app-components/form-fields/SelectField";
-import { DateField } from "@/app-components/form-fields/DateField";
-import { useProfileForm, useCountryTimezoneCurrency } from "@/hooks/use-profile";
-import { useEffect, useMemo, useCallback } from "react";
-import { CountryData, CurrencyOption, TimezoneOption } from "../../../../../../libs/shared-types/src/profile-frontend";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useCountryTimezoneCurrency, useProfileForm } from "@/hooks/use-profile";
+import { CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src";
+import { Camera, Edit3, Save } from "lucide-react";
+import { useCallback, useEffect, useMemo } from "react";
+import { FormProvider } from "react-hook-form";
 
 const ProfileData: React.FC = () => {
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
 
     // Extract currencies and countries from the query data
     const currencies = Array.isArray(countryTimezoneData)
-        ? countryTimezoneData.map((item: CountryData) => item.currency)
+        ? countryTimezoneData.map((item: CountryTimezoneCurrencyData) => item.currency)
         : [];
     const countryList = Array.isArray(countryTimezoneData)
-        ? countryTimezoneData.map((item: CountryData) => item.country)
+        ? countryTimezoneData.map((item: CountryTimezoneCurrencyData) => item.country)
         : [];
 
     const {
@@ -43,8 +43,8 @@ const ProfileData: React.FC = () => {
         (country: string): Array<{ code: string; name: string }> => {
             if (!country || !countryTimezoneData) return [];
 
-            const countryData: CountryData | undefined = countryTimezoneData.find(
-                (item: CountryData) => item.country === country
+            const countryData: CountryTimezoneCurrencyData | undefined = countryTimezoneData.find(
+                (item: CountryTimezoneCurrencyData) => item.country === country
             );
             if (!countryData) return [];
 
@@ -61,8 +61,8 @@ const ProfileData: React.FC = () => {
         (country: string): string[] => {
             if (!country || !countryTimezoneData) return [];
 
-            const countryData: CountryData | undefined = countryTimezoneData.find(
-                (item: CountryData) => item.country === country
+            const countryData: CountryTimezoneCurrencyData | undefined = countryTimezoneData.find(
+                (item: CountryTimezoneCurrencyData) => item.country === country
             );
             if (!countryData) return [];
 
@@ -73,7 +73,7 @@ const ProfileData: React.FC = () => {
     );
 
     // Get available currencies for the selected country
-    const availableCurrencies = useMemo((): CurrencyOption[] => {
+    const availableCurrencies = useMemo((): { value: string; label: string }[] => {
         if (!selectedCountry) {
             // If no country is selected, return empty array
             return [];
@@ -87,7 +87,7 @@ const ProfileData: React.FC = () => {
     }, [selectedCountry, countryTimezoneData, currencies, getCurrenciesForCountry]);
 
     // Get available timezones for the selected country
-    const availableTimezones: TimezoneOption[] = useMemo((): TimezoneOption[] => {
+    const availableTimezones: { value: string; label: string }[] = useMemo((): { value: string; label: string }[] => {
         if (!selectedCountry) {
             return [];
         }
