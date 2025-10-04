@@ -1,24 +1,5 @@
 import { Request, Response } from "express";
-import axios, { AxiosResponse } from "axios";
-
-interface ExchangeRateResponse {
-    success: boolean;
-    rate: number;
-    data: FxRatesApiResponse;
-}
-
-interface FxRatesApiResponse {
-    success: boolean;
-    info: {
-        rate: number;
-        timestamp: number;
-        from: string;
-        to: string;
-        amount: number;
-    };
-    result: number;
-    date: string;
-}
+import { CurrencyDAO } from "../daos/currency.dao";
 
 interface ApiErrorResponse {
     message: string;
@@ -26,12 +7,9 @@ interface ApiErrorResponse {
 
 /* export const initCurrencies = async (req: Request, res: Response): Promise<void> => {
     try {
-        const response = await axios.get<Record<string, { name: string }>>("https://api.fxratesapi.com/currencies");
-
-        const currencies: CurrencyData[] = Object.entries(response.data).map(([code, currencyData]) => ({
-            code,
-            name: currencyData.name,
-        }));
+        // Get all currencies using DAO
+        const apiResponse = await CurrencyDAO.getAllCurrencies();
+        const currencies = CurrencyDAO.convertCurrencyData(apiResponse);
 
         if ((await Currency.countDocuments()) === 0) {
             await Currency.insertMany(currencies);
@@ -42,7 +20,7 @@ interface ApiErrorResponse {
             res.status(200).json(alreadyInitResponse);
         }
     } catch (error) {
-        const errorResponse: ApiErrorResponse = { message: "Failed to initialize currencies" };
+        const errorResponse: ApiErrorResponse = CurrencyDAO.handleCurrencyInitError(error);
         res.status(500).json(errorResponse);
     }
 }; */
@@ -51,32 +29,26 @@ export const getExchangeRate = async (req: Request, res: Response): Promise<void
     try {
         const { from, to, date } = req.query;
 
-        if (!from || !to || typeof from !== "string" || typeof to !== "string") {
+        // Validate currency codes using DAO
+        const validation = CurrencyDAO.validateCurrencyCodes(from as string, to as string);
+        if (!validation.isValid) {
             const errorResponse: ApiErrorResponse = {
-                message: "From currency and to currency are required",
+                message: validation.error || "Invalid currency codes",
             };
             res.status(400).json(errorResponse);
             return;
         }
 
-        const dateParam: string = date && typeof date === "string" ? date : new Date().toISOString().split("T")[0];
-
-        const response: AxiosResponse<FxRatesApiResponse> = await axios.get(
-            `https://api.fxratesapi.com/convert?from=${from}&to=${to}&date=${dateParam}&amount=1`
+        // Get exchange rate using DAO
+        const successResponse = await CurrencyDAO.getExchangeRate(
+            from as string,
+            to as string,
+            CurrencyDAO.formatDateForAPI(date as string)
         );
-
-        const successResponse: ExchangeRateResponse = {
-            success: true,
-            rate: response.data.info.rate,
-            data: response.data,
-        };
 
         res.status(200).json(successResponse);
     } catch (error: unknown) {
-        console.error("Exchange rate error:", error);
-        const errorResponse: ApiErrorResponse = {
-            message: "Failed to fetch exchange rate. Please try again.",
-        };
+        const errorResponse: ApiErrorResponse = CurrencyDAO.handleExchangeRateError(error);
         res.status(500).json(errorResponse);
     }
 };

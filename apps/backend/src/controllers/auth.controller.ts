@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import passport from "passport";
-import { User, Settings } from "../models/user.model";
 import {
     UserGoogleType,
     UserLocalType,
@@ -15,30 +13,19 @@ import {
     RegisterCredentials,
     AuthResponse,
 } from "@expense-tracker/shared-types/src/auth";
-import bcrypt from "bcrypt";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import { s3Client } from "../config/s3Client";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sgMail, { MailDataRequired } from "@sendgrid/mail";
-import { Types } from "mongoose";
+import { AuthDAO } from "../daos/auth.dao";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
 
-// Generate tokens
+// Generate tokens - now using AuthDAO
 export const generateTokens = (user: UserType): { accessToken: string; refreshToken: string } => {
-    const accessToken = jwt.sign({ id: user.id.toString() }, process.env.JWT_SECRET || "your-secret-key", {
-        expiresIn: "15m",
-    });
-
-    const refreshToken = jwt.sign(
-        { id: user.id.toString() },
-        process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key",
-        { expiresIn: "1h" }
-    );
-
-    return { accessToken, refreshToken };
+    return AuthDAO.generateTokens(user);
 };
 
 export const register = async (
@@ -47,24 +34,16 @@ export const register = async (
 ): Promise<void> => {
     try {
         const { email, password, name } = req.body;
-        //let profilePictureName = "";
 
         // Check if user exists
-        const existingUser: UserType | null = await User.findOne({ email });
+        const existingUser: UserType | null = await AuthDAO.findUserByEmail(email);
         if (existingUser) {
-            //console.log("User already exists");
             res.status(400).json({ message: "User already exists" });
             return;
         }
 
-        const user = new User({
-            email,
-            password: bcrypt.hashSync(password, 10),
-            name,
-            //profilePicture: profilePictureName,
-        });
-
-        await user.save();
+        // Create new user
+        await AuthDAO.createUser({ email, password, name: name || "" });
 
         res.status(200).json({ message: "User registered successfully" });
     } catch (error: unknown) {
@@ -101,25 +80,8 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
                 });
             }
 
-            // Always fetch or create settings (work with Mongoose doc, then map to plain object)
-            let settingsDoc: any = await Settings.findById(user.id);
-            if (!settingsDoc) {
-                settingsDoc = await Settings.create({
-                    userId: new Types.ObjectId(user.id),
-                    monthlyReports: false,
-                    expenseReminders: false,
-                    billsAndBudgetsAlert: false,
-                    expenseReminderTime: "18:00",
-                });
-            }
-
-            const settings: SettingsType = {
-                userId: settingsDoc.userId,
-                monthlyReports: settingsDoc.monthlyReports,
-                expenseReminders: settingsDoc.expenseReminders,
-                billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-                expenseReminderTime: settingsDoc.expenseReminderTime,
-            };
+            // Always fetch or create settings
+            const settings: SettingsType = await AuthDAO.findOrCreateUserSettings(user.id);
 
             const loginResponse: AuthResponse = {
                 accessToken,
@@ -152,25 +114,8 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
     try {
         const response = req.user as AuthResponse;
 
-        // Fetch or create settings (work with Mongoose doc, then map to plain object)
-        let settingsDoc: any = await Settings.findById(response?.user?.id);
-        if (!settingsDoc) {
-            settingsDoc = await Settings.create({
-                userId: response?.user?.id,
-                monthlyReports: false,
-                expenseReminders: false,
-                billsAndBudgetsAlert: false,
-                expenseReminderTime: "18:00",
-            });
-        }
-
-        const settings: SettingsType = {
-            userId: settingsDoc.userId,
-            monthlyReports: settingsDoc.monthlyReports,
-            expenseReminders: settingsDoc.expenseReminders,
-            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-            expenseReminderTime: settingsDoc.expenseReminderTime,
-        };
+        // Fetch or create settings
+        const settings: SettingsType = await AuthDAO.findOrCreateUserSettings(response?.user?.id || "");
 
         const tokens: string = encodeURIComponent(
             JSON.stringify({
@@ -211,13 +156,13 @@ export const refreshToken = async (
         }
 
         // Verify refresh token
-        const decoded: JwtPayload = jwt.verify(
+        const decoded: JwtPayload = AuthDAO.verifyToken(
             refreshToken,
             process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key"
-        ) as JwtPayload;
+        );
 
         // Find user
-        const user: UserType | null = await User.findById(decoded.id);
+        const user: UserType | null = await AuthDAO.findUserById(decoded.id);
         if (!user) {
             res.status(401).json({ message: "Invalid refresh token", accessToken: "", refreshToken: "" });
             return;
@@ -295,7 +240,7 @@ export const forgotPassword = async (
 
     try {
         // Check if user exists in our database
-        const user: UserType | null = await User.findOne({ email });
+        const user: UserType | null = await AuthDAO.findUserByEmail(email);
         if (!user) {
             res.status(400).json({
                 success: false,
@@ -305,16 +250,7 @@ export const forgotPassword = async (
         }
 
         // Generate a stateless reset token with user info embedded
-        const resetToken: string = jwt.sign(
-            {
-                id: user.id.toString(),
-                email: user.email,
-                type: "password_reset",
-                timestamp: Date.now(),
-            },
-            process.env.JWT_SECRET || "your-secret-key",
-            { expiresIn: "10m" }
-        );
+        const resetToken: string = AuthDAO.generatePasswordResetToken(user);
 
         // Create the reset URL
         const resetUrl: string = `${
@@ -387,7 +323,7 @@ export const resetPassword = async (
 
     try {
         // Verify the reset token
-        const decoded: JwtPayload = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key") as JwtPayload;
+        const decoded: JwtPayload = AuthDAO.verifyToken(token, process.env.JWT_SECRET || "your-secret-key");
 
         // Verify it's a password reset token
         if (decoded.type !== "password_reset") {
@@ -412,10 +348,7 @@ export const resetPassword = async (
         }
 
         // Find user by ID and email
-        const user: UserType | null = await User.findOne({
-            id: decoded.id,
-            email: decoded.email,
-        });
+        const user: UserType | null = await AuthDAO.findUserByIdAndEmail(decoded.id, decoded.email || "");
 
         if (!user) {
             res.status(400).json({
@@ -426,14 +359,10 @@ export const resetPassword = async (
         }
 
         // Hash the new password
-        const hashedPassword: string = bcrypt.hashSync(newPassword, 10);
+        const hashedPassword: string = AuthDAO.hashPassword(newPassword);
 
         // Update user's password using findOneAndUpdate to avoid validation issues
-        const updatedUser: UserType | null = await User.findOneAndUpdate(
-            { id: decoded.id },
-            { password: hashedPassword },
-            { new: true, runValidators: false }
-        );
+        const updatedUser: UserType | null = await AuthDAO.updateUserPasswordById(decoded.id, hashedPassword);
 
         if (!updatedUser) {
             res.status(500).json({
@@ -482,21 +411,21 @@ export const changePassword = async (req: Request, res: Response<PasswordRespons
         }
 
         // Find user and verify current password
-        const userDoc: UserType | null = await User.findById(userId);
+        const userDoc: UserType | null = await AuthDAO.findUserById(userId);
         if (!userDoc) {
             res.status(404).json({ success: false, message: "User not found" });
             return;
         }
 
         // Verify current password
-        const isCurrentPasswordValid: boolean = bcrypt.compareSync(currentPassword, userDoc.password);
+        const isCurrentPasswordValid: boolean = await AuthDAO.verifyPassword(currentPassword, userDoc.password);
         if (!isCurrentPasswordValid) {
             res.status(400).json({ success: false, message: "Current password is incorrect" });
             return;
         }
 
         // Check if new password is different from current password
-        const isNewPasswordSame: boolean = bcrypt.compareSync(newPassword, userDoc.password);
+        const isNewPasswordSame: boolean = await AuthDAO.verifyPassword(newPassword, userDoc.password);
         if (isNewPasswordSame) {
             res.status(400).json({
                 success: false,
@@ -506,14 +435,10 @@ export const changePassword = async (req: Request, res: Response<PasswordRespons
         }
 
         // Hash the new password
-        const hashedNewPassword: string = bcrypt.hashSync(newPassword, 10);
+        const hashedNewPassword: string = AuthDAO.hashPassword(newPassword);
 
         // Update user's password
-        const updatedUser: UserType | null = await User.findByIdAndUpdate(
-            userId,
-            { password: hashedNewPassword },
-            { new: true, runValidators: true }
-        );
+        const updatedUser: UserType | null = await AuthDAO.updateUserPassword(userId, hashedNewPassword);
 
         if (!updatedUser) {
             res.status(500).json({ success: false, message: "Failed to update password" });

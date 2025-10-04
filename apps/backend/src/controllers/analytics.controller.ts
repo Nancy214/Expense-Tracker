@@ -9,7 +9,14 @@ import {
     addMonths,
     parse,
 } from "date-fns";
-import { TransactionModel } from "../models/transaction.model";
+// TransactionModel is referenced indirectly via DAO; direct import not needed here
+import {
+    fetchBills,
+    fetchExpensesExcludingBills,
+    getDailyTransactionsForMonthDAO,
+    getTransactionsForMonthDAO,
+    getTransactionsForPeriodDAO,
+} from "../daos/analytics.dao";
 import { TokenPayload } from "@expense-tracker/shared-types/src/auth";
 import {
     IncomeExpenseSummaryResponse,
@@ -26,6 +33,7 @@ import {
     Period,
 } from "@expense-tracker/shared-types/src";
 import { getMonthDates, getMonthName } from "../utils/dateUtils";
+
 export interface AuthRequest extends Request {
     user?: TokenPayload;
 }
@@ -91,7 +99,7 @@ export const getExpenseCategoryBreakdown = async (req: Request, res: Response): 
         const { period = Period.MONTHLY, subPeriod } = req.query;
 
         // Get date range based on period
-        let dateFilter: any = {};
+        let dateFilter: { date: { $gte: Date; $lte: Date } } = { date: { $gte: new Date(), $lte: new Date() } };
         if (subPeriod && typeof subPeriod === "string") {
             const { startDate, endDate } = getDateRange(period as Period, subPeriod);
             dateFilter = {
@@ -103,12 +111,7 @@ export const getExpenseCategoryBreakdown = async (req: Request, res: Response): 
         }
 
         // Get expense transactions for the user (excluding bills) within the specified period
-        const expenses: Transaction[] = await TransactionModel.find({
-            userId,
-            type: "expense",
-            category: { $ne: "Bills" }, // Exclude bills from regular expenses
-            ...dateFilter,
-        });
+        const expenses: Transaction[] = await fetchExpensesExcludingBills(userId, dateFilter);
 
         // Aggregate by category
         const categoryBreakdown: { [key: string]: number } = {};
@@ -154,7 +157,7 @@ export const getBillsCategoryBreakdown = async (req: Request, res: Response): Pr
         const { period = Period.MONTHLY, subPeriod } = req.query;
 
         // Get date range based on period
-        let dateFilter: any = {};
+        let dateFilter: { date: { $gte: Date; $lte: Date } } = { date: { $gte: new Date(), $lte: new Date() } };
         if (subPeriod && typeof subPeriod === "string") {
             const { startDate, endDate } = getDateRange(period as Period, subPeriod);
             dateFilter = {
@@ -166,11 +169,7 @@ export const getBillsCategoryBreakdown = async (req: Request, res: Response): Pr
         }
 
         // Get bill transactions for the user within the specified period
-        const bills: Bill[] = await TransactionModel.find({
-            userId,
-            category: "Bills",
-            ...dateFilter,
-        });
+        const bills: Bill[] = await fetchBills(userId, dateFilter);
 
         // Aggregate by billCategory
         const billCategoryBreakdown: { [key: string]: number } = {};
@@ -210,34 +209,7 @@ const getTransactionsForPeriod = async (
     endDate: Date
 ): Promise<SpecificPeriodIncomeExpenseData> => {
     try {
-        const transactions: Transaction[] = await TransactionModel.find({
-            userId,
-            date: {
-                $gte: startDate,
-                $lte: endDate,
-            },
-        });
-
-        const transactionData: Transaction[] = transactions.map((t) => t);
-
-        const income: number = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
-
-        const expenses: number = transactionData
-            .filter((t) => t.type === "expense" && t.category !== "Bills")
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const bills: number = transactionData
-            .filter((t) => t.category === "Bills")
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        return {
-            income,
-            expenses,
-            bills,
-            netIncome: income - expenses - bills,
-            transactionCount: transactions.length,
-            isActive: transactions.length > 0,
-        };
+        return await getTransactionsForPeriodDAO(userId, startDate, endDate);
     } catch (error: unknown) {
         throw new Error("Error fetching transactions for period");
     }
@@ -274,6 +246,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
                     const selectedYearForMonthly = startDate.getFullYear();
 
                     const dailyData = await getDailyTransactionsForMonth(userId, selectedYearForMonthly, selectedMonth);
+                    console.log("dailyData", dailyData);
 
                     // Convert daily data to the expected format
                     dailyData.forEach((dayData) => {
@@ -428,34 +401,7 @@ const getTransactionsForMonth = async (
     month: number
 ): Promise<SavingsDataForSpecificMonth> => {
     try {
-        const monthDates: { startDate: Date; endDate: Date } = getMonthDates(year, month);
-        const transactions: Transaction[] = await TransactionModel.find({
-            userId,
-            date: {
-                $gte: monthDates.startDate,
-                $lte: monthDates.endDate,
-            },
-        });
-
-        const transactionData: Transaction[] = transactions.map((t) => t);
-
-        const income: number = transactionData
-            .filter((t) => t.type === "income")
-            .reduce((sum, t: Transaction) => sum + t.amount, 0);
-
-        const expenses: number = transactionData
-            .filter((t) => t.type === "expense")
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const savings: number = income - expenses;
-
-        return {
-            income,
-            expenses,
-            savings,
-            transactionCount: transactions.length,
-            isActive: transactions.length > 0,
-        };
+        return await getTransactionsForMonthDAO(userId, year, month);
     } catch (error: unknown) {
         throw new Error("Error fetching transactions for month");
     }
@@ -464,52 +410,7 @@ const getTransactionsForMonth = async (
 // Helper function to get daily transactions for a specific month
 const getDailyTransactionsForMonth = async (userId: string, year: number, month: number): Promise<any[]> => {
     try {
-        const monthDates: { startDate: Date; endDate: Date } = getMonthDates(year, month);
-        const transactions: Transaction[] = await TransactionModel.find({
-            userId,
-            date: {
-                $gte: monthDates.startDate,
-                $lte: monthDates.endDate,
-            },
-        });
-
-        // Group transactions by day
-        const dailyData: { [key: string]: { income: number; expenses: number; savings: number; date: string } } = {};
-
-        // Initialize all days in the month with zero values
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dayStr = day.toString().padStart(2, "0");
-            const monthStr = (month + 1).toString().padStart(2, "0");
-            const dateStr = `${dayStr}/${monthStr}`;
-            dailyData[dateStr] = { income: 0, expenses: 0, savings: 0, date: dateStr };
-        }
-
-        // Aggregate transactions by day
-        transactions.forEach((transaction) => {
-            const day = transaction.date.getDate();
-            const dayStr = day.toString().padStart(2, "0");
-            const monthStr = (month + 1).toString().padStart(2, "0");
-            const dateStr = `${dayStr}/${monthStr}`;
-
-            if (transaction.type === "income") {
-                dailyData[dateStr].income += transaction.amount;
-            } else if (transaction.type === "expense") {
-                dailyData[dateStr].expenses += transaction.amount;
-            }
-        });
-
-        // Calculate savings for each day
-        Object.values(dailyData).forEach((dayData) => {
-            dayData.savings = dayData.income - dayData.expenses;
-        });
-
-        // Convert to array and sort by date
-        return Object.values(dailyData).sort((a, b) => {
-            const aDay = parseInt(a.date.split("/")[0]);
-            const bDay = parseInt(b.date.split("/")[0]);
-            return aDay - bDay;
-        });
+        return await getDailyTransactionsForMonthDAO(userId, year, month);
     } catch (error: unknown) {
         throw new Error("Error fetching daily transactions for month");
     }
