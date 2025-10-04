@@ -25,7 +25,7 @@ const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
 
 // Generate tokens - now using AuthDAO
 export const generateTokens = (user: UserType): { accessToken: string; refreshToken: string } => {
-    return AuthDAO.generateTokens(user);
+    return AuthDAO.generateToken(user, "auth") as { accessToken: string; refreshToken: string };
 };
 
 export const register = async (
@@ -81,7 +81,11 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
             }
 
             // Always fetch or create settings
-            const settings: SettingsType = await AuthDAO.findOrCreateUserSettings(user.id);
+            const settings: SettingsType | null = await AuthDAO.findOrCreateUserSettings(user.id);
+            if (!settings) {
+                res.status(500).json({ message: "Failed to fetch or create settings" });
+                return;
+            }
 
             const loginResponse: AuthResponse = {
                 accessToken,
@@ -115,7 +119,7 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
         const response = req.user as AuthResponse;
 
         // Fetch or create settings
-        const settings: SettingsType = await AuthDAO.findOrCreateUserSettings(response?.user?.id || "");
+        const settings: SettingsType | null = await AuthDAO.findOrCreateUserSettings(response?.user?.id || "");
 
         const tokens: string = encodeURIComponent(
             JSON.stringify({
@@ -250,7 +254,7 @@ export const forgotPassword = async (
         }
 
         // Generate a stateless reset token with user info embedded
-        const resetToken: string = AuthDAO.generatePasswordResetToken(user);
+        const resetToken: string = AuthDAO.generateToken(user, "password_reset") as string;
 
         // Create the reset URL
         const resetUrl: string = `${
@@ -348,7 +352,7 @@ export const resetPassword = async (
         }
 
         // Find user by ID and email
-        const user: UserType | null = await AuthDAO.findUserByIdAndEmail(decoded.id, decoded.email || "");
+        const user: UserType | null = await AuthDAO.findUserByEmail(decoded.email || "");
 
         if (!user) {
             res.status(400).json({
@@ -362,7 +366,7 @@ export const resetPassword = async (
         const hashedPassword: string = AuthDAO.hashPassword(newPassword);
 
         // Update user's password using findOneAndUpdate to avoid validation issues
-        const updatedUser: UserType | null = await AuthDAO.updateUserPasswordById(decoded.id, hashedPassword);
+        const updatedUser: UserType | null = await AuthDAO.updateUserPassword(decoded.id, hashedPassword);
 
         if (!updatedUser) {
             res.status(500).json({

@@ -2,7 +2,6 @@ import { User, Settings } from "../models/user.model";
 import { UserType, SettingsType, RegisterCredentials, JwtPayload } from "@expense-tracker/shared-types/src/auth";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Types } from "mongoose";
 
 export class AuthDAO {
     /**
@@ -17,13 +16,6 @@ export class AuthDAO {
      */
     static async findUserById(id: string): Promise<UserType | null> {
         return await User.findById(id);
-    }
-
-    /**
-     * Find user by ID and email (for password reset validation)
-     */
-    static async findUserByIdAndEmail(id: string, email: string): Promise<UserType | null> {
-        return await User.findOne({ id, email });
     }
 
     /**
@@ -49,13 +41,6 @@ export class AuthDAO {
     }
 
     /**
-     * Update user password using findOneAndUpdate (for password reset)
-     */
-    static async updateUserPasswordById(id: string, hashedPassword: string): Promise<UserType | null> {
-        return await User.findOneAndUpdate({ id }, { password: hashedPassword }, { new: true, runValidators: false });
-    }
-
-    /**
      * Verify user password
      */
     static async verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
@@ -70,20 +55,40 @@ export class AuthDAO {
     }
 
     /**
-     * Generate JWT tokens for a user
+     * Unified token generation function
      */
-    static generateTokens(user: UserType): { accessToken: string; refreshToken: string } {
-        const accessToken = jwt.sign({ id: user.id.toString() }, process.env.JWT_SECRET || "your-secret-key", {
-            expiresIn: "15m",
-        });
+    static generateToken(
+        user: UserType,
+        tokenType: "auth" | "password_reset"
+    ): string | { accessToken: string; refreshToken: string } {
+        const basePayload = {
+            id: user.id.toString(),
+            email: user.email,
+        };
 
-        const refreshToken = jwt.sign(
-            { id: user.id.toString() },
-            process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key",
-            { expiresIn: "1h" }
-        );
+        if (tokenType === "auth") {
+            const accessToken = jwt.sign(basePayload, process.env.JWT_SECRET || "your-secret-key", {
+                expiresIn: "15m",
+            });
 
-        return { accessToken, refreshToken };
+            const refreshToken = jwt.sign(basePayload, process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key", {
+                expiresIn: "1h",
+            });
+
+            return { accessToken, refreshToken };
+        } else if (tokenType === "password_reset") {
+            return jwt.sign(
+                {
+                    ...basePayload,
+                    type: "password_reset",
+                    timestamp: Date.now(),
+                },
+                process.env.JWT_SECRET || "your-secret-key",
+                { expiresIn: "10m" }
+            );
+        }
+
+        throw new Error(`Unsupported token type: ${tokenType}`);
     }
 
     /**
@@ -94,44 +99,29 @@ export class AuthDAO {
     }
 
     /**
-     * Generate password reset token
-     */
-    static generatePasswordResetToken(user: UserType): string {
-        return jwt.sign(
-            {
-                id: user.id.toString(),
-                email: user.email,
-                type: "password_reset",
-                timestamp: Date.now(),
-            },
-            process.env.JWT_SECRET || "your-secret-key",
-            { expiresIn: "10m" }
-        );
-    }
-
-    /**
      * Find or create user settings
      */
-    static async findOrCreateUserSettings(userId: string): Promise<SettingsType> {
-        let settingsDoc: any = await Settings.findById(userId);
-
-        if (!settingsDoc) {
-            settingsDoc = await Settings.create({
-                userId: new Types.ObjectId(userId),
+    static async findOrCreateUserSettings(userId: string): Promise<SettingsType | null> {
+        let settingsDoc: any = await Settings.findByIdAndUpdate(
+            userId,
+            {
                 monthlyReports: false,
                 expenseReminders: false,
                 billsAndBudgetsAlert: false,
                 expenseReminderTime: "18:00",
-            });
+            },
+            {
+                new: true,
+                upsert: true,
+                runValidators: true,
+            }
+        );
+
+        if (!settingsDoc) {
+            return null;
         }
 
-        return {
-            userId: settingsDoc.userId,
-            monthlyReports: settingsDoc.monthlyReports,
-            expenseReminders: settingsDoc.expenseReminders,
-            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-            expenseReminderTime: settingsDoc.expenseReminderTime,
-        };
+        return settingsDoc;
     }
 
     /**
@@ -146,27 +136,6 @@ export class AuthDAO {
 
         return {
             userId: settingsDoc.userId,
-            monthlyReports: settingsDoc.monthlyReports,
-            expenseReminders: settingsDoc.expenseReminders,
-            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-            expenseReminderTime: settingsDoc.expenseReminderTime,
-        };
-    }
-
-    /**
-     * Create user settings
-     */
-    static async createUserSettings(userId: string): Promise<SettingsType> {
-        const settingsDoc = await Settings.create({
-            userId: new Types.ObjectId(userId),
-            monthlyReports: false,
-            expenseReminders: false,
-            billsAndBudgetsAlert: false,
-            expenseReminderTime: "18:00",
-        });
-
-        return {
-            userId: settingsDoc.userId.toString(),
             monthlyReports: settingsDoc.monthlyReports,
             expenseReminders: settingsDoc.expenseReminders,
             billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
