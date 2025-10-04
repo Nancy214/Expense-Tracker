@@ -258,12 +258,18 @@ export const getBudgetProgress = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        // Get budget progress using DAO
-        const budgetProgress = await BudgetDAO.calculateOverallBudgetProgress(userId);
+        const { budgetId } = req.params;
+
+        // Get budget progress using DAO - unified function handles both single and overall progress
+        const budgetProgress = await BudgetDAO.calculateBudgetProgress(userId, budgetId);
 
         res.status(200).json(budgetProgress);
     } catch (error: unknown) {
         console.error("Budget progress fetch error:", error);
+        if (error instanceof Error && error.message === "Budget not found") {
+            res.status(404).json({ message: "Budget not found." });
+            return;
+        }
         res.status(500).json({ message: "Failed to fetch budget progress." });
     }
 };

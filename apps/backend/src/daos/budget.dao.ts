@@ -257,56 +257,36 @@ export class BudgetDAO {
     }
 
     /**
-     * Calculate budget progress for a single budget
+     * Calculate budget progress - unified function for single budget or all budgets
+     * @param userId - User ID to get budgets and expenses for
+     * @param budgetId - Optional specific budget ID. If provided, returns progress for that budget only
+     * @returns Budget progress data for single budget or all budgets with overall totals
      */
-    static calculateBudgetProgress(budget: BudgetType, expenses: Transaction[], now: Date): BudgetProgress {
-        const budgetStartDate: Date = new Date(budget.startDate);
-        const { periodStart } = this.calculatePeriodDates(budget.recurrence, now);
-
-        // Filter expenses from the budget start date to now (not just current period)
-        // and match the budget category
-        const budgetExpenses: Transaction[] = this.filterBudgetExpenses(expenses, budget, budgetStartDate, now);
-
-        // Calculate total spent from budget start date
-        const totalSpent: number = this.calculateTotalSpent(budgetExpenses, budget);
-
-        const progress: number = (totalSpent / budget.amount) * 100;
-        const remaining: number = budget.amount - totalSpent;
-        const isOverBudget: boolean = totalSpent > budget.amount;
-
-        return {
-            id: budget.id,
-            title: budget.title,
-            amount: budget.amount,
-            currency: budget.currency,
-            fromRate: budget.fromRate || 1,
-            toRate: budget.toRate || 1,
-            recurrence: budget.recurrence,
-            startDate: budget.startDate,
-            category: budget.category,
-            createdAt: budget.createdAt,
-            periodStart,
-            totalSpent,
-            remaining,
-            progress: Math.min(progress, 100), // Cap at 100%
-            isOverBudget,
-            expensesCount: budgetExpenses.length,
-        };
-    }
-
-    /**
-     * Calculate overall budget progress for all user budgets
-     */
-    static async calculateOverallBudgetProgress(userId: string): Promise<{
-        budgets: BudgetProgress[];
-        totalProgress: number;
-        totalBudgetAmount: number;
-        totalSpent: number;
-    }> {
-        // Get all budgets for the user
-        const budgets: BudgetType[] = await this.findBudgetsByUserId(userId);
+    static async calculateBudgetProgress(
+        userId: string,
+        budgetId?: string
+    ): Promise<
+        | BudgetProgress
+        | {
+              budgets: BudgetProgress[];
+              totalProgress: number;
+              totalBudgetAmount: number;
+              totalSpent: number;
+          }
+    > {
+        // Get budgets - either specific one or all for user
+        let budgets: BudgetType[];
+        if (budgetId) {
+            const budget = await this.findBudgetById(userId, budgetId);
+            budgets = budget ? [budget] : [];
+        } else {
+            budgets = await this.findBudgetsByUserId(userId);
+        }
 
         if (budgets.length === 0) {
+            if (budgetId) {
+                throw new Error("Budget not found");
+            }
             return {
                 budgets: [],
                 totalProgress: 0,
@@ -317,11 +297,50 @@ export class BudgetDAO {
 
         // Get all expenses for the user
         const expenses: Transaction[] = await this.getUserExpenses(userId);
-
         const now: Date = new Date();
-        const budgetProgress = budgets.map((budget: BudgetType) => this.calculateBudgetProgress(budget, expenses, now));
 
-        // Calculate overall progress
+        // Calculate progress for each budget
+        const budgetProgress = budgets.map((budget: BudgetType) => {
+            const budgetStartDate: Date = new Date(budget.startDate);
+            const { periodStart } = this.calculatePeriodDates(budget.recurrence, now);
+
+            // Filter expenses from the budget start date to now (not just current period)
+            // and match the budget category
+            const budgetExpenses: Transaction[] = this.filterBudgetExpenses(expenses, budget, budgetStartDate, now);
+
+            // Calculate total spent from budget start date
+            const totalSpent: number = this.calculateTotalSpent(budgetExpenses, budget);
+
+            const progress: number = (totalSpent / budget.amount) * 100;
+            const remaining: number = budget.amount - totalSpent;
+            const isOverBudget: boolean = totalSpent > budget.amount;
+
+            return {
+                id: budget.id,
+                title: budget.title,
+                amount: budget.amount,
+                currency: budget.currency,
+                fromRate: budget.fromRate || 1,
+                toRate: budget.toRate || 1,
+                recurrence: budget.recurrence,
+                startDate: budget.startDate,
+                category: budget.category,
+                createdAt: budget.createdAt,
+                periodStart,
+                totalSpent,
+                remaining,
+                progress: Math.min(progress, 100), // Cap at 100%
+                isOverBudget,
+                expensesCount: budgetExpenses.length,
+            } as BudgetProgress;
+        });
+
+        // If requesting single budget, return just that budget's progress
+        if (budgetId) {
+            return budgetProgress[0];
+        }
+
+        // Calculate overall progress for all budgets
         const totalBudgetAmount: number = budgetProgress.reduce(
             (sum: number, budget: BudgetProgress) => sum + budget.amount,
             0
