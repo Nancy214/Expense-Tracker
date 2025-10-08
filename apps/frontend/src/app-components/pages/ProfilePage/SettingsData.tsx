@@ -24,44 +24,25 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
     const { data: settingsData, isLoading: isInitialLoading } = useSettings(user?.id || "");
     const { updateSettings: updateSettingsMutation, isUpdatingSettings } = useProfileMutations();
 
-    // Track if we've initialized the state
-    const hasInitialized = useRef<boolean>(false);
-
-    // Initialize settings state with defaults or localStorage backup
+    // Initialize settings state with defaults
     const getInitialSettings = (): SettingsDataType => {
-        try {
-            const storedSettings: string | null = localStorage.getItem("userSettings");
-            if (storedSettings) {
-                const parsed = JSON.parse(storedSettings);
-                return {
-                    monthlyReports: parsed.monthlyReports ?? false,
-                    expenseReminders: parsed.expenseReminders ?? false,
-                    billsAndBudgetsAlert: parsed.billsAndBudgetsAlert ?? false,
-                    expenseReminderTime: parsed.expenseReminderTime || "18:00",
-                };
-            }
-        } catch (error: unknown) {
-            console.error("Error parsing stored settings:", error);
-        }
         return {
             monthlyReports: false,
-            expenseReminders: false,
+            expenseReminders: true,
             billsAndBudgetsAlert: false,
             expenseReminderTime: "18:00",
         };
     };
 
     const [settings, setSettings] = useState<SettingsDataType>(getInitialSettings);
-    const [expenseReminderTime, setExpenseReminderTime] = useState<string>(
-        getInitialSettings().expenseReminderTime || "18:00"
-    );
+    const [expenseReminderTime, setExpenseReminderTime] = useState<string>("18:00");
 
-    // Update local state when settings data is loaded
+    // Update local state when settings data is loaded from API
     useEffect(() => {
-        if (settingsData && !isInitialLoading && !hasInitialized.current) {
+        if (settingsData && !isInitialLoading) {
             const newSettings: SettingsDataType = {
                 monthlyReports: settingsData.monthlyReports ?? false,
-                expenseReminders: settingsData.expenseReminders ?? false,
+                expenseReminders: settingsData.expenseReminders ?? true,
                 billsAndBudgetsAlert: settingsData.billsAndBudgetsAlert ?? false,
                 expenseReminderTime: settingsData.expenseReminderTime || "18:00",
             };
@@ -70,27 +51,8 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 
             // Store in localStorage as backup
             localStorage.setItem("userSettings", JSON.stringify(newSettings));
-            hasInitialized.current = true;
         }
     }, [settingsData, isInitialLoading]);
-
-    // Update state when settings data changes (after initial load)
-    useEffect(() => {
-        if (settingsData && !isInitialLoading && hasInitialized.current) {
-            setSettings({
-                monthlyReports: settingsData.monthlyReports ?? false,
-                expenseReminders: settingsData.expenseReminders ?? false,
-                billsAndBudgetsAlert: settingsData.billsAndBudgetsAlert ?? false,
-                expenseReminderTime: settingsData.expenseReminderTime || "18:00",
-            });
-            setExpenseReminderTime(settingsData.expenseReminderTime || "18:00");
-        }
-    }, [settingsData, isInitialLoading]);
-
-    // Reset initialization flag when userId changes
-    useEffect(() => {
-        hasInitialized.current = false;
-    }, [user?.id]);
 
     const handleSettingsChange = (field: keyof SettingsDataType, value: boolean | string): void => {
         setSettings({

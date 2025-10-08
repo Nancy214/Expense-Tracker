@@ -102,26 +102,31 @@ export class AuthDAO {
      * Find or create user settings
      */
     static async findOrCreateUserSettings(userId: string): Promise<SettingsType | null> {
-        let settingsDoc: any = await Settings.findByIdAndUpdate(
-            userId,
-            {
+        // First try to find existing settings
+        let settingsDoc: any = await Settings.findById(userId);
+
+        // If no settings exist, create new ones with defaults
+        if (!settingsDoc) {
+            settingsDoc = await Settings.create({
+                _id: userId,
                 monthlyReports: false,
-                expenseReminders: false,
+                expenseReminders: true,
                 billsAndBudgetsAlert: false,
                 expenseReminderTime: "18:00",
-            },
-            {
-                new: true,
-                upsert: true,
-                runValidators: true,
-            }
-        );
+            });
+        }
 
         if (!settingsDoc) {
             return null;
         }
 
-        return settingsDoc;
+        return {
+            userId: settingsDoc._id.toString(),
+            monthlyReports: settingsDoc.monthlyReports,
+            expenseReminders: settingsDoc.expenseReminders,
+            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
+            expenseReminderTime: settingsDoc.expenseReminderTime,
+        };
     }
 
     /**
@@ -135,7 +140,7 @@ export class AuthDAO {
         }
 
         return {
-            userId: settingsDoc.userId,
+            userId: settingsDoc._id.toString(),
             monthlyReports: settingsDoc.monthlyReports,
             expenseReminders: settingsDoc.expenseReminders,
             billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,

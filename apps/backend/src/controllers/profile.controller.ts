@@ -51,7 +51,12 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        const settingsDoc: SettingsType | null = await AuthDAO.findOrCreateUserSettings(userId);
+        let settingsDoc: SettingsType | null = await AuthDAO.findUserSettings(userId);
+
+        // If no settings exist, create them with defaults
+        if (!settingsDoc) {
+            settingsDoc = await AuthDAO.findOrCreateUserSettings(userId);
+        }
 
         // Generate pre-signed URL for profile picture if it exists
         let profilePictureUrl: string = "";
