@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { TokenPayload, UserType } from "@expense-tracker/shared-types/src/auth";
+import { TokenPayload, UserType, SettingsType } from "@expense-tracker/shared-types/src/auth";
 import { ProfileData, SettingsData, CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src/profile";
 import { AuthenticatedUser } from "@expense-tracker/shared-types/src/auth";
 import dotenv from "dotenv";
@@ -9,6 +9,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from "sharp";
 import crypto from "crypto";
 import { ProfileDAO } from "../daos/profile.dao";
+import { AuthDAO } from "../daos/auth.dao";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
@@ -44,13 +45,13 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        const userDoc: UserType | null = await ProfileDAO.findUserById(userId);
+        const userDoc: UserType | null = await AuthDAO.findUserById(userId);
         if (!userDoc) {
             res.status(404).json({ message: "User not found" });
             return;
         }
 
-        const settingsDoc = await ProfileDAO.findOrCreateUserSettings(userId);
+        const settingsDoc: SettingsType | null = await AuthDAO.findOrCreateUserSettings(userId);
 
         // Generate pre-signed URL for profile picture if it exists
         let profilePictureUrl: string = "";
@@ -79,10 +80,10 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             /* budget: userDoc.budget || false,
             budgetType: userDoc.budgetType || "", */
             settings: {
-                monthlyReports: settingsDoc.monthlyReports || false,
-                expenseReminders: settingsDoc.expenseReminders || false,
-                billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert || false,
-                expenseReminderTime: settingsDoc.expenseReminderTime || "18:00",
+                monthlyReports: settingsDoc?.monthlyReports ?? false,
+                expenseReminders: settingsDoc?.expenseReminders ?? false,
+                billsAndBudgetsAlert: settingsDoc?.billsAndBudgetsAlert ?? false,
+                expenseReminderTime: settingsDoc?.expenseReminderTime ?? "18:00",
             },
         };
 
@@ -209,7 +210,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             }); // 5 minutes
         }
 
-        const settingsDoc = await ProfileDAO.findUserSettings(updatedUser.id);
+        const settingsDoc = await AuthDAO.findUserSettings(updatedUser.id);
         const userWithSettings: AuthenticatedUser = {
             id: updatedUser.id,
             name: updatedUser.name || "",

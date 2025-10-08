@@ -7,9 +7,9 @@ export class ProfileDAO {
     /**
      * Find user by ID without password
      */
-    static async findUserById(userId: string): Promise<UserType | null> {
+    /*  static async findUserById(userId: string): Promise<UserType | null> {
         return await User.findById(userId).select("-password");
-    }
+    } */
 
     /**
      * Find user by ID with only profile picture field
@@ -59,7 +59,7 @@ export class ProfileDAO {
     /**
      * Find user settings by user ID
      */
-    static async findUserSettings(userId: string): Promise<SettingsType | null> {
+    /* static async findUserSettings(userId: string): Promise<SettingsType | null> {
         const settingsDoc = await Settings.findById(userId);
 
         if (!settingsDoc) {
@@ -73,12 +73,12 @@ export class ProfileDAO {
             billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
             expenseReminderTime: settingsDoc.expenseReminderTime,
         };
-    }
+    } */
 
     /**
      * Find or create user settings
      */
-    static async findOrCreateUserSettings(userId: string): Promise<SettingsType> {
+    /* static async findOrCreateUserSettings(userId: string): Promise<SettingsType> {
         let settingsDoc = await Settings.findById(userId);
 
         if (!settingsDoc) {
@@ -98,7 +98,7 @@ export class ProfileDAO {
             billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
             expenseReminderTime: settingsDoc.expenseReminderTime,
         };
-    }
+    } */
 
     /**
      * Update user settings
