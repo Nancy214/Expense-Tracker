@@ -75,7 +75,7 @@ const AnalyticsCard: React.FC<{
             id: "savings",
             label: "Savings Trend",
             icon: LineChart,
-            description: "Monthly savings progression",
+            description: "Savings progression",
         },
     ];
 
@@ -151,7 +151,7 @@ const AnalyticsCard: React.FC<{
                             {incomeExpenseData.length > 0 ? (
                                 <BarChartComponent
                                     title="Income vs Expenses Overview"
-                                    description="Compare your income, expenses, and net income over time"
+                                    description="Compare your income and expenses over time"
                                     data={incomeExpenseData}
                                     currency={currency}
                                     showInsights={true}
@@ -180,8 +180,8 @@ const AnalyticsCard: React.FC<{
                             {savingsTrendData.length > 0 ? (
                                 <div className="bg-white dark:bg-slate-800/50 rounded-xl p-2 sm:p-4 border border-slate-200 dark:border-slate-600">
                                     <AreaChartComponent
-                                        title="Monthly Savings Trend"
-                                        description="Track your monthly savings progress against your target"
+                                        title="Savings Trend"
+                                        description="Track your savings progress over time"
                                         data={savingsTrendData}
                                         currency={currency}
                                         showInsights={true}

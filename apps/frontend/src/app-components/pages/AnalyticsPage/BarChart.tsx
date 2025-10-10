@@ -17,7 +17,7 @@ import type {
     ChartTooltipProps,
     Period,
 } from "@expense-tracker/shared-types/src/analytics";
-import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
+import { formatChartData } from "@/utils/chartUtils";
 
 const COLORS = {
     income: "#10b981", // Green for Income
@@ -26,7 +26,7 @@ const COLORS = {
 
 const BarChartComponent: React.FC<BarChartProps> = ({
     title,
-    description,
+    description = "Track your income and expenses over time",
     data,
     colors = COLORS,
     showInsights = true,
@@ -229,24 +229,19 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     };
 
     // Format data based on time period
-    const formattedData = formatChartData(data, timePeriod as Period, subPeriod);
+    const formattedData: BarChartData[] = formatChartData(data, timePeriod as Period, subPeriod);
     const transformedData: TransformedBarData[] = transformDataForGroupedBars(formattedData);
 
     // Get dynamic labels and titles
-    const dynamicTitle = getChartTitle(title, timePeriod as Period, subPeriod);
-    const dynamicDescription = getChartDescription(description || "", timePeriod as Period);
-    const xAxisLabel = getXAxisLabel(timePeriod as Period);
 
     return (
         <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between">
                 <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100">
-                    {dynamicTitle}
+                    {title}
                 </h2>
             </div>
-            {dynamicDescription && (
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">{dynamicDescription}</p>
-            )}
+            {description && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>}
 
             <div className="w-full flex flex-col items-center">
                 {data.length === 0 ? (
@@ -262,7 +257,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                                 <XAxis
                                     dataKey="name"
                                     tick={{ fontSize: 10 }}
-                                    label={{ value: xAxisLabel, position: "bottom", offset: 0 }}
+                                    label={{ value: "", position: "bottom", offset: 0 }}
                                 />
                                 <YAxis
                                     tickFormatter={(value) => formatAmount(value)}

@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { transactionFormSchema } from "@/schemas/transactionSchema";
 import { getExchangeRate } from "@/services/currency.service";
 import { createExpense, getBills, updateExpense, updateTransactionBillStatus } from "@/services/transaction.service";
-import { getDaysDifference, getStartOfToday, parseFromDisplay } from "@/utils/dateUtils";
+import { parseFromDisplay } from "@/utils/dateUtils";
 import { showCreateSuccess, showSaveError, showUpdateSuccess } from "@/utils/toastUtils";
 import {
     Bill,
@@ -15,7 +15,7 @@ import {
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format, isValid, parse, parseISO } from "date-fns";
+import { differenceInCalendarDays, format, isValid, parse, parseISO, startOfDay } from "date-fns";
 import { useCallback, useEffect, useMemo } from "react";
 import { useForm, UseFormReturn } from "react-hook-form";
 
@@ -433,7 +433,7 @@ export function useBillsSelector(): UseBillsSelectorReturn {
     }, [invalidateBills]);
 
     const upcomingAndOverdueBills = useMemo((): UpcomingAndOverdueBills => {
-        const today = getStartOfToday();
+        const today = startOfDay(new Date());
         const upcoming: Bill[] = [];
         const overdue: Bill[] = [];
 
@@ -459,7 +459,7 @@ export function useBillsSelector(): UseBillsSelectorReturn {
                 return;
             }
 
-            const daysLeft = getDaysDifference(dueDate, today);
+            const daysLeft = differenceInCalendarDays(dueDate, today);
 
             if (daysLeft < 0) {
                 overdue.push(bill);
@@ -472,7 +472,7 @@ export function useBillsSelector(): UseBillsSelectorReturn {
     }, [bills]);
 
     const billReminders = useMemo((): Bill[] => {
-        const today = getStartOfToday();
+        const today = startOfDay(new Date());
         const reminders = bills.filter((bill: Bill) => {
             if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays) {
                 return false;
@@ -495,7 +495,7 @@ export function useBillsSelector(): UseBillsSelectorReturn {
                 return false;
             }
 
-            const daysLeft = getDaysDifference(dueDate, today);
+            const daysLeft = differenceInCalendarDays(dueDate, today);
             return daysLeft >= 0 && daysLeft <= bill.reminderDays;
         });
 
