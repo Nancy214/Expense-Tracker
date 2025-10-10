@@ -4,6 +4,8 @@ import {
     SavingsDataForSpecificMonth,
     SpecificPeriodIncomeExpenseData,
     Transaction,
+    TransactionType,
+    ExpenseCategory,
 } from "@expense-tracker/shared-types/src";
 import { getMonthDates } from "../utils/dateUtils";
 
@@ -14,8 +16,8 @@ export const fetchExpensesExcludingBills = async (
 ): Promise<Transaction[]> => {
     return TransactionModel.find({
         userId,
-        type: "expense",
-        category: { $ne: "Bills" },
+        type: TransactionType.EXPENSE,
+        category: { $ne: ExpenseCategory.BILLS },
         ...dateFilter,
     });
 };
@@ -24,17 +26,32 @@ export const fetchExpensesExcludingBills = async (
 export const fetchBills = async (userId: string, dateFilter: { date: { $gte: Date; $lte: Date } }): Promise<Bill[]> => {
     return TransactionModel.find({
         userId,
-        category: "Bills",
+        category: ExpenseCategory.BILLS,
         ...dateFilter,
     });
 };
 
-// Helper DAO: Aggregate transactions for a specific time period
-export const getTransactionsForPeriodDAO = async (
+// Unified DAO: Get transaction analytics for any time period
+export const getTransactionAnalyticsDAO = async (
     userId: string,
     startDate: Date,
-    endDate: Date
-): Promise<SpecificPeriodIncomeExpenseData> => {
+    endDate: Date,
+    options: {
+        includeBills?: boolean;
+        includeSavings?: boolean;
+        includeNetIncome?: boolean;
+    } = {}
+): Promise<{
+    income: number;
+    expenses: number;
+    bills?: number;
+    savings?: number;
+    netIncome?: number;
+    transactionCount: number;
+    isActive: boolean;
+}> => {
+    const { includeBills = false, includeSavings = false, includeNetIncome = false } = options;
+
     const transactions: Transaction[] = await TransactionModel.find({
         userId,
         date: {
@@ -45,55 +62,84 @@ export const getTransactionsForPeriodDAO = async (
 
     const transactionData: Transaction[] = transactions.map((t) => t);
 
-    const income: number = transactionData.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
-
-    const expenses: number = transactionData
-        .filter((t) => t.type === "expense" && t.category !== "Bills")
+    const income: number = transactionData
+        .filter((t) => t.type === TransactionType.INCOME)
         .reduce((sum, t) => sum + t.amount, 0);
 
-    const bills: number = transactionData.filter((t) => t.category === "Bills").reduce((sum, t) => sum + t.amount, 0);
+    // Calculate expenses based on whether bills should be included
+    const expenses: number = includeBills
+        ? transactionData.filter((t) => t.type === TransactionType.EXPENSE).reduce((sum, t) => sum + t.amount, 0)
+        : transactionData
+              .filter((t) => t.type === TransactionType.EXPENSE && t.category !== ExpenseCategory.BILLS)
+              .reduce((sum, t) => sum + t.amount, 0);
 
-    return {
+    const result: any = {
         income,
         expenses,
-        bills,
-        netIncome: income - expenses - bills,
         transactionCount: transactions.length,
         isActive: transactions.length > 0,
     };
+
+    // Add optional fields based on options
+    if (includeBills) {
+        const bills: number = transactionData
+            .filter((t) => t.category === ExpenseCategory.BILLS)
+            .reduce((sum, t) => sum + t.amount, 0);
+        result.bills = bills;
+    }
+
+    if (includeSavings) {
+        result.savings = income - expenses;
+    }
+
+    if (includeNetIncome) {
+        const bills: number = transactionData
+            .filter((t) => t.category === ExpenseCategory.BILLS)
+            .reduce((sum, t) => sum + t.amount, 0);
+        result.netIncome = income - expenses - bills;
+    }
+
+    return result;
 };
 
-// Helper DAO: Get transactions for a specific month
+// Helper DAO: Aggregate transactions for a specific time period (backward compatibility)
+export const getTransactionsForPeriodDAO = async (
+    userId: string,
+    startDate: Date,
+    endDate: Date
+): Promise<SpecificPeriodIncomeExpenseData> => {
+    const result = await getTransactionAnalyticsDAO(userId, startDate, endDate, {
+        includeBills: true,
+        includeNetIncome: true,
+    });
+
+    return {
+        income: result.income,
+        expenses: result.expenses,
+        bills: result.bills!,
+        netIncome: result.netIncome!,
+        transactionCount: result.transactionCount,
+        isActive: result.isActive,
+    };
+};
+
+// Helper DAO: Get transactions for a specific month (backward compatibility)
 export const getTransactionsForMonthDAO = async (
     userId: string,
     year: number,
     month: number
 ): Promise<SavingsDataForSpecificMonth> => {
     const monthDates: { startDate: Date; endDate: Date } = getMonthDates(year, month);
-    const transactions: Transaction[] = await TransactionModel.find({
-        userId,
-        date: {
-            $gte: monthDates.startDate,
-            $lte: monthDates.endDate,
-        },
+    const result = await getTransactionAnalyticsDAO(userId, monthDates.startDate, monthDates.endDate, {
+        includeSavings: true,
     });
 
-    const transactionData: Transaction[] = transactions.map((t) => t);
-
-    const income: number = transactionData
-        .filter((t) => t.type === "income")
-        .reduce((sum, t: Transaction) => sum + t.amount, 0);
-
-    const expenses: number = transactionData.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
-
-    const savings: number = income - expenses;
-
     return {
-        income,
-        expenses,
-        savings,
-        transactionCount: transactions.length,
-        isActive: transactions.length > 0,
+        income: result.income,
+        expenses: result.expenses,
+        savings: result.savings!,
+        transactionCount: result.transactionCount,
+        isActive: result.isActive,
     };
 };
 
@@ -124,9 +170,9 @@ export const getDailyTransactionsForMonthDAO = async (userId: string, year: numb
         const monthStr = (month + 1).toString().padStart(2, "0");
         const dateStr = `${dayStr}/${monthStr}`;
 
-        if (transaction.type === "income") {
+        if (transaction.type === TransactionType.INCOME) {
             dailyData[dateStr].income += transaction.amount;
-        } else if (transaction.type === "expense") {
+        } else if (transaction.type === TransactionType.EXPENSE) {
             dailyData[dateStr].expenses += transaction.amount;
         }
     });

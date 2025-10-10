@@ -17,7 +17,7 @@ import {
     getTransactionsForMonthDAO,
     getTransactionsForPeriodDAO,
 } from "../daos/analytics.dao";
-import { TokenPayload } from "@expense-tracker/shared-types/src/auth";
+
 import {
     IncomeExpenseSummaryResponse,
     MonthlyIncomeExpenseData,
@@ -31,6 +31,7 @@ import {
     Transaction,
     Bill,
     Period,
+    TokenPayload,
 } from "@expense-tracker/shared-types/src";
 import { getMonthDates, getMonthName } from "../utils/dateUtils";
 
@@ -225,7 +226,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
         }
 
         // Get time period parameters from query
-        const { period = "monthly", subPeriod } = req.query;
+        const { period = Period.MONTHLY, subPeriod } = req.query;
 
         const now: Date = new Date();
         const currentYear: number = now.getFullYear();
@@ -240,7 +241,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
             // For specific periods, we'll get data for that period and a few periods before for comparison
 
             switch (period) {
-                case "monthly":
+                case Period.MONTHLY:
                     // Get daily data for the selected month
                     const selectedMonth = startDate.getMonth();
                     const selectedYearForMonthly = startDate.getFullYear();
@@ -264,7 +265,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
                     });
                     break;
 
-                case "quarterly":
+                case Period.QUARTERLY:
                     // Get monthly data for the selected quarter
                     const selectedQuarter = parseInt(subPeriod.replace("Q", ""));
                     const quarterStartMonth = (selectedQuarter - 1) * 3; // Q1=0, Q2=3, Q3=6, Q4=9
@@ -287,7 +288,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
                     }
                     break;
 
-                case "half-yearly":
+                case Period.HALF_YEARLY:
                     // Get monthly data for the selected half-year
                     const selectedHalf = parseInt(subPeriod.replace("H", ""));
                     const halfStartMonth = (selectedHalf - 1) * 6; // H1=0, H2=6
@@ -310,7 +311,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
                     }
                     break;
 
-                case "yearly":
+                case Period.YEARLY:
                     // Get monthly data for the selected year
                     const selectedYear = parseInt(subPeriod);
                     for (let month = 0; month < 12; month++) {
@@ -426,7 +427,7 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
         }
 
         // Get time period parameters from query
-        const { period = "monthly", subPeriod } = req.query;
+        const { period = Period.MONTHLY, subPeriod } = req.query;
 
         const now: Date = new Date();
         const currentYear: number = now.getFullYear();
@@ -439,7 +440,7 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
             const { startDate } = getDateRange(period as Period, subPeriod);
 
             switch (period) {
-                case "monthly":
+                case Period.MONTHLY:
                     // Get daily data for the selected month
                     const selectedMonth = startDate.getMonth();
                     const selectedYearForSavings = startDate.getFullYear();
@@ -466,7 +467,7 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
                     });
                     break;
 
-                case "quarterly":
+                case Period.QUARTERLY:
                     // Get monthly data for the selected quarter
                     const selectedQuarter = parseInt(subPeriod.replace("Q", ""));
                     const quarterStartMonth = (selectedQuarter - 1) * 3; // Q1=0, Q2=3, Q3=6, Q4=9
@@ -485,7 +486,7 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
                     }
                     break;
 
-                case "half-yearly":
+                case Period.HALF_YEARLY:
                     // Get monthly data for the selected half-year
                     const selectedHalf = parseInt(subPeriod.replace("H", ""));
                     const halfStartMonth = (selectedHalf - 1) * 6; // H1=0, H2=6
@@ -504,7 +505,7 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
                     }
                     break;
 
-                case "yearly":
+                case Period.YEARLY:
                     // Get monthly data for the selected year
                     const selectedYear = parseInt(subPeriod);
                     for (let month = 0; month < 12; month++) {
