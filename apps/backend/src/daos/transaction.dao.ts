@@ -160,21 +160,38 @@ export class TransactionDAO {
      */
     static async getAllTransactions(
         userId: string,
-        query: any
+        query: {
+            categories?: string;
+            types?: string;
+            fromDate?: string;
+            toDate?: string;
+            search?: string;
+            page?: string;
+            limit?: string;
+        }
     ): Promise<{
         transactions: TransactionOrBillDocument[];
         total: number;
         page: number;
         limit: number;
     }> {
+        console.log("getAllTransactions", query);
         const page: number = parseInt(query.page || "1");
         const limit: number = parseInt(query.limit || "20");
         const skip: number = (page - 1) * limit;
 
         // Build filter query
-        const filterQuery: any = {
+        const filterQuery: {
+            userId: Types.ObjectId;
+            category?: { $in?: string[] };
+            type?: { $in?: string[] };
+            date?: { $gte?: Date; $lte?: Date };
+            $and?: Record<string, unknown>[];
+        } = {
             userId: new Types.ObjectId(userId),
         };
+
+        const additionalFilters: Record<string, unknown>[] = [];
 
         // Add category filter
         if (query.categories) {
@@ -202,10 +219,14 @@ export class TransactionDAO {
         // Add search filter
         if (query.search) {
             const searchRegex = new RegExp(query.search as string, "i");
-            filterQuery.$and = [
-                ...(filterQuery.$and || []),
-                { $or: [{ title: searchRegex }, { description: searchRegex }, { category: searchRegex }] },
-            ];
+            additionalFilters.push({
+                $or: [{ title: searchRegex }, { description: searchRegex }, { category: searchRegex }],
+            });
+        }
+
+        // Combine additional filters with $and if needed
+        if (additionalFilters.length > 0) {
+            filterQuery.$and = additionalFilters;
         }
 
         // Get total count for pagination with filters
@@ -368,15 +389,23 @@ export class TransactionDAO {
     /**
      * Create a new transaction
      */
-    static async createTransaction(userId: string, transactionData: any): Promise<TransactionOrBillDocument> {
+    static async createTransaction(
+        userId: string,
+        transactionData: TransactionOrBill
+    ): Promise<TransactionOrBillDocument> {
         // Prepare transaction data
-        let expenseData = {
+        let expenseData: TransactionOrBill & { userId: string; nextDueDate?: Date } = {
             ...transactionData,
             userId: userId,
         };
 
         // If it's a bill, calculate nextDueDate automatically
-        if (transactionData.category === "Bills" && transactionData.dueDate && transactionData.billFrequency) {
+        if (
+            transactionData.category === "Bills" &&
+            isBillDocument(transactionData) &&
+            transactionData.dueDate &&
+            transactionData.billFrequency
+        ) {
             const dueDate = new Date(transactionData.dueDate);
             const frequency: BillFrequency = transactionData.billFrequency;
             expenseData.nextDueDate = calculateNextDueDate(dueDate, frequency);
@@ -398,15 +427,20 @@ export class TransactionDAO {
     static async updateTransaction(
         userId: string,
         transactionId: string,
-        updateData: any
+        updateData: TransactionOrBill
     ): Promise<TransactionOrBillDocument | null> {
         // Prepare update data
-        let updatePayload = { ...updateData };
+        let updatePayload: TransactionOrBill & { nextDueDate?: Date } = { ...updateData };
 
         // If it's a bill update, calculate nextDueDate automatically
-        if (updateData.category === "Bills" && updateData.dueDate && updateData.billFrequency) {
+        if (
+            updateData.category === "Bills" &&
+            isBillDocument(updateData) &&
+            updateData.dueDate &&
+            updateData.billFrequency
+        ) {
             const dueDate = new Date(updateData.dueDate);
-            const frequency = updateData.billFrequency as BillFrequency;
+            const frequency = updateData.billFrequency;
             updatePayload.nextDueDate = calculateNextDueDate(dueDate, frequency);
         }
 
@@ -497,11 +531,15 @@ export class TransactionDAO {
     /**
      * Count transactions for a user with optional filters
      */
-    static async countTransactions(userId: string, filters?: any): Promise<number> {
-        const query: any = {
-            userId: new Types.ObjectId(userId),
-            ...filters,
-        };
+    static async countTransactions(
+        userId: string,
+        filters?: { category?: string; type?: string; date?: { $gte?: Date; $lte?: Date } }
+    ): Promise<number> {
+        const query: { userId: Types.ObjectId; category?: string; type?: string; date?: { $gte?: Date; $lte?: Date } } =
+            {
+                userId: new Types.ObjectId(userId),
+                ...filters,
+            };
 
         return await TransactionModel.countDocuments(query);
     }

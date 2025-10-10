@@ -59,7 +59,7 @@ export const getAllTransactions = async (req: Request, res: Response): Promise<v
 
         const { transactions, total, page, limit } = await TransactionDAO.getAllTransactions(userId, req.query);
 
-        const response: PaginatedResponse<any> = {
+        const response: PaginatedResponse<TransactionOrBill> = {
             transactions,
             pagination: {
                 page,
@@ -89,7 +89,7 @@ export const getBills = async (req: Request, res: Response): Promise<void> => {
 
         const { bills, total, page, limit } = await TransactionDAO.getBills(userId, req.query as PaginationQuery);
 
-        const response: PaginatedResponse<any> = {
+        const response: PaginatedResponse<TransactionOrBill> = {
             bills,
             pagination: {
                 page,
@@ -121,7 +121,7 @@ export const getRecurringTemplates = async (req: Request, res: Response): Promis
             req.query as PaginationQuery
         );
 
-        const response: PaginatedResponse<any> = {
+        const response: PaginatedResponse<TransactionOrBill> = {
             recurringTemplates,
             pagination: {
                 page,
@@ -376,7 +376,7 @@ export const updateTransactionBillStatus = async (req: Request, res: Response): 
             return;
         }
 
-        const response: { message: string; transaction: any } = {
+        const response: { message: string; transaction: TransactionOrBill } = {
             message: "Bill status updated successfully",
             transaction,
         };

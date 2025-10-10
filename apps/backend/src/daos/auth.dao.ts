@@ -103,7 +103,7 @@ export class AuthDAO {
      */
     static async findOrCreateUserSettings(userId: string): Promise<SettingsType | null> {
         // First try to find existing settings
-        let settingsDoc: any = await Settings.findById(userId);
+        let settingsDoc = await Settings.findById(userId);
 
         // If no settings exist, create new ones with defaults
         if (!settingsDoc) {
@@ -122,10 +122,10 @@ export class AuthDAO {
 
         return {
             userId: settingsDoc._id.toString(),
-            monthlyReports: settingsDoc.monthlyReports,
-            expenseReminders: settingsDoc.expenseReminders,
-            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-            expenseReminderTime: settingsDoc.expenseReminderTime,
+            monthlyReports: settingsDoc.monthlyReports || false,
+            expenseReminders: settingsDoc.expenseReminders || false,
+            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert || false,
+            expenseReminderTime: settingsDoc.expenseReminderTime || "18:00",
         };
     }
 
@@ -133,7 +133,7 @@ export class AuthDAO {
      * Find user settings by user ID
      */
     static async findUserSettings(userId: string): Promise<SettingsType | null> {
-        const settingsDoc: any = await Settings.findById(userId);
+        const settingsDoc = await Settings.findById(userId);
 
         if (!settingsDoc) {
             return null;
@@ -141,10 +141,10 @@ export class AuthDAO {
 
         return {
             userId: settingsDoc._id.toString(),
-            monthlyReports: settingsDoc.monthlyReports,
-            expenseReminders: settingsDoc.expenseReminders,
-            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-            expenseReminderTime: settingsDoc.expenseReminderTime,
+            monthlyReports: settingsDoc.monthlyReports || false,
+            expenseReminders: settingsDoc.expenseReminders || false,
+            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert || false,
+            expenseReminderTime: settingsDoc.expenseReminderTime || "18:00",
         };
     }
 }

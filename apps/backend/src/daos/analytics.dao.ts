@@ -73,7 +73,15 @@ export const getTransactionAnalyticsDAO = async (
               .filter((t) => t.type === TransactionType.EXPENSE && t.category !== ExpenseCategory.BILLS)
               .reduce((sum, t) => sum + t.amount, 0);
 
-    const result: any = {
+    const result: {
+        income: number;
+        expenses: number;
+        transactionCount: number;
+        isActive: boolean;
+        bills?: number;
+        savings?: number;
+        netIncome?: number;
+    } = {
         income,
         expenses,
         transactionCount: transactions.length,
@@ -144,7 +152,11 @@ export const getTransactionsForMonthDAO = async (
 };
 
 // Helper DAO: Get daily transactions for a specific month
-export const getDailyTransactionsForMonthDAO = async (userId: string, year: number, month: number): Promise<any[]> => {
+export const getDailyTransactionsForMonthDAO = async (
+    userId: string,
+    year: number,
+    month: number
+): Promise<{ income: number; expenses: number; savings: number; date: string }[]> => {
     const monthDates: { startDate: Date; endDate: Date } = getMonthDates(year, month);
     const transactions: Transaction[] = await TransactionModel.find({
         userId,

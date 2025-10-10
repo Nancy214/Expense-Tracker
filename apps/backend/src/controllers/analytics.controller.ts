@@ -409,7 +409,11 @@ const getTransactionsForMonth = async (
 };
 
 // Helper function to get daily transactions for a specific month
-const getDailyTransactionsForMonth = async (userId: string, year: number, month: number): Promise<any[]> => {
+const getDailyTransactionsForMonth = async (
+    userId: string,
+    year: number,
+    month: number
+): Promise<{ income: number; expenses: number; savings: number; date: string }[]> => {
     try {
         return await getDailyTransactionsForMonthDAO(userId, year, month);
     } catch (error: unknown) {

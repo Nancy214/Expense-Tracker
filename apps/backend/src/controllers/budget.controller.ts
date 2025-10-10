@@ -146,7 +146,7 @@ export const deleteBudget = async (req: Request, res: Response): Promise<void> =
         }
 
         // Create a log for the budget deletion
-        const reasonForDeletion = (req as any)?.body?.reason || "Budget deletion";
+        const reasonForDeletion = req?.body?.reason || "Budget deletion";
 
         // Do not fail the deletion if log saving fails
         try {

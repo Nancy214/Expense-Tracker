@@ -12,7 +12,14 @@ import {
 import { BudgetLog } from "../models/budget-log.model";
 import { Budget } from "../models/budget.model";
 import { TransactionModel } from "../models/transaction.model";
-import { BudgetChange, BudgetData, BudgetProgress, BudgetType, Transaction } from "@expense-tracker/shared-types/src";
+import {
+    BudgetChange,
+    BudgetData,
+    BudgetProgress,
+    BudgetType,
+    Transaction,
+    BudgetLogType,
+} from "@expense-tracker/shared-types/src";
 
 export class BudgetDAO {
     /**
@@ -129,7 +136,7 @@ export class BudgetDAO {
     /**
      * Get budget logs for a user, optionally filtered by budget ID
      */
-    static async getBudgetLogs(userId: string, budgetId?: string): Promise<any[]> {
+    static async getBudgetLogs(userId: string, budgetId?: string): Promise<BudgetLogType[]> {
         const query = budgetId
             ? { userId: new mongoose.Types.ObjectId(userId), budgetId: new mongoose.Types.ObjectId(budgetId) }
             : { userId: new mongoose.Types.ObjectId(userId) };
@@ -146,7 +153,7 @@ export class BudgetDAO {
         changeType: "created" | "updated" | "deleted",
         changes: BudgetChange[],
         reason: string
-    ): Promise<any> {
+    ): Promise<BudgetLogType> {
         const budgetLog = new BudgetLog({
             id: new mongoose.Types.ObjectId().toString(),
             budgetId,
@@ -362,7 +369,7 @@ export class BudgetDAO {
     /**
      * Compare old and new budget values to detect changes
      */
-    static detectBudgetChanges(oldBudget: any, newBudgetData: BudgetData): BudgetChange[] {
+    static detectBudgetChanges(oldBudget: BudgetData, newBudgetData: BudgetData): BudgetChange[] {
         const changes: BudgetChange[] = [];
 
         if (oldBudget.title !== newBudgetData.title) {
