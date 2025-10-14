@@ -59,18 +59,6 @@ export interface CategoryBreakdownResponse {
 export type ExpenseCategoryBreakdownResponse = Omit<CategoryBreakdownResponse, "totalBills">;
 export type BillsCategoryBreakdownResponse = Omit<CategoryBreakdownResponse, "totalExpenses">;
 
-//income-expense and savings data types
-/* export interface SavingsTrendItem {
-    month: string;
-    year: number;
-    monthIndex: number;
-    period: string;
-    income: number;
-    expenses: number;
-    savings: number;
-    transactionCount: number;
-}
- */
 export interface TransactionAnalyticsData {
     month: string;
     year: number;
@@ -132,8 +120,13 @@ export interface BarChartProps extends ChartProps {
     };
 }
 
+export enum ChartTypes {
+    BAR = "bar",
+    AREA = "area",
+}
+
 export interface TransformedBarData {
-    type: "bar";
+    type: ChartTypes.BAR;
     name: string;
     Income: number;
     Expense: number;
@@ -148,7 +141,7 @@ export interface BarChartMonthNetData {
 
 // Area chart types
 export interface AreaChartData {
-    type: "area";
+    type: ChartTypes.AREA;
     name: string;
     savings: number;
     income?: number;
@@ -167,7 +160,7 @@ export interface AreaChartProps extends ChartProps {
 // Tooltip types
 
 export interface ChartTooltipPayload {
-    type: "area" | "bar";
+    type: ChartTypes.AREA | ChartTypes.BAR;
     payload: AreaChartData | TransformedBarData;
 }
 
