@@ -161,9 +161,9 @@ export function useSettings(userId: string): UseQueryResult<SettingsData, AxiosE
                     expenseReminderTime: "18:00",
                 }
             ),
-        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-        gcTime: 10 * 60 * 1000, // Cache for 10 minutes
-        refetchOnWindowFocus: false, // Don't refetch on window focus
+        staleTime: 0, // Always consider data stale to get fresh settings
+        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+        refetchOnWindowFocus: true, // Refetch on window focus to get fresh settings
         enabled: isAuthenticated && !!userId && !!profileData, // Only run the query if authenticated, userId exists, and profile data is available
     });
 }

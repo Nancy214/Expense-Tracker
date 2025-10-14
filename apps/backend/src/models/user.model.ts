@@ -5,7 +5,7 @@ const userSchema = new Schema(
     {
         _id: {
             type: Schema.Types.ObjectId,
-            //default: () => new mongoose.Types.ObjectId(),
+            default: () => new mongoose.Types.ObjectId(),
         },
         email: {
             type: String,
@@ -73,18 +73,18 @@ const userSchema = new Schema(
 
 const settingsSchema = new Schema(
     {
-        userId: {
+        _id: {
             type: Schema.Types.ObjectId,
             ref: "User",
             required: true,
         },
         billsAndBudgetsAlert: {
             type: Boolean,
-            default: true,
+            default: false,
         },
         monthlyReports: {
             type: Boolean,
-            default: true,
+            default: false,
         },
         expenseReminders: {
             type: Boolean,

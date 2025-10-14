@@ -82,24 +82,3 @@ export interface PasswordResponse {
     success: boolean;
     message?: string;
 }
-
-/* export interface ChangePasswordErrors {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-} */
-
-/* export interface GoogleCallbackTokens {
-    accessToken: string;
-    refreshToken: string;
-    user: User;
-} */
-
-/* export interface ApiErrorResponse {
-    response?: {
-        data?: {
-            message?: string;
-        };
-    };
-    message?: string;
-} */

@@ -1,7 +1,84 @@
 import { formatToHumanReadableDate } from "./dateUtils";
-import { Period } from "@expense-tracker/shared-types/src";
+import { getDaysInMonth, parse, parseISO, format, isDate, isValid as isValidDate } from "date-fns";
+import { Period, AreaChartData, BarChartData } from "@expense-tracker/shared-types/src";
 
 // Utility functions for chart x-axis formatting based on time period
+
+/**
+ * Parse date string using date-fns with multiple format strategies
+ * @param dateInput - Date string or Date object
+ * @returns Parsed Date object or null if invalid
+ */
+const parseDateWithDateFns = (dateInput: string | Date): Date | null => {
+    // If already a Date object, validate and return
+    if (isDate(dateInput)) {
+        return isValidDate(dateInput) ? dateInput : null;
+    }
+
+    if (typeof dateInput !== "string") {
+        return null;
+    }
+
+    const currentYear = new Date().getFullYear();
+    const referenceDate = new Date(currentYear, 0, 1);
+
+    // Try different date formats in order of likelihood
+    const formats = [
+        { pattern: "dd/MM", reference: referenceDate }, // DD/MM format
+        { pattern: "dd/MM/yyyy", reference: new Date() }, // DD/MM/YYYY format
+        { pattern: "yyyy-MM-dd", reference: new Date() }, // ISO date format
+        { pattern: "yyyy-MM-dd'T'HH:mm:ss", reference: new Date() }, // ISO datetime format
+    ];
+
+    // Try parsing with each format
+    for (const { pattern, reference } of formats) {
+        try {
+            const parsed = parse(dateInput, pattern, reference);
+            if (isValidDate(parsed)) {
+                return parsed;
+            }
+        } catch {
+            // Continue to next format
+        }
+    }
+
+    // Try parseISO as fallback
+    try {
+        const isoParsed = parseISO(dateInput);
+        if (isValidDate(isoParsed)) {
+            return isoParsed;
+        }
+    } catch {
+        // Continue to native Date parsing
+    }
+
+    // Last resort: native Date parsing
+    try {
+        const nativeParsed = new Date(dateInput);
+        return isValidDate(nativeParsed) ? nativeParsed : null;
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * Generate month names using date-fns for consistency
+ * @param format - Format for month names ('long', 'short', or 'narrow')
+ * @returns Array of month names
+ */
+const generateMonthNames = (formatType: "long" | "short" | "narrow" = "short"): string[] => {
+    const months: string[] = [];
+    const currentYear = new Date().getFullYear();
+
+    for (let month = 0; month < 12; month++) {
+        const date = new Date(currentYear, month, 1);
+        const formatPattern = formatType === "long" ? "MMMM" : formatType === "short" ? "MMM" : "M";
+        const monthName = format(date, formatPattern);
+        months.push(monthName);
+    }
+
+    return months;
+};
 
 /**
  * Generate x-axis labels based on the selected time period
@@ -16,20 +93,7 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
     switch (period) {
         case Period.MONTHLY:
             // For monthly view, show all dates in DD/MM format for the entire month
-            const monthNames = [
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December",
-            ];
+            const monthNames = generateMonthNames("long");
             const monthIndex = monthNames.indexOf(subPeriod);
 
             if (monthIndex !== -1) {
@@ -38,12 +102,14 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
                 const year = currentYear;
 
                 // Get the number of days in the selected month
-                const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+                const daysInMonth = getDaysInMonth(new Date(year, monthIndex, 1));
 
-                // Generate date labels for all days in the month in DD/MM format
+                // Generate date labels for all days in the month using date-fns
                 for (let day = 1; day <= daysInMonth; day++) {
                     const date = new Date(year, monthIndex, day);
-                    labels.push(formatToHumanReadableDate(date));
+                    // Use date-fns format for consistent formatting
+                    const formattedDate = format(date, "dd MMM yyyy");
+                    labels.push(formattedDate);
                 }
             } else {
                 // Fallback to day numbers if month not found
@@ -55,20 +121,7 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 
         case Period.QUARTERLY:
             // For quarterly view, show the correct months for the selected quarter
-            const quarterMonthNames = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
+            const quarterMonthNames = generateMonthNames("short");
 
             if (subPeriod.startsWith("Q")) {
                 const quarter = parseInt(subPeriod.replace("Q", ""));
@@ -89,20 +142,7 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 
         case Period.HALF_YEARLY:
             // For half-yearly view, show the correct months for the selected half-year
-            const halfYearMonthNames = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
+            const halfYearMonthNames = generateMonthNames("short");
 
             if (subPeriod.startsWith("H")) {
                 const half = parseInt(subPeriod.replace("H", ""));
@@ -123,20 +163,7 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 
         case Period.YEARLY:
             // For yearly view, show months for the selected year
-            const yearlyMonthNames = [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
-                "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
-            ];
+            const yearlyMonthNames = generateMonthNames("short");
 
             // For yearly view, show all 12 months of the selected year
             for (let i = 0; i < dataLength; i++) {
@@ -155,74 +182,35 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 };
 
 /**
- * Get the appropriate x-axis label for the chart based on time period
- * @param period - The selected time period
- * @returns X-axis label string
- */
-export const getXAxisLabel = (period: Period): string => {
-    switch (period) {
-        case Period.MONTHLY:
-        case Period.QUARTERLY:
-        case Period.HALF_YEARLY:
-        case Period.YEARLY:
-            return "";
-        default:
-            return "Time Period";
-    }
-};
-
-/**
- * Get the appropriate y-axis label for the chart
- * @param chartType - Type of chart (income-expense, savings, etc.)
- * @returns Y-axis label string
- */
-export const getYAxisLabel = (chartType: string): string => {
-    switch (chartType) {
-        case "income-expense":
-            return "Amount";
-        case "savings":
-            return "Savings Amount";
-        default:
-            return "Amount";
-    }
-};
-
-/**
  * Format data for charts based on time period
  * @param data - Original chart data
  * @param period - Selected time period
  * @param subPeriod - Selected sub-period
  * @returns Formatted data with appropriate x-axis labels
  */
-export const formatChartData = (data: any[], period: Period, subPeriod: string): any[] => {
+export function formatChartData(data: AreaChartData[], period: Period, subPeriod: string): AreaChartData[];
+export function formatChartData(data: BarChartData[], period: Period, subPeriod: string): BarChartData[];
+export function formatChartData(data: any[], period: Period, subPeriod: string): any[] {
+    console.log("data", data);
     if (!data || data.length === 0) return data;
 
-    // For monthly period, format the dates using formatToHumanReadableDate
+    // For monthly period, format the dates using date-fns
     if (period === Period.MONTHLY) {
         return data.map((item) => {
-            // Parse the date string properly
-            let date;
-            if (typeof item.name === "string") {
-                // Try to parse the date string
-                const parts = item.name.split("/");
-                if (parts.length === 2) {
-                    // If it's in DD/MM format, construct the date with current year
-                    const [day, month] = parts;
-                    date = new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day));
-                } else {
-                    // Otherwise try to parse it as a regular date string
-                    date = new Date(item.name);
-                }
-            } else if (item.name instanceof Date) {
-                date = item.name;
-            } else {
-                return item;
+            const parsedDate = parseDateWithDateFns(item.name);
+
+            if (parsedDate) {
+                const formattedDate = formatToHumanReadableDate(parsedDate);
+                return {
+                    ...item,
+                    name: formattedDate,
+                };
             }
 
-            const formattedDate = formatToHumanReadableDate(date);
+            // Fallback for invalid dates - keep original name
             return {
                 ...item,
-                name: formattedDate,
+                name: String(item.name),
             };
         });
     }
@@ -244,97 +232,4 @@ export const formatChartData = (data: any[], period: Period, subPeriod: string):
         name: labels[index] || item.name,
         originalName: item.name, // Keep original name for reference
     }));
-};
-
-/**
- * Get chart title based on time period and sub-period
- * @param baseTitle - Base title for the chart
- * @param period - Selected time period
- * @param subPeriod - Selected sub-period
- * @returns Formatted chart title
- */
-export const getChartTitle = (baseTitle: string, period: Period, subPeriod: string): string => {
-    switch (period) {
-        case Period.MONTHLY:
-            // For monthly, show only month name without date ranges
-            return `${baseTitle} - ${subPeriod}`;
-        case Period.QUARTERLY:
-            return `${baseTitle} - ${subPeriod}`;
-        case Period.HALF_YEARLY:
-            return `${baseTitle} - ${subPeriod}`;
-        case Period.YEARLY:
-            return `${baseTitle} - ${subPeriod}`;
-        default:
-            return baseTitle;
-    }
-};
-
-/**
- * Get chart description based on time period
- * @param baseDescription - Base description for the chart
- * @param period - Selected time period
- * @returns Formatted chart description
- */
-export const getChartDescription = (baseDescription: string, period: Period): string => {
-    switch (period) {
-        case Period.MONTHLY:
-            // For monthly, return base description without date-related additions
-            return baseDescription;
-        case Period.QUARTERLY:
-            return `${baseDescription} - Monthly view within the selected quarter`;
-        case Period.HALF_YEARLY:
-            return `${baseDescription} - Monthly view within the selected half-year`;
-        case Period.YEARLY:
-            return `${baseDescription} - Monthly view within the selected year`;
-        default:
-            return baseDescription;
-    }
-};
-
-/**
- * Get current period data based on selected time period and sub-period
- * @param data - Chart data array
- * @param period - Selected time period
- * @param subPeriod - Selected sub-period
- * @returns Current period data or null if not found
- */
-export const getCurrentPeriodData = (data: any[], period: Period, subPeriod: string): any | null => {
-    if (!data || data.length === 0) return null;
-
-    // Define month names array at the top level
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    switch (period) {
-        case Period.MONTHLY:
-            // For monthly, find the data that matches the selected month
-            return data.find((item) => item.name === subPeriod || item.originalName === subPeriod) || null;
-
-        case Period.QUARTERLY:
-            // For quarterly, find the last month in the selected quarter
-            if (subPeriod.startsWith("Q")) {
-                const quarter = parseInt(subPeriod.replace("Q", ""));
-                const lastMonthIndex = quarter * 3 - 1; // Q1=2 (Mar), Q2=5 (Jun), Q3=8 (Sep), Q4=11 (Dec)
-                const lastMonthName = monthNames[lastMonthIndex];
-                return data.find((item) => item.name === lastMonthName || item.originalName === lastMonthName) || null;
-            }
-            return null;
-
-        case Period.HALF_YEARLY:
-            // For half-yearly, find the last month in the selected half-year
-            if (subPeriod.startsWith("H")) {
-                const half = parseInt(subPeriod.replace("H", ""));
-                const lastMonthIndex = half === 1 ? 5 : 11; // H1=5 (Jun), H2=11 (Dec)
-                const lastMonthName = monthNames[lastMonthIndex];
-                return data.find((item) => item.name === lastMonthName || item.originalName === lastMonthName) || null;
-            }
-            return null;
-
-        case Period.YEARLY:
-            // For yearly, find the last month (December) of the selected year
-            return data.find((item) => item.name === "Dec" || item.originalName === "Dec") || null;
-
-        default:
-            // Fallback to last item
-            return data[data.length - 1] || null;
-    }
-};
+}

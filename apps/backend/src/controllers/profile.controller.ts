@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import { Settings, User } from "../models/user.model";
-import { TokenPayload, UserType } from "@expense-tracker/shared-types/src/auth";
+import { TokenPayload, UserType, SettingsType } from "@expense-tracker/shared-types/src/auth";
 import { ProfileData, SettingsData, CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src/profile";
 import { AuthenticatedUser } from "@expense-tracker/shared-types/src/auth";
 import dotenv from "dotenv";
@@ -8,8 +7,9 @@ import { s3Client, isAWSConfigured } from "../config/s3Client";
 import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from "sharp";
-import CountryTimezoneCurrency from "../models/countries.model";
 import crypto from "crypto";
+import { ProfileDAO } from "../daos/profile.dao";
+import { AuthDAO } from "../daos/auth.dao";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
@@ -45,22 +45,17 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        const userDoc: UserType | null = await User.findById(userId).select("-password");
+        const userDoc: UserType | null = await AuthDAO.findUserById(userId);
         if (!userDoc) {
             res.status(404).json({ message: "User not found" });
             return;
         }
 
-        let settingsDoc = await Settings.findById(userId);
+        let settingsDoc: SettingsType | null = await AuthDAO.findUserSettings(userId);
+
+        // If no settings exist, create them with defaults
         if (!settingsDoc) {
-            const defaultSettings: SettingsData = {
-                //userId,
-                monthlyReports: false,
-                expenseReminders: true,
-                billsAndBudgetsAlert: false,
-                expenseReminderTime: "18:00",
-            };
-            settingsDoc = await Settings.create(defaultSettings);
+            settingsDoc = await AuthDAO.findOrCreateUserSettings(userId);
         }
 
         // Generate pre-signed URL for profile picture if it exists
@@ -90,10 +85,10 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
             /* budget: userDoc.budget || false,
             budgetType: userDoc.budgetType || "", */
             settings: {
-                monthlyReports: settingsDoc.monthlyReports,
-                expenseReminders: settingsDoc.expenseReminders,
-                billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-                expenseReminderTime: settingsDoc.expenseReminderTime,
+                monthlyReports: settingsDoc?.monthlyReports ?? false,
+                expenseReminders: settingsDoc?.expenseReminders ?? false,
+                billsAndBudgetsAlert: settingsDoc?.billsAndBudgetsAlert ?? false,
+                expenseReminderTime: settingsDoc?.expenseReminderTime ?? "18:00",
             },
         };
 
@@ -119,15 +114,15 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
         }
 
         // Get current user data to check for existing profile picture
-        const currentUser: UserType | null = await User.findById(userId).select("profilePicture");
+        const currentUser = await ProfileDAO.findUserProfilePicture(userId);
         const oldProfilePictureKey: string | undefined = currentUser?.profilePicture;
 
         const { name, email, phoneNumber, dateOfBirth, currency, country, timezone }: ProfileData = req.body;
 
         // Check if email is being changed and if it's already taken
         if (email) {
-            const existingUser: UserType | null = await User.findOne({ email, _id: { $ne: userId } });
-            if (existingUser) {
+            const emailExists = await ProfileDAO.checkEmailExists(email, userId);
+            if (emailExists) {
                 res.status(400).json({ message: "Email already exists" });
                 return;
             }
@@ -199,10 +194,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             }
         }
 
-        const updatedUser: UserType | null = await User.findByIdAndUpdate(userId, updateData, {
-            new: true,
-            runValidators: true,
-        }).select("-password");
+        const updatedUser: UserType | null = await ProfileDAO.updateUserProfile(userId, updateData);
 
         if (!updatedUser) {
             res.status(404).json({ message: "User not found" });
@@ -223,7 +215,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             }); // 5 minutes
         }
 
-        const settingsDoc = await Settings.findById(updatedUser.id);
+        const settingsDoc = await AuthDAO.findUserSettings(updatedUser.id);
         const userWithSettings: AuthenticatedUser = {
             id: updatedUser.id,
             name: updatedUser.name || "",
@@ -238,10 +230,10 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             budgetType: updatedUser.budgetType || "", */
             settings: settingsDoc
                 ? {
-                      monthlyReports: settingsDoc.monthlyReports,
-                      expenseReminders: settingsDoc.expenseReminders,
-                      billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-                      expenseReminderTime: settingsDoc.expenseReminderTime,
+                      monthlyReports: settingsDoc.monthlyReports || false,
+                      expenseReminders: settingsDoc.expenseReminders || false,
+                      billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert || false,
+                      expenseReminderTime: settingsDoc.expenseReminderTime || "18:00",
                   }
                 : {
                       monthlyReports: false,
@@ -279,17 +271,7 @@ export const updateSettings = async (req: Request, res: Response): Promise<void>
         if (billsAndBudgetsAlert !== undefined) settingsData.billsAndBudgetsAlert = billsAndBudgetsAlert;
         if (expenseReminderTime !== undefined) settingsData.expenseReminderTime = expenseReminderTime;
 
-        // Use findByIdAndUpdate with upsert to create if doesn't exist, update if exists
-        const settingsDoc = await Settings.findByIdAndUpdate(
-            userId,
-            { ...settingsData },
-            {
-                new: true,
-                runValidators: true,
-                upsert: true, // Create if doesn't exist
-                setDefaultsOnInsert: true, // Apply schema defaults when creating
-            }
-        );
+        const settingsDoc = await ProfileDAO.updateUserSettings(userId, settingsData);
 
         if (!settingsDoc) {
             res.status(500).json({ message: "Failed to update settings" });
@@ -297,10 +279,10 @@ export const updateSettings = async (req: Request, res: Response): Promise<void>
         }
 
         const settingsResponse: SettingsData = {
-            monthlyReports: settingsDoc.monthlyReports,
-            expenseReminders: settingsDoc.expenseReminders,
-            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert,
-            expenseReminderTime: settingsDoc.expenseReminderTime,
+            monthlyReports: settingsDoc.monthlyReports || false,
+            expenseReminders: settingsDoc.expenseReminders || false,
+            billsAndBudgetsAlert: settingsDoc.billsAndBudgetsAlert || false,
+            expenseReminderTime: settingsDoc.expenseReminderTime || "18:00",
         };
 
         res.json({
@@ -323,12 +305,12 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
             res.status(401).json({ message: "User not authenticated" });
             return;
         }
-        const currentUser: UserType | null = await User.findById(userId).select("profilePicture");
+        const currentUser = await ProfileDAO.findUserProfilePicture(userId);
         const oldProfilePictureUrl = currentUser?.profilePicture;
         if (oldProfilePictureUrl) {
             await deleteOldProfilePicture(oldProfilePictureUrl);
         }
-        await User.findByIdAndUpdate(userId, { profilePicture: "" });
+        await ProfileDAO.removeUserProfilePicture(userId);
         res.json({ success: true, message: "Profile picture removed" });
     } catch (error: unknown) {
         res.status(500).json({ message: "Failed to remove profile picture" });
@@ -337,14 +319,7 @@ export const deleteProfilePicture = async (req: Request, res: Response): Promise
 
 export const getCountryTimezoneCurrency = async (_: Request, res: Response): Promise<void> => {
     try {
-        const countryTimezoneCurrency = await CountryTimezoneCurrency.find().sort({ country: 1 });
-
-        const result: CountryTimezoneCurrencyData[] = countryTimezoneCurrency.map((item) => ({
-            _id: item._id.toString(),
-            country: item.country,
-            currency: item.currency,
-            timezones: item.timezones,
-        }));
+        const result: CountryTimezoneCurrencyData[] = await ProfileDAO.getCountryTimezoneCurrency();
 
         res.json(result);
     } catch (error: unknown) {

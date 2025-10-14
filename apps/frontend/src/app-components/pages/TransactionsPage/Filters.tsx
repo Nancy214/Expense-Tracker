@@ -23,7 +23,7 @@ import {
 } from "@expense-tracker/shared-types/src";
 import { format } from "date-fns";
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { DateRange } from "react-day-picker";
 
 // Filters section props types
@@ -52,6 +52,13 @@ interface FiltersSectionProps {
     itemsPerPage?: number;
     apiRecurringTemplates?: TransactionOrBill[];
     isLoading?: boolean;
+    // Filter change callbacks
+    onFiltersChange?: (filters: {
+        categories?: string[];
+        types?: string[];
+        dateRange?: { from?: Date; to?: Date };
+        searchQuery?: string;
+    }) => void;
 }
 
 export function FiltersSection({
@@ -74,6 +81,7 @@ export function FiltersSection({
     itemsPerPage = 20,
     apiRecurringTemplates,
     isLoading = false,
+    onFiltersChange,
 }: FiltersSectionProps) {
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
@@ -112,6 +120,24 @@ export function FiltersSection({
         }
         setSelectedTypes(newTypes.length ? newTypes : ["all"]);
     };
+
+    // Function to notify parent component of filter changes
+    const notifyFiltersChange = () => {
+        if (onFiltersChange) {
+            const filters = {
+                categories: selectedCategories.includes("all") ? undefined : selectedCategories,
+                types: selectedTypes.includes("all") ? undefined : selectedTypes,
+                dateRange: dateRangeForFilter,
+                searchQuery: searchQuery || undefined,
+            };
+            onFiltersChange(filters);
+        }
+    };
+
+    // Notify parent when filters change
+    React.useEffect(() => {
+        notifyFiltersChange();
+    }, [selectedCategories, selectedTypes, dateRangeForFilter, searchQuery]);
 
     return (
         <Card>

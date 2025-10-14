@@ -10,7 +10,7 @@ import {
     Legend,
 } from "recharts";
 import { AreaChartData, AreaChartProps, ChartTooltipProps, Period } from "@expense-tracker/shared-types/src";
-import { formatChartData, getXAxisLabel, getChartTitle, getChartDescription } from "@/utils/chartUtils";
+import { formatChartData } from "@/utils/chartUtils";
 
 const COLORS = {
     savings: "#10b981", // Green for savings
@@ -19,7 +19,7 @@ const COLORS = {
 
 const AreaChartComponent: React.FC<AreaChartProps> = ({
     title = "Monthly Savings Trend",
-    description = "Track your monthly savings progress",
+    description = "Track your savings progress over time",
     data = [],
     colors = COLORS,
     showInsights = true,
@@ -192,37 +192,30 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     };
 
     // Format data based on time period
-    const formattedData = formatChartData(data, timePeriod as Period, subPeriod);
+    const formattedData: AreaChartData[] = formatChartData(data, timePeriod as Period, subPeriod);
 
     // Transform all data to ensure it has the proper AreaChartData format with type property
-    const chartData = formattedData.map((item) => ({
+    /*  const chartData = formattedData.map((item) => ({
         type: "area" as const,
         name: item.name,
-        savings: item.savings || 0,
-        income: item.income || 0,
-        expenses: item.expenses || 0,
+        savings: item?.savings || 0,
+        income: item?.income || 0,
+        expenses: item?.expenses || 0,
     }));
-
-    // Get dynamic labels and titles
-    const dynamicTitle = getChartTitle(title, timePeriod, subPeriod);
-    const dynamicDescription = getChartDescription(description, timePeriod);
-    const xAxisLabel = getXAxisLabel(timePeriod);
-
+ */
     return (
         <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between">
                 <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100">
-                    {dynamicTitle}
+                    {title}
                 </h2>
             </div>
-            {dynamicDescription && (
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">{dynamicDescription}</p>
-            )}
+            {description && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>}
 
             <div className="w-full flex flex-col items-center">
                 <div className="w-full h-[300px] sm:h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
-                        <RechartsAreaChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 20 }}>
+                        <RechartsAreaChart data={formattedData} margin={{ top: 20, right: 10, left: 10, bottom: 20 }}>
                             <defs>
                                 <linearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor={colors.savings} stopOpacity={0.8} />
@@ -233,7 +226,7 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                             <XAxis
                                 dataKey="name"
                                 tick={{ fontSize: 10 }}
-                                label={{ value: xAxisLabel, position: "bottom", offset: 0 }}
+                                label={{ value: "", position: "bottom", offset: 0 }}
                             />
                             <YAxis
                                 tickFormatter={(value) => formatAmount(value)}
@@ -274,12 +267,12 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                     <ul className="divide-y divide-muted-foreground/10">
                         {(() => {
                             // Calculate averages from all data points
-                            const totalSavings = chartData.reduce((sum, item) => sum + (item.savings || 0), 0);
-                            const totalIncome = chartData.reduce((sum, item) => sum + (item.income || 0), 0);
-                            const totalExpenses = chartData.reduce((sum, item) => sum + (item.expenses || 0), 0);
-                            const avgSavings = totalSavings / chartData.length;
-                            const avgIncome = totalIncome / chartData.length;
-                            const avgExpenses = totalExpenses / chartData.length;
+                            const totalSavings = formattedData.reduce((sum, item) => sum + (item.savings || 0), 0);
+                            const totalIncome = formattedData.reduce((sum, item) => sum + (item.income || 0), 0);
+                            const totalExpenses = formattedData.reduce((sum, item) => sum + (item.expenses || 0), 0);
+                            const avgSavings = totalSavings / formattedData.length;
+                            const avgIncome = totalIncome / formattedData.length;
+                            const avgExpenses = totalExpenses / formattedData.length;
 
                             const periodLabel = (() => {
                                 switch (timePeriod) {
@@ -313,14 +306,14 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                 </div>
 
                 <div className="mt-2 mb-2 text-xs sm:text-sm text-muted-foreground text-center px-2">
-                    {chartData.length > 0
+                    {formattedData.length > 0
                         ? (() => {
-                              const totalSavings = chartData.reduce((sum, item) => sum + (item.savings || 0), 0);
-                              const totalIncome = chartData.reduce((sum, item) => sum + (item.income || 0), 0);
-                              const totalExpenses = chartData.reduce((sum, item) => sum + (item.expenses || 0), 0);
-                              const avgSavings = totalSavings / chartData.length;
-                              const avgIncome = totalIncome / chartData.length;
-                              const avgExpenses = totalExpenses / chartData.length;
+                              const totalSavings = formattedData.reduce((sum, item) => sum + (item.savings || 0), 0);
+                              const totalIncome = formattedData.reduce((sum, item) => sum + (item.income || 0), 0);
+                              const totalExpenses = formattedData.reduce((sum, item) => sum + (item.expenses || 0), 0);
+                              const avgSavings = totalSavings / formattedData.length;
+                              const avgIncome = totalIncome / formattedData.length;
+                              const avgExpenses = totalExpenses / formattedData.length;
 
                               const periodLabel = (() => {
                                   switch (timePeriod) {
@@ -351,8 +344,8 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                             Smart Insights
                         </h4>
                         <div className="space-y-1 sm:space-y-2">
-                            {chartData.length > 0 ? (
-                                generateInsights(chartData).map((insight, index) => (
+                            {formattedData.length > 0 ? (
+                                generateInsights(formattedData).map((insight, index) => (
                                     <div
                                         key={`insight-${index}-${insight.slice(0, 20)}`}
                                         className="text-xs text-muted-foreground rounded"

@@ -30,13 +30,21 @@ const TransactionsPage = () => {
     const [billsPage, setBillsPage] = useState(1);
     const [itemsPerPage] = useState(20);
 
+    // Filter state
+    const [filters, setFilters] = useState<{
+        categories?: string[];
+        types?: string[];
+        dateRange?: { from?: Date; to?: Date };
+        searchQuery?: string;
+    }>({});
+
     // Use the appropriate hook based on active tab
     const {
         transactions: allTransactions,
         pagination: allTransactionsPagination,
         invalidateAllTransactions,
         isLoading: isAllTransactionsLoading,
-    } = useAllTransactions(allTransactionsPage, itemsPerPage);
+    } = useAllTransactions(allTransactionsPage, itemsPerPage, filters);
     const {
         bills,
         pagination: billsPagination,
@@ -101,6 +109,18 @@ const TransactionsPage = () => {
         invalidateAllTransactions();
         invalidateBills();
         invalidateRecurringTemplates();
+    };
+
+    // Handle filter changes
+    const handleFiltersChange = (newFilters: {
+        categories?: string[];
+        types?: string[];
+        dateRange?: { from?: Date; to?: Date };
+        searchQuery?: string;
+    }) => {
+        setFilters(newFilters);
+        // Reset to first page when filters change
+        setAllTransactionsPage(1);
     };
 
     // Handle URL parameter for tab
@@ -570,6 +590,7 @@ const TransactionsPage = () => {
                 isLoading={isLoading()}
                 // Recurring templates from API
                 apiRecurringTemplates={apiRecurringTemplates}
+                onFiltersChange={handleFiltersChange}
             />
             {/* Add Expense Dialog */}
             <AddExpenseDialog
