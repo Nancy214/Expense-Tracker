@@ -20,6 +20,10 @@ const GoogleCallback: React.FC = () => {
 
                 const tokens: AuthResponse = JSON.parse(decodeURIComponent(tokensParam));
 
+                if (!tokens.user) {
+                    throw new Error("Invalid auth response: user missing");
+                }
+
                 // Store tokens in localStorage
                 localStorage.setItem("accessToken", tokens.accessToken || "");
                 localStorage.setItem("refreshToken", tokens.refreshToken || "");

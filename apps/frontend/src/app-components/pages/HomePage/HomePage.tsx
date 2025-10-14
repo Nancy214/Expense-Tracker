@@ -150,15 +150,17 @@ const HomePage = () => {
                     <p>Error loading budget reminders. Please try again later.</p>
                 </div>
             ) : (
-                <BudgetRemindersUI
-                    user={user}
-                    activeReminders={
-                        budgetRemindersData?.filter(
-                            (reminder: BudgetReminder) => !dismissedReminders.has(reminder.id)
-                        ) || []
-                    }
-                    dismissReminder={dismissReminder}
-                />
+                user && (
+                    <BudgetRemindersUI
+                        user={user}
+                        activeReminders={
+                            budgetRemindersData?.filter(
+                                (reminder: BudgetReminder) => !dismissedReminders.has(reminder.id)
+                            ) || []
+                        }
+                        dismissReminder={dismissReminder}
+                    />
+                )
             )}
 
             {/* Bill Alerts - Unified */}

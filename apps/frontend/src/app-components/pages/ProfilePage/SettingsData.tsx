@@ -8,7 +8,7 @@ import { useProfileMutations, useSettings } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 import { AuthenticatedUser, SettingsData as SettingsDataType } from "@expense-tracker/shared-types/src";
 import { LogOut, Save, Settings, Shield } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface SettingsDataProps {
@@ -67,11 +67,15 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
     // When saving, convert to 24h
     const handleSaveSettings = async (): Promise<void> => {
         try {
+            const settingsPayload: SettingsDataType = {
+                monthlyReports: settings.monthlyReports ?? false,
+                expenseReminders: settings.expenseReminders ?? false,
+                billsAndBudgetsAlert: settings.billsAndBudgetsAlert ?? false,
+                expenseReminderTime: expenseReminderTime,
+            };
+
             const updatedSettings: SettingsDataType = await updateSettingsMutation({
-                settings: {
-                    ...settings,
-                    expenseReminderTime: expenseReminderTime,
-                },
+                settings: settingsPayload,
                 userId: user?.id || "",
             });
 
@@ -102,10 +106,14 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
                 dateOfBirth: String(user?.dateOfBirth ?? ""),
                 currency: String(user?.currency ?? ""),
                 country: String(user?.country ?? ""),
+                timezone: String(user?.timezone ?? ""),
                 settings: {
-                    ...user?.settings,
-                    ...updatedSettings,
-                    expenseReminderTime: updatedSettings.expenseReminderTime || "18:00",
+                    monthlyReports: updatedSettings.monthlyReports ?? user?.settings?.monthlyReports ?? false,
+                    expenseReminders: updatedSettings.expenseReminders ?? user?.settings?.expenseReminders ?? true,
+                    billsAndBudgetsAlert:
+                        updatedSettings.billsAndBudgetsAlert ?? user?.settings?.billsAndBudgetsAlert ?? false,
+                    expenseReminderTime:
+                        updatedSettings.expenseReminderTime || user?.settings?.expenseReminderTime || "18:00",
                 },
             };
             localStorage.setItem("user", JSON.stringify(updatedUser));
