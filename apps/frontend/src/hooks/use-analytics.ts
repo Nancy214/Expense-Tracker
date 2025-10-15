@@ -16,35 +16,10 @@ import {
     MonthlyStats,
     Transaction,
     TransactionOrBill,
+    TransactionType,
 } from "@expense-tracker/shared-types/src";
 import { useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
-
-// Type definitions for analytics API responses
-export interface ExpenseBreakdownResponse {
-    success: boolean;
-    data: ExpenseCategoryBreakdownResponse[];
-    totalExpenses: number;
-    totalAmount: number;
-}
-
-export interface BillsBreakdownResponse {
-    success: boolean;
-    data: BillsCategoryBreakdownResponse[];
-    totalBills: number;
-    totalAmount: number;
-}
-
-export interface CurrentMonthData {
-    period: string;
-    startDate: string;
-    endDate: string;
-    income: number;
-    expenses: number;
-    bills: number;
-    netIncome: number;
-    transactionCount: number;
-}
 
 // Query keys for analytics data
 export const ANALYTICS_QUERY_KEYS = {
@@ -334,11 +309,11 @@ export function useExpensesSelector(): ExpensesSelectorReturn {
         });
 
         const totalIncome = currentMonthTransactions
-            .filter((t: TransactionOrBill) => t.type === "income")
+            .filter((t: TransactionOrBill) => t.type === TransactionType.INCOME)
             .reduce((sum: number, t: TransactionOrBill) => sum + (t.amount || 0), 0);
 
         const totalExpenses = currentMonthTransactions
-            .filter((t: TransactionOrBill) => t.type === "expense")
+            .filter((t: TransactionOrBill) => t.type === TransactionType.EXPENSE)
             .reduce((sum: number, t: TransactionOrBill) => sum + (t.amount || 0), 0);
 
         return {

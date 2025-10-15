@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { User } from "../models/user.model";
 import { generateTokens } from "../controllers/auth.controller";
-import { UserType } from "@expense-tracker/shared-types/src/auth";
+import { UserType } from "@expense-tracker/shared-types/src";
 
 dotenv.config();
 
@@ -69,7 +69,7 @@ passport.use(
             clientSecret: GOOGLE_CLIENT_SECRET || "",
             callbackURL: "http://localhost:8000/api/auth/google/callback",
         },
-        async (profile: any, done: any) => {
+        async (_accessToken: string, _refreshToken: string, profile: any, done: any) => {
             try {
                 const user = await User.findOne({
                     googleId: profile.id,
@@ -79,11 +79,11 @@ passport.use(
                 if (user) {
                     //console.log("User found");
                     const userDoc = user as UserType;
-                    const { accessToken, refreshToken } = generateTokens(userDoc);
+                    const { accessToken: access, refreshToken: refresh } = generateTokens(userDoc);
                     const userWithTokens = {
                         ...user.toJSON(),
-                        accessToken,
-                        refreshToken,
+                        accessToken: access,
+                        refreshToken: refresh,
                     };
                     return done(null, userWithTokens);
                 } else {
@@ -95,11 +95,11 @@ passport.use(
                         profilePicture: profile.photos[0].value,
                     });
                     const newUserDoc = newUser as UserType;
-                    const { accessToken, refreshToken } = generateTokens(newUserDoc);
+                    const { accessToken: access, refreshToken: refresh } = generateTokens(newUserDoc);
                     const userWithTokens = {
                         ...newUser.toJSON(),
-                        accessToken,
-                        refreshToken,
+                        accessToken: access,
+                        refreshToken: refresh,
                     };
                     await newUser.save();
                     return done(null, userWithTokens);

@@ -1,16 +1,16 @@
 import { useAuth } from "@/context/AuthContext";
-import {
-    ForgotPasswordFormData,
-    forgotPasswordSchema,
-    LoginFormData,
-    loginSchema,
-    RegisterFormData,
-    registerSchema,
-    ResetPasswordFormData,
-    resetPasswordSchema,
-} from "@/schemas/authSchema";
 import { forgotPassword, register, resetPassword } from "@/services/auth.service";
-import { ApiError } from "@expense-tracker/shared-types/src";
+import {
+    ApiError,
+    ZLoginCredentials,
+    LoginCredentials,
+    ForgotPasswordFormData,
+    ZForgotPasswordFormData,
+    RegisterCredentials,
+    ZRegisterCredentials,
+    ZResetPasswordSchema,
+    ResetPasswordSchema,
+} from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm, UseFormReturn } from "react-hook-form";
@@ -18,22 +18,22 @@ import { useNavigate } from "react-router-dom";
 
 // Return type interfaces for each hook
 interface UseLoginFormReturn {
-    form: UseFormReturn<LoginFormData>;
+    form: UseFormReturn<LoginCredentials>;
     error: string;
-    onSubmit: (data: LoginFormData) => Promise<void>;
+    onSubmit: (data: LoginCredentials) => Promise<void>;
 }
 
 interface UseRegisterFormReturn {
-    form: UseFormReturn<RegisterFormData>;
+    form: UseFormReturn<RegisterCredentials>;
     error: string;
-    onSubmit: (data: RegisterFormData) => Promise<void>;
+    onSubmit: (data: RegisterCredentials) => Promise<void>;
 }
 
 interface UseResetPasswordFormReturn {
-    form: UseFormReturn<ResetPasswordFormData>;
+    form: UseFormReturn<ResetPasswordSchema>;
     error: string;
     success: string;
-    onSubmit: (data: ResetPasswordFormData) => Promise<void>;
+    onSubmit: (data: ResetPasswordSchema) => Promise<void>;
     token: string;
     setToken: (token: string) => void;
 }
@@ -51,15 +51,15 @@ export const useLoginForm = (): UseLoginFormReturn => {
     const { login: authLogin } = useAuth();
     const [error, setError] = useState<string>("");
 
-    const form: UseFormReturn<LoginFormData> = useForm<LoginFormData>({
-        resolver: zodResolver(loginSchema),
+    const form: UseFormReturn<LoginCredentials> = useForm<LoginCredentials>({
+        resolver: zodResolver(ZLoginCredentials),
         defaultValues: {
             email: "",
             password: "",
         },
     });
 
-    const onSubmit = async (data: LoginFormData): Promise<void> => {
+    const onSubmit = async (data: LoginCredentials): Promise<void> => {
         setError("");
 
         try {
@@ -87,17 +87,16 @@ export const useRegisterForm = (): UseRegisterFormReturn => {
     const navigate = useNavigate();
     const [error, setError] = useState<string>("");
 
-    const form: UseFormReturn<RegisterFormData> = useForm<RegisterFormData>({
-        resolver: zodResolver(registerSchema),
+    const form: UseFormReturn<RegisterCredentials> = useForm<RegisterCredentials>({
+        resolver: zodResolver(ZRegisterCredentials),
         defaultValues: {
             name: "",
             email: "",
             password: "",
-            confirmPassword: "",
         },
     });
 
-    const onSubmit = async (data: RegisterFormData): Promise<void> => {
+    const onSubmit = async (data: RegisterCredentials): Promise<void> => {
         setError("");
 
         try {
@@ -125,15 +124,15 @@ export const useResetPasswordForm = (): UseResetPasswordFormReturn => {
     const [success, setSuccess] = useState<string>("");
     const [token, setToken] = useState<string>("");
 
-    const form: UseFormReturn<ResetPasswordFormData> = useForm<ResetPasswordFormData>({
-        resolver: zodResolver(resetPasswordSchema),
+    const form: UseFormReturn<ResetPasswordSchema> = useForm<ResetPasswordSchema>({
+        resolver: zodResolver(ZResetPasswordSchema),
         defaultValues: {
-            newPassword: "",
-            confirmPassword: "",
+            newPassword: { password: "" },
+            confirmPassword: { password: "" },
         },
     });
 
-    const onSubmit = async (data: ResetPasswordFormData): Promise<void> => {
+    const onSubmit = async (data: ResetPasswordSchema): Promise<void> => {
         if (!token) {
             setError("Invalid reset link. Please request a new password reset.");
             return;
@@ -143,7 +142,7 @@ export const useResetPasswordForm = (): UseResetPasswordFormReturn => {
         setSuccess("");
 
         try {
-            await resetPassword(token, data.newPassword);
+            await resetPassword(token, data.newPassword.password);
             setSuccess("Password reset successfully! Redirecting to login...");
             setTimeout((): void => {
                 navigate("/login");
@@ -172,7 +171,7 @@ export const useForgotPasswordForm = (): UseForgotPasswordFormReturn => {
     const [success, setSuccess] = useState<string>("");
 
     const form: UseFormReturn<ForgotPasswordFormData> = useForm<ForgotPasswordFormData>({
-        resolver: zodResolver(forgotPasswordSchema),
+        resolver: zodResolver(ZForgotPasswordFormData),
         defaultValues: {
             email: "",
         },

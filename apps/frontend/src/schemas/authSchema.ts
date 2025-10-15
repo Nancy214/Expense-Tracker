@@ -2,8 +2,6 @@ import { z } from "zod";
 
 // Common validation patterns
 const emailValidation = z
-    .string()
-    .min(1, "Email is required")
     .email("Invalid email address")
     .max(30, "Email must be less than 30 characters")
     .toLowerCase()

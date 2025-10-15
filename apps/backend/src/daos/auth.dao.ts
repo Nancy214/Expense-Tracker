@@ -1,5 +1,5 @@
 import { User, Settings } from "../models/user.model";
-import { UserType, SettingsType, RegisterCredentials, JwtPayload } from "@expense-tracker/shared-types/src/auth";
+import { UserType, SettingsType, RegisterCredentials, JwtPayload } from "@expense-tracker/shared-types/src";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 

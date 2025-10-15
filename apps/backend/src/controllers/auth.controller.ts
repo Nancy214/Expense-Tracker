@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import passport from "passport";
 import {
-    UserGoogleType,
     UserLocalType,
     TokenPayload,
     ResetPasswordRequest,
@@ -12,7 +11,7 @@ import {
     PasswordResponse,
     RegisterCredentials,
     AuthResponse,
-} from "@expense-tracker/shared-types/src/auth";
+} from "@expense-tracker/shared-types/src";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import { s3Client } from "../config/s3Client";
@@ -56,7 +55,7 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
     passport.authenticate(
         "local",
         { session: false },
-        async (err: Error | null, user: UserLocalType | UserGoogleType | false, info: { message: string }) => {
+        async (err: Error | null, user: UserLocalType | UserType | false, info: { message: string }) => {
             if (err) {
                 return next(err);
             }
@@ -116,25 +115,32 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
 
 export const googleAuthCallback = async (req: Request, res: Response): Promise<void> => {
     try {
-        const response = req.user as AuthResponse;
+        const response = req.user as
+            | AuthResponse
+            | (Record<string, any> & { accessToken?: string; refreshToken?: string });
 
-        // Fetch or create settings
-        const settings: SettingsType | null = await AuthDAO.findOrCreateUserSettings(response?.user?.id || "");
+        // Support both shapes: { accessToken, refreshToken, user: {...} } OR a flattened user document with tokens
+        const flat = response as Record<string, any>;
+        const nestedUser = (response as AuthResponse)?.user;
+        const userId = nestedUser?.id || flat?.id || flat?._id || "";
+
+        // Fetch or create settings only if we have a valid user id
+        const settings: SettingsType | null = userId ? await AuthDAO.findOrCreateUserSettings(userId) : null;
 
         const tokens: string = encodeURIComponent(
             JSON.stringify({
-                accessToken: response?.accessToken || "",
-                refreshToken: response?.refreshToken || "",
+                accessToken: (response as AuthResponse)?.accessToken || flat?.accessToken || "",
+                refreshToken: (response as AuthResponse)?.refreshToken || flat?.refreshToken || "",
                 user: {
-                    id: response?.user?.id,
-                    email: response?.user?.email,
-                    name: response?.user?.name || "",
-                    profilePicture: response?.user?.profilePicture || "",
-                    phoneNumber: response?.user?.phoneNumber || "",
-                    dateOfBirth: response?.user?.dateOfBirth || "",
-                    currency: response?.user?.currency || "",
-                    country: response?.user?.country || "",
-                    timezone: response?.user?.timezone || "",
+                    id: userId || undefined,
+                    email: nestedUser?.email || flat?.email || "",
+                    name: nestedUser?.name || flat?.name || "",
+                    profilePicture: nestedUser?.profilePicture || flat?.profilePicture || "",
+                    phoneNumber: nestedUser?.phoneNumber || flat?.phoneNumber || "",
+                    dateOfBirth: nestedUser?.dateOfBirth || flat?.dateOfBirth || "",
+                    currency: nestedUser?.currency || flat?.currency || "",
+                    country: nestedUser?.country || flat?.country || "",
+                    timezone: nestedUser?.timezone || flat?.timezone || "",
                     settings,
                 },
             })
@@ -262,11 +268,31 @@ export const forgotPassword = async (
         }/reset-password?token=${resetToken}`;
 
         // Send email using SendGrid
-        sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+        const sendgridApiKey: string | undefined = process.env.SENDGRID_API_KEY;
+        let fromEmail: string = process.env.SENDGRID_FROM_EMAIL || "";
+
+        if (!sendgridApiKey) {
+            console.error("Forgot password error: SENDGRID_API_KEY is not configured");
+            res.status(500).json({ success: false, message: "Email service is not configured." });
+            return;
+        }
+
+        if (!fromEmail) {
+            if (process.env.NODE_ENV === "production") {
+                console.error("Forgot password error: SENDGRID_FROM_EMAIL is not configured");
+                res.status(500).json({ success: false, message: "Email service sender is not configured." });
+                return;
+            } else {
+                // Use a safe placeholder sender in development (with sandbox mode enabled below)
+                fromEmail = "no-reply@example.com";
+            }
+        }
+
+        sgMail.setApiKey(sendgridApiKey);
 
         const msg: MailDataRequired = {
             to: email,
-            from: "nancypro2000@gmail.com",
+            from: fromEmail,
             subject: "Password Reset Request",
             html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -291,6 +317,11 @@ export const forgotPassword = async (
       `,
         };
 
+        // Enable sandbox mode for non-production environments to avoid actual sends when testing
+        if (process.env.NODE_ENV !== "production") {
+            (msg as any).mailSettings = { sandboxMode: { enable: true } };
+        }
+
         await sgMail.send(msg);
 
         const forgotPasswordResponse: PasswordResponse = {
@@ -300,14 +331,21 @@ export const forgotPassword = async (
 
         res.status(200).json(forgotPasswordResponse);
     } catch (error: unknown) {
-        console.error("Error sending reset email:", error);
+        // Provide clearer diagnostics for SendGrid failures
+        const err = error as any;
+        const code = err?.code as number | undefined;
+        const sgBody = err?.response?.body;
+        if (code === 401 || code === 403) {
+            console.error("SendGrid auth error:", { code, body: sgBody });
+            res.status(500).json({
+                success: false,
+                message: "Email service unauthorized. Check SENDGRID_API_KEY and sender verification.",
+            });
+            return;
+        }
 
-        const forgotPasswordResponse: PasswordResponse = {
-            success: false,
-            message: "Failed to send reset email. Please try again later.",
-        };
-
-        res.status(500).json(forgotPasswordResponse);
+        console.error("Error sending reset email:", err);
+        res.status(500).json({ success: false, message: "Failed to send reset email. Please try again later." });
     }
 };
 

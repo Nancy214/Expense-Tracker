@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { UserLocalType, UserGoogleType } from "@expense-tracker/shared-types/src/auth";
+import { UserLocalType, UserType } from "@expense-tracker/shared-types/src/auth";
 
 const userSchema = new Schema(
     {
@@ -100,6 +100,6 @@ const settingsSchema = new Schema(
     }
 );
 
-export const User = mongoose.model<UserLocalType | UserGoogleType>("User", userSchema);
+export const User = mongoose.model<UserLocalType | UserType>("User", userSchema);
 
 export const Settings = mongoose.model("Settings", settingsSchema);
