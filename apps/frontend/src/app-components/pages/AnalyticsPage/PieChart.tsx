@@ -1,4 +1,4 @@
-import type { PieChartData, PieChartProps } from "@expense-tracker/shared-types/src";
+import { ExpenseCategory, PieChartData, PieChartProps } from "@expense-tracker/shared-types/src";
 import React from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
@@ -47,7 +47,8 @@ const PieChartComponent: React.FC<PieChartProps> = ({
     currency = "$",
 }) => {
     // Choose colors based on title
-    const chartColors: string[] = colors || (title.toLowerCase().includes("bills") ? BILLS_COLORS : EXPENSE_COLORS);
+    const chartColors: string[] =
+        colors || (title.toLowerCase().includes(ExpenseCategory.BILLS) ? BILLS_COLORS : EXPENSE_COLORS);
 
     // Format amount with currency
     const formatAmount = (amount: number): string => {

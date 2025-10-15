@@ -9,14 +9,16 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-import type {
+import {
     BarChartData,
     BarChartProps,
     TransformedBarData,
     BarChartMonthNetData as MonthData,
     ChartTooltipProps,
     Period,
-} from "@expense-tracker/shared-types/src/analytics";
+    TransactionType,
+} from "@expense-tracker/shared-types/src";
+import { ChartTypes } from "@expense-tracker/shared-types/src";
 import { formatChartData } from "@/utils/chartUtils";
 
 const COLORS = {
@@ -33,7 +35,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     currency = "$",
     showGrid = true,
     showLegend = true,
-    timePeriod = "monthly",
+    timePeriod = Period.MONTHLY,
     subPeriod = "",
 }) => {
     // Format amount with currency
@@ -65,7 +67,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         if (!data || data.length === 0) return [];
 
         // For monthly period, we now have daily data, so group by date
-        if (timePeriod === "monthly" && data.length > 0) {
+        if (timePeriod === Period.MONTHLY && data.length > 0) {
             // Group data by date (name field contains the date like "01/01", "02/01", etc.)
             const dailyData: { [key: string]: { Income: number; Expense: number } } = {};
 
@@ -75,9 +77,9 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                     dailyData[date] = { Income: 0, Expense: 0 };
                 }
 
-                if (item.category === "Income") {
+                if (item.category === TransactionType.INCOME) {
                     dailyData[date].Income += item.value || 0;
-                } else if (item.category === "Expense") {
+                } else if (item.category === TransactionType.EXPENSE) {
                     dailyData[date].Expense += item.value || 0;
                 }
             });
@@ -85,7 +87,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
             // Convert to array format for the chart
             return Object.entries(dailyData).map(([date, values]) => ({
                 name: date,
-                type: "bar",
+                type: ChartTypes.BAR,
                 Income: values.Income,
                 Expense: values.Expense,
             }));
@@ -95,16 +97,16 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         const categories: string[] = [...new Set(data.map((item) => item.category || ""))];
 
         return timePeriods.map((period: string) => {
-            const periodData: TransformedBarData = { name: period, type: "bar", Income: 0, Expense: 0 };
+            const periodData: TransformedBarData = { name: period, type: ChartTypes.BAR, Income: 0, Expense: 0 };
             categories.forEach((category: string) => {
                 const item: BarChartData = data.find((d) => d.name === period && d.category === category) || {
                     name: period,
                     value: 0,
                     category: category,
                 };
-                if (item && item.category === "Income") {
+                if (item && item.category === TransactionType.INCOME) {
                     periodData.Income = item.value || 0;
-                } else if (item && item.category === "Expense") {
+                } else if (item && item.category === TransactionType.EXPENSE) {
                     periodData.Expense = item.value || 0;
                 }
             });
@@ -123,9 +125,9 @@ const BarChartComponent: React.FC<BarChartProps> = ({
             if (!acc[item.name]) {
                 acc[item.name] = { income: 0, expense: 0 };
             }
-            if (item.category === "Income") {
+            if (item.category === TransactionType.INCOME) {
                 acc[item.name].income += item.value || 0;
-            } else if (item.category === "Expense") {
+            } else if (item.category === TransactionType.EXPENSE) {
                 acc[item.name].expense += item.value || 0;
             }
             return acc;
@@ -207,7 +209,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({
         if (active && payload && payload.length > 0) {
             const data = payload[0].payload;
             // Use type discrimination to check if it's TransformedBarData
-            if (data.type === "bar") {
+            if (data.type === ChartTypes.BAR) {
                 const barData: TransformedBarData = data;
 
                 // For grouped bar chart, we need to show both income and expense for the month
@@ -278,13 +280,13 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                         <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">
                             {(() => {
                                 switch (timePeriod) {
-                                    case "monthly":
+                                    case Period.MONTHLY:
                                         return "Daily Average for " + subPeriod;
-                                    case "quarterly":
+                                    case Period.QUARTERLY:
                                         return "Monthly Average for " + subPeriod;
-                                    case "half-yearly":
+                                    case Period.HALF_YEARLY:
                                         return "Monthly Average for " + subPeriod;
-                                    case "yearly":
+                                    case Period.YEARLY:
                                         return "Monthly Average for " + subPeriod;
                                     default:
                                         return "Period Average Summary";
@@ -304,11 +306,11 @@ const BarChartComponent: React.FC<BarChartProps> = ({
 
                                 const periodLabel = (() => {
                                     switch (timePeriod) {
-                                        case "monthly":
+                                        case Period.MONTHLY:
                                             return "Average per Day";
-                                        case "quarterly":
-                                        case "half-yearly":
-                                        case "yearly":
+                                        case Period.QUARTERLY:
+                                        case Period.HALF_YEARLY:
+                                        case Period.YEARLY:
                                             return "Average per Month";
                                         default:
                                             return "Average per Period";
@@ -339,11 +341,11 @@ const BarChartComponent: React.FC<BarChartProps> = ({
                               const avgExpense = totalExpense / transformedData.length;
                               const periodLabel = (() => {
                                   switch (timePeriod) {
-                                      case "monthly":
+                                      case Period.MONTHLY:
                                           return "Daily";
-                                      case "quarterly":
-                                      case "half-yearly":
-                                      case "yearly":
+                                      case Period.QUARTERLY:
+                                      case Period.HALF_YEARLY:
+                                      case Period.YEARLY:
                                           return "Monthly";
                                       default:
                                           return "Period";

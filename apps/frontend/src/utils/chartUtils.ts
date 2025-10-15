@@ -191,7 +191,6 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 export function formatChartData(data: AreaChartData[], period: Period, subPeriod: string): AreaChartData[];
 export function formatChartData(data: BarChartData[], period: Period, subPeriod: string): BarChartData[];
 export function formatChartData(data: any[], period: Period, subPeriod: string): any[] {
-    console.log("data", data);
     if (!data || data.length === 0) return data;
 
     // For monthly period, format the dates using date-fns

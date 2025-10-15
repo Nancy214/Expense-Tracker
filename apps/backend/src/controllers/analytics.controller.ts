@@ -176,7 +176,7 @@ export const getBillsCategoryBreakdown = async (req: Request, res: Response): Pr
         const billCategoryBreakdown: { [key: string]: number } = {};
         bills.forEach((bill: Bill) => {
             const billData: Bill = bill;
-            const billCategory: string = billData.billCategory || "Other";
+            const billCategory: string = billData.billCategory || "";
             billCategoryBreakdown[billCategory] = (billCategoryBreakdown[billCategory] || 0) + billData.amount;
         });
 
@@ -247,7 +247,6 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
                     const selectedYearForMonthly = startDate.getFullYear();
 
                     const dailyData = await getDailyTransactionsForMonth(userId, selectedYearForMonthly, selectedMonth);
-                    console.log("dailyData", dailyData);
 
                     // Convert daily data to the expected format
                     dailyData.forEach((dayData) => {

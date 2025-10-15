@@ -20,7 +20,7 @@ import type {
     PieChartData,
     TransactionOrBill,
 } from "@expense-tracker/shared-types/src";
-import { Period } from "@expense-tracker/shared-types/src/analytics";
+import { ChartTypes, Period } from "@expense-tracker/shared-types/src/analytics";
 import { AlertCircle, BarChart3, LineChart, PieChart, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import "react-calendar-heatmap/dist/styles.css";
@@ -29,6 +29,7 @@ import BarChartComponent from "./BarChart";
 import CalendarHeatmapComponent from "./CalendarHeatmap";
 import PieChartComponent from "./PieChart";
 import TimePeriodSelector from "./TimePeriodSelector";
+import { TransactionType } from "@expense-tracker/shared-types/src";
 
 // AnalyticsCard component moved inline
 const AnalyticsCard: React.FC<{
@@ -302,14 +303,14 @@ const AnalyticsPage = () => {
     // Transform income/expense data for bar chart
     const incomeExpenseData: BarChartData[] =
         incomeExpenseResponse?.data?.months?.flatMap((monthData: MonthlyIncomeExpenseData) => [
-            { name: monthData.month, value: monthData.income, category: "Income" },
-            { name: monthData.month, value: monthData.expenses, category: "Expense" },
+            { name: monthData.month, value: monthData.income, category: TransactionType.INCOME },
+            { name: monthData.month, value: monthData.expenses, category: TransactionType.EXPENSE },
         ]) || [];
 
     // Transform savings trend data for area chart
     const savingsTrendData: AreaChartData[] =
         savingsTrendResponse?.data?.trend?.map((item: MonthlySavingsData) => ({
-            type: "area",
+            type: ChartTypes.AREA,
             name: item.month,
             savings: item.savings,
             income: item.income,

@@ -9,7 +9,13 @@ import {
     ResponsiveContainer,
     Legend,
 } from "recharts";
-import { AreaChartData, AreaChartProps, ChartTooltipProps, Period } from "@expense-tracker/shared-types/src";
+import {
+    AreaChartData,
+    AreaChartProps,
+    ChartTooltipProps,
+    ChartTypes,
+    Period,
+} from "@expense-tracker/shared-types/src";
 import { formatChartData } from "@/utils/chartUtils";
 
 const COLORS = {
@@ -166,7 +172,7 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
         if (active && payload && payload.length > 0) {
             const data = payload[0].payload;
             // Use type discrimination to check if it's AreaChartData
-            if (data.type === "area") {
+            if (data.type === ChartTypes.AREA) {
                 const areaData: AreaChartData = data;
                 return (
                     <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
@@ -251,13 +257,13 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                     <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">
                         {(() => {
                             switch (timePeriod) {
-                                case "monthly":
+                                case Period.MONTHLY:
                                     return "Daily Average for " + subPeriod;
-                                case "quarterly":
+                                case Period.QUARTERLY:
                                     return "Monthly Average for " + subPeriod;
-                                case "half-yearly":
+                                case Period.HALF_YEARLY:
                                     return "Monthly Average for " + subPeriod;
-                                case "yearly":
+                                case Period.YEARLY:
                                     return "Monthly Average for " + subPeriod;
                                 default:
                                     return "Period Average Summary";
@@ -276,11 +282,11 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
 
                             const periodLabel = (() => {
                                 switch (timePeriod) {
-                                    case "monthly":
+                                    case Period.MONTHLY:
                                         return "Average per Day";
-                                    case "quarterly":
-                                    case "half-yearly":
-                                    case "yearly":
+                                    case Period.QUARTERLY:
+                                    case Period.HALF_YEARLY:
+                                    case Period.YEARLY:
                                         return "Average per Month";
                                     default:
                                         return "Average per Period";
@@ -317,11 +323,11 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
 
                               const periodLabel = (() => {
                                   switch (timePeriod) {
-                                      case "monthly":
+                                      case Period.MONTHLY:
                                           return "Daily";
-                                      case "quarterly":
-                                      case "half-yearly":
-                                      case "yearly":
+                                      case Period.QUARTERLY:
+                                      case Period.HALF_YEARLY:
+                                      case Period.YEARLY:
                                           return "Monthly";
                                       default:
                                           return "Period";
