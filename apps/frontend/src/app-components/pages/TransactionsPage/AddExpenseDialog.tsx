@@ -10,16 +10,20 @@ import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 import { useTransactionForm, useTransactionMutations } from "@/hooks/use-transactions";
-import { TRANSACTION_CONSTANTS } from "@/schemas/transactionSchema";
 import { uploadReceipt } from "@/services/transaction.service";
 import { showSaveError } from "@/utils/toastUtils";
 import {
     Bill,
     BillFrequency,
     PaymentMethod,
+    ExpenseCategory,
+    BillCategory,
+    IncomeCategory,
+    RecurringFrequency,
     Transaction,
     TransactionOrBill,
     TransactionType,
+    BillStatus,
 } from "@expense-tracker/shared-types/src";
 import React, { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
@@ -141,22 +145,19 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
             let transactionData: Transaction | Bill;
 
-            if (data.category === "Bills") {
+            if (data.category === ExpenseCategory.BILLS) {
                 transactionData = {
-                    title: data.title,
-                    type: data.type,
-                    amount: data.amount,
-                    currency: data.currency,
-                    category: data.category,
-                    description: data.description || "",
+                    ...data,
                     userId: user?.id || "",
-                    date: new Date(data.date.split("/").reverse().join("-")),
-                    dueDate: data.dueDate ? new Date(data.dueDate.split("/").reverse().join("-")) : undefined,
-                    billCategory: data.billCategory,
+                    date: data.date,
+                    dueDate: data.dueDate as string,
+                    receipts: receiptKeys,
+                    nextDueDate: data.nextDueDate,
                     billFrequency: data.billFrequency as BillFrequency,
                     paymentMethod: data.paymentMethod as PaymentMethod,
-                    reminderDays: data.reminderDays,
-                    receipts: receiptKeys,
+                    billStatus: BillStatus.UNPAID,
+                    reminderDays: data.reminderDays ?? 0,
+                    billCategory: data.billCategory as BillCategory,
                 };
             } else {
                 transactionData = {
@@ -167,13 +168,13 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     category: data.category,
                     description: data.description || "",
                     userId: user?.id || "",
-                    date: new Date(data.date.split("/").reverse().join("-")),
-                    fromRate: data.fromRate,
-                    toRate: data.toRate,
+                    date: data.date,
+                    ...(data.fromRate !== undefined && { fromRate: data.fromRate }),
+                    ...(data.toRate !== undefined && { toRate: data.toRate }),
                     isRecurring: data.isRecurring || false,
                     recurringFrequency: data.recurringFrequency as any,
                     receipts: receiptKeys,
-                    endDate: data.endDate ? new Date(data.endDate.split("/").reverse().join("-")) : undefined,
+                    endDate: data.endDate || undefined,
                 };
             }
 
@@ -186,7 +187,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             resetForm();
             onOpenChange(false);
             onSuccess?.();
-        } catch (error: unknown) {
+        } catch {
             showSaveError(toast, "Transaction");
         }
     };
@@ -199,12 +200,12 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     // Get category options based on transaction type
     const getCategoryOptions = (): { value: string; label: string }[] => {
         if (type === TransactionType.EXPENSE) {
-            return TRANSACTION_CONSTANTS.EXPENSE_CATEGORIES.map((cat) => ({
+            return Object.values(ExpenseCategory).map((cat) => ({
                 value: cat,
                 label: cat,
             }));
         } else {
-            return TRANSACTION_CONSTANTS.INCOME_CATEGORIES.map((cat) => ({
+            return Object.values(IncomeCategory).map((cat) => ({
                 value: cat,
                 label: cat,
             }));
@@ -317,7 +318,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     name="billCategory"
                                     label="Category"
                                     placeholder="Select a bill category"
-                                    options={TRANSACTION_CONSTANTS.BILL_CATEGORIES.map((cat: string) => ({
+                                    options={Object.values(BillCategory).map((cat: string) => ({
                                         value: cat,
                                         label: cat,
                                     }))}
@@ -327,7 +328,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     name="paymentMethod"
                                     label="Payment Method"
                                     placeholder="Select payment method"
-                                    options={TRANSACTION_CONSTANTS.PAYMENT_METHODS.map((method: string) => ({
+                                    options={Object.values(PaymentMethod).map((method: string) => ({
                                         value: method,
                                         label: method
                                             .split("-")
@@ -362,7 +363,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                         name="billFrequency"
                                         label="Bill Frequency"
                                         placeholder="Select bill frequency"
-                                        options={TRANSACTION_CONSTANTS.BILL_FREQUENCIES.map((freq: string) => ({
+                                        options={Object.values(BillFrequency).map((freq: string) => ({
                                             value: freq,
                                             label: freq.charAt(0).toUpperCase() + freq.slice(1),
                                         }))}
@@ -406,7 +407,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     name="recurringFrequency"
                                     label="Frequency"
                                     placeholder="Select frequency"
-                                    options={TRANSACTION_CONSTANTS.RECURRING_FREQUENCIES.map((freq: string) => ({
+                                    options={Object.values(RecurringFrequency).map((freq: string) => ({
                                         value: freq,
                                         label: freq.charAt(0).toUpperCase() + freq.slice(1),
                                     }))}

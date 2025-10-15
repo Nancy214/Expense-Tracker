@@ -54,9 +54,55 @@ export const formatDateForAPI = (date: Date): string => {
     return date.toISOString();
 };
 
-// Parse date from API request
+// Parse date from DD/MM/YYYY format
+export const parseDDMMYYYY = (dateStr: string): Date => {
+    if (!dateStr || dateStr.trim() === "") {
+        throw new Error("Date string is empty");
+    }
+
+    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!regex.test(dateStr)) {
+        throw new Error(`Invalid date format: ${dateStr}. Expected DD/MM/YYYY format.`);
+    }
+
+    const parts = dateStr.split("/");
+    if (parts.length !== 3) {
+        throw new Error(`Invalid date format: ${dateStr}. Expected DD/MM/YYYY format.`);
+    }
+
+    const [dayStr, monthStr, yearStr] = parts;
+    const day = parseInt(dayStr, 10);
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
+
+    // Check if parsing was successful
+    if (isNaN(day) || isNaN(month) || isNaN(year)) {
+        throw new Error(`Invalid date format: ${dateStr}. Could not parse numbers.`);
+    }
+
+    const date = new Date(year, month - 1, day);
+
+    // Validate the date
+    if (date.getDate() !== day || date.getMonth() !== month - 1 || date.getFullYear() !== year) {
+        throw new Error(`Invalid date: ${dateStr}. Date does not exist.`);
+    }
+
+    return date;
+};
+
+// Parse date from API request - handles both DD/MM/YYYY and ISO formats
 export const parseDateFromAPI = (dateStr: string | Date): Date => {
-    return dateStr instanceof Date ? dateStr : new Date(dateStr);
+    if (dateStr instanceof Date) {
+        return dateStr;
+    }
+
+    // Check if it's in DD/MM/YYYY format
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        return parseDDMMYYYY(dateStr);
+    }
+
+    // Otherwise, try to parse as ISO string
+    return new Date(dateStr);
 };
 
 // Helper function to get start and end dates for a month

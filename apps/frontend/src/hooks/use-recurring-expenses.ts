@@ -1,6 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { transactionFormSchema } from "@/schemas/transactionSchema";
 import { getExchangeRate } from "@/services/currency.service";
 import {
     createExpense,
@@ -17,6 +16,7 @@ import {
     Transaction,
     TransactionResponse,
     TransactionType,
+    baseTransactionSchema,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -328,7 +328,7 @@ export const useRecurringExpenseForm = ({
     }, [editingRecurringExpense, preselectedCategory, user?.currency]);
 
     const form = useForm({
-        resolver: zodResolver(transactionFormSchema) as any,
+        resolver: zodResolver(baseTransactionSchema) as any,
         defaultValues: getDefaultValues(),
         mode: "onChange",
     });

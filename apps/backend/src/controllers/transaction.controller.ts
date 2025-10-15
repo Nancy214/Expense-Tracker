@@ -195,7 +195,16 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
         res.json(expense);
     } catch (error: unknown) {
         console.error("Error creating expense:", error);
-        res.status(500).json({ message: "Something went wrong" });
+        console.error("Error details:", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            userId: (req as AuthRequest).user?.id,
+            body: req.body,
+        });
+        res.status(500).json({
+            message: "Something went wrong",
+            error: error instanceof Error ? error.message : "Unknown error",
+        });
     }
 };
 

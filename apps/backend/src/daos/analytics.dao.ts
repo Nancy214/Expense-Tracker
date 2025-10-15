@@ -177,7 +177,8 @@ export const getDailyTransactionsForMonthDAO = async (
     }
 
     transactions.forEach((transaction) => {
-        const day = transaction.date.getDate();
+        const transactionDate = new Date(transaction.date);
+        const day = transactionDate.getDate();
         const dayStr = day.toString().padStart(2, "0");
         const monthStr = (month + 1).toString().padStart(2, "0");
         const dateStr = `${dayStr}/${monthStr}`;

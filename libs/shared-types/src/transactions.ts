@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export enum RecurringFrequency {
     DAILY = "daily",
     WEEKLY = "weekly",
@@ -76,105 +78,220 @@ export enum IncomeCategory {
     OTHER_INCOME = "Other Income",
 }
 
-// Base transaction interface - single source of truth
-export interface Transaction {
-    id?: string;
-    date: Date;
-    title: string;
-    amount: number;
-    description: string;
-    category: string;
-    currency: string;
-    type: TransactionType;
-    fromRate?: number;
-    toRate?: number;
-    userId: string;
-    isRecurring?: boolean;
-    recurringFrequency?: RecurringFrequency;
-    endDate?: Date;
-    templateId?: string;
-    receipts?: string[];
-}
+// Zod enums for reuse
+export const ZRecurringFrequency = z.enum(RecurringFrequency);
+export const ZTransactionType = z.enum(TransactionType);
+export const ZBillStatus = z.enum(BillStatus);
+export const ZBillFrequency = z.enum(BillFrequency);
+export const ZPaymentMethod = z.enum(PaymentMethod);
+export const ZExpenseCategory = z.enum(ExpenseCategory);
+export const ZBillCategory = z.enum(BillCategory);
+export const ZIncomeCategory = z.enum(IncomeCategory);
 
-// Bill type extends Transaction
-export type Bill = Omit<Transaction, "isRecurring" | "recurringFrequency" | "endDate" | "templateId"> & {
-    billCategory?: string;
-    reminderDays?: number;
-    dueDate?: Date;
-    billStatus?: BillStatus;
-    billFrequency?: BillFrequency;
-    nextDueDate?: Date;
-    lastPaidDate?: Date;
-    paymentMethod?: PaymentMethod;
+const isValidDate = (dateString: string): boolean => {
+    if (!dateString || dateString.trim() === "") return false;
+
+    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!regex.test(dateString)) return false;
+
+    const parts = dateString.split("/");
+    if (parts.length !== 3) return false;
+
+    const [dayStr, monthStr, yearStr] = parts;
+    const day = parseInt(dayStr, 10);
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
+
+    // Check if parsing was successful
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return false;
+
+    const date = new Date(year, month - 1, day);
+
+    return date.getDate() === day && date.getMonth() === month - 1 && date.getFullYear() === year;
 };
 
-export type TransactionOrBill = Transaction | Bill;
+// Base transaction schema - single source of truth
+export const ZTransaction = z.object({
+    id: z.string().optional(),
+    date: z
+        .string({ message: "Date is required" })
+        .min(1, "Date is required")
+        .refine(isValidDate, "Please enter a valid date in DD/MM/YYYY format"),
+    title: z
+        .string({ message: "Title is required" })
+        .min(1, "Title is required")
+        .max(50, "Title must be less than 50 characters")
+        .trim(),
+    amount: z
+        .number({ message: "Amount must be a number" })
+        .positive("Amount must be greater than 0")
+        .max(999999999, "Amount cannot exceed 999,999,999"),
+    description: z.string().max(200, "Description must be less than 200 characters").optional().or(z.literal("")),
+    category: z.string(),
+    currency: z
+        .string({ message: "Currency is required" })
+        .min(1, "Currency is required")
+        .max(10, "Currency code is too long"),
+    type: z.enum([TransactionType.INCOME, TransactionType.EXPENSE] as const, {
+        message: "Transaction type must be either income or expense",
+    }),
+    fromRate: z
+        .number({ message: "Exchange rate must be a number" })
+        .positive("Exchange rate must be greater than 0")
+        .default(1)
+        .optional(),
+    toRate: z
+        .number({ message: "Exchange rate must be a number" })
+        .positive("Exchange rate must be greater than 0")
+        .default(1)
+        .optional(),
+    userId: z.string(),
+    isRecurring: z.boolean().default(false),
+    recurringFrequency: z
+        .enum(RecurringFrequency, {
+            message: "Please select a valid recurring frequency",
+        })
+        .optional(),
+    endDate: z
+        .string({ message: "End date is required for recurring transactions" })
+        .min(1, "End date is required for recurring transactions")
+        .refine(isValidDate, "Please enter a valid end date in DD/MM/YYYY format")
+        .optional(),
+    templateId: z.string().optional(),
+    receipts: z.array(z.unknown()).default([]),
+});
+export type Transaction = z.infer<typeof ZTransaction>;
 
-// API Response type - extends base with database fields
-export interface TransactionResponse extends Transaction {
-    id: string;
-    createdAt: Date;
-    updatedAt: Date;
-}
+export const baseTransactionSchema = ZTransaction.omit({ id: true, templateId: true, userId: true });
+export type BaseTransaction = z.infer<typeof baseTransactionSchema>;
+
+// Bill schema extends Transaction
+export const ZBill = ZTransaction.omit({
+    isRecurring: true,
+    recurringFrequency: true,
+    endDate: true,
+    templateId: true,
+}).extend({
+    billCategory: z.enum(BillCategory, {
+        message: "Please select a bill category",
+    }),
+    reminderDays: z
+        .number({ message: "Reminder days must be a number" })
+        .int("Reminder days must be a whole number")
+        .min(0, "Reminder days must be 0 or greater")
+        .max(30, "Reminder days cannot exceed 30"),
+    dueDate: z
+        .string({ message: "Due date is required" })
+        .min(1, "Due date is required")
+        .refine(isValidDate, "Please enter a valid due date in DD/MM/YYYY format"),
+    billStatus: z
+        .enum([BillStatus.UNPAID, BillStatus.PAID, BillStatus.OVERDUE, BillStatus.PENDING], {
+            message: "Please select a valid bill status",
+        })
+        .default(BillStatus.UNPAID),
+    billFrequency: z
+        .enum(BillFrequency, {
+            message: "Please select a valid bill frequency",
+        })
+        .default(BillFrequency.MONTHLY),
+    nextDueDate: z
+        .string({ message: "Next due date is required for recurring bills" })
+        .min(1, "Next due date is required for recurring bills")
+        .refine(isValidDate, "Please enter a valid next due date in DD/MM/YYYY format")
+        .optional(),
+    lastPaidDate: z
+        .string({ message: "Last paid date is required when provided" })
+        .min(1, "Last paid date is required when provided")
+        .refine(isValidDate, "Please enter a valid last paid date in DD/MM/YYYY format")
+        .optional(),
+    paymentMethod: z.enum(PaymentMethod, {
+        message: "Please select a valid payment method",
+    }),
+});
+export type Bill = z.infer<typeof ZBill>;
+
+export const ZTransactionOrBill = z.union([ZTransaction, ZBill]);
+export type TransactionOrBill = z.infer<typeof ZTransactionOrBill>;
+
+// API Response schema - extends base with database fields
+export const ZTransactionResponse = ZTransaction.extend({
+    id: z.string(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+});
+export type TransactionResponse = z.infer<typeof ZTransactionResponse>;
 
 // Pagination types
 
-export interface PaginationResponse {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
-}
+export const ZPaginationResponse = z.object({
+    page: z.number(),
+    limit: z.number(),
+    total: z.number(),
+    totalPages: z.number(),
+    hasNextPage: z.boolean(),
+    hasPrevPage: z.boolean(),
+});
+export type PaginationResponse = z.infer<typeof ZPaginationResponse>;
 
-export interface PaginationQuery {
-    page?: string;
-    limit?: string;
-}
+export const ZPaginationQuery = z.object({
+    page: z.string().optional(),
+    limit: z.string().optional(),
+});
+export type PaginationQuery = z.infer<typeof ZPaginationQuery>;
 
-export interface PaginationInfo extends PaginationResponse {
-    currentPage?: number;
-    itemsPerPage?: number;
-}
+export const ZPaginationInfo = ZPaginationResponse.extend({
+    currentPage: z.number().optional(),
+    itemsPerPage: z.number().optional(),
+});
+export type PaginationInfo = z.infer<typeof ZPaginationInfo>;
 
-// Response types
+// Response schema factory (generic)
+export const createZPaginatedResponse = <T extends z.ZodTypeAny>(key: string, itemSchema: T) =>
+    z.object({
+        [key]: z.array(itemSchema),
+        pagination: ZPaginationResponse,
+    });
+// Keep the generic TS type name for compatibility
 export interface PaginatedResponse<T> {
     [key: string]: T[] | PaginationResponse;
     pagination: PaginationResponse;
 }
 
 // Transaction summary types
-export interface TransactionSummary {
-    totalTransactions: number;
-    totalIncome: number;
-    totalExpenses: number;
-    totalIncomeAmount: number;
-    totalExpenseAmount: number;
-    totalRecurringTemplates: number;
-    totalRecurringAmount: number;
-    totalBills: number;
-    totalBillsAmount: number;
-    averageTransactionAmount: number;
-}
+export const ZTransactionSummary = z.object({
+    totalTransactions: z.number(),
+    totalIncome: z.number(),
+    totalExpenses: z.number(),
+    totalIncomeAmount: z.number(),
+    totalExpenseAmount: z.number(),
+    totalRecurringTemplates: z.number(),
+    totalRecurringAmount: z.number(),
+    totalBills: z.number(),
+    totalBillsAmount: z.number(),
+    averageTransactionAmount: z.number(),
+});
+export type TransactionSummary = z.infer<typeof ZTransactionSummary>;
 
 // Monthly stats interface
-export interface MonthlyStats {
-    totalIncome: number;
-    totalExpenses: number;
-    balance: number;
-    transactionCount: number;
-}
+export const ZMonthlyStats = z.object({
+    totalIncome: z.number(),
+    totalExpenses: z.number(),
+    balance: z.number(),
+    transactionCount: z.number(),
+});
+export type MonthlyStats = z.infer<typeof ZMonthlyStats>;
 
-// Recurring transaction template type
-export interface RecurringTransactionTemplate extends Transaction {
-    isRecurring: true;
-    recurringFrequency: RecurringFrequency;
-    endDate?: Date;
-}
+// Recurring transaction template schema
+export const ZRecurringTransactionTemplate = ZTransaction.extend({
+    isRecurring: z.literal(true),
+    recurringFrequency: ZRecurringFrequency,
+    endDate: z.date().optional(),
+});
+export type RecurringTransactionTemplate = z.infer<typeof ZRecurringTransactionTemplate>;
 
 export enum ActiveTab {
     ALL = "all",
     RECURRING = "recurring",
     BILLS = "bills",
 }
+export const ZActiveTab = z.enum(ActiveTab);

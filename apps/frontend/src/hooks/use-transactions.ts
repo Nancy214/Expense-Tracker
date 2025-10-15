@@ -1,6 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { transactionFormSchema } from "@/schemas/transactionSchema";
 import { getExchangeRate } from "@/services/currency.service";
 import {
     createExpense,
@@ -12,10 +11,10 @@ import {
 import { showCreateSuccess, showSaveError, showUpdateSuccess } from "@/utils/toastUtils";
 import {
     PaginationInfo,
-    Transaction,
     TransactionOrBill,
     TransactionResponse,
     TransactionSummary,
+    baseTransactionSchema,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
@@ -175,11 +174,11 @@ export function useTransactionSummary(): UseQueryResult<TransactionSummaryQueryR
 // Mutation types
 interface UpdateTransactionParams {
     id: string;
-    data: Transaction;
+    data: TransactionOrBill;
 }
 
 interface TransactionMutationsReturn {
-    createTransaction: (data: Transaction) => Promise<TransactionResponse>;
+    createTransaction: (data: TransactionOrBill) => Promise<TransactionResponse>;
     updateTransaction: (params: UpdateTransactionParams) => Promise<TransactionResponse>;
     isCreating: boolean;
     isUpdating: boolean;
@@ -199,7 +198,7 @@ export function useTransactionMutations(): TransactionMutationsReturn {
         queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.allTransactions, "analytics"] });
     };
 
-    const createMutation = useMutation<TransactionResponse, Error, Transaction>({
+    const createMutation = useMutation<TransactionResponse, Error, TransactionOrBill>({
         mutationFn: createExpense,
         onSuccess: () => {
             showCreateSuccess(toast, "Transaction");
@@ -209,7 +208,7 @@ export function useTransactionMutations(): TransactionMutationsReturn {
     });
 
     const updateMutation = useMutation<TransactionResponse, Error, UpdateTransactionParams>({
-        mutationFn: ({ id, data }: UpdateTransactionParams) => updateExpense(id, data),
+        mutationFn: ({ id, data }: UpdateTransactionParams) => updateExpense(id, data as any),
         onSuccess: () => {
             showUpdateSuccess(toast, "Transaction");
             invalidateQueries();
@@ -323,7 +322,7 @@ export const useTransactionForm = ({
     const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
 
     const form = useForm({
-        resolver: zodResolver(transactionFormSchema),
+        resolver: zodResolver(baseTransactionSchema),
         defaultValues: defaultValues,
         mode: "onSubmit",
     });

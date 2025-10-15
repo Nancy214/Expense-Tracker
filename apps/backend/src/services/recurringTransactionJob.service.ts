@@ -274,12 +274,12 @@ export class RecurringTransactionJobService {
         const instanceData: TransactionOrBill = {
             ...template,
             id: "",
-            date: date,
+            date: date.toISOString(),
             templateId: template.id,
             isRecurring: false,
             userId: userId.toString(),
-            ...(dueDate && { dueDate }),
-            ...(nextDueDate && { nextDueDate }),
+            ...(dueDate && { dueDate: dueDate.toISOString() }),
+            ...(nextDueDate && { nextDueDate: nextDueDate.toISOString() }),
         };
 
         await TransactionModel.create<TransactionOrBill>(instanceData);

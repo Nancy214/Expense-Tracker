@@ -1,6 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { transactionFormSchema } from "@/schemas/transactionSchema";
 import { getExchangeRate } from "@/services/currency.service";
 import { createExpense, getBills, updateExpense, updateTransactionBillStatus } from "@/services/transaction.service";
 import { parseFromDisplay } from "@/utils/dateUtils";
@@ -12,6 +11,7 @@ import {
     PaymentMethod,
     Transaction,
     TransactionResponse,
+    baseTransactionSchema,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -321,7 +321,7 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
                 nextDueDate: editingBill.nextDueDate ? parseDateToFormat(editingBill.nextDueDate) : undefined,
                 lastPaidDate: editingBill.lastPaidDate ? parseDateToFormat(editingBill.lastPaidDate) : undefined,
                 paymentMethod: editingBill.paymentMethod || PaymentMethod.MANUAL,
-                receipts: editingBill.receipts || [],
+                receipts: (editingBill.receipts as string[]) || [],
             };
         }
 
@@ -351,7 +351,7 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
     }, [editingBill, user?.currency, parseDateToFormat]);
 
     const form = useForm<BillFormDefaultValues>({
-        resolver: zodResolver(transactionFormSchema) as any,
+        resolver: zodResolver(baseTransactionSchema) as any,
         defaultValues: getDefaultValues(),
         mode: "onSubmit",
     });

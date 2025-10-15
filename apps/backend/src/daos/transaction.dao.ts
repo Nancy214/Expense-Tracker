@@ -11,6 +11,7 @@ import {
 } from "@expense-tracker/shared-types/src";
 import { addTimeByFrequency } from "../utils/dateUtils";
 import { startOfToday, startOfDay, isAfter, addMonths, addQuarters, addYears } from "date-fns";
+import { parseDateFromAPI } from "../utils/dateUtils";
 
 export type TransactionOrBillDocument = Transaction | Bill;
 
@@ -393,22 +394,43 @@ export class TransactionDAO {
         userId: string,
         transactionData: TransactionOrBill
     ): Promise<TransactionOrBillDocument> {
-        // Prepare transaction data
-        let expenseData: TransactionOrBill & { userId: string; nextDueDate?: Date } = {
+        // Prepare transaction data with proper date conversion
+        let expenseData: any = {
             ...transactionData,
             userId: userId,
+            // Convert date string to Date object
+            date: parseDateFromAPI(transactionData.date),
         };
 
-        // If it's a bill, calculate nextDueDate automatically
-        if (
-            transactionData.category === "Bills" &&
-            isBillDocument(transactionData) &&
-            transactionData.dueDate &&
-            transactionData.billFrequency
-        ) {
-            const dueDate = new Date(transactionData.dueDate);
-            const frequency: BillFrequency = transactionData.billFrequency;
-            expenseData.nextDueDate = calculateNextDueDate(dueDate, frequency);
+        // Convert endDate if it exists (only for regular transactions, not bills)
+        if ("endDate" in transactionData && transactionData.endDate) {
+            expenseData.endDate = parseDateFromAPI(transactionData.endDate);
+        }
+
+        // If it's a bill, handle bill-specific fields
+        if (transactionData.category === "Bills" && isBillDocument(transactionData)) {
+            // Convert dueDate to Date object
+            if (transactionData.dueDate) {
+                expenseData.dueDate = parseDateFromAPI(transactionData.dueDate);
+            }
+
+            // Convert nextDueDate if it exists
+            if (transactionData.nextDueDate) {
+                expenseData.nextDueDate = parseDateFromAPI(transactionData.nextDueDate);
+            }
+
+            // Convert lastPaidDate if it exists
+            if (transactionData.lastPaidDate) {
+                expenseData.lastPaidDate = parseDateFromAPI(transactionData.lastPaidDate);
+            }
+
+            // Calculate nextDueDate automatically if not provided
+            if (transactionData.dueDate && transactionData.billFrequency && !transactionData.nextDueDate) {
+                const dueDate = parseDateFromAPI(transactionData.dueDate);
+                const frequency: BillFrequency = transactionData.billFrequency;
+                const nextDueDate = calculateNextDueDate(dueDate, frequency);
+                expenseData.nextDueDate = nextDueDate;
+            }
         }
 
         const expense: TransactionOrBillDocument = (
@@ -429,19 +451,43 @@ export class TransactionDAO {
         transactionId: string,
         updateData: TransactionOrBill
     ): Promise<TransactionOrBillDocument | null> {
-        // Prepare update data
-        let updatePayload: TransactionOrBill & { nextDueDate?: Date } = { ...updateData };
+        // Prepare update data with proper date conversion
+        let updatePayload: any = { ...updateData };
 
-        // If it's a bill update, calculate nextDueDate automatically
-        if (
-            updateData.category === "Bills" &&
-            isBillDocument(updateData) &&
-            updateData.dueDate &&
-            updateData.billFrequency
-        ) {
-            const dueDate = new Date(updateData.dueDate);
-            const frequency = updateData.billFrequency;
-            updatePayload.nextDueDate = calculateNextDueDate(dueDate, frequency);
+        // Convert date string to Date object
+        if (updateData.date) {
+            updatePayload.date = parseDateFromAPI(updateData.date);
+        }
+
+        // Convert endDate if it exists (only for regular transactions, not bills)
+        if ("endDate" in updateData && updateData.endDate) {
+            updatePayload.endDate = parseDateFromAPI(updateData.endDate);
+        }
+
+        // If it's a bill update, handle bill-specific fields
+        if (updateData.category === "Bills" && isBillDocument(updateData)) {
+            // Convert dueDate to Date object
+            if (updateData.dueDate) {
+                updatePayload.dueDate = parseDateFromAPI(updateData.dueDate);
+            }
+
+            // Convert nextDueDate if it exists
+            if (updateData.nextDueDate) {
+                updatePayload.nextDueDate = parseDateFromAPI(updateData.nextDueDate);
+            }
+
+            // Convert lastPaidDate if it exists
+            if (updateData.lastPaidDate) {
+                updatePayload.lastPaidDate = parseDateFromAPI(updateData.lastPaidDate);
+            }
+
+            // Calculate nextDueDate automatically if not provided
+            if (updateData.dueDate && updateData.billFrequency && !updateData.nextDueDate) {
+                const dueDate = parseDateFromAPI(updateData.dueDate);
+                const frequency = updateData.billFrequency;
+                const nextDueDate = calculateNextDueDate(dueDate, frequency);
+                updatePayload.nextDueDate = nextDueDate;
+            }
         }
 
         const expense: TransactionOrBillDocument | null = await TransactionModel.findByIdAndUpdate(
