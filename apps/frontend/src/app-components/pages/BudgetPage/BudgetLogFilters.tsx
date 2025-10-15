@@ -16,21 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, ChevronDownIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
-
-const BUDGET_CATEGORIES: string[] = [
-    "Food",
-    "Transport",
-    "Shopping",
-    "Entertainment",
-    "Bills",
-    "Healthcare",
-    "Travel",
-    "Education",
-    "Housing",
-    "Personal",
-    "Gifts",
-    "Other",
-];
+import { BudgetCategory, BudgetChangeType } from "@expense-tracker/shared-types/src";
 
 const CHANGE_TYPES: string[] = ["created", "updated", "deleted"];
 
@@ -50,23 +36,23 @@ interface BudgetLogFiltersProps {
 
 export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFilters }: BudgetLogFiltersProps) {
     // Filter-related state variables
-    const [selectedChangeTypes, setSelectedChangeTypes] = useState<string[]>(["all"]);
-    const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
+    const [selectedChangeTypes, setSelectedChangeTypes] = useState<BudgetChangeType[]>([BudgetChangeType.CREATED]);
+    const [selectedCategories, setSelectedCategories] = useState<BudgetCategory[]>([BudgetCategory.ALL_CATEGORIES]);
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
     // Create filters object
     const filters: {
-        changeTypes?: string[];
+        changeTypes?: BudgetChangeType[];
         dateRange?: {
             from?: Date;
             to?: Date;
         };
         searchQuery?: string;
-        categories?: string[];
+        categories?: BudgetCategory[];
     } = {
-        changeTypes: selectedChangeTypes.includes("all") ? undefined : selectedChangeTypes,
-        categories: selectedCategories.includes("all") ? undefined : selectedCategories,
+        changeTypes: selectedChangeTypes.includes(BudgetChangeType.CREATED) ? undefined : selectedChangeTypes,
+        categories: selectedCategories.includes(BudgetCategory.ALL_CATEGORIES) ? undefined : selectedCategories,
         dateRange: dateRangeForFilter,
         searchQuery: searchQuery || undefined,
     };
@@ -78,43 +64,43 @@ export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFil
 
     // Clear all filters
     const handleClearFilters = () => {
-        setSelectedChangeTypes(["all"]);
-        setSelectedCategories(["all"]);
+        setSelectedChangeTypes([BudgetChangeType.CREATED]);
+        setSelectedCategories([BudgetCategory.ALL_CATEGORIES]);
         setSearchQuery("");
         setDateRangeForFilter(undefined);
         onClearFilters();
     };
 
     // Handle change type selection
-    const handleChangeTypeToggle = (changeType: string) => {
-        if (changeType === "all") {
-            setSelectedChangeTypes(["all"]);
+    const handleChangeTypeToggle = (changeType: BudgetChangeType) => {
+        if (changeType === BudgetChangeType.CREATED) {
+            setSelectedChangeTypes([BudgetChangeType.CREATED]);
         } else {
             setSelectedChangeTypes((prev) => {
-                const newSelection = prev.includes("all")
+                const newSelection = prev.includes(BudgetChangeType.CREATED)
                     ? [changeType]
                     : prev.includes(changeType)
                     ? prev.filter((type) => type !== changeType)
-                    : [...prev.filter((type) => type !== "all"), changeType];
+                    : [...prev.filter((type) => type !== BudgetChangeType.CREATED), changeType];
 
-                return newSelection.length === 0 ? ["all"] : newSelection;
+                return newSelection.length === 0 ? [BudgetChangeType.CREATED] : newSelection;
             });
         }
     };
 
     // Handle category selection
-    const handleCategoryToggle = (category: string) => {
-        if (category === "all") {
-            setSelectedCategories(["all"]);
+    const handleCategoryToggle = (category: BudgetCategory) => {
+        if (category === BudgetCategory.ALL_CATEGORIES) {
+            setSelectedCategories([BudgetCategory.ALL_CATEGORIES]);
         } else {
             setSelectedCategories((prev) => {
-                const newSelection = prev.includes("all")
+                const newSelection = prev.includes(BudgetCategory.ALL_CATEGORIES)
                     ? [category]
                     : prev.includes(category)
                     ? prev.filter((cat) => cat !== category)
-                    : [...prev.filter((cat) => cat !== "all"), category];
+                    : [...prev.filter((cat) => cat !== BudgetCategory.ALL_CATEGORIES), category];
 
-                return newSelection.length === 0 ? ["all"] : newSelection;
+                return newSelection.length === 0 ? [BudgetCategory.ALL_CATEGORIES] : newSelection;
             });
         }
     };
@@ -153,7 +139,7 @@ export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFil
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" className="w-[180px] justify-between h-10">
                                 <span className="truncate">
-                                    {selectedChangeTypes.includes("all")
+                                    {selectedChangeTypes.includes(BudgetChangeType.CREATED)
                                         ? "All Types"
                                         : `${selectedChangeTypes.length} selected`}
                                 </span>
@@ -164,16 +150,16 @@ export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFil
                             <DropdownMenuLabel>Filter by Change Type</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuCheckboxItem
-                                checked={selectedChangeTypes.includes("all")}
-                                onCheckedChange={() => handleChangeTypeToggle("all")}
+                                checked={selectedChangeTypes.includes(BudgetChangeType.CREATED)}
+                                onCheckedChange={() => handleChangeTypeToggle(BudgetChangeType.CREATED)}
                             >
                                 All Types
                             </DropdownMenuCheckboxItem>
                             {CHANGE_TYPES.map((changeType) => (
                                 <DropdownMenuCheckboxItem
                                     key={changeType}
-                                    checked={selectedChangeTypes.includes(changeType)}
-                                    onCheckedChange={() => handleChangeTypeToggle(changeType)}
+                                    checked={selectedChangeTypes.includes(changeType as BudgetChangeType)}
+                                    onCheckedChange={() => handleChangeTypeToggle(changeType as BudgetChangeType)}
                                 >
                                     {changeType.charAt(0).toUpperCase() + changeType.slice(1)}
                                 </DropdownMenuCheckboxItem>
@@ -186,7 +172,7 @@ export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFil
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" className="w-[200px] justify-between h-10">
                                 <span className="truncate">
-                                    {selectedCategories.includes("all")
+                                    {selectedCategories.includes(BudgetCategory.ALL_CATEGORIES)
                                         ? "All Categories"
                                         : `${selectedCategories.length} selected`}
                                 </span>
@@ -197,16 +183,16 @@ export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFil
                             <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuCheckboxItem
-                                checked={selectedCategories.includes("all")}
-                                onCheckedChange={() => handleCategoryToggle("all")}
+                                checked={selectedCategories.includes(BudgetCategory.ALL_CATEGORIES)}
+                                onCheckedChange={() => handleCategoryToggle(BudgetCategory.ALL_CATEGORIES)}
                             >
                                 All Categories
                             </DropdownMenuCheckboxItem>
-                            {BUDGET_CATEGORIES.map((category) => (
+                            {Object.values(BudgetCategory).map((category) => (
                                 <DropdownMenuCheckboxItem
                                     key={category}
-                                    checked={selectedCategories.includes(category)}
-                                    onCheckedChange={() => handleCategoryToggle(category)}
+                                    checked={selectedCategories.includes(category as BudgetCategory)}
+                                    onCheckedChange={() => handleCategoryToggle(category as BudgetCategory)}
                                 >
                                     {category}
                                 </DropdownMenuCheckboxItem>

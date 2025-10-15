@@ -14,7 +14,6 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useBudgetForm } from "@/hooks/useBudgetForm";
-import { BUDGET_CATEGORIES } from "@/schemas/budgetSchema";
 import { BudgetCategory, BudgetRecurrence, BudgetType } from "@expense-tracker/shared-types/src";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
@@ -53,10 +52,10 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
         onOpenChange,
     });
 
-    const categoryOptions: { value: BudgetCategory; label: string }[] = BUDGET_CATEGORIES.map(
-        (category: BudgetCategory) => ({
-            value: category,
-            label: category === "Bills" ? "Bills" : category,
+    const categoryOptions: { value: BudgetCategory; label: string }[] = Object.values(BudgetCategory).map(
+        (category) => ({
+            value: category as BudgetCategory,
+            label: category === BudgetCategory.BILLS ? BudgetCategory.BILLS : (category as string),
         })
     );
 

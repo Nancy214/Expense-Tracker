@@ -1,8 +1,15 @@
 import { useAuth } from "@/context/AuthContext";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useToast } from "@/hooks/use-toast";
-import { BudgetFormData, budgetSchema, getDefaultValues } from "@/schemas/budgetSchema";
-import { ApiError, BudgetData, BudgetType } from "@expense-tracker/shared-types/src";
+import {
+    ApiError,
+    BudgetData,
+    BudgetType,
+    BudgetFormData,
+    budgetSchema,
+    BudgetCategory,
+    BudgetRecurrence,
+} from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parse } from "date-fns";
 import { useEffect, useState } from "react";
@@ -35,6 +42,19 @@ interface UseBudgetFormReturn {
     /** Whether the form is in editing mode */
     isEditing: boolean;
 }
+
+type HasCurrency = { currency?: string };
+export const getDefaultValues = (user?: HasCurrency): BudgetFormData => ({
+    title: "",
+    amount: 0,
+    currency: user?.currency || "INR",
+    fromRate: 1,
+    toRate: 1,
+    recurrence: BudgetRecurrence.MONTHLY,
+    startDate: format(new Date(), "dd/MM/yyyy"),
+    category: BudgetCategory.ALL_CATEGORIES,
+    reason: undefined,
+});
 
 /**
  * Custom hook for managing budget form state and operations
