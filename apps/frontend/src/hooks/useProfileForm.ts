@@ -3,23 +3,29 @@ import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile, removeProfilePicture } from "@/services/profile.service";
-import { profileSchema, ProfileFormData, validateProfilePicture } from "@/schemas/profileSchema";
-import { AuthenticatedUser } from "@expense-tracker/shared-types/src";
+import { AuthenticatedUser, ProfileData, ZProfileData } from "@expense-tracker/shared-types/src";
 
 // Return type interface for the hook
 interface UseProfileFormReturn {
-    form: UseFormReturn<ProfileFormData>;
+    form: UseFormReturn<ProfileData>;
     error: string;
     isEditing: boolean;
     isLoading: boolean;
     photoRemoved: boolean;
     handleProfilePictureChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     handleRemovePhoto: () => void;
-    onSubmit: (data: ProfileFormData) => Promise<void>;
+    onSubmit: (data: ProfileData) => Promise<void>;
     handleCancel: () => void;
     setIsEditing: (editing: boolean) => void;
     user: AuthenticatedUser | null;
 }
+
+const VALID_FILE_TYPES = ["image/jpeg", "image/png", "image/jpg", "image/webp"] as const;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+export const validateProfilePicture = (file: File): boolean => {
+    return file.size <= MAX_FILE_SIZE && VALID_FILE_TYPES.includes(file.type as any);
+};
 
 export const useProfileForm = (): UseProfileFormReturn => {
     const { user, updateUser } = useAuth();
@@ -28,8 +34,8 @@ export const useProfileForm = (): UseProfileFormReturn => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [photoRemoved, setPhotoRemoved] = useState<boolean>(false);
 
-    const form: UseFormReturn<ProfileFormData> = useForm<ProfileFormData>({
-        resolver: zodResolver(profileSchema),
+    const form: UseFormReturn<ProfileData> = useForm<ProfileData>({
+        resolver: zodResolver(ZProfileData),
         mode: "onChange", // Enable real-time validation
         defaultValues: {
             name: user?.name || "",
@@ -79,7 +85,7 @@ export const useProfileForm = (): UseProfileFormReturn => {
     }, [form]);
 
     const onSubmit = useCallback(
-        async (data: ProfileFormData): Promise<void> => {
+        async (data: ProfileData): Promise<void> => {
             setIsLoading(true);
             setError("");
 

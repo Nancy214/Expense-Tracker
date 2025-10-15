@@ -1,6 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ProfileFormData, profileSchema } from "@/schemas/profileSchema";
 import {
     getCountryTimezoneCurrency,
     getProfile,
@@ -13,6 +12,7 @@ import {
     CountryTimezoneCurrencyData,
     ProfileData,
     SettingsData,
+    ZProfileData,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
@@ -64,14 +64,14 @@ interface ProfileMutationsReturn {
 }
 
 interface ProfileFormReturn {
-    form: UseFormReturn<ProfileFormData>;
+    form: UseFormReturn<ProfileData>;
     error: string;
     isEditing: boolean;
     isLoading: boolean;
     photoRemoved: boolean;
     handleProfilePictureChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     handleRemovePhoto: () => void;
-    onSubmit: (data: ProfileFormData) => Promise<void>;
+    onSubmit: (data: ProfileData) => Promise<void>;
     handleCancel: () => void;
     setIsEditing: (editing: boolean) => void;
     user: ProfileDataUnion;
@@ -306,8 +306,8 @@ export function useProfileForm(): ProfileFormReturn {
     // Prioritize fresh API data over potentially stale localStorage data
     const currentProfileData = profileData ?? user ?? null;
 
-    const form = useForm<ProfileFormData>({
-        resolver: zodResolver(profileSchema),
+    const form = useForm<ProfileData>({
+        resolver: zodResolver(ZProfileData),
         defaultValues: {
             name: currentProfileData?.name || "",
             email: currentProfileData?.email || "",
@@ -403,7 +403,7 @@ export function useProfileForm(): ProfileFormReturn {
         setPhotoRemoved(true);
     };
 
-    const onSubmit = async (data: ProfileFormData): Promise<void> => {
+    const onSubmit = async (data: ProfileData): Promise<void> => {
         setError("");
 
         // Check if any changes were made

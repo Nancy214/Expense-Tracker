@@ -128,14 +128,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             }
         }
 
-        const updateData: ProfileData = {};
-        if (name !== undefined) updateData.name = name;
-        if (email !== undefined) updateData.email = email;
-        if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
-        if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
-        if (currency !== undefined) updateData.currency = currency;
-        if (country !== undefined) updateData.country = country;
-        if (timezone !== undefined) updateData.timezone = timezone;
+        const updateData: ProfileData = { name, email, phoneNumber, dateOfBirth, currency, country, timezone };
 
         if (req.file) {
             // Check if AWS is properly configured
