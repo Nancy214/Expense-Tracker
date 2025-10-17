@@ -7,7 +7,7 @@ import {
     getMonthlySavingsTrend,
 } from "../controllers/analytics.controller";
 import { validate } from "../middleware/validate.middleware";
-import { ZAnalyticsApiRequestValidationQuery } from "@expense-tracker/shared-types";
+import { ZAnalyticsApiRequestValidationQuery } from "@expense-tracker/shared-types/src";
 
 const router = Router();
 

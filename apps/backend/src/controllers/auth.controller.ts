@@ -11,6 +11,7 @@ import {
     PasswordResponse,
     RegisterCredentials,
     AuthResponse,
+    ForgotPasswordRequest,
 } from "@expense-tracker/shared-types/src";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
@@ -32,19 +33,11 @@ export const register = async (
     res: Response<AuthResponse>
 ): Promise<void> => {
     try {
-        const { email, password, name } = req.body;
+        const { email, name, password } = req.body;
 
-        // Check if user exists
-        const existingUser: UserType | null = await AuthDAO.findUserByEmail(email);
-        if (existingUser) {
-            res.status(400).json({ message: "User already exists" });
-            return;
-        }
+        const user: UserType = await AuthDAO.createUser({ email, name, password });
 
-        // Create new user
-        await AuthDAO.createUser({ email, password, name: name || "" });
-
-        res.status(200).json({ message: "User registered successfully" });
+        res.status(200).json({ message: "User registered successfully", user });
     } catch (error: unknown) {
         console.error("Registration error:", error);
         res.status(500).json({ message: "Internal server error during registration" });
@@ -238,7 +231,7 @@ export const logout = async (req: Request, res: Response<{ success: boolean; mes
 };
 
 export const forgotPassword = async (
-    req: Request<{}, PasswordResponse, { email: string }>,
+    req: Request<{}, PasswordResponse, ForgotPasswordRequest>,
     res: Response<PasswordResponse>
 ): Promise<void> => {
     const { email } = req.body;

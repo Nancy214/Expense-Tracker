@@ -65,9 +65,9 @@ export const ZChangePasswordFormData = z.object({
     confirmPassword: z.string(),
 });
 
-export const ZForgotPasswordFormData = ZUserType.pick({ email: true });
+//export const ZForgotPasswordRequest = z.object({ email: z.email() });
 
-export type ForgotPasswordFormData = z.infer<typeof ZForgotPasswordFormData>;
+//export type ForgotPasswordRequest = z.infer<typeof ZForgotPasswordRequest>;
 export type ChangePasswordFormData = z.infer<typeof ZChangePasswordFormData>;
 
 export const ZTokenPayload = z.object({
@@ -85,6 +85,12 @@ export const ZJwtPayload = z.object({
 });
 
 export type JwtPayload = z.infer<typeof ZJwtPayload>;
+
+export const ZForgotPasswordRequest = z.object({
+    email: z.email(),
+});
+
+export type ForgotPasswordRequest = z.infer<typeof ZForgotPasswordRequest>;
 
 export const ZResetPasswordRequest = z.object({
     token: z.string(),

@@ -83,7 +83,7 @@ const ChangePasswordPage: React.FC = () => {
 
         setIsLoading(true);
         try {
-            await changePassword(formData.currentPassword, formData.newPassword);
+            await changePassword({ currentPassword: formData.currentPassword, newPassword: formData.newPassword });
 
             toast({
                 title: "Password changed successfully",

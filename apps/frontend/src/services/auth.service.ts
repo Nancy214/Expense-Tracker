@@ -1,5 +1,13 @@
 import { refreshAuthTokens, removeTokens } from "@/utils/authUtils";
-import { AuthResponse, LoginCredentials, RegisterCredentials, UserType } from "@expense-tracker/shared-types/src";
+import {
+    AuthResponse,
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    LoginCredentials,
+    RegisterCredentials,
+    ResetPasswordRequest,
+    UserType,
+} from "@expense-tracker/shared-types/src";
 import axios, { AxiosError, AxiosResponse } from "axios";
 
 const API_URL = "http://localhost:8000/api";
@@ -91,11 +99,6 @@ export const register = async (credentials: RegisterCredentials): Promise<AuthRe
         formData.append("name", credentials.name || "");
         formData.append("password", credentials.password);
 
-        // Add profile picture if it exists
-        /* if (credentials.profilePicture) {
-            formData.append("profilePicture", credentials.profilePicture);
-        }
- */
         const response: AxiosResponse<AuthResponse> = await authApi.post("/auth/register", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
@@ -124,20 +127,20 @@ export const uploadProfilePicture = async (profilePicture: File): Promise<string
     }
 };
 
-export const forgotPassword = async (email: string): Promise<void> => {
+export const forgotPassword = async (credentials: ForgotPasswordRequest): Promise<void> => {
     try {
-        await authApi.post("/auth/forgot-password", { email });
+        await authApi.post("/auth/forgot-password", credentials);
     } catch (error: unknown) {
         console.error("Forgot password error:", error);
         throw error;
     }
 };
 
-export const resetPassword = async (token: string, newPassword: string): Promise<void> => {
+export const resetPassword = async (credentials: ResetPasswordRequest): Promise<void> => {
     try {
         await authApi.post("/auth/reset-password", {
-            token,
-            newPassword,
+            token: credentials.token,
+            newPassword: credentials.newPassword,
         });
     } catch (error: unknown) {
         console.error("Reset password error:", error);
@@ -155,11 +158,11 @@ export const getProfile = async (): Promise<UserType> => {
     }
 };
 
-export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+export const changePassword = async (credentials: ChangePasswordRequest): Promise<void> => {
     try {
         await authApi.put("/auth/change-password", {
-            currentPassword,
-            newPassword,
+            currentPassword: credentials.currentPassword,
+            newPassword: credentials.newPassword,
         });
     } catch (error: unknown) {
         console.error("Change password error:", error);

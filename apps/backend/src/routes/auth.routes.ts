@@ -11,7 +11,13 @@ import {
     changePassword,
     refreshToken,
 } from "../controllers/auth.controller";
-import { upload } from "../config/multer";
+import { validate } from "../middleware/validate.middleware";
+import {
+    ZRegisterCredentials,
+    ZResetPasswordRequest,
+    ZForgotPasswordRequest,
+    ZChangePasswordRequest,
+} from "@expense-tracker/shared-types/src";
 
 const router = Router();
 
@@ -26,12 +32,12 @@ router.get(
     googleAuthCallback
 );
 
-router.post("/register", upload.single("profilePicture"), register);
+router.post("/register", validate(ZRegisterCredentials, "body"), register);
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", logout);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
-router.put("/change-password", authenticateToken, changePassword);
+router.post("/forgot-password", validate(ZForgotPasswordRequest, "body"), forgotPassword);
+router.post("/reset-password", validate(ZResetPasswordRequest, "body"), resetPassword);
+router.put("/change-password", authenticateToken, validate(ZChangePasswordRequest, "body"), changePassword);
 
 export default router;

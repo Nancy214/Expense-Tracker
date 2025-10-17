@@ -4,12 +4,12 @@ import {
     ApiError,
     ZLoginCredentials,
     LoginCredentials,
-    ForgotPasswordFormData,
-    ZForgotPasswordFormData,
     RegisterCredentials,
     ZRegisterCredentials,
     ZResetPasswordSchema,
     ResetPasswordSchema,
+    ZForgotPasswordRequest,
+    ForgotPasswordRequest,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -39,10 +39,10 @@ interface UseResetPasswordFormReturn {
 }
 
 interface UseForgotPasswordFormReturn {
-    form: UseFormReturn<ForgotPasswordFormData>;
+    form: UseFormReturn<ForgotPasswordRequest>;
     error: string;
     success: string;
-    onSubmit: (data: ForgotPasswordFormData) => Promise<void>;
+    onSubmit: (data: ForgotPasswordRequest) => Promise<void>;
 }
 
 // Login hook
@@ -142,7 +142,7 @@ export const useResetPasswordForm = (): UseResetPasswordFormReturn => {
         setSuccess("");
 
         try {
-            await resetPassword(token, data.newPassword.password);
+            await resetPassword({ token, newPassword: data.newPassword.password });
             setSuccess("Password reset successfully! Redirecting to login...");
             setTimeout((): void => {
                 navigate("/login");
@@ -170,19 +170,19 @@ export const useForgotPasswordForm = (): UseForgotPasswordFormReturn => {
     const [error, setError] = useState<string>("");
     const [success, setSuccess] = useState<string>("");
 
-    const form: UseFormReturn<ForgotPasswordFormData> = useForm<ForgotPasswordFormData>({
-        resolver: zodResolver(ZForgotPasswordFormData),
+    const form: UseFormReturn<ForgotPasswordRequest> = useForm<ForgotPasswordRequest>({
+        resolver: zodResolver(ZForgotPasswordRequest),
         defaultValues: {
             email: "",
         },
     });
 
-    const onSubmit = async (data: ForgotPasswordFormData): Promise<void> => {
+    const onSubmit = async (data: ForgotPasswordRequest): Promise<void> => {
         setError("");
         setSuccess("");
 
         try {
-            await forgotPassword(data.email);
+            await forgotPassword(data);
             setSuccess("Password reset email sent successfully. Please check your email.");
         } catch (error: unknown) {
             const apiError = error as ApiError;
