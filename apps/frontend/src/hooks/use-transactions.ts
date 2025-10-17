@@ -15,6 +15,7 @@ import {
     TransactionResponse,
     TransactionSummary,
     baseTransactionSchema,
+    TransactionId,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
@@ -171,15 +172,9 @@ export function useTransactionSummary(): UseQueryResult<TransactionSummaryQueryR
     };
 }
 
-// Mutation types
-interface UpdateTransactionParams {
-    id: string;
-    data: TransactionOrBill;
-}
-
 interface TransactionMutationsReturn {
     createTransaction: (data: TransactionOrBill) => Promise<TransactionResponse>;
-    updateTransaction: (params: UpdateTransactionParams) => Promise<TransactionResponse>;
+    updateTransaction: (params: { id: TransactionId; data: TransactionOrBill }) => Promise<TransactionResponse>;
     isCreating: boolean;
     isUpdating: boolean;
     createError: Error | null;
@@ -207,8 +202,8 @@ export function useTransactionMutations(): TransactionMutationsReturn {
         onError: () => showSaveError(toast, "Transaction"),
     });
 
-    const updateMutation = useMutation<TransactionResponse, Error, UpdateTransactionParams>({
-        mutationFn: ({ id, data }: UpdateTransactionParams) => updateExpense(id, data as any),
+    const updateMutation = useMutation<TransactionResponse, Error, { id: TransactionId; data: TransactionOrBill }>({
+        mutationFn: ({ id, data }) => updateExpense(id, data),
         onSuccess: () => {
             showUpdateSuccess(toast, "Transaction");
             invalidateQueries();

@@ -6,7 +6,7 @@ import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { useToast } from "@/hooks/use-toast";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
-import { BillStatus, TransactionOrBill } from "@expense-tracker/shared-types/src";
+import { BillStatus, TransactionOrBill, TransactionId } from "@expense-tracker/shared-types/src";
 import {
     Column,
     ColumnDef,
@@ -48,9 +48,9 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
         onEdit(expense);
     };
 
-    const handleBillStatusUpdate = async (id: string, newStatus: BillStatus) => {
+    const handleBillStatusUpdate = async (id: TransactionId, data: BillStatus) => {
         try {
-            await updateTransactionBillStatus(id, newStatus);
+            await updateTransactionBillStatus(id, data);
             toast({
                 title: "Success",
                 description: "Bill status updated successfully",
@@ -220,7 +220,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                         return <Badge variant="outline">{status}</Badge>;
                     }
 
-                    return getStatusBadge(status, dueDate);
+                    return getStatusBadge(status, new Date(dueDate));
                 },
                 size: 100,
             },
@@ -285,7 +285,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleBillStatusUpdate(expense.id!, BillStatus.PAID)}
+                                    onClick={() => handleBillStatusUpdate({ id: expense.id! }, BillStatus.PAID)}
                                     title="Mark as Paid"
                                     aria-label="Mark as Paid"
                                 >
@@ -296,7 +296,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleBillStatusUpdate(expense.id!, BillStatus.UNPAID)}
+                                    onClick={() => handleBillStatusUpdate({ id: expense.id! }, BillStatus.UNPAID)}
                                     title="Mark as Unpaid"
                                     aria-label="Mark as Unpaid"
                                 >
@@ -368,7 +368,7 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                 onOpenChange={(open) => !open && clearRecurringDelete()}
                 onConfirm={async () => {
                     if (recurringToDelete) {
-                        await handleRecurringDelete(recurringToDelete.id!);
+                        await handleRecurringDelete({ id: recurringToDelete.id! });
                         clearRecurringDelete();
                         if (refreshAllTransactions) {
                             refreshAllTransactions();

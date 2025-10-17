@@ -319,7 +319,7 @@ export function RecurringTransactionsTab({ data, onEdit, refreshAllTransactions 
                 onOpenChange={(open) => !open && clearRecurringDelete()}
                 onConfirm={async () => {
                     if (recurringToDelete) {
-                        await handleRecurringDelete(recurringToDelete.id!);
+                        await handleRecurringDelete({ id: recurringToDelete.id! });
                         clearRecurringDelete();
                         if (refreshAllTransactions) {
                             refreshAllTransactions();

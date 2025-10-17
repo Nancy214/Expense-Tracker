@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useBills } from "@/hooks/use-bills";
 import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
 import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
-import { ActiveTab, TransactionOrBill } from "@expense-tracker/shared-types/src";
+import { ActiveTab, RecurringTransactionTemplate, TransactionOrBill } from "@expense-tracker/shared-types/src";
 import { useSearchParams } from "react-router-dom";
 
 const TransactionsPage = () => {
@@ -171,7 +171,7 @@ const TransactionsPage = () => {
             }
             return parsed;
         }
-        if (t.date instanceof Date) return t.date;
+        if ((t.date as any) instanceof Date) return t.date;
         return new Date();
     };
 
@@ -184,7 +184,7 @@ const TransactionsPage = () => {
             case "all":
                 return allTransactions;
             case "recurring":
-                return apiRecurringTemplates;
+                return apiRecurringTemplates as TransactionOrBill[];
             case "bills":
                 return bills;
             default:
@@ -548,7 +548,7 @@ const TransactionsPage = () => {
                     activeTab === "all"
                         ? allTransactions
                         : activeTab === "recurring"
-                        ? apiRecurringTemplates
+                        ? (apiRecurringTemplates as TransactionOrBill[])
                         : activeTab === "bills"
                         ? bills
                         : allTransactions
@@ -559,7 +559,7 @@ const TransactionsPage = () => {
                 }}
                 handleDelete={() => {}} // This will be handled by ExpenseDataTable
                 handleDeleteRecurring={() => {}} // This will be handled by ExpenseDataTable
-                recurringTransactions={recurringTemplates}
+                recurringTransactions={recurringTemplates as TransactionOrBill[]}
                 totalExpensesByCurrency={totalExpensesByCurrency}
                 parse={parse}
                 activeTab={activeTab as ActiveTab}
@@ -589,7 +589,7 @@ const TransactionsPage = () => {
                 itemsPerPage={itemsPerPage}
                 isLoading={isLoading()}
                 // Recurring templates from API
-                apiRecurringTemplates={apiRecurringTemplates}
+                recurringTemplates={apiRecurringTemplates as RecurringTransactionTemplate[]}
                 onFiltersChange={handleFiltersChange}
             />
             {/* Add Expense Dialog */}

@@ -295,3 +295,42 @@ export enum ActiveTab {
     BILLS = "bills",
 }
 export const ZActiveTab = z.enum(ActiveTab);
+
+export const ZReceiptKey = z.object({
+    id: z.string(),
+});
+export type ReceiptKey = z.infer<typeof ZReceiptKey>;
+
+export const ZTransactionId = ZTransaction.pick({ id: true });
+export type TransactionId = z.infer<typeof ZTransactionId>;
+
+// Schema for URL parameter validation (just the ID string)
+export const ZTransactionIdParam = z.object({
+    id: z.string().min(1, "Transaction ID is required"),
+});
+export type TransactionIdParam = z.infer<typeof ZTransactionIdParam>;
+
+/* export const ZExpenseUpdateData = z.object({
+    dueDate: z.string().refine(isValidDate, "Please enter a valid due date in DD/MM/YYYY format").optional(),
+    nextDueDate: z.string().refine(isValidDate, "Please enter a valid next due date in DD/MM/YYYY format").optional(),
+    lastPaidDate: z.string().refine(isValidDate, "Please enter a valid last paid date in DD/MM/YYYY format").optional(),
+    billStatus: ZBillStatus.optional(),
+    billCategory: ZBillCategory.optional(),
+    billFrequency: ZBillFrequency.optional(),
+    paymentMethod: ZPaymentMethod.optional(),
+    reminderDays: z.number().optional(),
+});
+
+export type ExpenseUpdateData = z.infer<typeof ZExpenseUpdateData>; */
+
+/* export const ZUpdateTransactionParams = z.object({
+    id: ZTransactionId,
+    data: ZBill
+});
+export type UpdateTransactionParams = z.infer<typeof ZUpdateTransactionParams>;
+ */
+/* export const ZUpdateBillStatusParams = z.object({
+    id: ZTransactionId,
+    data: ZBillStatus,
+});
+export type UpdateBillStatusParams = z.infer<typeof ZUpdateBillStatusParams>; */

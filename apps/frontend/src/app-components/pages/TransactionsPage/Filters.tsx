@@ -18,6 +18,8 @@ import {
     ActiveTab,
     ExpenseCategory,
     IncomeCategory,
+    RecurringTransactionTemplate,
+    TransactionId,
     TransactionOrBill,
     UserType,
 } from "@expense-tracker/shared-types/src";
@@ -31,7 +33,7 @@ interface FiltersSectionProps {
     filteredTransactions: TransactionOrBill[];
     handleEdit: (expense: TransactionOrBill) => void;
     handleDelete: (id: string) => void;
-    handleDeleteRecurring: (templateId: string) => void;
+    handleDeleteRecurring: (templateId: TransactionId) => void;
     recurringTransactions?: TransactionOrBill[];
     totalExpensesByCurrency: { [currency: string]: { income: number; expense: number; net: number } };
     parse?: (date: string, format: string, baseDate: Date) => Date;
@@ -50,7 +52,7 @@ interface FiltersSectionProps {
     onPageChange?: (page: number) => void;
     totalItems?: number;
     itemsPerPage?: number;
-    apiRecurringTemplates?: TransactionOrBill[];
+    recurringTemplates?: RecurringTransactionTemplate[];
     isLoading?: boolean;
     // Filter change callbacks
     onFiltersChange?: (filters: {
@@ -79,7 +81,7 @@ export function FiltersSection({
     onPageChange,
     totalItems = 0,
     itemsPerPage = 20,
-    apiRecurringTemplates,
+    recurringTemplates,
     isLoading = false,
     onFiltersChange,
 }: FiltersSectionProps) {
@@ -299,7 +301,14 @@ export function FiltersSection({
                         totalItems={totalItems}
                         itemsPerPage={itemsPerPage}
                         isLoading={isLoading}
-                        apiRecurringTemplates={apiRecurringTemplates}
+                        apiRecurringTemplates={recurringTemplates?.map((template) => ({
+                            ...template,
+                            endDate: template.endDate
+                                ? typeof template.endDate === "string"
+                                    ? template.endDate
+                                    : template.endDate.toISOString()
+                                : undefined,
+                        }))}
                     />
                 </div>
             </CardContent>

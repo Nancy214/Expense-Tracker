@@ -179,7 +179,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             }
 
             if (isEditing && editingExpense && editingExpense.id) {
-                await updateTransaction({ id: editingExpense.id, data: transactionData });
+                await updateTransaction({ id: { id: editingExpense.id }, data: transactionData });
             } else {
                 await createTransaction(transactionData);
             }

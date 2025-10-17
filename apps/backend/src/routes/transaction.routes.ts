@@ -17,6 +17,13 @@ import {
 } from "../controllers/transaction.controller";
 import { upload } from "../config/multer";
 import { uploadReceipt } from "../controllers/transaction.controller";
+import {
+    ZReceiptKey,
+    ZTransactionIdParam,
+    ZTransactionOrBill,
+    ZBillStatus,
+} from "@expense-tracker/shared-types/dist/transactions";
+import { validate } from "../middleware/validate.middleware";
 
 const router = Router();
 
@@ -26,13 +33,25 @@ router.get("/get-all-transactions-analytics", authenticateToken, getAllTransacti
 router.get("/get-bills", authenticateToken, getBills);
 router.get("/get-recurring-templates", authenticateToken, getRecurringTemplates);
 router.get("/transaction-summary", authenticateToken, getTransactionSummary);
-router.post("/add-expenses", authenticateToken, createExpense);
+router.post("/add-expenses", authenticateToken, validate(ZTransactionOrBill, "body"), createExpense);
 router.post("/trigger-recurring", authenticateToken, triggerRecurringTransactionsJob);
 router.post("/upload-receipt", authenticateToken, upload.single("file"), uploadReceipt);
-router.get("/receipts/:key", authenticateToken, getReceiptUrl);
-router.put("/:id", authenticateToken, updateExpense);
-router.delete("/:id", authenticateToken, deleteExpense);
-router.delete("/recurring/:id", authenticateToken, deleteRecurringExpense);
-router.patch("/:id/bill-status", authenticateToken, updateTransactionBillStatus);
+router.get("/receipts/:key", authenticateToken, validate(ZReceiptKey, "params"), getReceiptUrl);
+router.put(
+    "/:id",
+    authenticateToken,
+    validate(ZTransactionIdParam, "params"),
+    validate(ZTransactionOrBill, "body"),
+    updateExpense
+);
+router.delete("/:id", authenticateToken, validate(ZTransactionIdParam, "params"), deleteExpense);
+router.delete("/recurring/:id", authenticateToken, validate(ZTransactionIdParam, "params"), deleteRecurringExpense);
+router.patch(
+    "/:id/bill-status",
+    authenticateToken,
+    validate(ZTransactionIdParam, "params"),
+    validate(ZBillStatus, "body"),
+    updateTransactionBillStatus
+);
 
 export default router;

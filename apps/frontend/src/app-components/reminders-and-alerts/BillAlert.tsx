@@ -2,7 +2,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { useBillMutations, useBillsSelector } from "@/hooks/use-bills";
 import { formatToHumanReadableDate, parseFromAPI, parseFromDisplay } from "@/utils/dateUtils";
-import { BillStatus } from "@expense-tracker/shared-types/src";
+import { BillStatus, TransactionId } from "@expense-tracker/shared-types/src";
 import { differenceInCalendarDays } from "date-fns";
 import { AlertTriangle, Bell, Clock, CreditCard, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -32,8 +32,8 @@ const BillItem = ({
     isUpdating,
 }: {
     bill: any;
-    onPay: (billId: string) => void;
-    isUpdating: string | null;
+    onPay: (billId: TransactionId) => void;
+    isUpdating: TransactionId | null;
 }) => {
     const dueDate: Date =
         bill.dueDate instanceof Date
@@ -43,7 +43,7 @@ const BillItem = ({
             : parseFromDisplay(bill.dueDate);
     const formattedDueDate: string = formatToHumanReadableDate(dueDate);
     const daysLeft: number = differenceInCalendarDays(dueDate, new Date());
-    const isThisBillUpdating: boolean = isUpdating === bill.id;
+    const isThisBillUpdating: boolean = isUpdating?.id === bill.id;
 
     // Determine bill status for styling
     const getBillStatus = () => {
@@ -75,7 +75,7 @@ const BillItem = ({
             </div>
             <Button
                 size="sm"
-                onClick={() => onPay(bill.id)}
+                onClick={() => onPay({ id: bill.id })}
                 className="ml-4"
                 disabled={bill.billStatus === "paid" || isThisBillUpdating}
             >
@@ -96,13 +96,13 @@ export function BillAlertsUI({
     upcomingBills,
     billReminders,
 }: BillAlertsUIProps) {
-    const [isUpdating, setIsUpdating] = useState<string | null>(null);
+    const [isUpdating, setIsUpdating] = useState<TransactionId | null>(null);
     const { updateBillStatus } = useBillMutations();
 
-    const handlePayBill = async (billId: string) => {
+    const handlePayBill = async (billId: TransactionId) => {
         setIsUpdating(billId);
         try {
-            await updateBillStatus({ id: billId, status: BillStatus.PAID });
+            await updateBillStatus(billId, BillStatus.PAID);
             // Success toast is handled by the mutation hook
         } catch (error) {
             console.error("Error updating bill status:", error);

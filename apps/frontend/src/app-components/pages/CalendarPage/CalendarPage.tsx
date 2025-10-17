@@ -46,7 +46,7 @@ interface CalendarEvent {
     textColor: string;
     extendedProps: {
         category: string;
-        description: string;
+        description?: string;
         amount: number;
         currency: string;
         isRecurring?: boolean;
@@ -79,7 +79,7 @@ const CalendarPage: React.FC = () => {
         let dateStr: string = "";
         if (typeof expense.date === "string") {
             dateStr = expense.date;
-        } else if (expense.date instanceof Date) {
+        } else if ((expense.date as any) instanceof Date) {
             // Convert Date to dd/MM/yyyy string
             dateStr = format(expense.date, "dd/MM/yyyy");
         }

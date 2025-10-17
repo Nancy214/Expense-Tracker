@@ -16,7 +16,9 @@ import {
     Transaction,
     TransactionResponse,
     TransactionType,
+    TransactionOrBill,
     baseTransactionSchema,
+    TransactionId,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -78,8 +80,8 @@ interface UseRecurringTemplatesReturn {
 
 interface UseRecurringExpenseMutationsReturn {
     createRecurringExpense: (data: Transaction) => Promise<TransactionResponse>;
-    updateRecurringExpense: (params: { id: string; data: Transaction }) => Promise<TransactionResponse>;
-    deleteRecurringExpense: (id: string) => Promise<void>;
+    updateRecurringExpense: (params: { id: TransactionId; data: TransactionOrBill }) => Promise<TransactionResponse>;
+    deleteRecurringExpense: (params: TransactionId) => Promise<void>;
     triggerRecurringJob: () => Promise<void>;
     isCreating: boolean;
     isUpdating: boolean;
@@ -188,8 +190,12 @@ export function useRecurringExpenseMutations(): UseRecurringExpenseMutationsRetu
         },
     });
 
-    const updateRecurringExpenseMutation = useMutation<TransactionResponse, Error, { id: string; data: Transaction }>({
-        mutationFn: ({ id, data }: { id: string; data: Transaction }) => updateExpense(id, data),
+    const updateRecurringExpenseMutation = useMutation<
+        TransactionResponse,
+        Error,
+        { id: TransactionId; data: TransactionOrBill }
+    >({
+        mutationFn: ({ id, data }) => updateExpense(id, data),
         onSuccess: () => {
             showUpdateSuccess(toast, "Recurring Expense");
             // Invalidate all related queries
@@ -200,7 +206,7 @@ export function useRecurringExpenseMutations(): UseRecurringExpenseMutationsRetu
         },
     });
 
-    const deleteRecurringExpenseMutation = useMutation<void, Error, string>({
+    const deleteRecurringExpenseMutation = useMutation<void, Error, TransactionId>({
         mutationFn: deleteRecurringExpense,
         onSuccess: () => {
             toast({

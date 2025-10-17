@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import mongoose from "mongoose";
 import {
     BillStatus,
     PaginatedResponse,
@@ -190,7 +191,7 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        const expense = await TransactionDAO.createTransaction(userId, req.body);
+        const expense: TransactionOrBill = await TransactionDAO.createTransaction(userId, req.body);
 
         res.json(expense);
     } catch (error: unknown) {
@@ -216,7 +217,15 @@ export const updateExpense = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        const expense = await TransactionDAO.updateTransaction(userId, req.params.id, req.body);
+        const { id } = req.params;
+
+        // Validate ObjectId early to avoid cast errors
+        if (!mongoose.isValidObjectId(id)) {
+            res.status(400).json({ message: "Invalid transaction id" });
+            return;
+        }
+
+        const expense = await TransactionDAO.updateTransaction(userId, id, req.body);
 
         if (!expense) {
             res.status(404).json({ message: "Expense not found" });
@@ -237,6 +246,12 @@ export const deleteExpense = async (req: Request, res: Response): Promise<void> 
 
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
+            return;
+        }
+
+        // Validate ObjectId early to avoid cast errors
+        if (!mongoose.isValidObjectId(id)) {
+            res.status(400).json({ message: "Invalid transaction id" });
             return;
         }
 
@@ -354,6 +369,12 @@ export const deleteRecurringExpense = async (req: Request, res: Response): Promi
             return;
         }
 
+        // Validate ObjectId early to avoid cast errors
+        if (!mongoose.isValidObjectId(id)) {
+            res.status(400).json({ message: "Invalid transaction id" });
+            return;
+        }
+
         const { template, deletedInstancesCount } = await TransactionDAO.deleteRecurringTemplate(userId, id);
 
         if (!template) {
@@ -377,6 +398,12 @@ export const updateTransactionBillStatus = async (req: Request, res: Response): 
     try {
         const { id } = req.params;
         const { billStatus } = req.body as { billStatus: BillStatus };
+
+        // Validate ObjectId early to avoid cast errors
+        if (!mongoose.isValidObjectId(id)) {
+            res.status(400).json({ message: "Invalid transaction id" });
+            return;
+        }
 
         const transaction = await TransactionDAO.updateTransactionBillStatus(id, billStatus);
 

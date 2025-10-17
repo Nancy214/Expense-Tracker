@@ -10,8 +10,10 @@ import {
     BillStatus,
     PaymentMethod,
     Transaction,
+    TransactionOrBill,
     TransactionResponse,
     baseTransactionSchema,
+    TransactionId,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,7 +27,7 @@ import { useForm, UseFormReturn } from "react-hook-form";
 
 // API response for bills
 interface BillsApiResponse {
-    bills: Bill[];
+    bills: TransactionOrBill[];
     pagination: {
         page: number;
         limit: number;
@@ -38,7 +40,7 @@ interface BillsApiResponse {
 
 // Bills query result
 interface BillsQueryResult {
-    bills: Bill[];
+    bills: TransactionOrBill[];
     pagination: {
         page: number;
         limit: number;
@@ -87,8 +89,8 @@ interface BillFormDefaultValues {
 
 // Upcoming and overdue bills result
 interface UpcomingAndOverdueBills {
-    upcoming: Bill[];
-    overdue: Bill[];
+    upcoming: TransactionOrBill[];
+    overdue: TransactionOrBill[];
 }
 
 // Query keys
@@ -101,7 +103,7 @@ const BILL_QUERY_KEYS = {
 // ============================================================================
 
 interface UseBillsReturn {
-    bills: Bill[];
+    bills: TransactionOrBill[];
     pagination: {
         page: number;
         limit: number;
@@ -132,7 +134,7 @@ export function useBills(page: number = 1, limit: number = 20): UseBillsReturn {
             const response: BillsApiResponse = await getBills(page, limit);
 
             const bills = response?.bills || [];
-            const billsWithDefaults: Bill[] = bills.map((bill: Bill) => ({
+            const billsWithDefaults: TransactionOrBill[] = bills.map((bill: TransactionOrBill) => ({
                 ...bill,
                 description: bill.description ?? "",
                 currency: bill.currency ?? "INR",
@@ -169,8 +171,8 @@ export function useBills(page: number = 1, limit: number = 20): UseBillsReturn {
 
 interface UseBillMutationsReturn {
     createBill: (data: Transaction) => Promise<TransactionResponse>;
-    updateBill: (params: { id: string; data: Transaction }) => Promise<TransactionResponse>;
-    updateBillStatus: (params: { id: string; status: BillStatus }) => Promise<TransactionResponse>;
+    updateBill: (params: { id: TransactionId; data: TransactionOrBill }) => Promise<TransactionResponse>;
+    updateBillStatus: (id: TransactionId, data: BillStatus) => Promise<TransactionResponse>;
     isCreating: boolean;
     isUpdating: boolean;
     isUpdatingBillStatus: boolean;
@@ -195,20 +197,21 @@ export function useBillMutations(): UseBillMutationsReturn {
         },
     });
 
-    const updateBillMutation = useMutation<TransactionResponse, Error, { id: string; data: Transaction }>({
-        mutationFn: ({ id, data }: { id: string; data: Transaction }) => updateExpense(id, data),
+    const updateBillMutation = useMutation<TransactionResponse, Error, { id: TransactionId; data: TransactionOrBill }>({
+        mutationFn: ({ id, data }) => updateExpense(id, data),
         onSuccess: () => {
             showUpdateSuccess(toast, "Bill");
             // Invalidate all related queries
             queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
         },
-        onError: () => {
-            showSaveError(toast, "Bill");
-        },
     });
 
-    const updateBillStatusMutation = useMutation<TransactionResponse, Error, { id: string; status: BillStatus }>({
-        mutationFn: ({ id, status }: { id: string; status: BillStatus }) => updateTransactionBillStatus(id, status),
+    const updateBillStatusMutation = useMutation<
+        TransactionResponse,
+        Error,
+        { id: TransactionId; billStatus: BillStatus }
+    >({
+        mutationFn: ({ id, billStatus }) => updateTransactionBillStatus(id, billStatus),
         onSuccess: () => {
             toast({
                 title: "Bill marked as paid",
@@ -217,8 +220,8 @@ export function useBillMutations(): UseBillMutationsReturn {
             // Invalidate all related queries to refresh the data
             queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
         },
-        onError: (error: Error, variables: { id: string; status: BillStatus }) => {
-            console.error("Error updating bill status:", { id: variables.id, status: variables.status, error });
+        onError: (error: Error, variables: { id: TransactionId; billStatus: BillStatus }) => {
+            console.error("Error updating bill status:", { id: variables.id, billStatus: variables.billStatus, error });
             toast({
                 title: "Error",
                 description: "Failed to update bill status. Please try again.",
@@ -230,7 +233,8 @@ export function useBillMutations(): UseBillMutationsReturn {
     return {
         createBill: createBillMutation.mutateAsync,
         updateBill: updateBillMutation.mutateAsync,
-        updateBillStatus: updateBillStatusMutation.mutateAsync,
+        updateBillStatus: (id: TransactionId, data: BillStatus) =>
+            updateBillStatusMutation.mutateAsync({ id, billStatus: data }),
         isCreating: createBillMutation.isPending,
         isUpdating: updateBillMutation.isPending,
         isUpdatingBillStatus: updateBillStatusMutation.isPending,
@@ -410,11 +414,11 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
 // ============================================================================
 
 interface UseBillsSelectorReturn {
-    bills: Bill[];
+    bills: TransactionOrBill[];
     isLoading: boolean;
     invalidateBills: () => Promise<void>;
     upcomingAndOverdueBills: UpcomingAndOverdueBills;
-    billReminders: Bill[];
+    billReminders: TransactionOrBill[];
 }
 
 export function useBillsSelector(): UseBillsSelectorReturn {
@@ -434,20 +438,21 @@ export function useBillsSelector(): UseBillsSelectorReturn {
 
     const upcomingAndOverdueBills = useMemo((): UpcomingAndOverdueBills => {
         const today = startOfDay(new Date());
-        const upcoming: Bill[] = [];
-        const overdue: Bill[] = [];
+        const upcoming: TransactionOrBill[] = [];
+        const overdue: TransactionOrBill[] = [];
 
-        bills.forEach((bill: Bill) => {
-            if (!bill.dueDate || bill.billStatus === "paid") {
+        bills.forEach((bill: TransactionOrBill) => {
+            if (!("dueDate" in bill) || !bill.dueDate || !("billStatus" in bill) || bill.billStatus === "paid") {
                 return;
             }
 
             // Handle different date formats
             let dueDate: Date;
-            if (bill.dueDate instanceof Date) {
-                dueDate = bill.dueDate;
-            } else if (typeof bill.dueDate === "string") {
-                const dueDateStr = bill.dueDate as string;
+            const billWithDueDate = bill as Bill;
+            if (billWithDueDate.dueDate && typeof billWithDueDate.dueDate === "object") {
+                dueDate = billWithDueDate.dueDate;
+            } else if (typeof billWithDueDate.dueDate === "string") {
+                const dueDateStr = billWithDueDate.dueDate as string;
                 // Check if it's an ISO date string
                 if (dueDateStr.includes("T") || dueDateStr.includes("-")) {
                     dueDate = new Date(dueDateStr);
@@ -471,19 +476,27 @@ export function useBillsSelector(): UseBillsSelectorReturn {
         return { upcoming, overdue };
     }, [bills]);
 
-    const billReminders = useMemo((): Bill[] => {
+    const billReminders = useMemo((): TransactionOrBill[] => {
         const today = startOfDay(new Date());
-        const reminders = bills.filter((bill: Bill) => {
-            if (bill.billStatus === "paid" || !bill.dueDate || !bill.reminderDays) {
+        const reminders = bills.filter((bill: TransactionOrBill) => {
+            if (
+                !("billStatus" in bill) ||
+                bill.billStatus === "paid" ||
+                !("dueDate" in bill) ||
+                !bill.dueDate ||
+                !("reminderDays" in bill) ||
+                !bill.reminderDays
+            ) {
                 return false;
             }
 
             // Handle different date formats
             let dueDate: Date;
-            if (bill.dueDate instanceof Date) {
-                dueDate = bill.dueDate;
-            } else if (typeof bill.dueDate === "string") {
-                const dueDateStr = bill.dueDate as string;
+            const billWithDueDate = bill as Bill;
+            if (billWithDueDate.dueDate && typeof billWithDueDate.dueDate === "object") {
+                dueDate = billWithDueDate.dueDate;
+            } else if (typeof billWithDueDate.dueDate === "string") {
+                const dueDateStr = billWithDueDate.dueDate as string;
                 // Check if it's an ISO date string
                 if (dueDateStr.includes("T") || dueDateStr.includes("-")) {
                     dueDate = new Date(dueDateStr);

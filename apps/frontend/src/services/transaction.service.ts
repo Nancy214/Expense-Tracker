@@ -1,64 +1,17 @@
 import { refreshAuthTokens } from "@/utils/authUtils";
 import {
-    Bill,
-    BillStatus,
     MonthlyStats,
     PaginationInfo,
-    Transaction,
     TransactionOrBill,
     TransactionResponse,
     TransactionSummary,
+    TransactionId,
+    BillStatus,
 } from "@expense-tracker/shared-types/src";
 import axios from "axios";
 import { isValid } from "date-fns";
 
 const API_URL = "http://localhost:8000/api/expenses";
-
-// API Response interfaces
-/* interface PaginatedResponse<T> {
-    [key: string]: T[] | PaginationInfo;
-    pagination: PaginationInfo;
-}
-
-interface ExpensesResponse extends PaginatedResponse<TransactionOrBill> {
-    expenses: TransactionOrBill[];
-}
-
-interface TransactionsResponse extends PaginatedResponse<TransactionOrBill> {
-    transactions: TransactionOrBill[];
-}
-
-interface BillsResponse extends PaginatedResponse<TransactionOrBill> {
-    bills: TransactionOrBill[];
-}
-
-interface RecurringTemplatesResponse extends PaginatedResponse<TransactionOrBill> {
-    recurringTemplates: TransactionOrBill[];
-}
-
-interface AnalyticsResponse {
-    transactions: TransactionOrBill[];
-}
-
-interface TransactionSummaryResponse {
-    summary: TransactionSummary;
-} */
-
-/* interface ReceiptUploadResponse {
-    key: string;
-} */
-
-// Type for expense updates that can include bill-specific fields
-type ExpenseUpdateData = TransactionOrBill & {
-    dueDate?: string | Date;
-    nextDueDate?: string | Date;
-    lastPaidDate?: string | Date;
-    billStatus?: BillStatus;
-    billCategory?: string;
-    billFrequency?: string;
-    paymentMethod?: string;
-    reminderDays?: number;
-};
 
 // Helper function for safe date conversion (returns ISO string)
 const convertToISOString = (dateValue: string | Date | undefined): string | undefined => {
@@ -239,27 +192,23 @@ export const createExpense = async (expense: TransactionOrBill): Promise<Transac
     }
 };
 
-export const updateExpense = async (id: string, expense: ExpenseUpdateData): Promise<TransactionResponse> => {
+export const updateExpense = async (id: TransactionId, data: TransactionOrBill): Promise<TransactionResponse> => {
     try {
         // Create a copy of the expense to avoid mutating the original
-        const expenseToUpdate: TransactionOrBill = { ...expense };
+        const expenseToUpdate: TransactionOrBill = { ...data };
 
-        // Handle date conversion using the helper function
-        expenseToUpdate.date = convertToISOString(expense.date) || new Date().toISOString();
-
-        if (expense.category === "Bills") {
-            const billUpdate: Bill = expenseToUpdate as Bill;
-            billUpdate.dueDate = convertToISOString(expense.dueDate) as string;
-            billUpdate.nextDueDate = convertToISOString(expense.nextDueDate);
-            billUpdate.lastPaidDate = convertToISOString(expense.lastPaidDate);
+        // Handle date conversion for bill-specific fields
+        if ("dueDate" in data && data.dueDate) {
+            (expenseToUpdate as any).dueDate = convertToISOString(data.dueDate);
+        }
+        if ("nextDueDate" in data && data.nextDueDate) {
+            (expenseToUpdate as any).nextDueDate = convertToISOString(data.nextDueDate);
+        }
+        if ("lastPaidDate" in data && data.lastPaidDate) {
+            (expenseToUpdate as any).lastPaidDate = convertToISOString(data.lastPaidDate);
         }
 
-        if ((expense as Transaction).isRecurring && (expense as Transaction).recurringFrequency) {
-            const transactionUpdate = expenseToUpdate as Transaction;
-            transactionUpdate.endDate = convertToISOString((expense as Transaction).endDate);
-        }
-
-        const response = await expenseApi.put(`/${id}`, expenseToUpdate);
+        const response = await expenseApi.put(`/${id.id}`, expenseToUpdate);
         return response.data;
     } catch (error) {
         console.error("Error updating expense:", error);
@@ -267,11 +216,11 @@ export const updateExpense = async (id: string, expense: ExpenseUpdateData): Pro
     }
 };
 
-export const deleteExpense = async (id: string): Promise<void> => {
+export const deleteExpense = async (params: TransactionId): Promise<void> => {
     try {
-        await expenseApi.delete(`/${id}`);
+        await expenseApi.delete(`/${params.id}`);
     } catch (error) {
-        console.error("Error deleting expense:", error);
+        console.error("Error deleting transaction:", error);
         throw error;
     }
 };
@@ -334,9 +283,9 @@ export const uploadReceipt = async (file: File): Promise<string> => {
     return response.data.key;
 };
 
-export const deleteRecurringExpense = async (id: string): Promise<void> => {
+export const deleteRecurringExpense = async (params: TransactionId): Promise<void> => {
     try {
-        await expenseApi.delete(`/recurring/${id}`);
+        await expenseApi.delete(`/recurring/${params.id}`);
     } catch (error) {
         console.error("Error deleting recurring expense:", error);
         throw error;
@@ -344,9 +293,12 @@ export const deleteRecurringExpense = async (id: string): Promise<void> => {
 };
 
 // Update bill status for transactions
-export const updateTransactionBillStatus = async (id: string, status: BillStatus): Promise<TransactionResponse> => {
+export const updateTransactionBillStatus = async (
+    id: TransactionId,
+    billStatus: BillStatus
+): Promise<TransactionResponse> => {
     try {
-        const response = await expenseApi.patch(`/${id}/bill-status`, { billStatus: status });
+        const response = await expenseApi.patch(`/${id.id}/bill-status`, { billStatus });
         return response.data;
     } catch (error) {
         console.error("Error updating transaction bill status:", error);
