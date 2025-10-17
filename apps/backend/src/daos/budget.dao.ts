@@ -14,7 +14,7 @@ import { Budget } from "../models/budget.model";
 import { TransactionModel } from "../models/transaction.model";
 import {
     BudgetChange,
-    BudgetData,
+    BudgetFormData,
     BudgetProgress,
     BudgetType,
     Transaction,
@@ -25,7 +25,7 @@ export class BudgetDAO {
     /**
      * Create a new budget
      */
-    static async createBudget(userId: string, budgetData: BudgetData): Promise<BudgetType> {
+    static async createBudget(userId: string, budgetData: BudgetFormData): Promise<BudgetType> {
         const { title, amount, currency, fromRate, toRate, recurrence, startDate, category } = budgetData;
 
         const budget = new Budget({
@@ -83,7 +83,11 @@ export class BudgetDAO {
     /**
      * Update a budget
      */
-    static async updateBudget(userId: string, budgetId: string, budgetData: BudgetData): Promise<BudgetType | null> {
+    static async updateBudget(
+        userId: string,
+        budgetId: string,
+        budgetData: BudgetFormData
+    ): Promise<BudgetType | null> {
         const { title, amount, currency, fromRate, toRate, recurrence, startDate, category } = budgetData;
 
         const budget = await Budget.findOneAndUpdate(
@@ -136,10 +140,8 @@ export class BudgetDAO {
     /**
      * Get budget logs for a user, optionally filtered by budget ID
      */
-    static async getBudgetLogs(userId: string, budgetId?: string): Promise<BudgetLogType[]> {
-        const query = budgetId
-            ? { userId: new mongoose.Types.ObjectId(userId), budgetId: new mongoose.Types.ObjectId(budgetId) }
-            : { userId: new mongoose.Types.ObjectId(userId) };
+    static async getBudgetLogs(userId: string): Promise<BudgetLogType[]> {
+        const query = { userId: new mongoose.Types.ObjectId(userId) };
 
         return await BudgetLog.find(query).sort({ timestamp: -1 });
     }
@@ -269,10 +271,7 @@ export class BudgetDAO {
      * @param budgetId - Optional specific budget ID. If provided, returns progress for that budget only
      * @returns Budget progress data for single budget or all budgets with overall totals
      */
-    static async calculateBudgetProgress(
-        userId: string,
-        budgetId?: string
-    ): Promise<
+    static async calculateBudgetProgress(userId: string): Promise<
         | BudgetProgress
         | {
               budgets: BudgetProgress[];
@@ -283,17 +282,11 @@ export class BudgetDAO {
     > {
         // Get budgets - either specific one or all for user
         let budgets: BudgetType[];
-        if (budgetId) {
-            const budget = await this.findBudgetById(userId, budgetId);
-            budgets = budget ? [budget] : [];
-        } else {
-            budgets = await this.findBudgetsByUserId(userId);
-        }
+
+        budgets = await this.findBudgetsByUserId(userId);
 
         if (budgets.length === 0) {
-            if (budgetId) {
-                throw new Error("Budget not found");
-            }
+            //throw new Error("No budgets found");
             return {
                 budgets: [],
                 totalProgress: 0,
@@ -342,11 +335,6 @@ export class BudgetDAO {
             } as BudgetProgress;
         });
 
-        // If requesting single budget, return just that budget's progress
-        if (budgetId) {
-            return budgetProgress[0];
-        }
-
         // Calculate overall progress for all budgets
         const totalBudgetAmount: number = budgetProgress.reduce(
             (sum: number, budget: BudgetProgress) => sum + budget.amount,
@@ -369,7 +357,7 @@ export class BudgetDAO {
     /**
      * Compare old and new budget values to detect changes
      */
-    static detectBudgetChanges(oldBudget: BudgetData, newBudgetData: BudgetData): BudgetChange[] {
+    static detectBudgetChanges(oldBudget: BudgetFormData, newBudgetData: BudgetFormData): BudgetChange[] {
         const changes: BudgetChange[] = [];
 
         if (oldBudget.title !== newBudgetData.title) {
@@ -381,7 +369,7 @@ export class BudgetDAO {
         if (oldBudget.recurrence !== newBudgetData.recurrence) {
             changes.push({ field: "recurrence", oldValue: oldBudget.recurrence, newValue: newBudgetData.recurrence });
         }
-        if (oldBudget.startDate.toISOString() !== new Date(newBudgetData.startDate).toISOString()) {
+        if (oldBudget.startDate.toString() !== new Date(newBudgetData.startDate).toString()) {
             changes.push({ field: "startDate", oldValue: oldBudget.startDate, newValue: newBudgetData.startDate });
         }
         if (oldBudget.category !== newBudgetData.category) {

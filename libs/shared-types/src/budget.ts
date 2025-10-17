@@ -62,8 +62,10 @@ export const ZBudgetType = z.object({
 });
 export type BudgetType = z.infer<typeof ZBudgetType>;
 
-export const ZBudgetData = ZBudgetType.omit({ id: true, userId: true, createdAt: true });
-export type BudgetData = z.infer<typeof ZBudgetData>;
+export const ZBudgetParams = z.object({
+    id: z.string({ message: "Budget ID is required" }),
+});
+export type BudgetParams = z.infer<typeof ZBudgetParams>;
 
 // Validation helper functions
 const isValidDate = (dateString: string): boolean => {

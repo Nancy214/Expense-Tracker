@@ -1,5 +1,11 @@
 import { useAuth } from "@/context/AuthContext";
-import { BudgetData, BudgetProgressResponse, BudgetReminder, BudgetType } from "@expense-tracker/shared-types/src";
+import {
+    BudgetFormData,
+    BudgetParams,
+    BudgetProgressResponse,
+    BudgetReminder,
+    BudgetType,
+} from "@expense-tracker/shared-types/src";
 import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import {
     createBudget,
@@ -28,9 +34,9 @@ interface UseBudgetsReturn {
     remindersError: Error | null;
 
     // Mutation functions
-    createBudget: (budgetData: BudgetData) => Promise<BudgetType>;
-    updateBudget: (params: { id: string; budgetData: BudgetData }) => Promise<BudgetType>;
-    deleteBudget: (id: string) => Promise<void>;
+    createBudget: (budgetData: BudgetFormData) => Promise<BudgetType>;
+    updateBudget: (params: { id: string; budgetData: BudgetFormData }) => Promise<BudgetType>;
+    deleteBudget: (params: BudgetParams) => Promise<void>;
 
     // Mutation states
     isCreating: boolean;
@@ -68,8 +74,8 @@ export const useBudgets = (): UseBudgetsReturn => {
         : [];
 
     // Mutation for creating a budget
-    const createBudgetMutation: UseMutationResult<BudgetType, Error, BudgetData> = useMutation({
-        mutationFn: (budgetData: BudgetData) => createBudget(budgetData),
+    const createBudgetMutation: UseMutationResult<BudgetType, Error, BudgetFormData> = useMutation({
+        mutationFn: (budgetData: BudgetFormData) => createBudget(budgetData),
         onSuccess: () => {
             // Invalidate and refetch budgets, progress, and logs queries
             queryClient.invalidateQueries({
@@ -91,9 +97,10 @@ export const useBudgets = (): UseBudgetsReturn => {
     });
 
     // Mutation for updating a budget
-    const updateBudgetMutation: UseMutationResult<BudgetType, Error, { id: string; budgetData: BudgetData }> =
+    const updateBudgetMutation: UseMutationResult<BudgetType, Error, { id: string; budgetData: BudgetFormData }> =
         useMutation({
-            mutationFn: ({ id, budgetData }: { id: string; budgetData: BudgetData }) => updateBudget(id, budgetData),
+            mutationFn: ({ id, budgetData }: { id: string; budgetData: BudgetFormData }) =>
+                updateBudget(id, budgetData),
             onSuccess: () => {
                 queryClient.invalidateQueries({
                     queryKey: ["budgets"],
@@ -114,8 +121,8 @@ export const useBudgets = (): UseBudgetsReturn => {
         });
 
     // Mutation for deleting a budget
-    const deleteBudgetMutation: UseMutationResult<void, Error, string> = useMutation({
-        mutationFn: (id: string) => deleteBudget(id),
+    const deleteBudgetMutation: UseMutationResult<void, Error, BudgetParams> = useMutation({
+        mutationFn: (params: BudgetParams) => deleteBudget(params),
         onSuccess: () => {
             queryClient.invalidateQueries({
                 queryKey: ["budgets"],
@@ -155,14 +162,14 @@ export const useBudgets = (): UseBudgetsReturn => {
 
         // Mutation functions
         createBudget: isAuthenticated
-            ? (budgetData: BudgetData) => createBudgetMutation.mutateAsync(budgetData)
+            ? (budgetData: BudgetFormData) => createBudgetMutation.mutateAsync(budgetData)
             : () => Promise.reject(new Error("Not authenticated")),
         updateBudget: isAuthenticated
-            ? ({ id, budgetData }: { id: string; budgetData: BudgetData }) =>
+            ? ({ id, budgetData }: { id: string; budgetData: BudgetFormData }) =>
                   updateBudgetMutation.mutateAsync({ id, budgetData })
             : () => Promise.reject(new Error("Not authenticated")),
         deleteBudget: isAuthenticated
-            ? (id: string) => deleteBudgetMutation.mutateAsync(id)
+            ? (params: BudgetParams) => deleteBudgetMutation.mutateAsync(params)
             : () => Promise.reject(new Error("Not authenticated")),
 
         // Mutation states

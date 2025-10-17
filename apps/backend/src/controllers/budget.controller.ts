@@ -1,7 +1,8 @@
-import { BudgetData, TokenPayload } from "@expense-tracker/shared-types/src";
+import { BudgetFormData, TokenPayload } from "@expense-tracker/shared-types/src";
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { BudgetDAO } from "../daos/budget.dao";
+import { parseDateFromAPI } from "../utils/dateUtils";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;
@@ -15,7 +16,7 @@ export const createBudget = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
-        const budgetData: BudgetData = req.body;
+        const budgetData: BudgetFormData = req.body;
         const { title, amount, currency, recurrence, startDate, category } = budgetData;
 
         if (!title || !amount || !currency || !recurrence || !startDate || !category) {
@@ -27,8 +28,14 @@ export const createBudget = async (req: Request, res: Response): Promise<void> =
 
         console.log("Creating budget:", budgetData);
 
+        // Normalize types for DAO (expects Date for startDate)
+        const preparedData = {
+            ...budgetData,
+            startDate: parseDateFromAPI(startDate),
+        } as any;
+
         // Create the budget using DAO
-        const savedBudget = await BudgetDAO.createBudget(userId, budgetData);
+        const savedBudget = await BudgetDAO.createBudget(userId, preparedData);
 
         // Create a log for the new budget
         await BudgetDAO.createBudgetLog(
@@ -73,7 +80,7 @@ export const updateBudget = async (req: Request, res: Response): Promise<void> =
         }
 
         const { id } = req.params;
-        const budgetData: BudgetData = req.body;
+        const budgetData: BudgetFormData = req.body;
         const { title, amount, currency, recurrence, startDate, category } = budgetData;
 
         if (!title || !amount || !currency || !recurrence || !startDate || !category) {
@@ -90,16 +97,26 @@ export const updateBudget = async (req: Request, res: Response): Promise<void> =
             return;
         }
 
+        // Normalize types for DAO (expects Date for startDate)
+        const preparedData: BudgetFormData = {
+            ...budgetData,
+            startDate: startDate.toString(),
+        };
+
         // Update the budget using DAO
-        const updatedBudget = await BudgetDAO.updateBudget(userId, id, budgetData);
+        const updatedBudget = await BudgetDAO.updateBudget(userId, id, preparedData);
         if (!updatedBudget) {
             res.status(404).json({ message: "Budget not found." });
             return;
         }
 
         // Detect changes and create log
-        const changes = BudgetDAO.detectBudgetChanges(oldBudget, budgetData);
-        console.log("Detected changes:", changes.length, changes);
+        // Convert oldBudget to BudgetFormData format for comparison
+        const oldBudgetForComparison: BudgetFormData = {
+            ...oldBudget,
+            startDate: oldBudget.startDate.toISOString().split("T")[0], // Convert Date to YYYY-MM-DD string
+        };
+        const changes = BudgetDAO.detectBudgetChanges(oldBudgetForComparison, preparedData);
 
         if (changes.length > 0) {
             console.log("Creating budget update log...");
@@ -204,7 +221,7 @@ export const getBudgets = async (req: Request, res: Response): Promise<void> => 
     }
 };
 
-export const getBudget = async (req: Request, res: Response): Promise<void> => {
+/* export const getBudget = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
@@ -227,21 +244,17 @@ export const getBudget = async (req: Request, res: Response): Promise<void> => {
         console.error("Budget fetch error:", error);
         res.status(500).json({ message: "Failed to fetch budget." });
     }
-};
+}; */
 
-export const getBudgetLogs = async (req: Request, res: Response): Promise<void> => {
+export const getBudgetLogs = async (_req: Request, res: Response): Promise<void> => {
     try {
-        const userId = (req as AuthRequest).user?.id;
+        const userId = (_req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json({ message: "User not authenticated" });
             return;
         }
 
-        const { budgetId } = req.params;
-
-        // Get budget logs using DAO
-        const logs = await BudgetDAO.getBudgetLogs(userId, budgetId);
-
+        const logs = await BudgetDAO.getBudgetLogs(userId);
         res.status(200).json({ logs });
     } catch (error) {
         console.error("Budget logs fetch error:", error);
@@ -258,10 +271,8 @@ export const getBudgetProgress = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        const { budgetId } = req.params;
-
         // Get budget progress using DAO - unified function handles both single and overall progress
-        const budgetProgress = await BudgetDAO.calculateBudgetProgress(userId, budgetId);
+        const budgetProgress = await BudgetDAO.calculateBudgetProgress(userId);
 
         res.status(200).json(budgetProgress);
     } catch (error: unknown) {

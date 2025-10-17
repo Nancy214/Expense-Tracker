@@ -3,7 +3,6 @@ import { useBudgets } from "@/hooks/use-budgets";
 import { useToast } from "@/hooks/use-toast";
 import {
     ApiError,
-    BudgetData,
     BudgetType,
     BudgetFormData,
     budgetSchema,
@@ -11,7 +10,7 @@ import {
     BudgetRecurrence,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { useForm, UseFormReturn } from "react-hook-form";
 
@@ -108,14 +107,14 @@ export const useBudgetForm = ({
         setIsSubmitting(true);
 
         try {
-            const budgetData: BudgetData = {
+            const budgetData: BudgetFormData = {
                 title: data.title,
                 amount: data.amount,
                 currency: data.currency,
                 fromRate: data.fromRate,
                 toRate: data.toRate,
                 recurrence: data.recurrence,
-                startDate: parse(data.startDate, "dd/MM/yyyy", new Date()),
+                startDate: format(new Date(data.startDate), "dd/MM/yyyy"),
                 category: data.category,
                 reason: data.reason,
             };

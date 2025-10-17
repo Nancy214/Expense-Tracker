@@ -41,7 +41,7 @@ export const useBudgetLogs = (options: UseBudgetLogsOptions = {}): UseBudgetLogs
 
     const query: UseQueryResult<BudgetLogType[], Error> = useQuery({
         queryKey,
-        queryFn: () => getBudgetLogs(budgetId),
+        queryFn: () => getBudgetLogs({ id: budgetId ?? "" }),
         staleTime: 30 * 1000, // Consider data fresh for 30 seconds
         gcTime: 5 * 60 * 1000, // Cache for 5 minutes
         refetchOnWindowFocus: false, // Don't refetch on window focus

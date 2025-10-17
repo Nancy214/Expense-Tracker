@@ -1,11 +1,12 @@
 import { refreshAuthTokens } from "@/utils/authUtils";
 import {
     ApiError,
-    BudgetData,
+    BudgetFormData,
     BudgetLogType,
     BudgetProgressResponse,
     BudgetReminder,
     BudgetType,
+    BudgetParams,
 } from "@expense-tracker/shared-types/src";
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
@@ -58,12 +59,12 @@ budgetApi.interceptors.response.use(
     }
 );
 
-export const createBudget = async (budgetData: BudgetData): Promise<BudgetType> => {
+export const createBudget = async (budgetData: BudgetFormData): Promise<BudgetType> => {
     try {
         const response: AxiosResponse<BudgetType> = await budgetApi.post<
             BudgetType,
             AxiosResponse<BudgetType>,
-            BudgetData
+            BudgetFormData
         >("/budget", budgetData);
         return response.data;
     } catch (error: unknown) {
@@ -73,12 +74,12 @@ export const createBudget = async (budgetData: BudgetData): Promise<BudgetType> 
     }
 };
 
-export const updateBudget = async (id: string, budgetData: BudgetData): Promise<BudgetType> => {
+export const updateBudget = async (id: string, budgetData: BudgetFormData): Promise<BudgetType> => {
     try {
         const response: AxiosResponse<BudgetType> = await budgetApi.put<
             BudgetType,
             AxiosResponse<BudgetType>,
-            BudgetData
+            BudgetFormData
         >(`/budget/${id}`, budgetData);
         return response.data;
     } catch (error: unknown) {
@@ -88,9 +89,9 @@ export const updateBudget = async (id: string, budgetData: BudgetData): Promise<
     }
 };
 
-export const deleteBudget = async (id: string): Promise<void> => {
+export const deleteBudget = async (params: BudgetParams): Promise<void> => {
     try {
-        await budgetApi.delete(`/budget/${id}`);
+        await budgetApi.delete(`/budget/${params.id}`);
     } catch (error: unknown) {
         const apiError = error as AxiosError<ApiError>;
         console.error("Budget deletion error:", apiError);
@@ -109,9 +110,9 @@ export const getBudgets = async (): Promise<BudgetType[]> => {
     }
 };
 
-export const getBudget = async (id: string): Promise<BudgetType> => {
+/* export const getBudget = async (params: BudgetParams): Promise<BudgetType> => {
     try {
-        const response: AxiosResponse<BudgetType> = await budgetApi.get<BudgetType>(`/budget/${id}`);
+        const response: AxiosResponse<BudgetType> = await budgetApi.get<BudgetType>(`/budget/${params.id}`);
         return response.data;
     } catch (error: unknown) {
         const apiError = error as AxiosError<ApiError>;
@@ -119,7 +120,7 @@ export const getBudget = async (id: string): Promise<BudgetType> => {
         throw apiError;
     }
 };
-
+ */
 export const getBudgetProgress = async (): Promise<BudgetProgressResponse> => {
     try {
         const response: AxiosResponse<BudgetProgressResponse> = await budgetApi.get<BudgetProgressResponse>(
@@ -236,9 +237,9 @@ export const getReminderPriority = (reminder: BudgetReminder): number => {
     return 0;
 };
 
-export const getBudgetLogs = async (budgetId?: string): Promise<BudgetLogType[]> => {
+export const getBudgetLogs = async (params: BudgetParams): Promise<BudgetLogType[]> => {
     try {
-        const url = budgetId ? `/budget/logs/${budgetId}` : "/budget/logs";
+        const url = `/budget/logs/${params.id}`;
         const response: AxiosResponse<{ logs: BudgetLogType[] }> = await budgetApi.get(url);
         return response.data.logs;
     } catch (error: unknown) {
