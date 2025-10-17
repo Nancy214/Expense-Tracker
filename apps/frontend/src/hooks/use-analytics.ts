@@ -9,12 +9,13 @@ import { getAllTransactionsForAnalytics } from "@/services/transaction.service";
 import { isInCurrentMonth, parseFromDisplay } from "@/utils/dateUtils";
 import {
     BillsCategoryBreakdownResponse,
+    AnalyticsApiRequestValidationQuery,
     ExpenseCategoryBreakdownResponse,
     HeatmapData,
     IncomeExpenseSummaryResponse,
     MonthlySavingsTrendResponse,
     MonthlyStats,
-    Transaction,
+    Period,
     TransactionOrBill,
     TransactionType,
 } from "@expense-tracker/shared-types/src";
@@ -42,9 +43,13 @@ export function useExpenseCategoryBreakdown(
 ): UseQueryResult<ExpenseCategoryBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
+    const query: AnalyticsApiRequestValidationQuery = {
+        period: period as Period,
+        subPeriod,
+    };
     return useQuery({
         queryKey: ANALYTICS_QUERY_KEYS.expenseBreakdown(period, subPeriod),
-        queryFn: () => getExpenseCategoryBreakdown(period, subPeriod),
+        queryFn: () => getExpenseCategoryBreakdown(query),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false,
@@ -58,9 +63,13 @@ export function useBillsCategoryBreakdown(
 ): UseQueryResult<BillsCategoryBreakdownResponse, Error> {
     const { isAuthenticated } = useAuth();
 
+    const query: AnalyticsApiRequestValidationQuery = {
+        period: period as Period,
+        subPeriod,
+    };
     return useQuery({
         queryKey: ANALYTICS_QUERY_KEYS.billsBreakdown(period, subPeriod),
-        queryFn: () => getBillsCategoryBreakdown(period, subPeriod),
+        queryFn: () => getBillsCategoryBreakdown(query),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false,
@@ -74,9 +83,14 @@ export function useIncomeExpenseSummary(
 ): UseQueryResult<IncomeExpenseSummaryResponse, Error> {
     const { isAuthenticated } = useAuth();
 
+    const query: AnalyticsApiRequestValidationQuery = {
+        period: period as Period,
+        subPeriod,
+    };
+
     return useQuery<IncomeExpenseSummaryResponse, Error>({
         queryKey: ANALYTICS_QUERY_KEYS.incomeExpenseSummary(period, subPeriod),
-        queryFn: () => getIncomeExpenseSummary(period, subPeriod),
+        queryFn: () => getIncomeExpenseSummary(query),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false,
@@ -90,9 +104,14 @@ export function useMonthlySavingsTrend(
 ): UseQueryResult<MonthlySavingsTrendResponse, Error> {
     const { isAuthenticated } = useAuth();
 
+    const query: AnalyticsApiRequestValidationQuery = {
+        period: period as Period,
+        subPeriod,
+    };
+
     return useQuery<MonthlySavingsTrendResponse, Error>({
         queryKey: ANALYTICS_QUERY_KEYS.monthlySavingsTrend(period, subPeriod),
-        queryFn: () => getMonthlySavingsTrend(period, subPeriod),
+        queryFn: () => getMonthlySavingsTrend(query),
         staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
         gcTime: 10 * 60 * 1000, // Cache for 10 minutes
         refetchOnWindowFocus: false,
@@ -119,8 +138,8 @@ const isValidDateString = (dateStr: string): boolean => {
     return !isNaN(date.getTime());
 };
 
-export const transformExpensesToHeatmapData = (expenses: Transaction[]): HeatmapData[] => {
-    const groupedByDate = expenses.reduce((acc: Record<string, GroupedExpenseData>, expense: Transaction) => {
+export const transformExpensesToHeatmapData = (expenses: TransactionOrBill[]): HeatmapData[] => {
+    const groupedByDate = expenses.reduce((acc: Record<string, GroupedExpenseData>, expense: TransactionOrBill) => {
         let dateStr: string;
 
         // Handle different date formats with proper type checking

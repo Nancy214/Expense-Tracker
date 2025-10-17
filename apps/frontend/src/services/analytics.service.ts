@@ -1,6 +1,7 @@
 import { refreshAuthTokens } from "@/utils/authUtils";
 import type {
     BillsCategoryBreakdownResponse,
+    AnalyticsApiRequestValidationQuery,
     ExpenseCategoryBreakdownResponse,
     IncomeExpenseSummaryResponse,
     MonthlySavingsTrendResponse,
@@ -46,13 +47,12 @@ analyticsApi.interceptors.response.use(
 
 // Get expense category breakdown for pie chart
 export const getExpenseCategoryBreakdown = async (
-    period?: string,
-    subPeriod?: string
+    query: AnalyticsApiRequestValidationQuery
 ): Promise<ExpenseCategoryBreakdownResponse> => {
     try {
         const params = new URLSearchParams();
-        if (period) params.append("period", period);
-        if (subPeriod) params.append("subPeriod", subPeriod);
+        if (query.period) params.append("period", query.period);
+        if (query.subPeriod) params.append("subPeriod", query.subPeriod);
 
         const response: AxiosResponse<ExpenseCategoryBreakdownResponse> = await analyticsApi.get(
             `/expense-breakdown${params.toString() ? `?${params.toString()}` : ""}`
@@ -66,13 +66,12 @@ export const getExpenseCategoryBreakdown = async (
 
 // Get bills category breakdown for pie chart
 export const getBillsCategoryBreakdown = async (
-    period?: string,
-    subPeriod?: string
+    query: AnalyticsApiRequestValidationQuery
 ): Promise<BillsCategoryBreakdownResponse> => {
     try {
         const params = new URLSearchParams();
-        if (period) params.append("period", period);
-        if (subPeriod) params.append("subPeriod", subPeriod);
+        if (query.period) params.append("period", query.period);
+        if (query.subPeriod) params.append("subPeriod", query.subPeriod);
 
         const response: AxiosResponse<BillsCategoryBreakdownResponse> = await analyticsApi.get(
             `/bills-breakdown${params.toString() ? `?${params.toString()}` : ""}`
@@ -86,13 +85,12 @@ export const getBillsCategoryBreakdown = async (
 
 // Get income and expense summary for different time periods
 export const getIncomeExpenseSummary = async (
-    period?: string,
-    subPeriod?: string
+    query: AnalyticsApiRequestValidationQuery
 ): Promise<IncomeExpenseSummaryResponse> => {
     try {
         const params = new URLSearchParams();
-        if (period) params.append("period", period);
-        if (subPeriod) params.append("subPeriod", subPeriod);
+        if (query.period) params.append("period", query.period);
+        if (query.subPeriod) params.append("subPeriod", query.subPeriod);
 
         const response: AxiosResponse<IncomeExpenseSummaryResponse> = await analyticsApi.get(
             `/income-expense-summary${params.toString() ? `?${params.toString()}` : ""}`
@@ -106,13 +104,12 @@ export const getIncomeExpenseSummary = async (
 
 // Get monthly savings trend data for the last 12 months
 export const getMonthlySavingsTrend = async (
-    period?: string,
-    subPeriod?: string
+    query: AnalyticsApiRequestValidationQuery
 ): Promise<MonthlySavingsTrendResponse> => {
     try {
         const params = new URLSearchParams();
-        if (period) params.append("period", period);
-        if (subPeriod) params.append("subPeriod", subPeriod);
+        if (query.period) params.append("period", query.period);
+        if (query.subPeriod) params.append("subPeriod", query.subPeriod);
 
         const response: AxiosResponse<MonthlySavingsTrendResponse> = await analyticsApi.get(
             `/monthly-savings-trend${params.toString() ? `?${params.toString()}` : ""}`

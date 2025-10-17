@@ -322,7 +322,7 @@ const AnalyticsPage = () => {
     const expenseHeatmapData: HeatmapData[] =
         allTransactions.length > 0
             ? transformExpensesToHeatmapData(
-                  allTransactions.filter((t: TransactionOrBill) => t.type === "expense") // Only include expenses for the heatmap
+                  allTransactions.filter((t: TransactionOrBill) => t.type === TransactionType.EXPENSE) // Only include expenses for the heatmap
               )
             : [];
 

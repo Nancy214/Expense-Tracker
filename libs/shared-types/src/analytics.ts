@@ -301,3 +301,9 @@ export const ZAnalyticsMonthData = z.object({
     expenses: z.number(),
 });
 export type AnalyticsMonthData = z.infer<typeof ZAnalyticsMonthData>;
+
+export const ZAnalyticsApiRequestValidationQuery = z.object({
+    period: ZPeriod.optional(),
+    subPeriod: z.string().optional(),
+});
+export type AnalyticsApiRequestValidationQuery = z.infer<typeof ZAnalyticsApiRequestValidationQuery>;
