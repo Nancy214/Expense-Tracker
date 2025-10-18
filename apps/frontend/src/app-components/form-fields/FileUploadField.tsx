@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -38,24 +38,10 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
 
     const error = errors[name];
     const files: File[] = watch(name) || [];
-    const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
     useEffect(() => {
         register(name);
     }, [register, name]);
-
-    const handleDragStart = (idx: number) => setDraggedIdx(idx);
-
-    const handleDragOver = (idx: number, files: File[], setFiles: (files: File[]) => void) => {
-        if (draggedIdx === null || draggedIdx === idx) return;
-        const updated: File[] = [...files];
-        const [dragged] = updated.splice(draggedIdx, 1);
-        updated.splice(idx, 0, dragged);
-        setFiles(updated);
-        setDraggedIdx(idx);
-    };
-
-    const handleDragEnd = () => setDraggedIdx(null);
 
     return (
         <div className={cn("space-y-1", className)}>
@@ -63,34 +49,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>
             <div className="space-y-2">
-                <div
-                    className="relative"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.classList.add("border-blue-500", "bg-blue-50");
-                    }}
-                    onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.classList.remove("border-blue-500", "bg-blue-50");
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.classList.remove("border-blue-500", "bg-blue-50");
-
-                        const droppedFiles = Array.from(e.dataTransfer.files);
-                        const validFiles = droppedFiles.filter(
-                            (file) => file.type.startsWith("image/") || file.type === "application/pdf"
-                        );
-
-                        if (validFiles.length > 0 && files.length + validFiles.length <= maxFiles) {
-                            if (multiple) {
-                                setValue(name, [...files, ...validFiles], { shouldValidate: true });
-                            } else {
-                                setValue(name, validFiles, { shouldValidate: true });
-                            }
-                        }
-                    }}
-                >
+                <div className="relative">
                     <input
                         type="file"
                         accept={accept}
@@ -150,7 +109,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
 
                 {description && (
                     <p className="text-xs text-muted-foreground">
-                        📁 Drag and drop files here or click to browse. Supports images and PDF files.
+                        📁 Click to browse and select files. Supports images and PDF files.
                     </p>
                 )}
 
@@ -171,20 +130,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                                 return (
                                     <div
                                         key={idx}
-                                        className={`group flex items-center gap-2 p-2 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 ${
-                                            draggedIdx === idx ? "border-blue-400 bg-blue-100 shadow-md" : ""
-                                        }`}
-                                        draggable
-                                        onDragStart={() => handleDragStart(idx)}
-                                        onDragOver={(e) => {
-                                            e.preventDefault();
-                                            handleDragOver(idx, files, (updatedFiles) => {
-                                                setValue(name, updatedFiles, { shouldValidate: true });
-                                            });
-                                        }}
-                                        onDragEnd={handleDragEnd}
-                                        onDrop={handleDragEnd}
-                                        style={{ cursor: "grab" }}
+                                        className="group flex items-center gap-2 p-2 rounded-lg border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
                                     >
                                         {/* File Icon/Preview */}
                                         <div className="flex-shrink-0">
@@ -220,8 +166,6 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                                                     <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
                                                         {isImage ? "Image" : isPdf ? "PDF" : "File"}
                                                     </Badge>
-                                                    <span className="text-xs text-gray-400">•</span>
-                                                    <span className="text-xs text-gray-400">Drag to reorder</span>
                                                 </div>
                                             </div>
                                             <p className="text-xs text-gray-500 truncate">

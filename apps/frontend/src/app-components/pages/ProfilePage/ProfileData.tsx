@@ -215,6 +215,7 @@ const ProfileData: React.FC = () => {
                             id="profilePicture"
                             type="file"
                             onChange={handleProfilePictureChange}
+                            accept="image/*"
                             className="hidden"
                             disabled={!isEditing}
                         />
