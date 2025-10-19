@@ -84,7 +84,7 @@ interface BillFormDefaultValues {
     nextDueDate?: string;
     lastPaidDate?: string;
     paymentMethod: PaymentMethod;
-    receipts: string[];
+    receipt: string | File;
 }
 
 // Upcoming and overdue bills result
@@ -325,7 +325,7 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
                 nextDueDate: editingBill.nextDueDate ? parseDateToFormat(editingBill.nextDueDate) : undefined,
                 lastPaidDate: editingBill.lastPaidDate ? parseDateToFormat(editingBill.lastPaidDate) : undefined,
                 paymentMethod: editingBill.paymentMethod || PaymentMethod.MANUAL,
-                receipts: (editingBill.receipts as string[]) || [],
+                receipt: editingBill.receipt || "",
             };
         }
 
@@ -350,7 +350,7 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
             nextDueDate: undefined,
             lastPaidDate: undefined,
             paymentMethod: PaymentMethod.MANUAL as const,
-            receipts: [],
+            receipt: "",
         };
     }, [editingBill, user?.currency, parseDateToFormat]);
 

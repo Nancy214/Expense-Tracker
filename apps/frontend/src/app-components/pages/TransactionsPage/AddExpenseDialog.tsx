@@ -45,7 +45,7 @@ export interface TransactionFormData {
     isRecurring?: boolean;
     recurringFrequency?: string;
     endDate?: string;
-    receipts?: File[];
+    receipt?: File[];
     fromRate?: number;
     toRate?: number;
     nextDueDate?: string;
@@ -138,8 +138,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         try {
             // Upload receipts if any
             let receiptKeys: string[] = [];
-            if (data.receipts && data.receipts.length > 0) {
-                const fileReceipts = data.receipts.filter((r): r is File => r instanceof File);
+            if (data.receipt && data.receipt.length > 0) {
+                const fileReceipts = data.receipt.filter((r): r is File => r instanceof File);
                 receiptKeys = await Promise.all(fileReceipts.map(uploadReceipt));
             }
 
@@ -151,7 +151,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     userId: user?.id || "",
                     date: data.date,
                     dueDate: data.dueDate as string,
-                    receipts: receiptKeys,
+                    receipt: receiptKeys.length > 0 ? receiptKeys[0] : undefined,
                     nextDueDate: data.nextDueDate,
                     billFrequency: data.billFrequency as BillFrequency,
                     paymentMethod: data.paymentMethod as PaymentMethod,
@@ -173,7 +173,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     ...(data.toRate !== undefined && { toRate: data.toRate }),
                     isRecurring: data.isRecurring || false,
                     recurringFrequency: data.recurringFrequency as any,
-                    receipts: receiptKeys,
+                    receipt: receiptKeys.length > 0 ? receiptKeys[0] : undefined,
                     endDate: data.endDate || undefined,
                 };
             }
@@ -417,12 +417,10 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         )}
 
                         <FileUploadField
-                            name="receipts"
-                            label="Receipts"
+                            name="receipt"
+                            label="Receipt"
                             description="Upload receipt images or PDFs"
                             accept="image/*,application/pdf"
-                            multiple
-                            maxFiles={10}
                         />
 
                         <DialogFooter className="pt-1">

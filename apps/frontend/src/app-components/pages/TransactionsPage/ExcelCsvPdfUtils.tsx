@@ -91,8 +91,8 @@ export function downloadExcel(data: TransactionOrBill[], filename = "expenses.xl
             delete (copy as any).toRate;
         }
         // Convert receipts array to comma-separated string if present
-        if (Array.isArray((copy as any).receipts)) {
-            (copy as any).receipts = (copy as any).receipts.join(", ");
+        if (Array.isArray((copy as any).receipt)) {
+            (copy as any).receipt = (copy as any).receipt.join(", ");
         }
         return copy;
     });

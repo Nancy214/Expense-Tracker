@@ -47,7 +47,7 @@ export interface TransactionFormData {
     isRecurring?: boolean;
     recurringFrequency?: string;
     endDate?: string;
-    receipts?: File[];
+    receipt?: File | string;
     fromRate?: number;
     toRate?: number;
     nextDueDate?: string;
@@ -312,7 +312,7 @@ export const useRecurringExpenseForm = ({
                 endDate: editingRecurringExpense.endDate
                     ? parseDateToFormat(editingRecurringExpense.endDate)
                     : undefined,
-                receipts: (editingRecurringExpense.receipts || []) as unknown as File[],
+                receipt: editingRecurringExpense.receipt || "",
             };
         }
 
@@ -329,7 +329,7 @@ export const useRecurringExpenseForm = ({
             fromRate: 1,
             toRate: 1,
             endDate: undefined,
-            receipts: [] as File[],
+            receipt: "",
         };
     }, [editingRecurringExpense, preselectedCategory, user?.currency]);
 

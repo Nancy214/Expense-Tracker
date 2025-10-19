@@ -297,7 +297,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
             .replace(/[^a-zA-Z0-9]/g, "");
         const ext: string = path.extname(originalName) || ".jpg";
         fileName = `${fileName}${ext}`;
-        const s3Key: string = `receipts/${fileName}`;
+        const s3Key: string = `receipt/${fileName}`;
 
         let fileBuffer: Buffer = req.file.buffer;
         let contentType: string = req.file.mimetype;

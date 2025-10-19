@@ -78,6 +78,9 @@ export enum IncomeCategory {
     OTHER_INCOME = "Other Income",
 }
 
+const VALID_FILE_TYPES = ["image/jpeg", "image/png", "image/jpg", "image/webp", "application/pdf"] as const;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 // Zod enums for reuse
 export const ZRecurringFrequency = z.enum(RecurringFrequency);
 export const ZTransactionType = z.enum(TransactionType);
@@ -158,7 +161,22 @@ export const ZTransaction = z.object({
         .refine(isValidDate, "Please enter a valid end date in DD/MM/YYYY format")
         .optional(),
     templateId: z.string().optional(),
-    receipts: z.array(z.unknown()).default([]),
+    receipt: z
+        .union([
+            z
+                .instanceof(File)
+                .refine(
+                    (file) => file.size <= MAX_FILE_SIZE,
+                    `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`
+                )
+                .refine(
+                    (file) => VALID_FILE_TYPES.includes(file.type as any),
+                    `File type must be one of: ${VALID_FILE_TYPES.join(", ")}`
+                ),
+            z.url("Profile picture must be of valid image type and size").optional(),
+            z.literal(""), // Allow empty string
+        ])
+        .optional(),
 });
 export type Transaction = z.infer<typeof ZTransaction>;
 

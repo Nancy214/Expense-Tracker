@@ -288,7 +288,7 @@ export const useTransactionForm = ({
                 paymentMethod: "paymentMethod" in editingExpense ? (editingExpense.paymentMethod as any) : "manual",
                 billFrequency: "billFrequency" in editingExpense ? (editingExpense.billFrequency as any) : "monthly",
                 reminderDays: "reminderDays" in editingExpense ? editingExpense.reminderDays || 0 : 0,
-                receipts: editingExpense.receipts || [],
+                receipt: editingExpense.receipt || "",
             };
         }
 
@@ -310,7 +310,7 @@ export const useTransactionForm = ({
             paymentMethod: "manual",
             billFrequency: "monthly",
             reminderDays: 0,
-            receipts: [],
+            receipt: "",
         };
     }, [editingExpense, preselectedCategory, user?.currency, parseDateToFormat]);
 

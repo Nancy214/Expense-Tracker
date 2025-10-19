@@ -66,8 +66,8 @@ const TransactionSchema = new Schema(
             ref: "Expense",
             default: null,
         },
-        receipts: {
-            type: [String],
+        receipt: {
+            type: String,
             default: [],
         },
         // Bill-specific fields - ADDED
