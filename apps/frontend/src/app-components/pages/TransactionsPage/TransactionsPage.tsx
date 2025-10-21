@@ -595,10 +595,16 @@ const TransactionsPage = () => {
             {/* Add Expense Dialog */}
             <AddExpenseDialog
                 open={isDialogOpen}
-                onOpenChange={setIsDialogOpen}
+                onOpenChange={(open) => {
+                    setIsDialogOpen(open);
+                    if (!open) {
+                        setEditingExpense(null);
+                    }
+                }}
                 editingExpense={editingExpense}
                 preselectedCategory={preselectedCategory}
                 onSuccess={() => {
+                    setEditingExpense(null);
                     refreshAllTransactions();
                 }}
             />

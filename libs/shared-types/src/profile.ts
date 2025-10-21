@@ -77,7 +77,7 @@ export const ZProfileData = z.object({
                     (file) => VALID_FILE_TYPES.includes(file.type as any),
                     `File type must be one of: ${VALID_FILE_TYPES.join(", ")}`
                 ),
-            z.url("Profile picture must be of valid image type and size").optional(),
+            z.url("PP must be of valid image type and size").optional(),
             z.literal(""), // Allow empty string
         ])
         .optional(),

@@ -45,7 +45,7 @@ export interface TransactionFormData {
     isRecurring?: boolean;
     recurringFrequency?: string;
     endDate?: string;
-    receipt?: File[];
+    receipt?: File | string;
     fromRate?: number;
     toRate?: number;
     nextDueDate?: string;
@@ -127,20 +127,35 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
         }
     }, [currency, user?.currency]);
 
-    // Reset form when dialog opens
+    // Reset form when dialog opens or editingExpense changes
     useEffect(() => {
         if (open) {
             resetForm();
         }
-    }, [open, resetForm]);
+    }, [open, editingExpense, resetForm]);
 
     const onSubmit = async (data: TransactionFormData) => {
         try {
             // Upload receipts if any
-            let receiptKeys: string[] = [];
-            if (data.receipt && data.receipt.length > 0) {
-                const fileReceipts = data.receipt.filter((r): r is File => r instanceof File);
-                receiptKeys = await Promise.all(fileReceipts.map(uploadReceipt));
+            let finalReceipt: string | undefined = undefined;
+
+            if (data.receipt) {
+                if (data.receipt instanceof File) {
+                    // Upload new file
+                    const uploadedKey = await uploadReceipt(data.receipt);
+                    finalReceipt = uploadedKey;
+                } else if (typeof data.receipt === "string" && data.receipt.length > 0) {
+                    // Use existing receipt key
+                    finalReceipt = data.receipt;
+                }
+            } else if (
+                isEditing &&
+                editingExpense &&
+                editingExpense.receipt &&
+                typeof editingExpense.receipt === "string"
+            ) {
+                // Preserve existing receipt when editing without new uploads
+                finalReceipt = editingExpense.receipt;
             }
 
             let transactionData: Transaction | Bill;
@@ -151,7 +166,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     userId: user?.id || "",
                     date: data.date,
                     dueDate: data.dueDate as string,
-                    receipt: receiptKeys.length > 0 ? receiptKeys[0] : undefined,
+                    receipt: finalReceipt,
                     nextDueDate: data.nextDueDate,
                     billFrequency: data.billFrequency as BillFrequency,
                     paymentMethod: data.paymentMethod as PaymentMethod,
@@ -173,7 +188,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                     ...(data.toRate !== undefined && { toRate: data.toRate }),
                     isRecurring: data.isRecurring || false,
                     recurringFrequency: data.recurringFrequency as any,
-                    receipt: receiptKeys.length > 0 ? receiptKeys[0] : undefined,
+                    receipt: finalReceipt,
                     endDate: data.endDate || undefined,
                 };
             }

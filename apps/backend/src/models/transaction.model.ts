@@ -68,7 +68,7 @@ const TransactionSchema = new Schema(
         },
         receipt: {
             type: String,
-            default: [],
+            default: "",
         },
         // Bill-specific fields - ADDED
         billCategory: {

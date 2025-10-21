@@ -23,7 +23,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
     label,
     description,
     accept = "image/*,application/pdf",
-    multiple = true,
+    multiple = false,
     required = false,
     disabled = false,
     className,
@@ -37,7 +37,24 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
     } = useFormContext();
 
     const error = errors[name];
-    const files: File[] = watch(name) || [];
+    const fieldValue = watch(name);
+    const files: File[] = multiple
+        ? Array.isArray(fieldValue)
+            ? fieldValue.filter((f) => f instanceof File)
+            : []
+        : fieldValue instanceof File
+        ? [fieldValue]
+        : [];
+
+    // Check if we have an existing receipt (S3 key) when editing
+    const hasExistingReceipt = fieldValue && typeof fieldValue === "string" && fieldValue.length > 0;
+
+    // Construct full S3 URL from S3 key
+    const getFullS3Url = (s3Key: string) => {
+        return `https://mern-expense-tracker.s3.eu-north-1.amazonaws.com/${s3Key}`;
+    };
+
+    const fullS3Url = hasExistingReceipt ? getFullS3Url(fieldValue) : "";
 
     useEffect(() => {
         register(name);
@@ -61,11 +78,14 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                                     (file) => file.type.startsWith("image/") || file.type === "application/pdf"
                                 );
 
-                                if (validFiles.length > 0 && files.length + validFiles.length <= maxFiles) {
+                                if (validFiles.length > 0) {
                                     if (multiple) {
-                                        setValue(name, [...files, ...validFiles], { shouldValidate: true });
+                                        if (files.length + validFiles.length <= maxFiles) {
+                                            setValue(name, [...files, ...validFiles], { shouldValidate: true });
+                                        }
                                     } else {
-                                        setValue(name, validFiles, { shouldValidate: true });
+                                        // For single file, take only the first valid file
+                                        setValue(name, validFiles[0], { shouldValidate: true });
                                     }
                                 }
                             }
@@ -100,8 +120,14 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                             </svg>
                             <span className="text-sm font-medium text-gray-700">
                                 {files.length > 0
-                                    ? `Add more files (${files.length}/${maxFiles} uploaded)`
-                                    : "Upload files"}
+                                    ? multiple
+                                        ? `Add more files (${files.length}/${maxFiles} uploaded)`
+                                        : "Replace file"
+                                    : hasExistingReceipt
+                                    ? "Replace file"
+                                    : multiple
+                                    ? "Upload files"
+                                    : "Upload file"}
                             </span>
                         </label>
                     </Button>
@@ -109,22 +135,56 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
 
                 {description && (
                     <p className="text-xs text-muted-foreground">
-                        📁 Click to browse and select files. Supports images and PDF files.
+                        📁 Click to browse and select {multiple ? "files" : "file"}. Supports images and PDF files.
                     </p>
                 )}
 
-                {/* Show uploaded files */}
-                {files.length > 0 && (
+                {/* Show uploaded files or existing receipt */}
+                {(files.length > 0 || hasExistingReceipt) && (
                     <div className="mt-4">
                         <div className="flex items-center gap-2 mb-2">
                             <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
                             <span className="text-sm font-medium text-gray-700 truncate">
-                                Uploaded Files ({files.length})
+                                {multiple ? `Uploaded Files (${files.length})` : "Uploaded File"}
                             </span>
                         </div>
+                        {/* Show existing receipt (S3 key) when editing */}
+                        {hasExistingReceipt && (
+                            <div className="group flex items-center gap-2 p-2 rounded-lg border border-green-200 bg-green-50 hover:border-green-300 transition-all duration-200">
+                                {/* File Icon */}
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-green-100 rounded border border-green-200 flex items-center justify-center">
+                                        <span className="text-sm">📄</span>
+                                    </div>
+                                </div>
+
+                                {/* File Info */}
+                                <div className="flex-1 min-w-0 overflow-hidden">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <a
+                                            href={fullS3Url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm font-medium text-green-900 hover:text-green-700 hover:underline flex-1"
+                                        >
+                                            Receipt
+                                        </a>
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            <Badge
+                                                variant="secondary"
+                                                className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 border-green-200"
+                                            >
+                                                {fieldValue.toLowerCase().endsWith(".pdf") ? "PDF" : "Image"}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-green-600 truncate">Existing receipt</p>
+                                </div>
+                            </div>
+                        )}
                         <div className="space-y-1.5">
                             {files.map((file: File, idx: number) => {
-                                const isImage = file.type.startsWith("image/");
+                                const isImage = file.type?.startsWith("image/") || false;
                                 const isPdf = file.type === "application/pdf";
 
                                 return (
@@ -181,10 +241,14 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                                                 variant="ghost"
                                                 className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-500 hover:bg-red-50 flex-shrink-0 h-6 w-6 p-0"
                                                 onClick={() => {
-                                                    const updatedFiles = files.filter(
-                                                        (_: File, i: number) => i !== idx
-                                                    );
-                                                    setValue(name, updatedFiles, { shouldValidate: true });
+                                                    if (multiple) {
+                                                        const updatedFiles = files.filter(
+                                                            (_: File, i: number) => i !== idx
+                                                        );
+                                                        setValue(name, updatedFiles, { shouldValidate: true });
+                                                    } else {
+                                                        setValue(name, null, { shouldValidate: true });
+                                                    }
                                                 }}
                                                 aria-label="Remove file"
                                             >

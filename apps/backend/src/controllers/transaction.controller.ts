@@ -327,7 +327,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
 
         await s3Client.send(uploadCommand);
 
-        const response: string = s3Key;
+        const response: { key: string } = { key: s3Key };
         res.json(response);
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
