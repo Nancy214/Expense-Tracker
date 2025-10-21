@@ -607,6 +607,16 @@ const TransactionsPage = () => {
                     setEditingExpense(null);
                     refreshAllTransactions();
                 }}
+                onReceiptDeleted={() => {
+                    refreshAllTransactions();
+                    // Update editingExpense to remove the receipt
+                    if (editingExpense) {
+                        setEditingExpense({
+                            ...editingExpense,
+                            receipt: "",
+                        });
+                    }
+                }}
             />
         </div>
     );

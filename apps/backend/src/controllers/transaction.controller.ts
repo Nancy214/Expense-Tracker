@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import mongoose from "mongoose";
 import {
@@ -355,6 +355,45 @@ export const getReceiptUrl = async (req: Request, res: Response): Promise<void> 
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
         res.status(500).json({ message: "Failed to generate receipt URL", error: errorMessage });
+    }
+};
+
+export const deleteReceipt = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const key: string = decodeURIComponent(req.params.id);
+        if (!key) {
+            res.status(400).json({ message: "Missing key" });
+            return;
+        }
+
+        if (!isAWSConfigured) {
+            res.status(500).json({ message: "S3 not configured" });
+            return;
+        }
+
+        const userId = (req as AuthRequest).user?.id;
+        if (!userId) {
+            res.status(401).json({ message: "User not authenticated" });
+            return;
+        }
+
+        // Delete from S3
+        const deleteCommand = new DeleteObjectCommand({
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: key,
+        });
+
+        await s3Client.send(deleteCommand);
+
+        // Update database to remove receipt reference
+        await TransactionDAO.removeReceiptFromTransactions(userId, key);
+
+        const response: { message: string } = { message: "Receipt deleted successfully" };
+        res.json(response);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        console.error("Error deleting receipt:", error);
+        res.status(500).json({ message: "Failed to delete receipt", error: errorMessage });
     }
 };
 

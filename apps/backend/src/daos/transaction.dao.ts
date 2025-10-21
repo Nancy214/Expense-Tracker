@@ -650,4 +650,19 @@ export class TransactionDAO {
             type: type,
         }).sort({ date: -1 });
     }
+
+    /**
+     * Remove receipt reference from all transactions for a user
+     */
+    static async removeReceiptFromTransactions(userId: string, receiptKey: string): Promise<void> {
+        await TransactionModel.updateMany(
+            {
+                userId: new Types.ObjectId(userId),
+                receipt: receiptKey,
+            },
+            {
+                $unset: { receipt: 1 },
+            }
+        );
+    }
 }

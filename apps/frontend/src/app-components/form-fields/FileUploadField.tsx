@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useFormContext } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
-import { getReceiptUrl } from "@/services/transaction.service";
+import { getReceiptUrl, deleteReceipt } from "@/services/transaction.service";
 
 interface FileUploadFieldProps {
     name: string;
@@ -17,6 +17,7 @@ interface FileUploadFieldProps {
     disabled?: boolean;
     className?: string;
     maxFiles?: number;
+    onReceiptDeleted?: () => void;
 }
 
 export const FileUploadField: React.FC<FileUploadFieldProps> = ({
@@ -29,6 +30,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
     disabled = false,
     className,
     maxFiles = 10,
+    onReceiptDeleted,
 }) => {
     const {
         register,
@@ -60,7 +62,6 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                 setIsLoadingUrl(true);
                 try {
                     const url = await getReceiptUrl(fieldValue);
-                    console.log("Received signed URL:", url);
                     setSignedUrl(url);
                 } catch (error) {
                     console.error("Error fetching signed URL:", error);
@@ -197,6 +198,45 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                                             >
                                                 {fieldValue.toLowerCase().endsWith(".pdf") ? "PDF" : "Image"}
                                             </Badge>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-500 hover:bg-red-50 flex-shrink-0 h-6 w-6 p-0"
+                                                onClick={async () => {
+                                                    try {
+                                                        // Delete from S3 and database
+                                                        await deleteReceipt(fieldValue);
+                                                        // Update form state
+                                                        setValue(name, "", { shouldValidate: true });
+                                                        setSignedUrl("");
+                                                        // Notify parent component to refresh data
+                                                        onReceiptDeleted?.();
+                                                    } catch (error) {
+                                                        console.error("Error deleting receipt:", error);
+                                                        // Still update form state even if backend deletion fails
+                                                        setValue(name, "", { shouldValidate: true });
+                                                        setSignedUrl("");
+                                                        // Still notify parent to refresh data
+                                                        onReceiptDeleted?.();
+                                                    }
+                                                }}
+                                                aria-label="Remove receipt"
+                                            >
+                                                <svg
+                                                    className="w-3 h-3"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                    />
+                                                </svg>
+                                            </Button>
                                         </div>
                                     </div>
                                     <p className="text-xs text-green-600 truncate">Existing receipt</p>
@@ -268,7 +308,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                                                         );
                                                         setValue(name, updatedFiles, { shouldValidate: true });
                                                     } else {
-                                                        setValue(name, null, { shouldValidate: true });
+                                                        setValue(name, "", { shouldValidate: true });
                                                     }
                                                 }}
                                                 aria-label="Remove file"

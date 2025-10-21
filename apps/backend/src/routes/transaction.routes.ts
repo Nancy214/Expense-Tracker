@@ -11,6 +11,7 @@ import {
     updateExpense,
     deleteExpense,
     getReceiptUrl,
+    deleteReceipt,
     deleteRecurringExpense,
     updateTransactionBillStatus,
     triggerRecurringTransactionsJob,
@@ -37,6 +38,7 @@ router.post("/add-expenses", authenticateToken, validate(ZTransactionOrBill, "bo
 router.post("/trigger-recurring", authenticateToken, triggerRecurringTransactionsJob);
 router.post("/upload-receipt", authenticateToken, upload.single("file"), uploadReceipt);
 router.get("/receipt/:id", authenticateToken, validate(ZReceiptKey, "params"), getReceiptUrl);
+router.delete("/receipt/:id", authenticateToken, validate(ZReceiptKey, "params"), deleteReceipt);
 router.put(
     "/:id",
     authenticateToken,

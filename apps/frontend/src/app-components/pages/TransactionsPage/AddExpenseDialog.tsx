@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 import { useTransactionForm, useTransactionMutations } from "@/hooks/use-transactions";
-import { uploadReceipt } from "@/services/transaction.service";
+import { uploadReceipt, deleteReceipt } from "@/services/transaction.service";
 import { showSaveError } from "@/utils/toastUtils";
 import {
     Bill,
@@ -58,6 +58,7 @@ export interface AddExpenseDialogProps {
     onOpenChange: (open: boolean) => void;
     editingExpense?: TransactionOrBill | null;
     onSuccess?: () => void;
+    onReceiptDeleted?: () => void;
     triggerButton?: React.ReactNode;
     preselectedCategory?: string;
     isAddBill?: boolean;
@@ -68,6 +69,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     onOpenChange,
     editingExpense,
     onSuccess,
+    onReceiptDeleted,
     triggerButton,
     preselectedCategory,
     isAddBill,
@@ -139,6 +141,15 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             // Upload receipts if any
             let finalReceipt: string | undefined = undefined;
 
+            // Check if receipt was deleted (had receipt before, now empty)
+            const hadReceiptBefore =
+                isEditing &&
+                editingExpense &&
+                editingExpense.receipt &&
+                typeof editingExpense.receipt === "string" &&
+                editingExpense.receipt.length > 0;
+            const isReceiptDeleted = data.receipt === "" || (!data.receipt && hadReceiptBefore);
+
             if (data.receipt) {
                 if (data.receipt instanceof File) {
                     // Upload new file
@@ -152,10 +163,29 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 isEditing &&
                 editingExpense &&
                 editingExpense.receipt &&
-                typeof editingExpense.receipt === "string"
+                typeof editingExpense.receipt === "string" &&
+                editingExpense.receipt.length > 0
             ) {
                 // Preserve existing receipt when editing without new uploads
                 finalReceipt = editingExpense.receipt;
+            } else if (data.receipt === "") {
+                // Explicitly handle empty receipt (when user deleted the receipt)
+                finalReceipt = "";
+            }
+
+            // If receipt was deleted, call delete endpoint
+            if (
+                isReceiptDeleted &&
+                hadReceiptBefore &&
+                editingExpense?.receipt &&
+                typeof editingExpense.receipt === "string"
+            ) {
+                try {
+                    await deleteReceipt(editingExpense.receipt);
+                } catch (error) {
+                    console.error("Error deleting receipt during update:", error);
+                    // Continue with transaction update even if receipt deletion fails
+                }
             }
 
             let transactionData: Transaction | Bill;
@@ -436,6 +466,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             label="Receipt"
                             description="Upload receipt images or PDFs"
                             accept="image/*,application/pdf"
+                            onReceiptDeleted={onReceiptDeleted}
                         />
 
                         <DialogFooter className="pt-1">

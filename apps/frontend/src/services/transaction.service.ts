@@ -293,6 +293,15 @@ export const getReceiptUrl = async (key: string): Promise<string> => {
     }
 };
 
+export const deleteReceipt = async (key: string): Promise<void> => {
+    try {
+        await expenseApi.delete(`/receipt/${encodeURIComponent(key)}`);
+    } catch (error) {
+        console.error("Error deleting receipt:", error);
+        throw error;
+    }
+};
+
 export const deleteRecurringExpense = async (params: TransactionId): Promise<void> => {
     try {
         await expenseApi.delete(`/recurring/${params.id}`);
