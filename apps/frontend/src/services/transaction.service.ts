@@ -283,6 +283,16 @@ export const uploadReceipt = async (file: File): Promise<string> => {
     return response.data.key;
 };
 
+export const getReceiptUrl = async (key: string): Promise<string> => {
+    try {
+        const response = await expenseApi.get<{ url: string }>(`/receipt/${encodeURIComponent(key)}`);
+        return response.data.url;
+    } catch (error) {
+        console.error("Error fetching receipt URL:", error);
+        throw error;
+    }
+};
+
 export const deleteRecurringExpense = async (params: TransactionId): Promise<void> => {
     try {
         await expenseApi.delete(`/recurring/${params.id}`);

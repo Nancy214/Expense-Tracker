@@ -1,10 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useFormContext } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
+import { getReceiptUrl } from "@/services/transaction.service";
 
 interface FileUploadFieldProps {
     name: string;
@@ -48,13 +49,32 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
 
     // Check if we have an existing receipt (S3 key) when editing
     const hasExistingReceipt = fieldValue && typeof fieldValue === "string" && fieldValue.length > 0;
+    const [signedUrl, setSignedUrl] = useState<string>("");
+    const [isLoadingUrl, setIsLoadingUrl] = useState<boolean>(false);
 
-    // Construct full S3 URL from S3 key
-    const getFullS3Url = (s3Key: string) => {
-        return `https://mern-expense-tracker.s3.eu-north-1.amazonaws.com/${s3Key}`;
-    };
+    // Fetch signed URL for existing receipt
+    useEffect(() => {
+        const fetchSignedUrl = async () => {
+            if (hasExistingReceipt && fieldValue) {
+                console.log("Fetching signed URL for receipt:", fieldValue);
+                setIsLoadingUrl(true);
+                try {
+                    const url = await getReceiptUrl(fieldValue);
+                    console.log("Received signed URL:", url);
+                    setSignedUrl(url);
+                } catch (error) {
+                    console.error("Error fetching signed URL:", error);
+                    setSignedUrl("");
+                } finally {
+                    setIsLoadingUrl(false);
+                }
+            } else {
+                setSignedUrl("");
+            }
+        };
 
-    const fullS3Url = hasExistingReceipt ? getFullS3Url(fieldValue) : "";
+        fetchSignedUrl();
+    }, [hasExistingReceipt, fieldValue]);
 
     useEffect(() => {
         register(name);
@@ -162,12 +182,13 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                                 <div className="flex-1 min-w-0 overflow-hidden">
                                     <div className="flex items-center gap-1.5 min-w-0">
                                         <a
-                                            href={fullS3Url}
+                                            href={signedUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-sm font-medium text-green-900 hover:text-green-700 hover:underline flex-1"
+                                            style={{ pointerEvents: isLoadingUrl ? "none" : "auto" }}
                                         >
-                                            Receipt
+                                            {isLoadingUrl ? "Loading..." : "Receipt"}
                                         </a>
                                         <div className="flex items-center gap-1 flex-shrink-0">
                                             <Badge

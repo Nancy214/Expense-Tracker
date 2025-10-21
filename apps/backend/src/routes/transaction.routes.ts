@@ -36,7 +36,7 @@ router.get("/transaction-summary", authenticateToken, getTransactionSummary);
 router.post("/add-expenses", authenticateToken, validate(ZTransactionOrBill, "body"), createExpense);
 router.post("/trigger-recurring", authenticateToken, triggerRecurringTransactionsJob);
 router.post("/upload-receipt", authenticateToken, upload.single("file"), uploadReceipt);
-router.get("/receipt/:key", authenticateToken, validate(ZReceiptKey, "params"), getReceiptUrl);
+router.get("/receipt/:id", authenticateToken, validate(ZReceiptKey, "params"), getReceiptUrl);
 router.put(
     "/:id",
     authenticateToken,

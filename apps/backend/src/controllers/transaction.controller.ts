@@ -337,7 +337,7 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
 
 export const getReceiptUrl = async (req: Request, res: Response): Promise<void> => {
     try {
-        const key: string = decodeURIComponent(req.params.key);
+        const key: string = decodeURIComponent(req.params.id);
         if (!key) {
             res.status(400).json({ message: "Missing key" });
             return;
