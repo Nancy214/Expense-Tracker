@@ -11,17 +11,17 @@ const AWS_SECRET_ACCESS_KEY: string = process.env.AWS_SECRET_ACCESS_KEY || "";
 const isAWSConfigured: boolean = !!(AWS_REGION && AWS_ACCESS_KEY && AWS_SECRET_ACCESS_KEY);
 
 export const s3Client = new S3Client({
-    credentials: {
-        accessKeyId: AWS_ACCESS_KEY,
-        secretAccessKey: AWS_SECRET_ACCESS_KEY,
-    },
-    region: AWS_REGION,
-    maxAttempts: 3,
-    requestHandler: {
-        httpOptions: {
-            timeout: 30000,
-        },
-    },
+	credentials: {
+		accessKeyId: AWS_ACCESS_KEY,
+		secretAccessKey: AWS_SECRET_ACCESS_KEY,
+	},
+	region: AWS_REGION,
+	maxAttempts: 3,
+	requestHandler: {
+		httpOptions: {
+			timeout: 30000,
+		},
+	},
 });
 
 export { isAWSConfigured };

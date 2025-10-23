@@ -1,84 +1,151 @@
-export interface UserType {
-    id: string;
-    email: string;
-    name?: string;
-    googleId?: string;
-    password: string;
-    profilePicture?: string;
-    phoneNumber?: string;
-    dateOfBirth?: string;
-    currency?: string;
-    country?: string;
-    timezone?: string;
-    settings?: {
-        monthlyReports: boolean;
-        expenseReminders: boolean;
-        billsAndBudgetsAlert: boolean;
-        expenseReminderTime: string;
-    };
-}
+import { z } from "zod";
 
-export interface SettingsType {
-    userId: string;
-    monthlyReports?: boolean;
-    expenseReminders?: boolean;
-    billsAndBudgetsAlert?: boolean;
-    expenseReminderTime?: string;
-}
+export const ZUserSettings = z.object({
+	monthlyReports: z.boolean(),
+	expenseReminders: z.boolean(),
+	billsAndBudgetsAlert: z.boolean(),
+	expenseReminderTime: z.string(),
+});
+
+export const ZUserType = z.object({
+	id: z.string(),
+	email: z.string(),
+	name: z.string(),
+	googleId: z.string().optional(),
+	password: z.string(),
+	profilePicture: z.string().optional(),
+	phoneNumber: z.string().optional(),
+	dateOfBirth: z.string().optional(),
+	currency: z.string().optional(),
+	country: z.string().optional(),
+	timezone: z.string().optional(),
+	settings: ZUserSettings.optional(),
+});
+
+export type UserType = z.infer<typeof ZUserType>;
+
+export const ZSettingsType = z.object({
+	userId: z.string(),
+	monthlyReports: z.boolean().optional(),
+	expenseReminders: z.boolean().optional(),
+	billsAndBudgetsAlert: z.boolean().optional(),
+	expenseReminderTime: z.string().optional(),
+});
+
+export const ZRegisterCredentials = ZUserType.pick({
+	email: true,
+	name: true,
+	password: true,
+});
+
+export type SettingsType = z.infer<typeof ZSettingsType>;
 
 export type LoginCredentials = Pick<UserType, "email" | "googleId" | "password">;
 export type RegisterCredentials = Pick<UserType, "email" | "name" | "password">;
 export type AuthenticatedUser = Omit<UserType, "password" | "googleId">;
 export type UserLocalType = Omit<UserType, "googleId">;
-export type UserGoogleType = UserType;
+//export type UserGoogleType = UserType;
 
-export interface AuthResponse {
-    accessToken?: string;
-    refreshToken?: string;
-    user?: AuthenticatedUser;
-    message?: string;
-}
+// Runtime schema for login credentials (to use with zodResolver)
+export const ZLoginCredentials = ZUserType.pick({
+	email: true,
+	googleId: true,
+	password: true,
+});
+
+export const ZAuthenticatedUser = ZUserType.omit({
+	password: true,
+	googleId: true,
+});
+export const ZUserLocalType = ZUserType.omit({ googleId: true });
+//export const ZUserGoogleType = ZUserType;
+
+export const ZAuthResponse = z.object({
+	accessToken: z.string().optional(),
+	refreshToken: z.string().optional(),
+	user: ZAuthenticatedUser.optional(),
+	message: z.string().optional(),
+});
+
+export type AuthResponse = z.infer<typeof ZAuthResponse>;
 
 // New types for auth pages
-export interface ChangePasswordFormData {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-}
+export const ZChangePasswordFormData = z.object({
+	currentPassword: z.string(),
+	newPassword: z.string(),
+	confirmPassword: z.string(),
+});
 
-export interface TokenPayload {
-    id: string;
-    user: UserLocalType | UserGoogleType;
-}
+//export const ZForgotPasswordRequest = z.object({ email: z.email() });
 
-export interface JwtPayload {
-    id: string;
-    email?: string;
-    type?: string;
-    timestamp?: number;
-}
+//export type ForgotPasswordRequest = z.infer<typeof ZForgotPasswordRequest>;
+export type ChangePasswordFormData = z.infer<typeof ZChangePasswordFormData>;
 
-export interface ResetPasswordRequest {
-    token: string;
-    newPassword: string;
-}
+export const ZTokenPayload = z.object({
+	id: z.string(),
+	user: z.union([ZUserLocalType, ZUserType]),
+});
 
-export interface ChangePasswordRequest {
-    currentPassword: string;
-    newPassword: string;
-}
+export type TokenPayload = z.infer<typeof ZTokenPayload>;
 
-export interface RefreshTokenRequest {
-    refreshToken: string;
-}
+export const ZJwtPayload = z.object({
+	id: z.string(),
+	email: z.string().optional(),
+	type: z.string().optional(),
+	timestamp: z.number().optional(),
+});
 
-export interface RefreshTokenResponse {
-    accessToken: string;
-    refreshToken: string;
-    message?: string;
-}
+export type JwtPayload = z.infer<typeof ZJwtPayload>;
 
-export interface PasswordResponse {
-    success: boolean;
-    message?: string;
-}
+export const ZForgotPasswordRequest = z.object({
+	email: z.email(),
+});
+
+export type ForgotPasswordRequest = z.infer<typeof ZForgotPasswordRequest>;
+
+export const ZResetPasswordRequest = z.object({
+	token: z.string(),
+	newPassword: z.string(),
+});
+
+export type ResetPasswordRequest = z.infer<typeof ZResetPasswordRequest>;
+
+export const ZResetPasswordSchema = z
+	.object({
+		newPassword: ZUserType.pick({ password: true }),
+		confirmPassword: ZUserType.pick({ password: true }),
+	})
+	.refine((data) => data.newPassword === data.confirmPassword, {
+		message: "Passwords do not match",
+		path: ["confirmPassword"],
+	});
+
+export type ResetPasswordSchema = z.infer<typeof ZResetPasswordSchema>;
+
+export const ZChangePasswordRequest = z.object({
+	currentPassword: z.string(),
+	newPassword: z.string(),
+});
+
+export type ChangePasswordRequest = z.infer<typeof ZChangePasswordRequest>;
+
+export const ZRefreshTokenRequest = z.object({
+	refreshToken: z.string(),
+});
+
+export type RefreshTokenRequest = z.infer<typeof ZRefreshTokenRequest>;
+
+export const ZRefreshTokenResponse = z.object({
+	accessToken: z.string(),
+	refreshToken: z.string(),
+	message: z.string().optional(),
+});
+
+export type RefreshTokenResponse = z.infer<typeof ZRefreshTokenResponse>;
+
+export const ZPasswordResponse = z.object({
+	success: z.boolean(),
+	message: z.string().optional(),
+});
+
+export type PasswordResponse = z.infer<typeof ZPasswordResponse>;

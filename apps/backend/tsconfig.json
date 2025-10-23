@@ -19,7 +19,8 @@
         "noImplicitReturns": true,
         "baseUrl": ".",
         "paths": {
-            "@expense-tracker/shared-types": ["../../libs/shared-types/src"]
+            "@expense-tracker/shared-types": ["../../libs/shared-types/dist/index.d.ts"],
+            "@expense-tracker/shared-types/src": ["../../libs/shared-types/dist/index.d.ts"]
         }
     },
     "include": ["src/**/*"],
