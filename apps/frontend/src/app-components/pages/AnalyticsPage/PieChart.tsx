@@ -1,5 +1,5 @@
-import { ExpenseCategory, PieChartData, PieChartProps } from "@expense-tracker/shared-types/src";
-import React from "react";
+import { ExpenseCategory, type PieChartData, type PieChartProps } from "@expense-tracker/shared-types/src";
+import type React from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 const EXPENSE_COLORS = [

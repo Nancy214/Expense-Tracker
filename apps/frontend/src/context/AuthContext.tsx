@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import type { AuthenticatedUser, AuthResponse, LoginCredentials } from "@expense-tracker/shared-types/src";
+import type React from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { login, logout } from "@/services/auth.service";
-import { LoginCredentials, AuthResponse, AuthenticatedUser } from "@expense-tracker/shared-types/src";
 import { removeTokens } from "@/utils/authUtils";
 
 interface AuthContextType {

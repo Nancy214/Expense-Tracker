@@ -1,23 +1,23 @@
-import { Request, Response, NextFunction } from "express";
-import passport from "passport";
-import {
-	UserLocalType,
-	TokenPayload,
-	ResetPasswordRequest,
-	JwtPayload,
-	UserType,
-	SettingsType,
-	RefreshTokenResponse,
-	PasswordResponse,
-	RegisterCredentials,
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import type {
 	AuthResponse,
 	ForgotPasswordRequest,
+	JwtPayload,
+	PasswordResponse,
+	RefreshTokenResponse,
+	RegisterCredentials,
+	ResetPasswordRequest,
+	SettingsType,
+	TokenPayload,
+	UserLocalType,
+	UserType,
 } from "@expense-tracker/shared-types/src";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import sgMail, { type MailDataRequired } from "@sendgrid/mail";
 import dotenv from "dotenv";
+import type { NextFunction, Request, Response } from "express";
+import passport from "passport";
 import { s3Client } from "../config/s3Client";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import sgMail, { MailDataRequired } from "@sendgrid/mail";
 import { AuthDAO } from "../daos/auth.dao";
 
 dotenv.config();

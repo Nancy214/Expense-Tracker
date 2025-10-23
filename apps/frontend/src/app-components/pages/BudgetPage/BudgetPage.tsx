@@ -1,17 +1,22 @@
+import {
+	type BudgetProgress,
+	type BudgetRecurrence,
+	type BudgetType,
+	ProgressColor,
+} from "@expense-tracker/shared-types/src";
+import { AlertTriangle, Edit, History, Plus, Trash2, TrendingDown, TrendingUp } from "lucide-react";
+import { useEffect, useState } from "react";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import BudgetLogs from "@/app-components/pages/BudgetPage/BudgetLogs";
+import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
-import { BudgetProgress, BudgetRecurrence, BudgetType, ProgressColor } from "@expense-tracker/shared-types/src";
-import { AlertTriangle, Edit, History, Plus, Trash2, TrendingDown, TrendingUp } from "lucide-react";
-import { useEffect, useState } from "react";
-import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
+import { useToast } from "@/hooks/use-toast";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 const BudgetPage: React.FC = () => {

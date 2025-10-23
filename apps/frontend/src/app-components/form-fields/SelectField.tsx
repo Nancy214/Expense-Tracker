@@ -1,9 +1,9 @@
-import React from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { useFormContext } from "react-hook-form";
-import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
+import React from "react";
+import { useFormContext } from "react-hook-form";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface SelectOption {
 	value: string;

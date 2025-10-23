@@ -1,3 +1,15 @@
+import {
+	type AuthenticatedUser,
+	type CountryTimezoneCurrencyData,
+	type ProfileData,
+	type SettingsData,
+	ZProfileData,
+} from "@expense-tracker/shared-types/src";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { type UseQueryResult, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
+import { useEffect, useRef, useState } from "react";
+import { type UseFormReturn, useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -7,18 +19,6 @@ import {
 	updateProfile,
 	updateSettings,
 } from "@/services/profile.service";
-import {
-	AuthenticatedUser,
-	CountryTimezoneCurrencyData,
-	ProfileData,
-	SettingsData,
-	ZProfileData,
-} from "@expense-tracker/shared-types/src";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
-import { AxiosError } from "axios";
-import { useEffect, useRef, useState } from "react";
-import { useForm, UseFormReturn } from "react-hook-form";
 
 // ============================================================================
 // TYPE DEFINITIONS

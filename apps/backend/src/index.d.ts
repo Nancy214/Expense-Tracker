@@ -21,5 +21,3 @@ declare global {
 		interface User extends TokenPayload {}
 	}
 }
-
-export {};

@@ -1,7 +1,7 @@
-import { User, Settings } from "../models/user.model";
+import type { SettingsType, UserType } from "@expense-tracker/shared-types/src/auth";
+import type { CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types/src/profile";
 import CountryTimezoneCurrency from "../models/countries.model";
-import { UserType, SettingsType } from "@expense-tracker/shared-types/src/auth";
-import { ProfileData, SettingsData, CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src/profile";
+import { Settings, User } from "../models/user.model";
 
 export class ProfileDAO {
 	/**

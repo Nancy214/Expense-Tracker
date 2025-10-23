@@ -1,5 +1,5 @@
-import React from "react";
-import { AlertTriangle, X, Bell } from "lucide-react";
+import { AlertTriangle, Bell, X } from "lucide-react";
+import type React from "react";
 import { cn } from "@/lib/utils";
 
 interface NotificationProps {

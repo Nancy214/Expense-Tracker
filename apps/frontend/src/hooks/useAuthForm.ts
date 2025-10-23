@@ -1,20 +1,20 @@
-import { useAuth } from "@/context/AuthContext";
-import { forgotPassword, register, resetPassword } from "@/services/auth.service";
 import {
-	ApiError,
+	type ApiError,
+	type ForgotPasswordRequest,
+	type LoginCredentials,
+	type RegisterCredentials,
+	type ResetPasswordSchema,
+	ZForgotPasswordRequest,
 	ZLoginCredentials,
-	LoginCredentials,
-	RegisterCredentials,
 	ZRegisterCredentials,
 	ZResetPasswordSchema,
-	ResetPasswordSchema,
-	ZForgotPasswordRequest,
-	ForgotPasswordRequest,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { type UseFormReturn, useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { forgotPassword, register, resetPassword } from "@/services/auth.service";
 
 // Return type interfaces for each hook
 interface UseLoginFormReturn {

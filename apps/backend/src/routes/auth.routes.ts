@@ -1,23 +1,23 @@
-import { Router } from "express";
-import passport from "../config/passport";
-import { authenticateToken } from "../middleware/auth.middleware";
 import {
-	login,
-	register,
-	logout,
-	googleAuthCallback,
-	forgotPassword,
-	resetPassword,
-	changePassword,
-	refreshToken,
-} from "../controllers/auth.controller";
-import { validate } from "../middleware/validate.middleware";
-import {
+	ZChangePasswordRequest,
+	ZForgotPasswordRequest,
 	ZRegisterCredentials,
 	ZResetPasswordRequest,
-	ZForgotPasswordRequest,
-	ZChangePasswordRequest,
 } from "@expense-tracker/shared-types/src";
+import { Router } from "express";
+import passport from "../config/passport";
+import {
+	changePassword,
+	forgotPassword,
+	googleAuthCallback,
+	login,
+	logout,
+	refreshToken,
+	register,
+	resetPassword,
+} from "../controllers/auth.controller";
+import { authenticateToken } from "../middleware/auth.middleware";
+import { validate } from "../middleware/validate.middleware";
 
 const router = Router();
 

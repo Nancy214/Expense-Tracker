@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect } from "react";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { type AuthenticatedUser, type ProfileData, ZProfileData } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useCallback, useEffect, useState } from "react";
+import { type UseFormReturn, useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
-import { updateProfile, removeProfilePicture } from "@/services/profile.service";
-import { AuthenticatedUser, ProfileData, ZProfileData } from "@expense-tracker/shared-types/src";
+import { removeProfilePicture, updateProfile } from "@/services/profile.service";
 
 // Return type interface for the hook
 interface UseProfileFormReturn {

@@ -1,13 +1,13 @@
+import { ZAnalyticsApiRequestValidationQuery } from "@expense-tracker/shared-types/src";
 import { Router } from "express";
-import { authenticateToken } from "../middleware/auth.middleware";
 import {
-	getExpenseCategoryBreakdown,
 	getBillsCategoryBreakdown,
+	getExpenseCategoryBreakdown,
 	getIncomeExpenseSummary,
 	getMonthlySavingsTrend,
 } from "../controllers/analytics.controller";
+import { authenticateToken } from "../middleware/auth.middleware";
 import { validate } from "../middleware/validate.middleware";
-import { ZAnalyticsApiRequestValidationQuery } from "@expense-tracker/shared-types/src";
 
 const router = Router();
 

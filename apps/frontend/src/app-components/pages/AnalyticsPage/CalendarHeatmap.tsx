@@ -1,10 +1,11 @@
+import type { CalendarHeatmapProps, HeatmapData } from "@expense-tracker/shared-types/src";
+import type React from "react";
+import { useMemo, useState } from "react";
+import CalendarHeatmap from "react-calendar-heatmap";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
-import type { CalendarHeatmapProps, HeatmapData } from "@expense-tracker/shared-types/src";
-import React, { useMemo, useState } from "react";
-import CalendarHeatmap from "react-calendar-heatmap";
 import "react-calendar-heatmap/dist/styles.css";
 
 const DEFAULT_COLORS = [

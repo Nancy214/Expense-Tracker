@@ -1,4 +1,4 @@
-import { TransactionOrBill } from "@expense-tracker/shared-types/src";
+import type { TransactionOrBill } from "@expense-tracker/shared-types/src";
 
 export interface MonthlyStatementPDFOptions {
 	allExpenses: TransactionOrBill[];

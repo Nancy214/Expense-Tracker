@@ -1,3 +1,17 @@
+import {
+	type AnalyticsApiRequestValidationQuery,
+	type BillsCategoryBreakdownResponse,
+	type ExpenseCategoryBreakdownResponse,
+	type HeatmapData,
+	type IncomeExpenseSummaryResponse,
+	type MonthlySavingsTrendResponse,
+	type MonthlyStats,
+	type Period,
+	type TransactionOrBill,
+	TransactionType,
+} from "@expense-tracker/shared-types/src";
+import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
 	getBillsCategoryBreakdown,
@@ -7,20 +21,6 @@ import {
 } from "@/services/analytics.service";
 import { getAllTransactionsForAnalytics } from "@/services/transaction.service";
 import { isInCurrentMonth, parseFromDisplay } from "@/utils/dateUtils";
-import {
-	BillsCategoryBreakdownResponse,
-	AnalyticsApiRequestValidationQuery,
-	ExpenseCategoryBreakdownResponse,
-	HeatmapData,
-	IncomeExpenseSummaryResponse,
-	MonthlySavingsTrendResponse,
-	MonthlyStats,
-	Period,
-	TransactionOrBill,
-	TransactionType,
-} from "@expense-tracker/shared-types/src";
-import { useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
 
 // Query keys for analytics data
 export const ANALYTICS_QUERY_KEYS = {

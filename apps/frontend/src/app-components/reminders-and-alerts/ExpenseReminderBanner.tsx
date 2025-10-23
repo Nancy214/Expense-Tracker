@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { X, Bell } from "lucide-react";
+import { Bell, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useSettings, useProfile } from "@/hooks/use-profile";
-import { hasReminderTimePassed, getTodayInTimezone } from "@/utils/timezoneUtils";
+import { useProfile, useSettings } from "@/hooks/use-profile";
+import { getTodayInTimezone, hasReminderTimePassed } from "@/utils/timezoneUtils";
 
 interface ExpenseReminderBannerProps {
 	settings?: {

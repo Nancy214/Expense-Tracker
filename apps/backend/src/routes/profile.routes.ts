@@ -1,16 +1,16 @@
-import express, { RequestHandler } from "express";
+import { ZProfileData, ZSettingsData } from "@expense-tracker/shared-types/src/profile";
+import express, { type RequestHandler } from "express";
+import { upload } from "../config/multer";
 import {
+	deleteProfilePicture,
+	getCountryTimezoneCurrency,
 	getProfile,
 	updateProfile,
 	//uploadProfilePicture,
 	updateSettings,
-	deleteProfilePicture,
-	getCountryTimezoneCurrency,
 } from "../controllers/profile.controller";
 import { authenticateToken } from "../middleware/auth.middleware";
-import { upload } from "../config/multer";
 import { validate } from "../middleware/validate.middleware";
-import { ZProfileData, ZSettingsData } from "@expense-tracker/shared-types/src/profile";
 
 const router = express.Router();
 

@@ -1,24 +1,24 @@
-import React from "react";
 import {
-	BarChart as RechartsBarChart,
-	Bar,
-	XAxis,
-	YAxis,
-	CartesianGrid,
-	Tooltip,
-	ResponsiveContainer,
-	Legend,
-} from "recharts";
-import {
-	BarChartData,
-	BarChartProps,
-	TransformedBarData,
-	BarChartMonthNetData as MonthData,
-	ChartTooltipProps,
+	type BarChartData,
+	type BarChartProps,
+	type ChartTooltipProps,
+	ChartTypes,
+	type BarChartMonthNetData as MonthData,
 	Period,
 	TransactionType,
+	type TransformedBarData,
 } from "@expense-tracker/shared-types/src";
-import { ChartTypes } from "@expense-tracker/shared-types/src";
+import type React from "react";
+import {
+	Bar,
+	CartesianGrid,
+	Legend,
+	BarChart as RechartsBarChart,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
 import { formatChartData } from "@/utils/chartUtils";
 
 const COLORS = {

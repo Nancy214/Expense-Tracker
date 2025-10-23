@@ -1,3 +1,19 @@
+import {
+	type Bill,
+	BillCategory,
+	BillFrequency,
+	BillStatus,
+	ExpenseCategory,
+	IncomeCategory,
+	PaymentMethod,
+	RecurringFrequency,
+	type Transaction,
+	type TransactionOrBill,
+	TransactionType,
+} from "@expense-tracker/shared-types/src";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { FormProvider } from "react-hook-form";
 import { DateField } from "@/app-components/form-fields/DateField";
 import { FileUploadField } from "@/app-components/form-fields/FileUploadField";
 import { InputField } from "@/app-components/form-fields/InputField";
@@ -10,23 +26,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 import { useTransactionForm, useTransactionMutations } from "@/hooks/use-transactions";
-import { uploadReceipt, deleteReceipt } from "@/services/transaction.service";
+import { deleteReceipt, uploadReceipt } from "@/services/transaction.service";
 import { showSaveError } from "@/utils/toastUtils";
-import {
-	Bill,
-	BillFrequency,
-	PaymentMethod,
-	ExpenseCategory,
-	BillCategory,
-	IncomeCategory,
-	RecurringFrequency,
-	Transaction,
-	TransactionOrBill,
-	TransactionType,
-	BillStatus,
-} from "@expense-tracker/shared-types/src";
-import React, { useEffect, useState } from "react";
-import { FormProvider } from "react-hook-form";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -139,7 +140,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 	const onSubmit = async (data: TransactionFormData) => {
 		try {
 			// Upload receipts if any
-			let finalReceipt: string | undefined = undefined;
+			let finalReceipt: string | undefined;
 
 			// Check if receipt was deleted (had receipt before, now empty)
 			const hadReceiptBefore =

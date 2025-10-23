@@ -1,9 +1,9 @@
+import { Calendar, DollarSign, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/context/AuthContext";
 import { useExpensesSelector } from "@/hooks/use-analytics";
 import { useBillsSelector } from "@/hooks/use-bills";
 import { useBudgets } from "@/hooks/use-budgets";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/context/AuthContext";
-import { TrendingUp, DollarSign, TrendingDown, Wallet, Calendar } from "lucide-react";
 
 export default function StatsCards() {
 	const { user } = useAuth();

@@ -1,13 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useExpenses } from "@/hooks/use-transactions";
-import { format } from "date-fns";
-import { useState } from "react";
 // FullCalendar components
-import { TransactionOrBill, TransactionType } from "@expense-tracker/shared-types/src";
+import type { TransactionOrBill, TransactionType } from "@expense-tracker/shared-types/src";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
+import { format } from "date-fns";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useExpenses } from "@/hooks/use-transactions";
 import "./CalendarStyle.css";
 // Separate color mappings for expense and income categories
 const expenseColors: { [key: string]: string } = {

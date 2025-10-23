@@ -1,15 +1,14 @@
-import { Request, Response } from "express";
-import { TokenPayload, UserType, SettingsType } from "@expense-tracker/shared-types/src/auth";
-import { ProfileData, SettingsData, CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src/profile";
-import { AuthenticatedUser } from "@expense-tracker/shared-types/src/auth";
-import dotenv from "dotenv";
-import { s3Client, isAWSConfigured } from "../config/s3Client";
-import { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import sharp from "sharp";
+import type { AuthenticatedUser, SettingsType, TokenPayload, UserType } from "@expense-tracker/shared-types/src/auth";
+import type { CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types/src/profile";
 import crypto from "crypto";
-import { ProfileDAO } from "../daos/profile.dao";
+import dotenv from "dotenv";
+import type { Request, Response } from "express";
+import sharp from "sharp";
+import { isAWSConfigured, s3Client } from "../config/s3Client";
 import { AuthDAO } from "../daos/auth.dao";
+import { ProfileDAO } from "../daos/profile.dao";
 
 dotenv.config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";

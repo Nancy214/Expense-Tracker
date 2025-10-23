@@ -1,12 +1,12 @@
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
+import type { UserType } from "@expense-tracker/shared-types/src";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { User } from "../models/user.model";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { ExtractJwt, Strategy as JwtStrategy } from "passport-jwt";
+import { Strategy as LocalStrategy } from "passport-local";
 import { generateTokens } from "../controllers/auth.controller";
-import { UserType } from "@expense-tracker/shared-types/src";
+import { User } from "../models/user.model";
 
 dotenv.config();
 

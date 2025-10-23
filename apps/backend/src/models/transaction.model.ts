@@ -1,4 +1,4 @@
-import { Transaction } from "@expense-tracker/shared-types/src";
+import type { Transaction } from "@expense-tracker/shared-types/src";
 import mongoose, { Schema } from "mongoose";
 
 /* interface TransactionDocument extends Document, Transaction {

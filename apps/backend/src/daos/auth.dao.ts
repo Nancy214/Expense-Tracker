@@ -1,7 +1,7 @@
-import { User, Settings } from "../models/user.model";
-import { UserType, SettingsType, RegisterCredentials, JwtPayload } from "@expense-tracker/shared-types/src";
+import type { JwtPayload, RegisterCredentials, SettingsType, UserType } from "@expense-tracker/shared-types/src";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { Settings, User } from "../models/user.model";
 
 export class AuthDAO {
 	/**

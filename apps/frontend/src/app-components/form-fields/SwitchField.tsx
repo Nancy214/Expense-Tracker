@@ -1,9 +1,9 @@
-import React from "react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useFormContext } from "react-hook-form";
-import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
+import React from "react";
+import { useFormContext } from "react-hook-form";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 interface SwitchFieldProps {
 	name: string;

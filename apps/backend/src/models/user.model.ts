@@ -1,5 +1,5 @@
+import type { UserLocalType, UserType } from "@expense-tracker/shared-types/src/auth";
 import mongoose, { Schema } from "mongoose";
-import { UserLocalType, UserType } from "@expense-tracker/shared-types/src/auth";
 
 const userSchema = new Schema(
 	{

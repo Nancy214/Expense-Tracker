@@ -1,6 +1,6 @@
+import type { AuthenticatedUser, BudgetReminder } from "@expense-tracker/shared-types/src";
 import { Notification } from "@/app-components/utility-components/Notification";
 import { useSettings } from "@/hooks/use-profile";
-import { AuthenticatedUser, BudgetReminder } from "@expense-tracker/shared-types/src";
 
 interface BudgetRemindersUIProps {
 	user: AuthenticatedUser | null;

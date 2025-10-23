@@ -1,3 +1,16 @@
+import {
+	ActiveTab,
+	ExpenseCategory,
+	IncomeCategory,
+	type RecurringTransactionTemplate,
+	type TransactionId,
+	type TransactionOrBill,
+	type UserType,
+} from "@expense-tracker/shared-types/src";
+import { format } from "date-fns";
+import { CalendarIcon, ChevronDownIcon } from "lucide-react";
+import React, { useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { DataTable } from "@/app-components/pages/TransactionsPage/DataTable";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -14,19 +27,6 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 // import { TransactionFilters, useAllTransactions } from "@/hooks/use-transactions";
 import { cn } from "@/lib/utils";
-import {
-	ActiveTab,
-	ExpenseCategory,
-	IncomeCategory,
-	RecurringTransactionTemplate,
-	TransactionId,
-	TransactionOrBill,
-	UserType,
-} from "@expense-tracker/shared-types/src";
-import { format } from "date-fns";
-import { CalendarIcon, ChevronDownIcon } from "lucide-react";
-import React, { useState } from "react";
-import { DateRange } from "react-day-picker";
 
 // Filters section props types
 interface FiltersSectionProps {

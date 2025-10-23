@@ -1,3 +1,7 @@
+import type { BudgetReminder } from "@expense-tracker/shared-types/src";
+import { DollarSign, Receipt, Target, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { BillAlertsUI, useBillsAndReminders } from "@/app-components/reminders-and-alerts/BillAlert";
 import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
@@ -8,10 +12,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useExpensesSelector } from "@/hooks/use-analytics";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useSettings } from "@/hooks/use-profile";
-import { BudgetReminder } from "@expense-tracker/shared-types/src";
-import { DollarSign, Receipt, Target, TrendingDown, TrendingUp, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AddExpenseDialog from "../TransactionsPage/AddExpenseDialog";
 
 interface FinancialOverviewData {

@@ -1,22 +1,22 @@
+import type { TransactionOrBill } from "@expense-tracker/shared-types/src";
 import {
-	Column,
-	ColumnDef,
+	type Column,
+	type ColumnDef,
 	flexRender,
 	getCoreRowModel,
 	getSortedRowModel,
-	Row,
+	type Row,
 	useReactTable,
 } from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Repeat, Pencil, Trash, Calendar } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { useMemo } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { format } from "date-fns";
+import { ArrowUpDown, Calendar, Pencil, Repeat, Trash } from "lucide-react";
+import { useMemo } from "react";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
-import { TransactionOrBill } from "@expense-tracker/shared-types/src";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useDeleteOperations } from "@/hooks/use-delete-operations";
+import { useToast } from "@/hooks/use-toast";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 // Tab component props types

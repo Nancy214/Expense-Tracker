@@ -1,19 +1,19 @@
-import express from "express";
 import cors from "cors";
-import mongoose from "mongoose";
 import dotenv from "dotenv";
-import authRoutes from "./routes/auth.routes";
-import passport from "./config/passport";
+import express from "express";
 import session from "express-session";
-import expenseRoutes from "./routes/transaction.routes";
-import budgetRoutes from "./routes/budget.routes";
-import profileRoutes from "./routes/profile.routes";
-import analyticsRoutes from "./routes/analytics.routes";
-import currencyRoutes from "./routes/currency.routes";
-import cron from "node-cron";
-import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
-import morgan from "morgan";
 import expressStatusMonitor from "express-status-monitor";
+import mongoose from "mongoose";
+import morgan from "morgan";
+import cron from "node-cron";
+import passport from "./config/passport";
+import analyticsRoutes from "./routes/analytics.routes";
+import authRoutes from "./routes/auth.routes";
+import budgetRoutes from "./routes/budget.routes";
+import currencyRoutes from "./routes/currency.routes";
+import profileRoutes from "./routes/profile.routes";
+import expenseRoutes from "./routes/transaction.routes";
+import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 
 dotenv.config();
 

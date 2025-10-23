@@ -1,21 +1,21 @@
-import React from "react";
 import {
-	AreaChart as RechartsAreaChart,
-	Area,
-	XAxis,
-	YAxis,
-	CartesianGrid,
-	Tooltip,
-	ResponsiveContainer,
-	Legend,
-} from "recharts";
-import {
-	AreaChartData,
-	AreaChartProps,
-	ChartTooltipProps,
+	type AreaChartData,
+	type AreaChartProps,
+	type ChartTooltipProps,
 	ChartTypes,
 	Period,
 } from "@expense-tracker/shared-types/src";
+import type React from "react";
+import {
+	Area,
+	CartesianGrid,
+	Legend,
+	AreaChart as RechartsAreaChart,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
 import { formatChartData } from "@/utils/chartUtils";
 
 const COLORS = {

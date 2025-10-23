@@ -29,7 +29,8 @@
 			"style": {
 				"noNonNullAssertion": "warn",
 				"useConst": "error",
-				"useTemplate": "error"
+				"useTemplate": "error",
+				"useImportType": "error"
 			},
 			"suspicious": {
 				"noExplicitAny": "warn",
@@ -38,6 +39,9 @@
 			"complexity": {
 				"noForEach": "warn",
 				"noBannedTypes": "warn"
+			},
+			"nursery": {
+				"useSortedClasses": "error"
 			}
 		}
 	},

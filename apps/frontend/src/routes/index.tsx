@@ -1,20 +1,20 @@
-import { Navigate, useLocation, Route, Routes } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
-	LoginPage,
-	RegisterPage,
-	LogoutPage,
-	HomePage,
+	AnalyticsPage,
 	BudgetPage,
 	CalendarPage,
-	ProfilePage,
 	ChangePasswordPage,
-	GoogleCallback,
 	ForgotPasswordPage,
+	GoogleCallback,
+	HomePage,
+	LoginPage,
+	LogoutPage,
+	ProfilePage,
+	RegisterPage,
 	ResetPasswordPage,
 	TransactionsPage,
-	AnalyticsPage,
 } from "@/app-components/pages";
+import { useAuth } from "@/context/AuthContext";
 
 interface RouteConfig {
 	path: string;

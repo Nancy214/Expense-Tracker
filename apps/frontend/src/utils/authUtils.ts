@@ -1,5 +1,5 @@
 // Utility functions for authentication
-import axios, { AxiosResponse } from "axios";
+import axios, { type AxiosResponse } from "axios";
 
 /**
  * Removes authentication tokens and user data from localStorage

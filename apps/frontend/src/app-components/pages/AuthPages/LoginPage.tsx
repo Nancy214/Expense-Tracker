@@ -1,10 +1,10 @@
+import { FormProvider } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+import { InputField } from "@/app-components/form-fields/InputField";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
-import { initiateGoogleLogin } from "@/services/auth.service";
-import { FormProvider } from "react-hook-form";
-import { InputField } from "@/app-components/form-fields/InputField";
 import { useLoginForm } from "@/hooks/useAuthForm";
+import { initiateGoogleLogin } from "@/services/auth.service";
 
 const LoginPage: React.FC = () => {
 	const navigate = useNavigate();

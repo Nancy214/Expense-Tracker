@@ -1,5 +1,5 @@
+import type { BudgetLogType } from "@expense-tracker/shared-types/src/budget";
 import mongoose, { Schema } from "mongoose";
-import { BudgetLogType } from "@expense-tracker/shared-types/src/budget";
 
 const budgetLogSchema = new Schema<BudgetLogType>(
 	{

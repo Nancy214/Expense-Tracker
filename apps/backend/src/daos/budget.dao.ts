@@ -1,4 +1,11 @@
-import mongoose from "mongoose";
+import type {
+	BudgetChange,
+	BudgetFormData,
+	BudgetLogType,
+	BudgetProgress,
+	BudgetType,
+	Transaction,
+} from "@expense-tracker/shared-types/src";
 import {
 	endOfDay,
 	endOfMonth,
@@ -9,17 +16,10 @@ import {
 	startOfWeek,
 	startOfYear,
 } from "date-fns";
-import { BudgetLog } from "../models/budget-log.model";
+import mongoose from "mongoose";
 import { Budget } from "../models/budget.model";
+import { BudgetLog } from "../models/budget-log.model";
 import { TransactionModel } from "../models/transaction.model";
-import {
-	BudgetChange,
-	BudgetFormData,
-	BudgetProgress,
-	BudgetType,
-	Transaction,
-	BudgetLogType,
-} from "@expense-tracker/shared-types/src";
 
 export class BudgetDAO {
 	/**
@@ -283,7 +283,7 @@ export class BudgetDAO {
 		// Get budgets - either specific one or all for user
 		let budgets: BudgetType[];
 
-		budgets = await this.findBudgetsByUserId(userId);
+		budgets = await BudgetDAO.findBudgetsByUserId(userId);
 
 		if (budgets.length === 0) {
 			//throw new Error("No budgets found");
@@ -296,20 +296,25 @@ export class BudgetDAO {
 		}
 
 		// Get all expenses for the user
-		const expenses: Transaction[] = await this.getUserExpenses(userId);
+		const expenses: Transaction[] = await BudgetDAO.getUserExpenses(userId);
 		const now: Date = new Date();
 
 		// Calculate progress for each budget
 		const budgetProgress = budgets.map((budget: BudgetType) => {
 			const budgetStartDate: Date = new Date(budget.startDate);
-			const { periodStart } = this.calculatePeriodDates(budget.recurrence, now);
+			const { periodStart } = BudgetDAO.calculatePeriodDates(budget.recurrence, now);
 
 			// Filter expenses from the budget start date to now (not just current period)
 			// and match the budget category
-			const budgetExpenses: Transaction[] = this.filterBudgetExpenses(expenses, budget, budgetStartDate, now);
+			const budgetExpenses: Transaction[] = BudgetDAO.filterBudgetExpenses(
+				expenses,
+				budget,
+				budgetStartDate,
+				now
+			);
 
 			// Calculate total spent from budget start date
-			const totalSpent: number = this.calculateTotalSpent(budgetExpenses, budget);
+			const totalSpent: number = BudgetDAO.calculateTotalSpent(budgetExpenses, budget);
 
 			const progress: number = (totalSpent / budget.amount) * 100;
 			const remaining: number = budget.amount - totalSpent;

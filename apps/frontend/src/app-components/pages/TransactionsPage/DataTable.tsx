@@ -1,7 +1,7 @@
+import { ActiveTab, type TransactionOrBill } from "@expense-tracker/shared-types/src";
+import { useEffect, useMemo } from "react";
 import { PaginationWrapper } from "@/components/ui/pagination";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ActiveTab, TransactionOrBill } from "@expense-tracker/shared-types/src";
-import { useEffect, useMemo } from "react";
 import { AllTransactionsTab } from "./AllTransactionsTab";
 import { BillsTab } from "./BillsTab";
 import { RecurringTransactionsTab } from "./RecurringTransactionsTab";

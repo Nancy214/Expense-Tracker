@@ -1,3 +1,7 @@
+import type { CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src";
+import { Camera, Edit3, Save } from "lucide-react";
+import { useCallback, useEffect, useMemo } from "react";
+import { FormProvider } from "react-hook-form";
 import { DateField } from "@/app-components/form-fields/DateField";
 import { InputField } from "@/app-components/form-fields/InputField";
 import { SelectField } from "@/app-components/form-fields/SelectField";
@@ -6,10 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useCountryTimezoneCurrency, useProfileForm } from "@/hooks/use-profile";
-import { CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src";
-import { Camera, Edit3, Save } from "lucide-react";
-import { useCallback, useEffect, useMemo } from "react";
-import { FormProvider } from "react-hook-form";
 
 const ProfileData: React.FC = () => {
 	const { data: countryTimezoneData } = useCountryTimezoneCurrency();

@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from "express";
-import { ZodTypeAny, ZodError } from "zod";
+import type { NextFunction, Request, Response } from "express";
+import type { ZodError, ZodTypeAny } from "zod";
 
 type ValidationLocation = "body" | "params" | "query";
 

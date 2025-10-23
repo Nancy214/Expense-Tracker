@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Home, Receipt, PieChart, Calendar, User, Menu, LogOut, BarChart } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { BarChart, Calendar, Home, LogOut, Menu, PieChart, Receipt, User } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -14,6 +12,8 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 interface LayoutProps {
 	children: React.ReactNode;

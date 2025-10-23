@@ -1,13 +1,13 @@
-import { refreshAuthTokens } from "@/utils/authUtils";
 import type {
-	BillsCategoryBreakdownResponse,
 	AnalyticsApiRequestValidationQuery,
+	ApiError,
+	BillsCategoryBreakdownResponse,
 	ExpenseCategoryBreakdownResponse,
 	IncomeExpenseSummaryResponse,
 	MonthlySavingsTrendResponse,
 } from "@expense-tracker/shared-types/src";
-import { ApiError } from "@expense-tracker/shared-types/src";
-import axios, { AxiosError, AxiosResponse } from "axios";
+import axios, { type AxiosError, type AxiosResponse } from "axios";
+import { refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api/analytics";
 

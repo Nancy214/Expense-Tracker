@@ -1,10 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/context/AuthContext";
+import type { ActiveTab, RecurringTransactionTemplate, TransactionOrBill } from "@expense-tracker/shared-types/src";
 import { format, parse } from "date-fns";
 import { Plus, TrendingUp, UploadIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-
+import { useSearchParams } from "react-router-dom";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import {
 	downloadCSV,
@@ -12,13 +10,14 @@ import {
 	generateMonthlyStatementPDF,
 } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/context/AuthContext";
 import { useBills } from "@/hooks/use-bills";
 import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
 import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
-import { ActiveTab, RecurringTransactionTemplate, TransactionOrBill } from "@expense-tracker/shared-types/src";
-import { useSearchParams } from "react-router-dom";
 
 const TransactionsPage = () => {
 	const { user } = useAuth();

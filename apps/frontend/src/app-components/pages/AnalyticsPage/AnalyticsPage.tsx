@@ -1,3 +1,15 @@
+import type {
+	AreaChartData,
+	BarChartData,
+	HeatmapData,
+	MonthlyIncomeExpenseData,
+	MonthlySavingsData,
+	PieChartData,
+	TransactionOrBill,
+} from "@expense-tracker/shared-types/src";
+import { ChartTypes, Period } from "@expense-tracker/shared-types/src/analytics";
+import { AlertCircle, BarChart3, LineChart, PieChart, TrendingUp } from "lucide-react";
+import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,25 +23,13 @@ import {
 	useMonthlySavingsTrend,
 } from "@/hooks/use-analytics";
 import { useExpenses } from "@/hooks/use-transactions";
-import type {
-	AreaChartData,
-	BarChartData,
-	HeatmapData,
-	MonthlyIncomeExpenseData,
-	MonthlySavingsData,
-	PieChartData,
-	TransactionOrBill,
-} from "@expense-tracker/shared-types/src";
-import { ChartTypes, Period } from "@expense-tracker/shared-types/src/analytics";
-import { AlertCircle, BarChart3, LineChart, PieChart, TrendingUp } from "lucide-react";
-import { useState } from "react";
 import "react-calendar-heatmap/dist/styles.css";
+import { TransactionType } from "@expense-tracker/shared-types/src";
 import AreaChartComponent from "./AreaChart";
 import BarChartComponent from "./BarChart";
 import CalendarHeatmapComponent from "./CalendarHeatmap";
 import PieChartComponent from "./PieChart";
 import TimePeriodSelector from "./TimePeriodSelector";
-import { TransactionType } from "@expense-tracker/shared-types/src";
 
 // AnalyticsCard component moved inline
 const AnalyticsCard: React.FC<{

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import { motion } from "motion/react";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { Controller, useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useFormContext, Controller } from "react-hook-form";
 import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
 
 interface InputFieldProps {
 	name: string;

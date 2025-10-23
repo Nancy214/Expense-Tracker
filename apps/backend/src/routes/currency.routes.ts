@@ -1,4 +1,4 @@
-import { RequestHandler, Router } from "express";
+import { type RequestHandler, Router } from "express";
 import { getExchangeRate } from "../controllers/currency.controller";
 
 const router = Router();

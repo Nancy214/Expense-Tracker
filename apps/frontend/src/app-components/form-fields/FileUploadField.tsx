@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import { motion } from "motion/react";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { useFormContext } from "react-hook-form";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { useFormContext } from "react-hook-form";
 import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
-import { getReceiptUrl, deleteReceipt } from "@/services/transaction.service";
+import { deleteReceipt, getReceiptUrl } from "@/services/transaction.service";
 
 interface FileUploadFieldProps {
 	name: string;

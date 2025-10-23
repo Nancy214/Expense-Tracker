@@ -1,4 +1,4 @@
-import { toast } from "@/hooks/use-toast";
+import type { toast } from "@/hooks/use-toast";
 
 /**
  * Utility functions for showing toast notifications

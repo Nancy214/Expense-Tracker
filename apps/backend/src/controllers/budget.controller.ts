@@ -1,5 +1,5 @@
-import { BudgetFormData, TokenPayload } from "@expense-tracker/shared-types/src";
-import { Request, Response } from "express";
+import type { BudgetFormData, TokenPayload } from "@expense-tracker/shared-types/src";
+import type { Request, Response } from "express";
 import mongoose from "mongoose";
 import { BudgetDAO } from "../daos/budget.dao";
 import { parseDateFromAPI } from "../utils/dateUtils";

@@ -1,6 +1,6 @@
+import { type AreaChartData, type BarChartData, Period } from "@expense-tracker/shared-types/src";
+import { format, getDaysInMonth, isDate, isValid as isValidDate, parse, parseISO } from "date-fns";
 import { formatToHumanReadableDate } from "./dateUtils";
-import { getDaysInMonth, parse, parseISO, format, isDate, isValid as isValidDate } from "date-fns";
-import { Period, AreaChartData, BarChartData } from "@expense-tracker/shared-types/src";
 
 // Utility functions for chart x-axis formatting based on time period
 
@@ -91,7 +91,7 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 	const labels: string[] = [];
 
 	switch (period) {
-		case Period.MONTHLY:
+		case Period.MONTHLY: {
 			// For monthly view, show all dates in DD/MM format for the entire month
 			const monthNames = generateMonthNames("long");
 			const monthIndex = monthNames.indexOf(subPeriod);
@@ -118,8 +118,9 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 				}
 			}
 			break;
+		}
 
-		case Period.QUARTERLY:
+		case Period.QUARTERLY: {
 			// For quarterly view, show the correct months for the selected quarter
 			const quarterMonthNames = generateMonthNames("short");
 
@@ -139,8 +140,9 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 				}
 			}
 			break;
+		}
 
-		case Period.HALF_YEARLY:
+		case Period.HALF_YEARLY: {
 			// For half-yearly view, show the correct months for the selected half-year
 			const halfYearMonthNames = generateMonthNames("short");
 
@@ -160,8 +162,9 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 				}
 			}
 			break;
+		}
 
-		case Period.YEARLY:
+		case Period.YEARLY: {
 			// For yearly view, show months for the selected year
 			const yearlyMonthNames = generateMonthNames("short");
 
@@ -170,6 +173,7 @@ export const generateXAxisLabels = (period: Period, subPeriod: string, dataLengt
 				labels.push(yearlyMonthNames[i % 12]);
 			}
 			break;
+		}
 
 		default:
 			// Fallback to generic labels

@@ -1,14 +1,14 @@
-import { refreshAuthTokens } from "@/utils/authUtils";
-import {
+import type {
 	ApiError,
 	BudgetFormData,
 	BudgetLogType,
+	BudgetParams,
 	BudgetProgressResponse,
 	BudgetReminder,
 	BudgetType,
-	BudgetParams,
 } from "@expense-tracker/shared-types/src";
-import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import axios, { type AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
+import { refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 

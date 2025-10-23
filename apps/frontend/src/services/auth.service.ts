@@ -1,5 +1,4 @@
-import { refreshAuthTokens, removeTokens } from "@/utils/authUtils";
-import {
+import type {
 	AuthResponse,
 	ChangePasswordRequest,
 	ForgotPasswordRequest,
@@ -8,7 +7,8 @@ import {
 	ResetPasswordRequest,
 	UserType,
 } from "@expense-tracker/shared-types/src";
-import axios, { AxiosError, AxiosResponse } from "axios";
+import axios, { type AxiosError, type AxiosResponse } from "axios";
+import { refreshAuthTokens, removeTokens } from "@/utils/authUtils";
 
 const API_URL = "http://localhost:8000/api";
 

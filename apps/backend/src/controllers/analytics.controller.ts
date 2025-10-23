@@ -1,14 +1,29 @@
-import { Request, Response } from "express";
 import {
-	startOfMonth,
-	endOfMonth,
-	startOfQuarter,
-	endOfQuarter,
-	startOfYear,
-	endOfYear,
+	type Bill,
+	type BillsCategoryBreakdownResponse,
+	type ExpenseCategoryBreakdownResponse,
+	type IncomeExpenseSummaryResponse,
+	type MonthlyIncomeExpenseData,
+	type MonthlySavingsData,
+	type MonthlySavingsTrendResponse,
+	Period,
+	type PieChartData,
+	type SavingsDataForSpecificMonth,
+	type SpecificPeriodIncomeExpenseData,
+	type TokenPayload,
+	type Transaction,
+} from "@expense-tracker/shared-types/src";
+import {
 	addMonths,
+	endOfMonth,
+	endOfQuarter,
+	endOfYear,
 	parse,
+	startOfMonth,
+	startOfQuarter,
+	startOfYear,
 } from "date-fns";
+import type { Request, Response } from "express";
 // TransactionModel is referenced indirectly via DAO; direct import not needed here
 import {
 	fetchBills,
@@ -17,22 +32,6 @@ import {
 	getTransactionsForMonthDAO,
 	getTransactionsForPeriodDAO,
 } from "../daos/analytics.dao";
-
-import {
-	IncomeExpenseSummaryResponse,
-	MonthlyIncomeExpenseData,
-	SpecificPeriodIncomeExpenseData,
-	MonthlySavingsData,
-	MonthlySavingsTrendResponse,
-	PieChartData,
-	BillsCategoryBreakdownResponse,
-	ExpenseCategoryBreakdownResponse,
-	SavingsDataForSpecificMonth,
-	Transaction,
-	Bill,
-	Period,
-	TokenPayload,
-} from "@expense-tracker/shared-types/src";
 import { getMonthDates, getMonthName } from "../utils/dateUtils";
 
 export interface AuthRequest extends Request {
@@ -48,15 +47,16 @@ const getDateRange = (period: Period, subPeriod: string): { startDate: Date; end
 	const currentMonth = now.getMonth();
 
 	switch (period) {
-		case Period.MONTHLY:
+		case Period.MONTHLY: {
 			// Parse the month name to get the month index using date-fns
 			const monthDate = parse(subPeriod, "MMMM", new Date());
 			const monthIndex = monthDate.getMonth();
 			// For monthly view, always use current year for recent months (Oct, Nov, Dec)
 			// unless we're specifically looking at a past year
 			return getMonthDates(currentYear, monthIndex);
+		}
 
-		case Period.QUARTERLY:
+		case Period.QUARTERLY: {
 			const quarter = parseInt(subPeriod.replace("Q", ""));
 			const quarterStartMonth = (quarter - 1) * 3;
 			// For quarterly view, always use current year for recent quarters (Q4 includes Oct, Nov, Dec)
@@ -64,8 +64,9 @@ const getDateRange = (period: Period, subPeriod: string): { startDate: Date; end
 			const quarterStart = startOfQuarter(quarterStartDate);
 			const quarterEnd = endOfQuarter(quarterStartDate);
 			return { startDate: quarterStart, endDate: quarterEnd };
+		}
 
-		case Period.HALF_YEARLY:
+		case Period.HALF_YEARLY: {
 			const half = parseInt(subPeriod.replace("H", ""));
 			const halfStartMonth = (half - 1) * 6;
 			// For half-yearly view, always use current year for recent half-years (H2 includes Jul-Dec)
@@ -73,13 +74,15 @@ const getDateRange = (period: Period, subPeriod: string): { startDate: Date; end
 			const halfStart = startOfMonth(halfStartDate);
 			const halfEnd = endOfMonth(addMonths(halfStartDate, 5));
 			return { startDate: halfStart, endDate: halfEnd };
+		}
 
-		case Period.YEARLY:
+		case Period.YEARLY: {
 			const yearNum = parseInt(subPeriod);
 			const yearDate = new Date(yearNum, 0, 1);
 			const yearStart = startOfYear(yearDate);
 			const yearEnd = endOfYear(yearDate);
 			return { startDate: yearStart, endDate: yearEnd };
+		}
 
 		default:
 			// Default to current month
@@ -236,7 +239,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
 		const currentYear: number = now.getFullYear();
 		const currentMonth: number = now.getMonth();
 
-		let allMonthsData: MonthlyIncomeExpenseData[] = [];
+		const allMonthsData: MonthlyIncomeExpenseData[] = [];
 
 		if (subPeriod && typeof subPeriod === "string") {
 			// Get data for specific period
@@ -245,7 +248,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
 			// For specific periods, we'll get data for that period and a few periods before for comparison
 
 			switch (period) {
-				case Period.MONTHLY:
+				case Period.MONTHLY: {
 					// Get daily data for the selected month
 					const selectedMonth = startDate.getMonth();
 					const selectedYearForMonthly = startDate.getFullYear();
@@ -267,8 +270,9 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
 						});
 					});
 					break;
+				}
 
-				case Period.QUARTERLY:
+				case Period.QUARTERLY: {
 					// Get monthly data for the selected quarter
 					const selectedQuarter = parseInt(subPeriod.replace("Q", ""));
 					const quarterStartMonth = (selectedQuarter - 1) * 3; // Q1=0, Q2=3, Q3=6, Q4=9
@@ -290,8 +294,9 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
 						});
 					}
 					break;
+				}
 
-				case Period.HALF_YEARLY:
+				case Period.HALF_YEARLY: {
 					// Get monthly data for the selected half-year
 					const selectedHalf = parseInt(subPeriod.replace("H", ""));
 					const halfStartMonth = (selectedHalf - 1) * 6; // H1=0, H2=6
@@ -313,8 +318,9 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
 						});
 					}
 					break;
+				}
 
-				case Period.YEARLY:
+				case Period.YEARLY: {
 					// Get monthly data for the selected year
 					const selectedYear = parseInt(subPeriod);
 					for (let month = 0; month < 12; month++) {
@@ -333,6 +339,7 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
 						});
 					}
 					break;
+				}
 			}
 		} else {
 			// Default behavior - get data for last 6 months
@@ -440,14 +447,14 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
 		const currentYear: number = now.getFullYear();
 		const currentMonth: number = now.getMonth();
 
-		let allMonthsData: MonthlySavingsData[] = [];
+		const allMonthsData: MonthlySavingsData[] = [];
 
 		if (subPeriod && typeof subPeriod === "string") {
 			// Get data for specific period
 			const { startDate } = getDateRange(period as Period, subPeriod);
 
 			switch (period) {
-				case Period.MONTHLY:
+				case Period.MONTHLY: {
 					// Get daily data for the selected month
 					const selectedMonth = startDate.getMonth();
 					const selectedYearForSavings = startDate.getFullYear();
@@ -473,8 +480,9 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
 						});
 					});
 					break;
+				}
 
-				case Period.QUARTERLY:
+				case Period.QUARTERLY: {
 					// Get monthly data for the selected quarter
 					const selectedQuarter = parseInt(subPeriod.replace("Q", ""));
 					const quarterStartMonth = (selectedQuarter - 1) * 3; // Q1=0, Q2=3, Q3=6, Q4=9
@@ -492,8 +500,9 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
 						});
 					}
 					break;
+				}
 
-				case Period.HALF_YEARLY:
+				case Period.HALF_YEARLY: {
 					// Get monthly data for the selected half-year
 					const selectedHalf = parseInt(subPeriod.replace("H", ""));
 					const halfStartMonth = (selectedHalf - 1) * 6; // H1=0, H2=6
@@ -511,8 +520,9 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
 						});
 					}
 					break;
+				}
 
-				case Period.YEARLY:
+				case Period.YEARLY: {
 					// Get monthly data for the selected year
 					const selectedYear = parseInt(subPeriod);
 					for (let month = 0; month < 12; month++) {
@@ -528,6 +538,7 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
 						});
 					}
 					break;
+				}
 			}
 		} else {
 			// Default behavior - get data for last 12 months

@@ -1,3 +1,7 @@
+import type { AuthenticatedUser, SettingsData as SettingsDataType } from "@expense-tracker/shared-types/src";
+import { LogOut, Save, Settings, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,10 +10,6 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { useProfileMutations, useSettings } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
-import { AuthenticatedUser, SettingsData as SettingsDataType } from "@expense-tracker/shared-types/src";
-import { LogOut, Save, Settings, Shield } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 interface SettingsDataProps {
 	onLogout: () => void;

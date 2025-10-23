@@ -1,10 +1,11 @@
+import type { BudgetLogType } from "@expense-tracker/shared-types/src";
+import { format } from "date-fns";
+import type React from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBudgetLogs } from "@/hooks/use-budget-logs";
-import { BudgetLogType } from "@expense-tracker/shared-types/src";
-import { format } from "date-fns";
-import React, { useState } from "react";
 import { BudgetLogFilters as BudgetLogFiltersComponent } from "./BudgetLogFilters";
 
 interface BudgetLogsProps {
@@ -72,7 +73,7 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
 
 	const formatChangeValue = (value: any) => {
 		if (value === null) return "N/A";
-		if (typeof value === "object" && value.hasOwnProperty("amount")) {
+		if (typeof value === "object" && Object.hasOwn(value, "amount")) {
 			return `₹${value.amount}`;
 		}
 		if (value instanceof Date || (typeof value === "string" && !isNaN(Date.parse(value)))) {

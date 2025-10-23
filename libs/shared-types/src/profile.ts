@@ -21,7 +21,7 @@ export const ZProfileData = z.object({
 	phoneNumber: z
 		.string()
 		.max(MAX_PHONE_LENGTH, `Phone number must be less than ${MAX_PHONE_LENGTH} characters`)
-		.regex(/^[\+]?[0-9][\d]{0,15}$/, "Please enter a valid phone number")
+		.regex(/^[+]?[0-9][\d]{0,15}$/, "Please enter a valid phone number")
 		.optional(),
 	dateOfBirth: z
 		.string()
