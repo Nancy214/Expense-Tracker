@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { authenticateToken } from "../middleware/auth.middleware";
 import {
-    createBudget,
-    updateBudget,
-    deleteBudget,
-    getBudgets,
-    getBudgetProgress,
-    getBudgetLogs,
+	createBudget,
+	updateBudget,
+	deleteBudget,
+	getBudgets,
+	getBudgetProgress,
+	getBudgetLogs,
 } from "../controllers/budget.controller";
 import { validate } from "../middleware/validate.middleware";
 import { budgetSchema, ZBudgetParams } from "@expense-tracker/shared-types/src";

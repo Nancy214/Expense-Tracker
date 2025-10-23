@@ -11,6 +11,12 @@
         "build": "nx run-many --target=build --all",
         "test": "nx run-many --target=test --all",
         "lint": "nx run-many --target=lint --all",
+        "lint:biome": "biome lint .",
+        "lint:biome:fix": "biome lint --write .",
+        "format": "biome format .",
+        "format:fix": "biome format --write .",
+        "check": "biome check .",
+        "check:fix": "biome check --write .",
         "dev": "nx run-many --target=dev --all --parallel",
         "backend:dev": "nx run backend:dev",
         "frontend:dev": "nx run frontend:dev",
@@ -18,8 +24,9 @@
         "frontend:build": "nx run frontend:build"
     },
     "devDependencies": {
-        "nx": "^21.5.3",
+        "@biomejs/biome": "^2.2.7",
         "@nx/eslint": "^21.5.3",
-        "@nx/vite": "^21.5.3"
+        "@nx/vite": "^21.5.3",
+        "nx": "^21.5.3"
     }
 }

@@ -11,317 +11,323 @@ import { getTodayInTimezone } from "../utils/timezoneUtils";
  */
 
 export class RecurringTransactionJobService {
-    /**
-     * Process all recurring transactions for all users
-     * This method should be called by the cron job
-     */
-    static async processAllRecurringTransactions(): Promise<void> {
-        try {
-            // Get all users with their timezones
-            const users = await User.find({ timezone: { $exists: true, $ne: null } });
+	/**
+	 * Process all recurring transactions for all users
+	 * This method should be called by the cron job
+	 */
+	static async processAllRecurringTransactions(): Promise<void> {
+		try {
+			// Get all users with their timezones
+			const users = await User.find({
+				timezone: { $exists: true, $ne: null },
+			});
 
-            // Get all recurring transactions
-            const recurringTransactions = await TransactionModel.find({
-                isRecurring: true,
-                userId: { $exists: true, $ne: null },
-            });
+			// Get all recurring transactions
+			const recurringTransactions = await TransactionModel.find({
+				isRecurring: true,
+				userId: { $exists: true, $ne: null },
+			});
 
-            // Group transactions by user
-            const transactionsByUser = new Map<string, TransactionOrBill[]>();
-            for (const transaction of recurringTransactions) {
-                if (transaction.userId) {
-                    const userId = transaction.userId.toString();
-                    if (!transactionsByUser.has(userId)) {
-                        transactionsByUser.set(userId, []);
-                    }
-                    transactionsByUser.get(userId)!.push(transaction);
-                }
-            }
+			// Group transactions by user
+			const transactionsByUser = new Map<string, TransactionOrBill[]>();
+			for (const transaction of recurringTransactions) {
+				if (transaction.userId) {
+					const userId = transaction.userId.toString();
+					if (!transactionsByUser.has(userId)) {
+						transactionsByUser.set(userId, []);
+					}
+					transactionsByUser.get(userId)!.push(transaction);
+				}
+			}
 
-            let totalProcessed = 0;
-            let totalCreated = 0;
+			let totalProcessed = 0;
+			let totalCreated = 0;
 
-            // Process each user's transactions based on their timezone
-            for (const user of users) {
-                const userTimezone = user.timezone || "UTC";
-                const userTransactions = transactionsByUser.get(user._id.toString()) || [];
+			// Process each user's transactions based on their timezone
+			for (const user of users) {
+				const userTimezone = user.timezone || "UTC";
+				const userTransactions = transactionsByUser.get(user._id.toString()) || [];
 
-                if (userTransactions.length === 0) {
-                    continue;
-                }
+				if (userTransactions.length === 0) {
+					continue;
+				}
 
-                const { processed, created } = await this.processUserRecurringTransactions(
-                    new Types.ObjectId(user._id),
-                    userTransactions,
-                    userTimezone
-                );
+				const { processed, created } = await this.processUserRecurringTransactions(
+					new Types.ObjectId(user._id),
+					userTransactions,
+					userTimezone
+				);
 
-                totalProcessed += processed;
-                totalCreated += created;
-            }
-        } catch (error) {
-            console.error("[RecurringTransactionJob] Error processing recurring transactions:", error);
-            throw error;
-        }
-    }
+				totalProcessed += processed;
+				totalCreated += created;
+			}
+		} catch (error) {
+			console.error("[RecurringTransactionJob] Error processing recurring transactions:", error);
+			throw error;
+		}
+	}
 
-    /**
-     * Process recurring transactions for a specific user
-     * @param userId - The user ID
-     * @param transactions - Array of recurring transactions for the user
-     * @param timezone - User's timezone
-     * @returns Object with processed and created counts
-     */
-    static async processUserRecurringTransactions(
-        userId: Types.ObjectId,
-        transactions: TransactionOrBill[],
-        timezone: string
-    ): Promise<{ processed: number; created: number }> {
-        let processed = 0;
-        let created = 0;
+	/**
+	 * Process recurring transactions for a specific user
+	 * @param userId - The user ID
+	 * @param transactions - Array of recurring transactions for the user
+	 * @param timezone - User's timezone
+	 * @returns Object with processed and created counts
+	 */
+	static async processUserRecurringTransactions(
+		userId: Types.ObjectId,
+		transactions: TransactionOrBill[],
+		timezone: string
+	): Promise<{ processed: number; created: number }> {
+		let processed = 0;
+		let created = 0;
 
-        for (const template of transactions) {
-            try {
-                const result = await this.processRecurringTransaction(template, userId, timezone);
-                if (result.created) {
-                    created++;
-                }
-                processed++;
-            } catch (error) {
-                console.error(`[RecurringTransactionJob] Error processing transaction ${template.id}:`, error);
-            }
-        }
+		for (const template of transactions) {
+			try {
+				const result = await this.processRecurringTransaction(template, userId, timezone);
+				if (result.created) {
+					created++;
+				}
+				processed++;
+			} catch (error) {
+				console.error(`[RecurringTransactionJob] Error processing transaction ${template.id}:`, error);
+			}
+		}
 
-        return { processed, created };
-    }
+		return { processed, created };
+	}
 
-    /**
-     * Process a single recurring transaction
-     * @param template - The recurring transaction template
-     * @param userId - The user ID
-     * @param timezone - User's timezone
-     * @returns Object indicating if a new instance was created
-     */
-    static async processRecurringTransaction(
-        template: TransactionOrBill,
-        userId: Types.ObjectId,
-        timezone: string
-    ): Promise<{ created: boolean }> {
-        const todayInUserTimezone = getTodayInTimezone(timezone);
-        const todayDate = new Date(todayInUserTimezone);
+	/**
+	 * Process a single recurring transaction
+	 * @param template - The recurring transaction template
+	 * @param userId - The user ID
+	 * @param timezone - User's timezone
+	 * @returns Object indicating if a new instance was created
+	 */
+	static async processRecurringTransaction(
+		template: TransactionOrBill,
+		userId: Types.ObjectId,
+		timezone: string
+	): Promise<{ created: boolean }> {
+		const todayInUserTimezone = getTodayInTimezone(timezone);
+		const todayDate = new Date(todayInUserTimezone);
 
-        // Determine the frequency to use
-        const frequency = this.getTransactionFrequency(template);
-        if (!frequency) {
-            console.warn(`[RecurringTransactionJob] No frequency found for transaction ${template.id}`);
-            return { created: false };
-        }
+		// Determine the frequency to use
+		const frequency = this.getTransactionFrequency(template);
+		if (!frequency) {
+			console.warn(`[RecurringTransactionJob] No frequency found for transaction ${template.id}`);
+			return { created: false };
+		}
 
-        // Calculate the next due date based on the template's last occurrence
-        const lastOccurrence = await this.getLastOccurrence(new Types.ObjectId(template.id), userId);
-        const nextDueDate = this.calculateNextDueDate(template, lastOccurrence, frequency);
+		// Calculate the next due date based on the template's last occurrence
+		const lastOccurrence = await this.getLastOccurrence(new Types.ObjectId(template.id), userId);
+		const nextDueDate = this.calculateNextDueDate(template, lastOccurrence, frequency);
 
-        // Check if we should create a new instance today
-        if (this.shouldCreateInstanceToday(template, nextDueDate, todayDate, timezone)) {
-            // Check if an instance for today already exists
-            const existingInstance = await TransactionModel.findOne({
-                templateId: template.id,
-                date: todayInUserTimezone,
-                userId: userId,
-            });
+		// Check if we should create a new instance today
+		if (this.shouldCreateInstanceToday(template, nextDueDate, todayDate, timezone)) {
+			// Check if an instance for today already exists
+			const existingInstance = await TransactionModel.findOne({
+				templateId: template.id,
+				date: todayInUserTimezone,
+				userId: userId,
+			});
 
-            if (!existingInstance) {
-                await this.createRecurringInstance(template, todayDate, userId);
-                console.log(
-                    `[RecurringTransactionJob] Created new instance for transaction ${template.id} on ${todayInUserTimezone}`
-                );
-                return { created: true };
-            }
-        }
+			if (!existingInstance) {
+				await this.createRecurringInstance(template, todayDate, userId);
+				console.log(
+					`[RecurringTransactionJob] Created new instance for transaction ${template.id} on ${todayInUserTimezone}`
+				);
+				return { created: true };
+			}
+		}
 
-        return { created: false };
-    }
+		return { created: false };
+	}
 
-    /**
-     * Get the frequency for a transaction (handles both regular and bill transactions)
-     */
-    private static getTransactionFrequency(template: TransactionOrBill): string | null {
-        // Check if it's a bill with billFrequency
-        if ("billFrequency" in template && template.billFrequency) {
-            return template.billFrequency;
-        }
+	/**
+	 * Get the frequency for a transaction (handles both regular and bill transactions)
+	 */
+	private static getTransactionFrequency(template: TransactionOrBill): string | null {
+		// Check if it's a bill with billFrequency
+		if ("billFrequency" in template && template.billFrequency) {
+			return template.billFrequency;
+		}
 
-        // Check if it's a regular transaction with recurringFrequency
-        if ("recurringFrequency" in template && template.recurringFrequency) {
-            return template.recurringFrequency;
-        }
+		// Check if it's a regular transaction with recurringFrequency
+		if ("recurringFrequency" in template && template.recurringFrequency) {
+			return template.recurringFrequency;
+		}
 
-        return null;
-    }
+		return null;
+	}
 
-    /**
-     * Get the last occurrence of a recurring transaction
-     */
-    private static async getLastOccurrence(templateId: Types.ObjectId, userId: Types.ObjectId): Promise<Date | null> {
-        const lastInstance = await TransactionModel.findOne({
-            templateId: templateId,
-            userId: userId,
-        }).sort({ date: -1 });
+	/**
+	 * Get the last occurrence of a recurring transaction
+	 */
+	private static async getLastOccurrence(templateId: Types.ObjectId, userId: Types.ObjectId): Promise<Date | null> {
+		const lastInstance = await TransactionModel.findOne({
+			templateId: templateId,
+			userId: userId,
+		}).sort({ date: -1 });
 
-        return lastInstance ? parseDateFromAPI(lastInstance.date) : null;
-    }
+		return lastInstance ? parseDateFromAPI(lastInstance.date) : null;
+	}
 
-    /**
-     * Calculate the next due date for a recurring transaction
-     */
-    private static calculateNextDueDate(
-        template: TransactionOrBill,
-        lastOccurrence: Date | null,
-        frequency: string
-    ): Date {
-        const startDate = parseDateFromAPI(template.date);
+	/**
+	 * Calculate the next due date for a recurring transaction
+	 */
+	private static calculateNextDueDate(
+		template: TransactionOrBill,
+		lastOccurrence: Date | null,
+		frequency: string
+	): Date {
+		const startDate = parseDateFromAPI(template.date);
 
-        // If no last occurrence, use the template's start date
-        const baseDate = lastOccurrence || startDate;
+		// If no last occurrence, use the template's start date
+		const baseDate = lastOccurrence || startDate;
 
-        // Calculate next date based on frequency
-        return addTimeByFrequency(baseDate, frequency);
-    }
+		// Calculate next date based on frequency
+		return addTimeByFrequency(baseDate, frequency);
+	}
 
-    /**
-     * Check if we should create a new instance today
-     */
-    private static shouldCreateInstanceToday(
-        template: TransactionOrBill,
-        nextDueDate: Date,
-        todayDate: Date,
-        _: string
-    ): boolean {
-        // Check if today is the due date or past the due date
-        if (isDateAfter(todayDate, nextDueDate) || this.isSameDate(todayDate, nextDueDate)) {
-            // Check if there's an end date and if we've passed it (only for regular transactions, not bills)
-            if ("endDate" in template && template.endDate) {
-                const endDate = parseDateFromAPI(template.endDate);
-                return !isDateAfter(todayDate, endDate);
-            }
-            return true;
-        }
+	/**
+	 * Check if we should create a new instance today
+	 */
+	private static shouldCreateInstanceToday(
+		template: TransactionOrBill,
+		nextDueDate: Date,
+		todayDate: Date,
+		_: string
+	): boolean {
+		// Check if today is the due date or past the due date
+		if (isDateAfter(todayDate, nextDueDate) || this.isSameDate(todayDate, nextDueDate)) {
+			// Check if there's an end date and if we've passed it (only for regular transactions, not bills)
+			if ("endDate" in template && template.endDate) {
+				const endDate = parseDateFromAPI(template.endDate);
+				return !isDateAfter(todayDate, endDate);
+			}
+			return true;
+		}
 
-        return false;
-    }
+		return false;
+	}
 
-    /**
-     * Check if two dates are the same (ignoring time)
-     */
-    private static isSameDate(date1: Date, date2: Date): boolean {
-        const d1 = new Date(date1);
-        const d2 = new Date(date2);
-        d1.setHours(0, 0, 0, 0);
-        d2.setHours(0, 0, 0, 0);
-        return d1.getTime() === d2.getTime();
-    }
+	/**
+	 * Check if two dates are the same (ignoring time)
+	 */
+	private static isSameDate(date1: Date, date2: Date): boolean {
+		const d1 = new Date(date1);
+		const d2 = new Date(date2);
+		d1.setHours(0, 0, 0, 0);
+		d2.setHours(0, 0, 0, 0);
+		return d1.getTime() === d2.getTime();
+	}
 
-    /**
-     * Create a new instance of a recurring transaction
-     */
-    private static async createRecurringInstance(
-        template: TransactionOrBill,
-        date: Date,
-        userId: Types.ObjectId
-    ): Promise<void> {
-        const frequency = this.getTransactionFrequency(template);
-        if (!frequency) {
-            console.warn(`[RecurringTransactionJob] No frequency found for transaction ${template.id}`);
-            return;
-        }
+	/**
+	 * Create a new instance of a recurring transaction
+	 */
+	private static async createRecurringInstance(
+		template: TransactionOrBill,
+		date: Date,
+		userId: Types.ObjectId
+	): Promise<void> {
+		const frequency = this.getTransactionFrequency(template);
+		if (!frequency) {
+			console.warn(`[RecurringTransactionJob] No frequency found for transaction ${template.id}`);
+			return;
+		}
 
-        // Calculate the due date for this instance
-        // For bills, the due date should be the same as the date (when the bill is due)
-        // For regular transactions, we don't need a due date
-        let dueDate: Date | undefined;
-        let nextDueDate: Date | undefined;
+		// Calculate the due date for this instance
+		// For bills, the due date should be the same as the date (when the bill is due)
+		// For regular transactions, we don't need a due date
+		let dueDate: Date | undefined;
+		let nextDueDate: Date | undefined;
 
-        if ("dueDate" in template && template.dueDate) {
-            // This is a bill with a due date
-            const templateDueDate = parseDateFromAPI(template.dueDate);
+		if ("dueDate" in template && template.dueDate) {
+			// This is a bill with a due date
+			const templateDueDate = parseDateFromAPI(template.dueDate);
 
-            // Find the last occurrence to calculate the correct due date for this instance
-            const lastOccurrence = await this.getLastOccurrence(new Types.ObjectId(template.id), userId);
+			// Find the last occurrence to calculate the correct due date for this instance
+			const lastOccurrence = await this.getLastOccurrence(new Types.ObjectId(template.id), userId);
 
-            if (lastOccurrence) {
-                // Calculate due date based on the last occurrence's due date
-                const lastInstance = await TransactionModel.findOne({
-                    templateId: template.id,
-                    userId: userId,
-                }).sort({ date: -1 });
+			if (lastOccurrence) {
+				// Calculate due date based on the last occurrence's due date
+				const lastInstance = await TransactionModel.findOne({
+					templateId: template.id,
+					userId: userId,
+				}).sort({ date: -1 });
 
-                if (lastInstance && "dueDate" in lastInstance && lastInstance.dueDate) {
-                    const lastDueDate = parseDateFromAPI(lastInstance.dueDate as string | Date);
-                    dueDate = addTimeByFrequency(lastDueDate, frequency);
-                } else {
-                    // Fallback to template due date
-                    dueDate = templateDueDate;
-                }
-            } else {
-                // First instance, use template due date
-                dueDate = templateDueDate;
-            }
+				if (lastInstance && "dueDate" in lastInstance && lastInstance.dueDate) {
+					const lastDueDate = parseDateFromAPI(lastInstance.dueDate as string | Date);
+					dueDate = addTimeByFrequency(lastDueDate, frequency);
+				} else {
+					// Fallback to template due date
+					dueDate = templateDueDate;
+				}
+			} else {
+				// First instance, use template due date
+				dueDate = templateDueDate;
+			}
 
-            // Calculate next due date for this instance
-            nextDueDate = addTimeByFrequency(dueDate, frequency);
-        }
+			// Calculate next due date for this instance
+			nextDueDate = addTimeByFrequency(dueDate, frequency);
+		}
 
-        const instanceData: TransactionOrBill = {
-            ...template,
-            id: "",
-            date: date.toISOString(),
-            templateId: template.id,
-            isRecurring: false,
-            userId: userId.toString(),
-            ...(dueDate && { dueDate: dueDate.toISOString() }),
-            ...(nextDueDate && { nextDueDate: nextDueDate.toISOString() }),
-        };
+		const instanceData: TransactionOrBill = {
+			...template,
+			id: "",
+			date: date.toISOString(),
+			templateId: template.id,
+			isRecurring: false,
+			userId: userId.toString(),
+			...(dueDate && { dueDate: dueDate.toISOString() }),
+			...(nextDueDate && { nextDueDate: nextDueDate.toISOString() }),
+		};
 
-        await TransactionModel.create<TransactionOrBill>(instanceData);
-    }
+		await TransactionModel.create<TransactionOrBill>(instanceData);
+	}
 
-    /**
-     * Process recurring transactions for a specific user (manual trigger)
-     * This can be called via API endpoint
-     */
-    static async processUserRecurringTransactionsManually(
-        userId: string
-    ): Promise<{ success: boolean; createdCount: number; message: string }> {
-        try {
-            const user = await User.findById(userId);
-            if (!user) {
-                return { success: false, createdCount: 0, message: "User not found" };
-            }
+	/**
+	 * Process recurring transactions for a specific user (manual trigger)
+	 * This can be called via API endpoint
+	 */
+	static async processUserRecurringTransactionsManually(
+		userId: string
+	): Promise<{ success: boolean; createdCount: number; message: string }> {
+		try {
+			const user = await User.findById(userId);
+			if (!user) {
+				return {
+					success: false,
+					createdCount: 0,
+					message: "User not found",
+				};
+			}
 
-            const userTimezone = user.timezone || "UTC";
-            const recurringTransactions = await TransactionModel.find({
-                isRecurring: true,
-                userId: new Types.ObjectId(userId),
-            });
+			const userTimezone = user.timezone || "UTC";
+			const recurringTransactions = await TransactionModel.find({
+				isRecurring: true,
+				userId: new Types.ObjectId(userId),
+			});
 
-            const { processed, created } = await this.processUserRecurringTransactions(
-                new Types.ObjectId(userId),
-                recurringTransactions,
-                userTimezone
-            );
+			const { processed, created } = await this.processUserRecurringTransactions(
+				new Types.ObjectId(userId),
+				recurringTransactions,
+				userTimezone
+			);
 
-            return {
-                success: true,
-                createdCount: created,
-                message: `Processed ${processed} transactions, created ${created} new instances`,
-            };
-        } catch (error) {
-            console.error(`[RecurringTransactionJob] Error processing user ${userId} transactions:`, error);
-            return {
-                success: false,
-                createdCount: 0,
-                message: error instanceof Error ? error.message : "Unknown error occurred",
-            };
-        }
-    }
+			return {
+				success: true,
+				createdCount: created,
+				message: `Processed ${processed} transactions, created ${created} new instances`,
+			};
+		} catch (error) {
+			console.error(`[RecurringTransactionJob] Error processing user ${userId} transactions:`, error);
+			return {
+				success: false,
+				createdCount: 0,
+				message: error instanceof Error ? error.message : "Unknown error occurred",
+			};
+		}
+	}
 }

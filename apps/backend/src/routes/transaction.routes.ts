@@ -1,28 +1,28 @@
 import { Router } from "express";
 import { authenticateToken } from "../middleware/auth.middleware";
 import {
-    getExpenses,
-    getAllTransactions,
-    getAllTransactionsForAnalytics,
-    getBills,
-    getRecurringTemplates,
-    getTransactionSummary,
-    createExpense,
-    updateExpense,
-    deleteExpense,
-    getReceiptUrl,
-    deleteReceipt,
-    deleteRecurringExpense,
-    updateTransactionBillStatus,
-    triggerRecurringTransactionsJob,
+	getExpenses,
+	getAllTransactions,
+	getAllTransactionsForAnalytics,
+	getBills,
+	getRecurringTemplates,
+	getTransactionSummary,
+	createExpense,
+	updateExpense,
+	deleteExpense,
+	getReceiptUrl,
+	deleteReceipt,
+	deleteRecurringExpense,
+	updateTransactionBillStatus,
+	triggerRecurringTransactionsJob,
 } from "../controllers/transaction.controller";
 import { upload } from "../config/multer";
 import { uploadReceipt } from "../controllers/transaction.controller";
 import {
-    ZReceiptKey,
-    ZTransactionIdParam,
-    ZTransactionOrBill,
-    ZBillStatus,
+	ZReceiptKey,
+	ZTransactionIdParam,
+	ZTransactionOrBill,
+	ZBillStatus,
 } from "@expense-tracker/shared-types/dist/transactions";
 import { validate } from "../middleware/validate.middleware";
 
@@ -40,20 +40,20 @@ router.post("/upload-receipt", authenticateToken, upload.single("file"), uploadR
 router.get("/receipt/:id", authenticateToken, validate(ZReceiptKey, "params"), getReceiptUrl);
 router.delete("/receipt/:id", authenticateToken, validate(ZReceiptKey, "params"), deleteReceipt);
 router.put(
-    "/:id",
-    authenticateToken,
-    validate(ZTransactionIdParam, "params"),
-    validate(ZTransactionOrBill, "body"),
-    updateExpense
+	"/:id",
+	authenticateToken,
+	validate(ZTransactionIdParam, "params"),
+	validate(ZTransactionOrBill, "body"),
+	updateExpense
 );
 router.delete("/:id", authenticateToken, validate(ZTransactionIdParam, "params"), deleteExpense);
 router.delete("/recurring/:id", authenticateToken, validate(ZTransactionIdParam, "params"), deleteRecurringExpense);
 router.patch(
-    "/:id/bill-status",
-    authenticateToken,
-    validate(ZTransactionIdParam, "params"),
-    validate(ZBillStatus, "body"),
-    updateTransactionBillStatus
+	"/:id/bill-status",
+	authenticateToken,
+	validate(ZTransactionIdParam, "params"),
+	validate(ZBillStatus, "body"),
+	updateTransactionBillStatus
 );
 
 export default router;

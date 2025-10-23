@@ -36,10 +36,10 @@ export { AllTransactionsTab } from "./TransactionsPage/AllTransactionsTab";
 export { BillsTab } from "./TransactionsPage/BillsTab";
 export { DataTable } from "./TransactionsPage/DataTable";
 export {
-    arrayToCSV,
-    downloadCSV,
-    downloadExcel,
-    generateMonthlyStatementPDF,
+	arrayToCSV,
+	downloadCSV,
+	downloadExcel,
+	generateMonthlyStatementPDF,
 } from "./TransactionsPage/ExcelCsvPdfUtils";
 export { FiltersSection as Filters } from "./TransactionsPage/Filters";
 export { RecurringTransactionsTab } from "./TransactionsPage/RecurringTransactionsTab";

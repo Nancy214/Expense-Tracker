@@ -5,16 +5,16 @@ import { Toaster } from "@/components/ui/toaster";
 import Layout from "@/app-components/utility-components/Layout";
 
 function App() {
-    return (
-        <AuthProvider>
-            <Router>
-                <Layout>
-                    <AppRoutes />
-                </Layout>
-                <Toaster />
-            </Router>
-        </AuthProvider>
-    );
+	return (
+		<AuthProvider>
+			<Router>
+				<Layout>
+					<AppRoutes />
+				</Layout>
+				<Toaster />
+			</Router>
+		</AuthProvider>
+	);
 }
 
 export default App;

@@ -5,15 +5,15 @@ import { createExpense, getBills, updateExpense, updateTransactionBillStatus } f
 import { parseFromDisplay } from "@/utils/dateUtils";
 import { showCreateSuccess, showSaveError, showUpdateSuccess } from "@/utils/toastUtils";
 import {
-    Bill,
-    BillFrequency,
-    BillStatus,
-    PaymentMethod,
-    Transaction,
-    TransactionOrBill,
-    TransactionResponse,
-    baseTransactionSchema,
-    TransactionId,
+	Bill,
+	BillFrequency,
+	BillStatus,
+	PaymentMethod,
+	Transaction,
+	TransactionOrBill,
+	TransactionResponse,
+	baseTransactionSchema,
+	TransactionId,
 } from "@expense-tracker/shared-types/src";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,75 +27,75 @@ import { useForm, UseFormReturn } from "react-hook-form";
 
 // API response for bills
 interface BillsApiResponse {
-    bills: TransactionOrBill[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNextPage: boolean;
-        hasPrevPage: boolean;
-    };
+	bills: TransactionOrBill[];
+	pagination: {
+		page: number;
+		limit: number;
+		total: number;
+		totalPages: number;
+		hasNextPage: boolean;
+		hasPrevPage: boolean;
+	};
 }
 
 // Bills query result
 interface BillsQueryResult {
-    bills: TransactionOrBill[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNextPage: boolean;
-        hasPrevPage: boolean;
-    } | null;
+	bills: TransactionOrBill[];
+	pagination: {
+		page: number;
+		limit: number;
+		total: number;
+		totalPages: number;
+		hasNextPage: boolean;
+		hasPrevPage: boolean;
+	} | null;
 }
 
 // Bill form default values
 interface BillFormDefaultValues {
-    title: string;
-    category: "Bills";
-    description: string;
-    amount: number;
-    date: string;
-    currency: string;
-    type: "expense";
-    isRecurring: boolean;
-    recurringFrequency?: "daily" | "weekly" | "monthly" | "yearly";
-    fromRate: number;
-    toRate: number;
-    endDate?: string;
-    billCategory:
-        | "Rent/Mortgage"
-        | "Electricity"
-        | "Water"
-        | "Gas"
-        | "Internet"
-        | "Phone"
-        | "Insurance"
-        | "Subscriptions"
-        | "Credit Card"
-        | "Loan Payment"
-        | "Property Tax";
-    reminderDays: number;
-    dueDate: string;
-    billStatus: BillStatus;
-    billFrequency: BillFrequency;
-    nextDueDate?: string;
-    lastPaidDate?: string;
-    paymentMethod: PaymentMethod;
-    receipt: string | File;
+	title: string;
+	category: "Bills";
+	description: string;
+	amount: number;
+	date: string;
+	currency: string;
+	type: "expense";
+	isRecurring: boolean;
+	recurringFrequency?: "daily" | "weekly" | "monthly" | "yearly";
+	fromRate: number;
+	toRate: number;
+	endDate?: string;
+	billCategory:
+		| "Rent/Mortgage"
+		| "Electricity"
+		| "Water"
+		| "Gas"
+		| "Internet"
+		| "Phone"
+		| "Insurance"
+		| "Subscriptions"
+		| "Credit Card"
+		| "Loan Payment"
+		| "Property Tax";
+	reminderDays: number;
+	dueDate: string;
+	billStatus: BillStatus;
+	billFrequency: BillFrequency;
+	nextDueDate?: string;
+	lastPaidDate?: string;
+	paymentMethod: PaymentMethod;
+	receipt: string | File;
 }
 
 // Upcoming and overdue bills result
 interface UpcomingAndOverdueBills {
-    upcoming: TransactionOrBill[];
-    overdue: TransactionOrBill[];
+	upcoming: TransactionOrBill[];
+	overdue: TransactionOrBill[];
 }
 
 // Query keys
 const BILL_QUERY_KEYS = {
-    bills: ["bills"] as const,
+	bills: ["bills"] as const,
 } as const;
 
 // ============================================================================
@@ -103,66 +103,68 @@ const BILL_QUERY_KEYS = {
 // ============================================================================
 
 interface UseBillsReturn {
-    bills: TransactionOrBill[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-        hasNextPage: boolean;
-        hasPrevPage: boolean;
-    } | null;
-    isLoading: boolean;
-    isError: boolean;
-    error: Error | null;
-    invalidateBills: () => Promise<void>;
-    refetch: () => Promise<any>;
+	bills: TransactionOrBill[];
+	pagination: {
+		page: number;
+		limit: number;
+		total: number;
+		totalPages: number;
+		hasNextPage: boolean;
+		hasPrevPage: boolean;
+	} | null;
+	isLoading: boolean;
+	isError: boolean;
+	error: Error | null;
+	invalidateBills: () => Promise<void>;
+	refetch: () => Promise<any>;
 }
 
 export function useBills(page: number = 1, limit: number = 20): UseBillsReturn {
-    const { isAuthenticated } = useAuth();
+	const { isAuthenticated } = useAuth();
 
-    const query = useQuery<BillsQueryResult>({
-        queryKey: [...BILL_QUERY_KEYS.bills, page, limit],
-        staleTime: 30 * 1000, // Consider data fresh for 30 seconds
-        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
-        refetchOnWindowFocus: false, // Don't refetch on window focus
-        queryFn: async (): Promise<BillsQueryResult> => {
-            if (!isAuthenticated) {
-                return { bills: [], pagination: null };
-            }
-            const response: BillsApiResponse = await getBills(page, limit);
+	const query = useQuery<BillsQueryResult>({
+		queryKey: [...BILL_QUERY_KEYS.bills, page, limit],
+		staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+		gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+		refetchOnWindowFocus: false, // Don't refetch on window focus
+		queryFn: async (): Promise<BillsQueryResult> => {
+			if (!isAuthenticated) {
+				return { bills: [], pagination: null };
+			}
+			const response: BillsApiResponse = await getBills(page, limit);
 
-            const bills = response?.bills || [];
-            const billsWithDefaults: TransactionOrBill[] = bills.map((bill: TransactionOrBill) => ({
-                ...bill,
-                description: bill.description ?? "",
-                currency: bill.currency ?? "INR",
-            }));
+			const bills = response?.bills || [];
+			const billsWithDefaults: TransactionOrBill[] = bills.map((bill: TransactionOrBill) => ({
+				...bill,
+				description: bill.description ?? "",
+				currency: bill.currency ?? "INR",
+			}));
 
-            return {
-                bills: billsWithDefaults,
-                pagination: response?.pagination || null,
-            };
-        },
-        enabled: isAuthenticated, // Only run the query if authenticated
-    });
+			return {
+				bills: billsWithDefaults,
+				pagination: response?.pagination || null,
+			};
+		},
+		enabled: isAuthenticated, // Only run the query if authenticated
+	});
 
-    const queryClient = useQueryClient();
+	const queryClient = useQueryClient();
 
-    const invalidateBills = useCallback((): Promise<void> => {
-        return queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
-    }, [queryClient]);
+	const invalidateBills = useCallback((): Promise<void> => {
+		return queryClient.invalidateQueries({
+			queryKey: BILL_QUERY_KEYS.bills,
+		});
+	}, [queryClient]);
 
-    return {
-        bills: query.data?.bills ?? [],
-        pagination: query.data?.pagination ?? null,
-        isLoading: query.isLoading,
-        isError: query.isError,
-        error: query.error,
-        invalidateBills,
-        refetch: query.refetch,
-    };
+	return {
+		bills: query.data?.bills ?? [],
+		pagination: query.data?.pagination ?? null,
+		isLoading: query.isLoading,
+		isError: query.isError,
+		error: query.error,
+		invalidateBills,
+		refetch: query.refetch,
+	};
 }
 
 // ============================================================================
@@ -170,78 +172,82 @@ export function useBills(page: number = 1, limit: number = 20): UseBillsReturn {
 // ============================================================================
 
 interface UseBillMutationsReturn {
-    createBill: (data: Transaction) => Promise<TransactionResponse>;
-    updateBill: (params: { id: TransactionId; data: TransactionOrBill }) => Promise<TransactionResponse>;
-    updateBillStatus: (id: TransactionId, data: BillStatus) => Promise<TransactionResponse>;
-    isCreating: boolean;
-    isUpdating: boolean;
-    isUpdatingBillStatus: boolean;
-    createError: Error | null;
-    updateError: Error | null;
-    updateBillStatusError: Error | null;
+	createBill: (data: Transaction) => Promise<TransactionResponse>;
+	updateBill: (params: { id: TransactionId; data: TransactionOrBill }) => Promise<TransactionResponse>;
+	updateBillStatus: (id: TransactionId, data: BillStatus) => Promise<TransactionResponse>;
+	isCreating: boolean;
+	isUpdating: boolean;
+	isUpdatingBillStatus: boolean;
+	createError: Error | null;
+	updateError: Error | null;
+	updateBillStatusError: Error | null;
 }
 
 export function useBillMutations(): UseBillMutationsReturn {
-    const queryClient = useQueryClient();
-    const { toast } = useToast();
+	const queryClient = useQueryClient();
+	const { toast } = useToast();
 
-    const createBillMutation = useMutation<TransactionResponse, Error, Transaction>({
-        mutationFn: createExpense,
-        onSuccess: () => {
-            showCreateSuccess(toast, "Bill");
-            // Invalidate all related queries
-            queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
-        },
-        onError: () => {
-            showSaveError(toast, "Bill");
-        },
-    });
+	const createBillMutation = useMutation<TransactionResponse, Error, Transaction>({
+		mutationFn: createExpense,
+		onSuccess: () => {
+			showCreateSuccess(toast, "Bill");
+			// Invalidate all related queries
+			queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
+		},
+		onError: () => {
+			showSaveError(toast, "Bill");
+		},
+	});
 
-    const updateBillMutation = useMutation<TransactionResponse, Error, { id: TransactionId; data: TransactionOrBill }>({
-        mutationFn: ({ id, data }) => updateExpense(id, data),
-        onSuccess: () => {
-            showUpdateSuccess(toast, "Bill");
-            // Invalidate all related queries
-            queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
-        },
-    });
+	const updateBillMutation = useMutation<TransactionResponse, Error, { id: TransactionId; data: TransactionOrBill }>({
+		mutationFn: ({ id, data }) => updateExpense(id, data),
+		onSuccess: () => {
+			showUpdateSuccess(toast, "Bill");
+			// Invalidate all related queries
+			queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
+		},
+	});
 
-    const updateBillStatusMutation = useMutation<
-        TransactionResponse,
-        Error,
-        { id: TransactionId; billStatus: BillStatus }
-    >({
-        mutationFn: ({ id, billStatus }) => updateTransactionBillStatus(id, billStatus),
-        onSuccess: () => {
-            toast({
-                title: "Bill marked as paid",
-                description: "The bill has been successfully marked as paid.",
-            });
-            // Invalidate all related queries to refresh the data
-            queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
-        },
-        onError: (error: Error, variables: { id: TransactionId; billStatus: BillStatus }) => {
-            console.error("Error updating bill status:", { id: variables.id, billStatus: variables.billStatus, error });
-            toast({
-                title: "Error",
-                description: "Failed to update bill status. Please try again.",
-                variant: "destructive",
-            });
-        },
-    });
+	const updateBillStatusMutation = useMutation<
+		TransactionResponse,
+		Error,
+		{ id: TransactionId; billStatus: BillStatus }
+	>({
+		mutationFn: ({ id, billStatus }) => updateTransactionBillStatus(id, billStatus),
+		onSuccess: () => {
+			toast({
+				title: "Bill marked as paid",
+				description: "The bill has been successfully marked as paid.",
+			});
+			// Invalidate all related queries to refresh the data
+			queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
+		},
+		onError: (error: Error, variables: { id: TransactionId; billStatus: BillStatus }) => {
+			console.error("Error updating bill status:", {
+				id: variables.id,
+				billStatus: variables.billStatus,
+				error,
+			});
+			toast({
+				title: "Error",
+				description: "Failed to update bill status. Please try again.",
+				variant: "destructive",
+			});
+		},
+	});
 
-    return {
-        createBill: createBillMutation.mutateAsync,
-        updateBill: updateBillMutation.mutateAsync,
-        updateBillStatus: (id: TransactionId, data: BillStatus) =>
-            updateBillStatusMutation.mutateAsync({ id, billStatus: data }),
-        isCreating: createBillMutation.isPending,
-        isUpdating: updateBillMutation.isPending,
-        isUpdatingBillStatus: updateBillStatusMutation.isPending,
-        createError: createBillMutation.error,
-        updateError: updateBillMutation.error,
-        updateBillStatusError: updateBillStatusMutation.error,
-    };
+	return {
+		createBill: createBillMutation.mutateAsync,
+		updateBill: updateBillMutation.mutateAsync,
+		updateBillStatus: (id: TransactionId, data: BillStatus) =>
+			updateBillStatusMutation.mutateAsync({ id, billStatus: data }),
+		isCreating: createBillMutation.isPending,
+		isUpdating: updateBillMutation.isPending,
+		isUpdatingBillStatus: updateBillStatusMutation.isPending,
+		createError: createBillMutation.error,
+		updateError: updateBillMutation.error,
+		updateBillStatusError: updateBillStatusMutation.error,
+	};
 }
 
 // ============================================================================
@@ -249,164 +255,164 @@ export function useBillMutations(): UseBillMutationsReturn {
 // ============================================================================
 
 interface UseBillFormProps {
-    editingBill?: Bill | null;
+	editingBill?: Bill | null;
 }
 
 interface UseBillFormReturn {
-    form: UseFormReturn<BillFormDefaultValues>;
-    category: string;
-    type: "expense";
-    currency: string;
-    resetForm: () => void;
-    isEditing: boolean;
-    handleCurrencyChange: (newCurrency: string) => Promise<void>;
+	form: UseFormReturn<BillFormDefaultValues>;
+	category: string;
+	type: "expense";
+	currency: string;
+	resetForm: () => void;
+	isEditing: boolean;
+	handleCurrencyChange: (newCurrency: string) => Promise<void>;
 }
 
 export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormReturn => {
-    const { user } = useAuth();
+	const { user } = useAuth();
 
-    // Utility function to parse date to format
-    const parseDateToFormat = useCallback(
-        (date: string | Date | undefined, formatString: string = "dd/MM/yyyy"): string => {
-            if (!date) return format(new Date(), formatString);
+	// Utility function to parse date to format
+	const parseDateToFormat = useCallback(
+		(date: string | Date | undefined, formatString: string = "dd/MM/yyyy"): string => {
+			if (!date) return format(new Date(), formatString);
 
-            if (typeof date === "string") {
-                const iso = parseISO(date);
-                if (isValid(iso)) return format(iso, formatString);
-                const parsed = parse(date, formatString, new Date());
-                if (isValid(parsed)) return format(parsed, formatString);
-                return format(new Date(), formatString);
-            }
+			if (typeof date === "string") {
+				const iso = parseISO(date);
+				if (isValid(iso)) return format(iso, formatString);
+				const parsed = parse(date, formatString, new Date());
+				if (isValid(parsed)) return format(parsed, formatString);
+				return format(new Date(), formatString);
+			}
 
-            if (date instanceof Date && isValid(date)) {
-                return format(date, formatString);
-            }
+			if (date instanceof Date && isValid(date)) {
+				return format(date, formatString);
+			}
 
-            return format(new Date(), formatString);
-        },
-        []
-    );
+			return format(new Date(), formatString);
+		},
+		[]
+	);
 
-    // Default values
-    const getDefaultValues = useCallback((): BillFormDefaultValues => {
-        if (editingBill) {
-            return {
-                title: editingBill.title,
-                category: "Bills",
-                description: editingBill.description || "",
-                amount: editingBill.amount,
-                date: parseDateToFormat(editingBill.date),
-                currency: editingBill.currency,
-                type: "expense" as const,
-                isRecurring: false,
-                recurringFrequency: undefined,
-                fromRate: editingBill.fromRate || 1,
-                toRate: editingBill.toRate || 1,
-                endDate: undefined,
-                billCategory:
-                    (editingBill.billCategory as
-                        | "Rent/Mortgage"
-                        | "Electricity"
-                        | "Water"
-                        | "Gas"
-                        | "Internet"
-                        | "Phone"
-                        | "Insurance"
-                        | "Subscriptions"
-                        | "Credit Card"
-                        | "Loan Payment"
-                        | "Property Tax") || "Rent/Mortgage",
-                reminderDays: editingBill.reminderDays || 3,
-                dueDate: editingBill.dueDate
-                    ? parseDateToFormat(editingBill.dueDate)
-                    : format(new Date(), "dd/MM/yyyy"),
-                billStatus: editingBill.billStatus || BillStatus.UNPAID,
-                billFrequency: editingBill.billFrequency || BillFrequency.MONTHLY,
-                nextDueDate: editingBill.nextDueDate ? parseDateToFormat(editingBill.nextDueDate) : undefined,
-                lastPaidDate: editingBill.lastPaidDate ? parseDateToFormat(editingBill.lastPaidDate) : undefined,
-                paymentMethod: editingBill.paymentMethod || PaymentMethod.MANUAL,
-                receipt: editingBill.receipt || "",
-            };
-        }
+	// Default values
+	const getDefaultValues = useCallback((): BillFormDefaultValues => {
+		if (editingBill) {
+			return {
+				title: editingBill.title,
+				category: "Bills",
+				description: editingBill.description || "",
+				amount: editingBill.amount,
+				date: parseDateToFormat(editingBill.date),
+				currency: editingBill.currency,
+				type: "expense" as const,
+				isRecurring: false,
+				recurringFrequency: undefined,
+				fromRate: editingBill.fromRate || 1,
+				toRate: editingBill.toRate || 1,
+				endDate: undefined,
+				billCategory:
+					(editingBill.billCategory as
+						| "Rent/Mortgage"
+						| "Electricity"
+						| "Water"
+						| "Gas"
+						| "Internet"
+						| "Phone"
+						| "Insurance"
+						| "Subscriptions"
+						| "Credit Card"
+						| "Loan Payment"
+						| "Property Tax") || "Rent/Mortgage",
+				reminderDays: editingBill.reminderDays || 3,
+				dueDate: editingBill.dueDate
+					? parseDateToFormat(editingBill.dueDate)
+					: format(new Date(), "dd/MM/yyyy"),
+				billStatus: editingBill.billStatus || BillStatus.UNPAID,
+				billFrequency: editingBill.billFrequency || BillFrequency.MONTHLY,
+				nextDueDate: editingBill.nextDueDate ? parseDateToFormat(editingBill.nextDueDate) : undefined,
+				lastPaidDate: editingBill.lastPaidDate ? parseDateToFormat(editingBill.lastPaidDate) : undefined,
+				paymentMethod: editingBill.paymentMethod || PaymentMethod.MANUAL,
+				receipt: editingBill.receipt || "",
+			};
+		}
 
-        return {
-            title: "",
-            category: "Bills",
-            description: "",
-            amount: 0,
-            date: format(new Date(), "dd/MM/yyyy"),
-            currency: user?.currency || "INR",
-            type: "expense" as const,
-            isRecurring: false,
-            recurringFrequency: undefined,
-            fromRate: 1,
-            toRate: 1,
-            endDate: undefined,
-            billCategory: "Rent/Mortgage",
-            reminderDays: 3,
-            dueDate: format(new Date(), "dd/MM/yyyy"),
-            billStatus: BillStatus.UNPAID as const,
-            billFrequency: BillFrequency.MONTHLY as const,
-            nextDueDate: undefined,
-            lastPaidDate: undefined,
-            paymentMethod: PaymentMethod.MANUAL as const,
-            receipt: "",
-        };
-    }, [editingBill, user?.currency, parseDateToFormat]);
+		return {
+			title: "",
+			category: "Bills",
+			description: "",
+			amount: 0,
+			date: format(new Date(), "dd/MM/yyyy"),
+			currency: user?.currency || "INR",
+			type: "expense" as const,
+			isRecurring: false,
+			recurringFrequency: undefined,
+			fromRate: 1,
+			toRate: 1,
+			endDate: undefined,
+			billCategory: "Rent/Mortgage",
+			reminderDays: 3,
+			dueDate: format(new Date(), "dd/MM/yyyy"),
+			billStatus: BillStatus.UNPAID as const,
+			billFrequency: BillFrequency.MONTHLY as const,
+			nextDueDate: undefined,
+			lastPaidDate: undefined,
+			paymentMethod: PaymentMethod.MANUAL as const,
+			receipt: "",
+		};
+	}, [editingBill, user?.currency, parseDateToFormat]);
 
-    const form = useForm<BillFormDefaultValues>({
-        resolver: zodResolver(baseTransactionSchema) as any,
-        defaultValues: getDefaultValues(),
-        mode: "onSubmit",
-    });
+	const form = useForm<BillFormDefaultValues>({
+		resolver: zodResolver(baseTransactionSchema) as any,
+		defaultValues: getDefaultValues(),
+		mode: "onSubmit",
+	});
 
-    // Watch form values
-    const category = form.watch("category");
-    const type = form.watch("type");
-    const currency = form.watch("currency");
+	// Watch form values
+	const category = form.watch("category");
+	const type = form.watch("type");
+	const currency = form.watch("currency");
 
-    // Handle currency change
-    const handleCurrencyChange = useCallback(
-        async (newCurrency: string) => {
-            if (newCurrency !== user?.currency) {
-                try {
-                    const rate = await getExchangeRate(
-                        user?.currency || "INR",
-                        newCurrency,
-                        format(new Date(), "yyyy-MM-dd")
-                    );
-                    form.setValue("fromRate", 1);
-                    form.setValue("toRate", rate.rate);
-                } catch (error) {
-                    console.error("Error fetching exchange rate:", error);
-                    form.setValue("fromRate", 1);
-                    form.setValue("toRate", 1);
-                }
-            } else {
-                form.setValue("fromRate", 1);
-                form.setValue("toRate", 1);
-            }
-        },
-        [form, user?.currency]
-    );
+	// Handle currency change
+	const handleCurrencyChange = useCallback(
+		async (newCurrency: string) => {
+			if (newCurrency !== user?.currency) {
+				try {
+					const rate = await getExchangeRate(
+						user?.currency || "INR",
+						newCurrency,
+						format(new Date(), "yyyy-MM-dd")
+					);
+					form.setValue("fromRate", 1);
+					form.setValue("toRate", rate.rate);
+				} catch (error) {
+					console.error("Error fetching exchange rate:", error);
+					form.setValue("fromRate", 1);
+					form.setValue("toRate", 1);
+				}
+			} else {
+				form.setValue("fromRate", 1);
+				form.setValue("toRate", 1);
+			}
+		},
+		[form, user?.currency]
+	);
 
-    // Reset form
-    const resetForm = useCallback(() => {
-        form.reset(getDefaultValues());
-    }, [form, getDefaultValues]);
+	// Reset form
+	const resetForm = useCallback(() => {
+		form.reset(getDefaultValues());
+	}, [form, getDefaultValues]);
 
-    // Check if editing
-    const isEditing = !!editingBill;
+	// Check if editing
+	const isEditing = !!editingBill;
 
-    return {
-        form,
-        category,
-        type,
-        currency,
-        resetForm,
-        isEditing,
-        handleCurrencyChange,
-    };
+	return {
+		form,
+		category,
+		type,
+		currency,
+		resetForm,
+		isEditing,
+		handleCurrencyChange,
+	};
 };
 
 // ============================================================================
@@ -414,112 +420,112 @@ export const useBillForm = ({ editingBill }: UseBillFormProps): UseBillFormRetur
 // ============================================================================
 
 interface UseBillsSelectorReturn {
-    bills: TransactionOrBill[];
-    isLoading: boolean;
-    invalidateBills: () => Promise<void>;
-    upcomingAndOverdueBills: UpcomingAndOverdueBills;
-    billReminders: TransactionOrBill[];
+	bills: TransactionOrBill[];
+	isLoading: boolean;
+	invalidateBills: () => Promise<void>;
+	upcomingAndOverdueBills: UpcomingAndOverdueBills;
+	billReminders: TransactionOrBill[];
 }
 
 export function useBillsSelector(): UseBillsSelectorReturn {
-    const { bills, isLoading, invalidateBills } = useBills();
+	const { bills, isLoading, invalidateBills } = useBills();
 
-    // Listen for bill refresh events
-    useEffect(() => {
-        const handleRefreshBills = () => {
-            invalidateBills();
-        };
+	// Listen for bill refresh events
+	useEffect(() => {
+		const handleRefreshBills = () => {
+			invalidateBills();
+		};
 
-        window.addEventListener("refresh-bills", handleRefreshBills);
-        return () => {
-            window.removeEventListener("refresh-bills", handleRefreshBills);
-        };
-    }, [invalidateBills]);
+		window.addEventListener("refresh-bills", handleRefreshBills);
+		return () => {
+			window.removeEventListener("refresh-bills", handleRefreshBills);
+		};
+	}, [invalidateBills]);
 
-    const upcomingAndOverdueBills = useMemo((): UpcomingAndOverdueBills => {
-        const today = startOfDay(new Date());
-        const upcoming: TransactionOrBill[] = [];
-        const overdue: TransactionOrBill[] = [];
+	const upcomingAndOverdueBills = useMemo((): UpcomingAndOverdueBills => {
+		const today = startOfDay(new Date());
+		const upcoming: TransactionOrBill[] = [];
+		const overdue: TransactionOrBill[] = [];
 
-        bills.forEach((bill: TransactionOrBill) => {
-            if (!("dueDate" in bill) || !bill.dueDate || !("billStatus" in bill) || bill.billStatus === "paid") {
-                return;
-            }
+		bills.forEach((bill: TransactionOrBill) => {
+			if (!("dueDate" in bill) || !bill.dueDate || !("billStatus" in bill) || bill.billStatus === "paid") {
+				return;
+			}
 
-            // Handle different date formats
-            let dueDate: Date;
-            const billWithDueDate = bill as Bill;
-            if (billWithDueDate.dueDate && typeof billWithDueDate.dueDate === "object") {
-                dueDate = billWithDueDate.dueDate;
-            } else if (typeof billWithDueDate.dueDate === "string") {
-                const dueDateStr = billWithDueDate.dueDate as string;
-                // Check if it's an ISO date string
-                if (dueDateStr.includes("T") || dueDateStr.includes("-")) {
-                    dueDate = new Date(dueDateStr);
-                } else {
-                    // Assume it's in display format (dd/MM/yyyy)
-                    dueDate = parseFromDisplay(dueDateStr);
-                }
-            } else {
-                return;
-            }
+			// Handle different date formats
+			let dueDate: Date;
+			const billWithDueDate = bill as Bill;
+			if (billWithDueDate.dueDate && typeof billWithDueDate.dueDate === "object") {
+				dueDate = billWithDueDate.dueDate;
+			} else if (typeof billWithDueDate.dueDate === "string") {
+				const dueDateStr = billWithDueDate.dueDate as string;
+				// Check if it's an ISO date string
+				if (dueDateStr.includes("T") || dueDateStr.includes("-")) {
+					dueDate = new Date(dueDateStr);
+				} else {
+					// Assume it's in display format (dd/MM/yyyy)
+					dueDate = parseFromDisplay(dueDateStr);
+				}
+			} else {
+				return;
+			}
 
-            const daysLeft = differenceInCalendarDays(dueDate, today);
+			const daysLeft = differenceInCalendarDays(dueDate, today);
 
-            if (daysLeft < 0) {
-                overdue.push(bill);
-            } else if (daysLeft >= 0 && daysLeft <= 7) {
-                upcoming.push(bill);
-            }
-        });
+			if (daysLeft < 0) {
+				overdue.push(bill);
+			} else if (daysLeft >= 0 && daysLeft <= 7) {
+				upcoming.push(bill);
+			}
+		});
 
-        return { upcoming, overdue };
-    }, [bills]);
+		return { upcoming, overdue };
+	}, [bills]);
 
-    const billReminders = useMemo((): TransactionOrBill[] => {
-        const today = startOfDay(new Date());
-        const reminders = bills.filter((bill: TransactionOrBill) => {
-            if (
-                !("billStatus" in bill) ||
-                bill.billStatus === "paid" ||
-                !("dueDate" in bill) ||
-                !bill.dueDate ||
-                !("reminderDays" in bill) ||
-                !bill.reminderDays
-            ) {
-                return false;
-            }
+	const billReminders = useMemo((): TransactionOrBill[] => {
+		const today = startOfDay(new Date());
+		const reminders = bills.filter((bill: TransactionOrBill) => {
+			if (
+				!("billStatus" in bill) ||
+				bill.billStatus === "paid" ||
+				!("dueDate" in bill) ||
+				!bill.dueDate ||
+				!("reminderDays" in bill) ||
+				!bill.reminderDays
+			) {
+				return false;
+			}
 
-            // Handle different date formats
-            let dueDate: Date;
-            const billWithDueDate = bill as Bill;
-            if (billWithDueDate.dueDate && typeof billWithDueDate.dueDate === "object") {
-                dueDate = billWithDueDate.dueDate;
-            } else if (typeof billWithDueDate.dueDate === "string") {
-                const dueDateStr = billWithDueDate.dueDate as string;
-                // Check if it's an ISO date string
-                if (dueDateStr.includes("T") || dueDateStr.includes("-")) {
-                    dueDate = new Date(dueDateStr);
-                } else {
-                    // Assume it's in display format (dd/MM/yyyy)
-                    dueDate = parseFromDisplay(dueDateStr);
-                }
-            } else {
-                return false;
-            }
+			// Handle different date formats
+			let dueDate: Date;
+			const billWithDueDate = bill as Bill;
+			if (billWithDueDate.dueDate && typeof billWithDueDate.dueDate === "object") {
+				dueDate = billWithDueDate.dueDate;
+			} else if (typeof billWithDueDate.dueDate === "string") {
+				const dueDateStr = billWithDueDate.dueDate as string;
+				// Check if it's an ISO date string
+				if (dueDateStr.includes("T") || dueDateStr.includes("-")) {
+					dueDate = new Date(dueDateStr);
+				} else {
+					// Assume it's in display format (dd/MM/yyyy)
+					dueDate = parseFromDisplay(dueDateStr);
+				}
+			} else {
+				return false;
+			}
 
-            const daysLeft = differenceInCalendarDays(dueDate, today);
-            return daysLeft >= 0 && daysLeft <= bill.reminderDays;
-        });
+			const daysLeft = differenceInCalendarDays(dueDate, today);
+			return daysLeft >= 0 && daysLeft <= bill.reminderDays;
+		});
 
-        return reminders;
-    }, [bills]);
+		return reminders;
+	}, [bills]);
 
-    return {
-        bills,
-        isLoading,
-        invalidateBills,
-        upcomingAndOverdueBills,
-        billReminders,
-    };
+	return {
+		bills,
+		isLoading,
+		invalidateBills,
+		upcomingAndOverdueBills,
+		billReminders,
+	};
 }
