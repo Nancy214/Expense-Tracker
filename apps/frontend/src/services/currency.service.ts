@@ -1,7 +1,7 @@
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { refreshAuthTokens } from "@/utils/authUtils";
 
-const API_URL = `${process.env.REACT_APP_API_URL}`;
+const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}`;
 
 // Type definitions
 interface ExchangeRateResponse {
@@ -36,14 +36,24 @@ currencyApi.interceptors.response.use(
     async (error: AxiosError) => {
         const originalRequest = error.config as CurrencyApiRequestConfig;
 
-        if (error.response?.status === 403 && !originalRequest._retry) {
+        // Handle both 401 (Unauthorized) and 403 (Forbidden) for token issues
+        if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
             originalRequest._retry = true;
 
-            const newTokens = await refreshAuthTokens();
-            if (newTokens) {
-                originalRequest.headers = originalRequest.headers || {};
-                originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
-                return currencyApi(originalRequest);
+            try {
+                const newTokens = await refreshAuthTokens();
+                if (newTokens) {
+                    originalRequest.headers = originalRequest.headers || {};
+                    originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
+                    return currencyApi(originalRequest);
+                }
+            } catch (refreshError) {
+                console.error("Token refresh failed:", refreshError);
+                // If refresh fails, remove tokens and redirect to login
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
             }
         }
         return Promise.reject(error);

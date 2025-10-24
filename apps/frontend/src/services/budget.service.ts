@@ -10,7 +10,7 @@ import type {
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { refreshAuthTokens } from "@/utils/authUtils";
 
-const API_URL = `${process.env.REACT_APP_API_URL}/budget`;
+const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/budget`;
 
 // Create axios instance with auth interceptor
 const budgetApi: AxiosInstance = axios.create({
@@ -37,15 +37,25 @@ budgetApi.interceptors.response.use(
             _retry?: boolean;
         };
 
-        if (error.response?.status === 403 && !originalRequest._retry) {
+        // Handle both 401 (Unauthorized) and 403 (Forbidden) for token issues
+        if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
             originalRequest._retry = true;
 
-            const newTokens = await refreshAuthTokens();
-            if (newTokens) {
-                if (originalRequest.headers) {
-                    originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
+            try {
+                const newTokens = await refreshAuthTokens();
+                if (newTokens) {
+                    if (originalRequest.headers) {
+                        originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
+                    }
+                    return budgetApi(originalRequest);
                 }
-                return budgetApi(originalRequest);
+            } catch (refreshError) {
+                console.error("Token refresh failed:", refreshError);
+                // If refresh fails, remove tokens and redirect to login
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
             }
         }
         return Promise.reject(error);
@@ -134,7 +144,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
         KRW: "₩",
     };
 
-    progressData.budgets.forEach((budget) => {
+    progressData.budgets?.forEach((budget) => {
         const progress = budget.progress;
         const remaining = budget.remaining;
         const isOverBudget = budget.isOverBudget;

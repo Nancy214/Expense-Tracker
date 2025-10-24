@@ -187,7 +187,7 @@ SENDGRID_API_KEY=your_sendgrid_api_key
 Create a `.env` file in `apps/frontend/`:
 
 ```env
-VITE_API_URL=http://localhost:8000/api
+REACT_APP_API_URL=http://localhost:8000/api
 ```
 
 ## Contributing

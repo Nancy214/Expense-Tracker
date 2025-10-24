@@ -10,7 +10,7 @@ import type {
 import axios, { type AxiosError, type AxiosResponse } from "axios";
 import { refreshAuthTokens, removeTokens } from "@/utils/authUtils";
 
-const API_URL = `${process.env.REACT_APP_API_URL}`;
+const API_URL = `${import.meta.env.VITE_API_URL}/auth`;
 
 // Store tokens in localStorage
 const storeTokens = (tokens: AuthResponse): void => {
@@ -48,13 +48,21 @@ authApi.interceptors.response.use(
     async (error: AxiosError) => {
         const originalRequest = error.config as any;
 
-        if (error.response?.status === 403 && !originalRequest._retry) {
+        // Handle both 401 (Unauthorized) and 403 (Forbidden) for token issues
+        if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
             originalRequest._retry = true;
 
-            const newTokens = await refreshAuthTokens();
-            if (newTokens) {
-                originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
-                return authApi(originalRequest);
+            try {
+                const newTokens = await refreshAuthTokens();
+                if (newTokens) {
+                    originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
+                    return authApi(originalRequest);
+                }
+            } catch (refreshError) {
+                console.error("Token refresh failed:", refreshError);
+                // If refresh fails, remove tokens and redirect to login
+                removeTokens();
+                window.location.href = "/login";
             }
         }
         return Promise.reject(error);
@@ -62,8 +70,9 @@ authApi.interceptors.response.use(
 );
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
+    console.log(API_URL);
     try {
-        const response: AxiosResponse<AuthResponse> = await authApi.post("/auth/login", credentials);
+        const response: AxiosResponse<AuthResponse> = await authApi.post("/login", credentials);
         const tokens = response.data;
         storeTokens(tokens);
         return tokens;
@@ -75,13 +84,13 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
 
 // Initiate Google OAuth flow
 export const initiateGoogleLogin = (): void => {
-    window.location.href = `${API_URL}/auth/google`;
+    window.location.href = `${API_URL}/google`;
 };
 
 export const logout = async (): Promise<void> => {
     try {
         const refreshToken = localStorage.getItem("refreshToken");
-        await authApi.post("/auth/logout", { refreshToken });
+        await authApi.post("/logout", { refreshToken });
         removeTokens();
     } catch (error: unknown) {
         // Even if the server request fails, we still want to remove tokens
@@ -99,7 +108,7 @@ export const register = async (credentials: RegisterCredentials): Promise<AuthRe
         formData.append("name", credentials.name || "");
         formData.append("password", credentials.password);
 
-        const response: AxiosResponse<AuthResponse> = await authApi.post("/auth/register", formData, {
+        const response: AxiosResponse<AuthResponse> = await authApi.post("/register", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
                 withCredentials: true,
@@ -119,7 +128,7 @@ export const uploadProfilePicture = async (profilePicture: File): Promise<string
     try {
         const formData = new FormData();
         formData.append("profilePicture", profilePicture);
-        const response: AxiosResponse<{ url: string }> = await authApi.post("/auth/upload-profile-picture", formData);
+        const response: AxiosResponse<{ url: string }> = await authApi.post("/upload-profile-picture", formData);
         return response.data.url;
     } catch (error: unknown) {
         console.error("Upload profile picture error:", error);
@@ -150,7 +159,7 @@ export const resetPassword = async (credentials: ResetPasswordRequest): Promise<
 
 export const getProfile = async (): Promise<UserType> => {
     try {
-        const response: AxiosResponse<UserType> = await authApi.get("/auth/profile");
+        const response: AxiosResponse<UserType> = await authApi.get("/profile");
         return response.data;
     } catch (error: unknown) {
         console.error("Get profile error:", error);
@@ -160,7 +169,7 @@ export const getProfile = async (): Promise<UserType> => {
 
 export const changePassword = async (credentials: ChangePasswordRequest): Promise<void> => {
     try {
-        await authApi.put("/auth/change-password", {
+        await authApi.put("/change-password", {
             currentPassword: credentials.currentPassword,
             newPassword: credentials.newPassword,
         });

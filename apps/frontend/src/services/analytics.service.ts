@@ -9,7 +9,7 @@ import type {
 import axios, { type AxiosError, type AxiosResponse } from "axios";
 import { refreshAuthTokens } from "@/utils/authUtils";
 
-const API_URL = `${process.env.REACT_APP_API_URL}/analytics`;
+const API_URL = `${import.meta.env.VITE_API_URL}/analytics`;
 
 const analyticsApi = axios.create({
     baseURL: API_URL,
@@ -32,13 +32,23 @@ analyticsApi.interceptors.response.use(
     async (error: AxiosError) => {
         const originalRequest = error.config as any;
 
-        if (error.response?.status === 403 && !originalRequest._retry) {
+        // Handle both 401 (Unauthorized) and 403 (Forbidden) for token issues
+        if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
             originalRequest._retry = true;
 
-            const newTokens = await refreshAuthTokens();
-            if (newTokens) {
-                originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
-                return analyticsApi(originalRequest);
+            try {
+                const newTokens = await refreshAuthTokens();
+                if (newTokens) {
+                    originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
+                    return analyticsApi(originalRequest);
+                }
+            } catch (refreshError) {
+                console.error("Token refresh failed:", refreshError);
+                // If refresh fails, remove tokens and redirect to login
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
             }
         }
         return Promise.reject(error);

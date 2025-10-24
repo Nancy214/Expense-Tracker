@@ -11,7 +11,7 @@ import axios from "axios";
 import { isValid } from "date-fns";
 import { refreshAuthTokens } from "@/utils/authUtils";
 
-const API_URL = `${process.env.REACT_APP_API_URL}/expenses`;
+const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/expenses`;
 
 // Helper function for safe date conversion (returns ISO string)
 const convertToISOString = (dateValue: string | Date | undefined): string | undefined => {
@@ -63,13 +63,23 @@ expenseApi.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 403 && !originalRequest._retry) {
+        // Handle both 401 (Unauthorized) and 403 (Forbidden) for token issues
+        if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
             originalRequest._retry = true;
 
-            const newTokens = await refreshAuthTokens();
-            if (newTokens) {
-                originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
-                return expenseApi(originalRequest);
+            try {
+                const newTokens = await refreshAuthTokens();
+                if (newTokens) {
+                    originalRequest.headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
+                    return expenseApi(originalRequest);
+                }
+            } catch (refreshError) {
+                console.error("Token refresh failed:", refreshError);
+                // If refresh fails, remove tokens and redirect to login
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
             }
         }
         return Promise.reject(error);
