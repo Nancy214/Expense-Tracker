@@ -14,12 +14,34 @@ import currencyRoutes from "./routes/currency.routes";
 import profileRoutes from "./routes/profile.routes";
 import expenseRoutes from "./routes/transaction.routes";
 import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
+import helmet from "helmet";
 
 dotenv.config();
 
 const app = express();
 
-app.use(morgan("method :url :status - :response-time ms :date[iso]"));
+app.use(morgan(`[${process.env.NODE_ENV}] :method :url :status :response-time ms :date[iso]`));
+
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'https://cdn.jsdelivr.net'"],
+                styleSrc: ["'self'", "'unsafe-inline'", "'https://fonts.googleapis.com'"],
+                imgSrc: ["'self'", "data:", "https://*"],
+                fontSrc: ["'self'", "'fonts.gstatic.com'"],
+                connectSrc: ["'self'", "'api.fxratesapi.com'"],
+            },
+        },
+        crossOriginResourcePolicy: {
+            policy: "same-origin",
+        },
+        xDnsPrefetchControl: { allow: true },
+        hidePoweredBy: true,
+    })
+);
+
 app.use(expressStatusMonitor());
 // Middleware
 app.use(express.json());
@@ -82,5 +104,5 @@ app.use("/api/analytics", analyticsRoutes);
 const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, async () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}, environment: ${process.env.NODE_ENV}`);
 });
