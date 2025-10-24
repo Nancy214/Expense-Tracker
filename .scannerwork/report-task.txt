@@ -2,5 +2,5 @@ projectKey=expense-tracker
 serverUrl=http://192.168.100.133:9003
 serverVersion=25.9.0.112764
 dashboardUrl=http://192.168.100.133:9003/dashboard?id=expense-tracker
-ceTaskId=bc66f8ea-1543-4e3a-98cc-e71e367ef1ba
-ceTaskUrl=http://192.168.100.133:9003/api/ce/task?id=bc66f8ea-1543-4e3a-98cc-e71e367ef1ba
+ceTaskId=7e849b67-860e-4f5a-a016-9ae74f72865b
+ceTaskUrl=http://192.168.100.133:9003/api/ce/task?id=7e849b67-860e-4f5a-a016-9ae74f72865b
