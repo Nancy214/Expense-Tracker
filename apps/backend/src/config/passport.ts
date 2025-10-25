@@ -5,8 +5,8 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { ExtractJwt, Strategy as JwtStrategy } from "passport-jwt";
 import { Strategy as LocalStrategy } from "passport-local";
-import { generateTokens } from "../controllers/auth.controller";
 import { User } from "../models/user.model";
+import { AuthDAO } from "../daos/auth.dao";
 
 dotenv.config();
 
@@ -78,7 +78,10 @@ passport.use(
                 });
                 if (user) {
                     const userDoc = user as UserType;
-                    const { accessToken: access, refreshToken: refresh } = generateTokens(userDoc);
+                    const { accessToken: access, refreshToken: refresh } = AuthDAO.generateToken(userDoc, "auth") as {
+                        accessToken: string;
+                        refreshToken: string;
+                    };
                     const userWithTokens = {
                         ...user.toJSON(),
                         accessToken: access,
@@ -94,7 +97,10 @@ passport.use(
                         profilePicture: profile.photos[0].value,
                     });
                     const newUserDoc = newUser as UserType;
-                    const { accessToken: access, refreshToken: refresh } = generateTokens(newUserDoc);
+                    const { accessToken: access, refreshToken: refresh } = AuthDAO.generateToken(
+                        newUserDoc,
+                        "auth"
+                    ) as { accessToken: string; refreshToken: string };
                     const userWithTokens = {
                         ...newUser.toJSON(),
                         accessToken: access,
