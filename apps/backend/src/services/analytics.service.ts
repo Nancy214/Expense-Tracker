@@ -7,7 +7,7 @@ import {
     type MonthlySavingsData,
     type MonthlySavingsTrendResponse,
     Period,
-    type PieChartData,
+    type HorizontalBarData,
     type SavingsDataForSpecificMonth,
     type SpecificPeriodIncomeExpenseData,
     type Transaction,
@@ -156,14 +156,14 @@ export class AnalyticsService {
         });
 
         // Convert to array format for pie chart
-        const pieChartData: PieChartData[] = Object.entries(categoryBreakdown).map(([name, value]) => ({
+        const horizontalBarChartData: HorizontalBarData[] = Object.entries(categoryBreakdown).map(([name, value]) => ({
             name,
             value,
         }));
 
         return {
             success: true,
-            data: pieChartData,
+            data: horizontalBarChartData,
             totalExpenses: expenses.length,
             totalAmount: expenses.reduce((sum, expense) => sum + expense.amount, 0),
         };
@@ -201,14 +201,16 @@ export class AnalyticsService {
         });
 
         // Convert to array format for pie chart
-        const pieChartData: PieChartData[] = Object.entries(billCategoryBreakdown).map(([name, value]) => ({
-            name,
-            value,
-        }));
+        const horizontalBarChartData: HorizontalBarData[] = Object.entries(billCategoryBreakdown).map(
+            ([name, value]) => ({
+                name,
+                value,
+            })
+        );
 
         return {
             success: true,
-            data: pieChartData,
+            data: horizontalBarChartData,
             totalBills: bills.length,
             totalAmount: bills.reduce((sum, bill) => sum + bill.amount, 0),
         };
