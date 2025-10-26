@@ -15,7 +15,6 @@ import { validate } from "../middleware/validate.middleware";
 const router = express.Router();
 
 // All routes require authentication
-//router.use(authenticateToken);
 
 // Country timezone currency route (must come before /:userId to avoid route conflict)
 router.get("/country-timezone-currency", getCountryTimezoneCurrency as RequestHandler);

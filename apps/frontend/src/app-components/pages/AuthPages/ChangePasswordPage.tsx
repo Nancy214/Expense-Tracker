@@ -1,124 +1,27 @@
-import type { ApiError, ChangePasswordFormData } from "@expense-tracker/shared-types/src";
 import { ArrowLeft, Eye, EyeOff, Lock, Shield } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { changePassword } from "@/services/auth.service";
+import { useChangePasswordForm } from "@/hooks/useAuthForm";
 
 const ChangePasswordPage: React.FC = () => {
-    const { toast } = useToast();
-    const navigate = useNavigate();
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const { form, error, success, onSubmit } = useChangePasswordForm();
     const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
     const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 
-    const [formData, setFormData] = useState<ChangePasswordFormData>({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-    });
-
-    const [errors, setErrors] = useState<ChangePasswordFormData>({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-    });
-
-    const handleInputChange = (field: keyof ChangePasswordFormData, value: string): void => {
-        setFormData({
-            ...formData,
-            [field]: value,
-        });
-        // Clear error when user starts typing
-        if (errors[field as keyof ChangePasswordFormData]) {
-            setErrors({
-                ...errors,
-                [field]: "",
-            });
-        }
-    };
-
-    const validateForm = (): boolean => {
-        const newErrors: ChangePasswordFormData = {
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-        };
-
-        if (!formData.currentPassword) {
-            newErrors.currentPassword = "Current password is required";
-        }
-
-        if (!formData.newPassword) {
-            newErrors.newPassword = "New password is required";
-        } else if (formData.newPassword.length < 6) {
-            newErrors.newPassword = "Password must be at least 6 characters long";
-        }
-
-        if (!formData.confirmPassword) {
-            newErrors.confirmPassword = "Please confirm your new password";
-        } else if (formData.newPassword !== formData.confirmPassword) {
-            newErrors.confirmPassword = "Passwords do not match";
-        }
-
-        if (formData.currentPassword === formData.newPassword) {
-            newErrors.newPassword = "New password must be different from current password";
-        }
-
-        setErrors(newErrors);
-        return !Object.values(newErrors).some((error) => error);
-    };
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
         e.preventDefault();
-
-        if (!validateForm()) {
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            await changePassword({
-                currentPassword: formData.currentPassword,
-                newPassword: formData.newPassword,
-            });
-
-            toast({
-                title: "Password changed successfully",
-                description: "Your password has been updated. Please log in again.",
-            });
-
-            // Clear form
-            setFormData({
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
-
-            // Navigate back to profile
-            navigate("/profile");
-        } catch (error: unknown) {
-            const apiError = error as ApiError;
-            toast({
-                title: "Error",
-                description: apiError.response?.data?.message || "Failed to change password. Please try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsLoading(false);
-        }
+        form.handleSubmit(onSubmit)();
     };
 
     return (
         <div className="p-4 md:p-6 lg:p-8 max-w-full">
             <div className="max-w-md mx-auto">
                 <div className="mb-6">
-                    <Button variant="ghost" onClick={() => navigate("/profile")} className="mb-4">
+                    <Button variant="ghost" onClick={() => window.history.back()} className="mb-4">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Profile
                     </Button>
@@ -137,6 +40,18 @@ const ChangePasswordPage: React.FC = () => {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Error/Success Messages */}
+                            {error && (
+                                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                                    {error}
+                                </div>
+                            )}
+                            {success && (
+                                <div className="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md">
+                                    {success}
+                                </div>
+                            )}
+
                             {/* Current Password */}
                             <div className="space-y-2">
                                 <Label htmlFor="currentPassword">Current Password</Label>
@@ -144,10 +59,9 @@ const ChangePasswordPage: React.FC = () => {
                                     <Input
                                         id="currentPassword"
                                         type={showCurrentPassword ? "text" : "password"}
-                                        value={formData.currentPassword}
-                                        onChange={(e) => handleInputChange("currentPassword", e.target.value)}
+                                        {...form.register("currentPassword")}
                                         placeholder="Enter your current password"
-                                        className={errors.currentPassword ? "border-red-500" : ""}
+                                        className={form.formState.errors.currentPassword ? "border-red-500" : ""}
                                     />
                                     <Button
                                         type="button"
@@ -163,8 +77,10 @@ const ChangePasswordPage: React.FC = () => {
                                         )}
                                     </Button>
                                 </div>
-                                {errors.currentPassword && (
-                                    <p className="text-sm text-red-500">{errors.currentPassword}</p>
+                                {form.formState.errors.currentPassword && (
+                                    <p className="text-sm text-red-500">
+                                        {form.formState.errors.currentPassword.message}
+                                    </p>
                                 )}
                             </div>
 
@@ -175,10 +91,9 @@ const ChangePasswordPage: React.FC = () => {
                                     <Input
                                         id="newPassword"
                                         type={showNewPassword ? "text" : "password"}
-                                        value={formData.newPassword}
-                                        onChange={(e) => handleInputChange("newPassword", e.target.value)}
+                                        {...form.register("newPassword")}
                                         placeholder="Enter your new password"
-                                        className={errors.newPassword ? "border-red-500" : ""}
+                                        className={form.formState.errors.newPassword ? "border-red-500" : ""}
                                         maxLength={20}
                                     />
                                     <Button
@@ -191,8 +106,13 @@ const ChangePasswordPage: React.FC = () => {
                                         {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </Button>
                                 </div>
-                                {errors.newPassword && <p className="text-sm text-red-500">{errors.newPassword}</p>}
-                                <p className="text-xs text-gray-500">Password must be at least 6 characters long</p>
+                                {form.formState.errors.newPassword && (
+                                    <p className="text-sm text-red-500">{form.formState.errors.newPassword.message}</p>
+                                )}
+                                <p className="text-xs text-gray-500">
+                                    Password must be at least 8 characters with uppercase, lowercase, number, and
+                                    special character
+                                </p>
                             </div>
 
                             {/* Confirm Password */}
@@ -202,10 +122,9 @@ const ChangePasswordPage: React.FC = () => {
                                     <Input
                                         id="confirmPassword"
                                         type={showConfirmPassword ? "text" : "password"}
-                                        value={formData.confirmPassword}
-                                        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                                        {...form.register("confirmPassword")}
                                         placeholder="Confirm your new password"
-                                        className={errors.confirmPassword ? "border-red-500" : ""}
+                                        className={form.formState.errors.confirmPassword ? "border-red-500" : ""}
                                         maxLength={20}
                                     />
                                     <Button
@@ -222,15 +141,17 @@ const ChangePasswordPage: React.FC = () => {
                                         )}
                                     </Button>
                                 </div>
-                                {errors.confirmPassword && (
-                                    <p className="text-sm text-red-500">{errors.confirmPassword}</p>
+                                {form.formState.errors.confirmPassword && (
+                                    <p className="text-sm text-red-500">
+                                        {form.formState.errors.confirmPassword.message}
+                                    </p>
                                 )}
                             </div>
 
                             {/* Submit Button */}
-                            <Button type="submit" className="w-full" disabled={isLoading}>
+                            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                                 <Lock className="h-4 w-4 mr-2" />
-                                {isLoading ? "Changing Password..." : "Change Password"}
+                                {form.formState.isSubmitting ? "Changing Password..." : "Change Password"}
                             </Button>
                         </form>
                     </CardContent>

@@ -1,6 +1,8 @@
 import { Period, type TokenPayload } from "@expense-tracker/shared-types/src";
 import type { Request, Response } from "express";
 import { AnalyticsService } from "../services/analytics.service";
+import { logError } from "../services/error.service";
+import { createErrorResponse } from "../services/error.service";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;
@@ -29,11 +31,8 @@ export const getExpenseCategoryBreakdown = async (req: Request, res: Response): 
 
         res.json(response);
     } catch (error: unknown) {
-        res.status(500).json({
-            success: false,
-            message: "Error fetching expense category breakdown",
-            error,
-        });
+        logError("getExpenseCategoryBreakdown", error, (req as AuthRequest).user?.id);
+        res.status(500).json(createErrorResponse("Unable to fetch expense category breakdown"));
     }
 };
 
@@ -57,11 +56,8 @@ export const getBillsCategoryBreakdown = async (req: Request, res: Response): Pr
 
         res.json(response);
     } catch (error: unknown) {
-        res.status(500).json({
-            success: false,
-            message: "Error fetching bills category breakdown",
-            error,
-        });
+        logError("getBillsCategoryBreakdown", error, (req as AuthRequest).user?.id);
+        res.status(500).json(createErrorResponse("Unable to fetch bills category breakdown"));
     }
 };
 
@@ -81,11 +77,8 @@ export const getIncomeExpenseSummary = async (req: Request, res: Response): Prom
 
         res.json(response);
     } catch (error: unknown) {
-        res.status(500).json({
-            success: false,
-            message: "Error fetching income and expense summary",
-            error,
-        });
+        logError("getIncomeExpenseSummary", error, (req as AuthRequest).user?.id);
+        res.status(500).json(createErrorResponse("Unable to fetch income and expense summary"));
     }
 };
 
@@ -105,10 +98,7 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
 
         res.json(response);
     } catch (error: unknown) {
-        res.status(500).json({
-            success: false,
-            message: "Error fetching monthly savings trend",
-            error,
-        });
+        logError("getMonthlySavingsTrend", error, (req as AuthRequest).user?.id);
+        res.status(500).json(createErrorResponse("Unable to fetch monthly savings trend"));
     }
 };

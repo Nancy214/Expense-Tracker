@@ -1,5 +1,4 @@
 import {
-    type ApiError,
     BudgetCategory,
     type BudgetFormData,
     BudgetRecurrence,
@@ -143,11 +142,8 @@ export const useBudgetForm = ({
             let errorMessage = "Failed to save budget";
 
             if (error && typeof error === "object") {
-                if ("response" in error) {
-                    const apiError = error as ApiError;
-                    errorMessage = apiError.response?.data?.message || errorMessage;
-                } else if ("message" in error) {
-                    errorMessage = (error as Error).message;
+                if ("message" in error) {
+                    errorMessage = (error as { message: string }).message || errorMessage;
                 }
             }
 

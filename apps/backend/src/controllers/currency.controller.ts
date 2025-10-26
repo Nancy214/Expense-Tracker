@@ -1,9 +1,7 @@
 import type { Request, Response } from "express";
 import { CurrencyService } from "../services/currency.service";
-
-interface ApiErrorResponse {
-    message: string;
-}
+import { createErrorResponse } from "../services/error.service";
+import { logError } from "../services/error.service";
 
 // Create service instance
 const currencyService = new CurrencyService();
@@ -16,18 +14,7 @@ export const getExchangeRate = async (req: Request, res: Response): Promise<void
 
         res.status(200).json(successResponse);
     } catch (error: unknown) {
-        if (error instanceof Error && error.message.includes("Invalid currency codes")) {
-            const errorResponse: ApiErrorResponse = {
-                message: error.message,
-            };
-            res.status(400).json(errorResponse);
-            return;
-        }
-
-        // For other errors, use the DAO error handler
-        const errorResponse: ApiErrorResponse = {
-            message: error instanceof Error ? error.message : "Unknown error occurred",
-        };
-        res.status(500).json(errorResponse);
+        logError("getExchangeRate", error);
+        res.status(500).json(createErrorResponse(error instanceof Error ? error.message : "Unknown error occurred"));
     }
 };

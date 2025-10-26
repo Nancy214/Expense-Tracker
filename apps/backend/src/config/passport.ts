@@ -7,6 +7,7 @@ import { ExtractJwt, Strategy as JwtStrategy } from "passport-jwt";
 import { Strategy as LocalStrategy } from "passport-local";
 import { User } from "../models/user.model";
 import { AuthDAO } from "../daos/auth.dao";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -73,7 +74,7 @@ passport.use(
         {
             clientID: GOOGLE_CLIENT_ID || "",
             clientSecret: GOOGLE_CLIENT_SECRET || "",
-            callbackURL: "http://localhost:8000/api/auth/google/callback",
+            callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:8000/api/auth/google/callback",
         },
         async (_accessToken: string, _refreshToken: string, profile: any, done: any) => {
             try {
@@ -96,7 +97,7 @@ passport.use(
                     const newUser = new User({
                         googleId: profile.id,
                         email: profile.emails[0].value,
-                        password: bcrypt.hashSync(profile.id, 10),
+                        password: bcrypt.hashSync(crypto.randomBytes(32).toString("hex"), 10),
                         name: profile.displayName,
                         profilePicture: profile.photos[0].value,
                     });

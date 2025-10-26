@@ -10,7 +10,7 @@ import type {
 import axios, { type AxiosError, type AxiosResponse } from "axios";
 import { refreshAuthTokens, removeTokens } from "@/utils/authUtils";
 
-const API_URL = `${import.meta.env.VITE_API_URL}/auth`;
+const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/auth`;
 
 // Store tokens in localStorage
 const storeTokens = (tokens: AuthResponse): void => {
@@ -26,6 +26,7 @@ const authApi = axios.create({
     headers: {
         "Content-Type": "application/json",
     },
+    withCredentials: true,
 });
 
 // Add request interceptor to include Authorization header

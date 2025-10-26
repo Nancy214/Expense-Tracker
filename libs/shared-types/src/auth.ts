@@ -67,11 +67,32 @@ export const ZAuthResponse = z.object({
 export type AuthResponse = z.infer<typeof ZAuthResponse>;
 
 // New types for auth pages
-export const ZChangePasswordFormData = z.object({
-    currentPassword: z.string(),
-    newPassword: z.string(),
-    confirmPassword: z.string(),
-});
+export const ZChangePasswordFormData = z
+    .object({
+        currentPassword: z.string().min(1, "Current password is required"),
+        newPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[A-Z]/, "Password must contain uppercase letter")
+            .regex(/[a-z]/, "Password must contain lowercase letter")
+            .regex(/[0-9]/, "Password must contain number")
+            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
+        confirmPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[A-Z]/, "Password must contain uppercase letter")
+            .regex(/[a-z]/, "Password must contain lowercase letter")
+            .regex(/[0-9]/, "Password must contain number")
+            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+    })
+    .refine((data) => data.currentPassword !== data.newPassword, {
+        message: "New password must be different from current password",
+        path: ["newPassword"],
+    });
 
 export type ChangePasswordFormData = z.infer<typeof ZChangePasswordFormData>;
 
@@ -99,15 +120,33 @@ export type ForgotPasswordRequest = z.infer<typeof ZForgotPasswordRequest>;
 
 export const ZResetPasswordRequest = z.object({
     token: z.string(),
-    newPassword: z.string(),
+    newPassword: z
+        .string()
+        .min(8, "Password must be at least 8 characters")
+        .regex(/[A-Z]/, "Password must contain uppercase letter")
+        .regex(/[a-z]/, "Password must contain lowercase letter")
+        .regex(/[0-9]/, "Password must contain number")
+        .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
 });
 
 export type ResetPasswordRequest = z.infer<typeof ZResetPasswordRequest>;
 
 export const ZResetPasswordSchema = z
     .object({
-        newPassword: ZUserType.pick({ password: true }),
-        confirmPassword: ZUserType.pick({ password: true }),
+        newPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[A-Z]/, "Password must contain uppercase letter")
+            .regex(/[a-z]/, "Password must contain lowercase letter")
+            .regex(/[0-9]/, "Password must contain number")
+            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
+        confirmPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[A-Z]/, "Password must contain uppercase letter")
+            .regex(/[a-z]/, "Password must contain lowercase letter")
+            .regex(/[0-9]/, "Password must contain number")
+            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
     })
     .refine((data) => data.newPassword === data.confirmPassword, {
         message: "Passwords do not match",
@@ -117,8 +156,14 @@ export const ZResetPasswordSchema = z
 export type ResetPasswordSchema = z.infer<typeof ZResetPasswordSchema>;
 
 export const ZChangePasswordRequest = z.object({
-    currentPassword: z.string(),
-    newPassword: z.string(),
+    currentPassword: ZUserType.pick({ password: true }),
+    newPassword: z
+        .string()
+        .min(8, "Password must be at least 8 characters")
+        .regex(/[A-Z]/, "Password must contain uppercase letter")
+        .regex(/[a-z]/, "Password must contain lowercase letter")
+        .regex(/[0-9]/, "Password must contain number")
+        .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
 });
 
 export type ChangePasswordRequest = z.infer<typeof ZChangePasswordRequest>;

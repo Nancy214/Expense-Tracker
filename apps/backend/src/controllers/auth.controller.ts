@@ -8,10 +8,13 @@ import type {
     TokenPayload,
     UserLocalType,
     UserType,
+    ApiError,
 } from "@expense-tracker/shared-types/src";
 import type { NextFunction, Request, Response } from "express";
 import passport from "passport";
 import { AuthService } from "../services/auth.service";
+import { logError } from "../services/error.service";
+import { createErrorResponse } from "../services/error.service";
 
 // Create service instance
 const authService = new AuthService();
@@ -24,10 +27,8 @@ export const register = async (
         const response = await authService.register(req.body);
         res.status(200).json(response);
     } catch (error: unknown) {
-        console.error("Registration error:", error);
-        res.status(500).json({
-            message: "Internal server error during registration",
-        });
+        logError("register", error);
+        res.status(500).json(createErrorResponse("Internal server error during registration"));
     }
 };
 
@@ -48,10 +49,8 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
                 const loginResponse = await authService.processLogin(user);
                 res.status(200).json(loginResponse);
             } catch (error: unknown) {
-                console.error("Login processing error:", error);
-                res.status(500).json({
-                    message: "Failed to process login",
-                });
+                logError("login", error);
+                res.status(500).json(createErrorResponse("Failed to process login"));
             }
         }
     )(req, res, next);
@@ -62,10 +61,8 @@ export const googleAuthCallback = async (req: Request, res: Response): Promise<v
         const { tokens } = await authService.processGoogleAuthCallback(req.user);
         res.redirect(`http://localhost:3000/auth/google/callback?tokens=${tokens}`);
     } catch (error: unknown) {
-        console.error("Google auth callback error:", error);
-        res.status(500).json({
-            message: "Internal server error during Google authentication",
-        });
+        logError("googleAuthCallback", error);
+        res.status(500).json(createErrorResponse("Internal server error during Google authentication"));
     }
 };
 
@@ -116,7 +113,7 @@ export const logout = async (req: Request, res: Response<{ success: boolean; mes
         const logoutResponse = await authService.logout();
         res.status(200).json(logoutResponse);
     } catch (error: unknown) {
-        console.error("Logout error:", error);
+        logError("logout", error);
         // Even if there's an error, we still want to send a success response
         // since the client will clear tokens anyway
         const logoutResponse: { success: boolean; message: string } = {
@@ -136,23 +133,10 @@ export const forgotPassword = async (
         res.status(200).json(response);
     } catch (error: unknown) {
         // Provide clearer diagnostics for SendGrid failures
-        const err = error as any;
-        const code = err?.code as number | undefined;
-        const sgBody = err?.response?.body;
-        if (code === 401 || code === 403) {
-            console.error("SendGrid auth error:", { code, body: sgBody });
-            res.status(500).json({
-                success: false,
-                message: "Email service unauthorized. Check SENDGRID_API_KEY and sender verification.",
-            });
-            return;
-        }
-
-        console.error("Error sending reset email:", err);
-        res.status(500).json({
-            success: false,
-            message: "Failed to send reset email. Please try again later.",
-        });
+        const err = error as ApiError;
+        const message = err.message as string | undefined;
+        logError("forgotPassword", error);
+        res.status(500).json(createErrorResponse(message || "Failed to send reset email. Please try again later."));
     }
 };
 
@@ -164,14 +148,9 @@ export const resetPassword = async (
         const response = await authService.resetPassword(req.body);
         res.status(200).json(response);
     } catch (error: unknown) {
-        console.error("Password reset error:", error);
+        logError("resetPassword", error);
 
-        const resetPasswordResponse: PasswordResponse = {
-            success: false,
-            message: "Failed to reset password. Please try again.",
-        };
-
-        res.status(500).json(resetPasswordResponse);
+        res.status(500).json(createErrorResponse("Failed to reset password. Please try again."));
     }
 };
 
@@ -193,13 +172,8 @@ export const changePassword = async (req: Request, res: Response<PasswordRespons
         const response = await authService.changePassword(userId, currentPassword, newPassword);
         res.status(200).json(response);
     } catch (error: unknown) {
-        console.error("Change password error:", error);
+        logError("changePassword", error);
 
-        const changePasswordResponse: PasswordResponse = {
-            message: "Failed to change password. Please try again.",
-            success: false,
-        };
-
-        res.status(500).json(changePasswordResponse);
+        res.status(500).json(createErrorResponse("Failed to change password. Please try again."));
     }
 };

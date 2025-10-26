@@ -44,7 +44,7 @@ export class AuthDAO {
      * Verify user password
      */
     static async verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
-        return bcrypt.compareSync(plainPassword, hashedPassword);
+        return await bcrypt.compare(plainPassword, hashedPassword);
     }
 
     /**
@@ -74,7 +74,7 @@ export class AuthDAO {
                         throw new Error("JWT_SECRET environment variable is required");
                     })(),
                 {
-                    expiresIn: "1m",
+                    expiresIn: "15m",
                 }
             );
 

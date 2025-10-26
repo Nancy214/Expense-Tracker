@@ -1,6 +1,8 @@
 import type { BillStatus, TokenPayload } from "@expense-tracker/shared-types/src";
 import type { Request, Response } from "express";
 import { TransactionService } from "../services/transaction.service";
+import { logError } from "../services/error.service";
+import { createErrorResponse } from "../services/error.service";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;
@@ -13,15 +15,15 @@ export const getExpenses = async (req: Request, res: Response): Promise<void> =>
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
         const response = await transactionService.getExpenses(userId, req.query as any);
         res.json(response);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("getExpenses", error);
+        res.status(500).json(createErrorResponse("Failed to get expenses."));
     }
 };
 
@@ -30,15 +32,15 @@ export const getAllTransactions = async (req: Request, res: Response): Promise<v
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
         const response = await transactionService.getAllTransactions(userId, req.query);
         res.json(response);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("getAllTransactions", error);
+        res.status(500).json(createErrorResponse("Failed to get all transactions."));
     }
 };
 
@@ -47,15 +49,15 @@ export const getBills = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
         const response = await transactionService.getBills(userId, req.query as any);
         res.json(response);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("getBills", error);
+        res.status(500).json(createErrorResponse("Failed to get bills."));
     }
 };
 
@@ -63,15 +65,15 @@ export const getRecurringTemplates = async (req: Request, res: Response): Promis
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
         const response = await transactionService.getRecurringTemplates(userId, req.query as any);
         res.json(response);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("getRecurringTemplates", error);
+        res.status(500).json(createErrorResponse("Failed to get recurring templates."));
     }
 };
 
@@ -79,15 +81,15 @@ export const getTransactionSummary = async (req: Request, res: Response): Promis
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
         const response = await transactionService.getTransactionSummary(userId);
         res.json(response);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("getTransactionSummary", error);
+        res.status(500).json(createErrorResponse("Failed to get transaction summary."));
     }
 };
 
@@ -95,7 +97,7 @@ export const getExpensesById = async (req: Request, res: Response): Promise<void
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
@@ -103,12 +105,12 @@ export const getExpensesById = async (req: Request, res: Response): Promise<void
         res.json(response);
     } catch (error: unknown) {
         if (error instanceof Error && error.message === "Expense not found") {
-            res.status(404).json({ message: error.message });
+            res.status(404).json(createErrorResponse("Expense not found"));
             return;
         }
 
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("getExpensesById", error);
+        res.status(500).json(createErrorResponse("Failed to get expenses by id."));
     }
 };
 
@@ -116,24 +118,15 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
         const expense = await transactionService.createExpense(userId, req.body);
         res.json(expense);
     } catch (error: unknown) {
-        console.error("Error creating expense:", error);
-        console.error("Error details:", {
-            message: error instanceof Error ? error.message : "Unknown error",
-            stack: error instanceof Error ? error.stack : undefined,
-            userId: (req as AuthRequest).user?.id,
-            body: req.body,
-        });
-        res.status(500).json({
-            message: "Something went wrong",
-            error: error instanceof Error ? error.message : "Unknown error",
-        });
+        logError("createExpense", error);
+        res.status(500).json(createErrorResponse("Failed to create expense."));
     }
 };
 
@@ -141,7 +134,7 @@ export const updateExpense = async (req: Request, res: Response): Promise<void> 
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
@@ -151,17 +144,17 @@ export const updateExpense = async (req: Request, res: Response): Promise<void> 
     } catch (error: unknown) {
         if (error instanceof Error) {
             if (error.message === "Invalid transaction id") {
-                res.status(400).json({ message: error.message });
+                res.status(400).json(createErrorResponse(error.message));
                 return;
             }
             if (error.message === "Expense not found") {
-                res.status(404).json({ message: error.message });
+                res.status(404).json(createErrorResponse(error.message));
                 return;
             }
         }
 
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("updateExpense", error);
+        res.status(500).json(createErrorResponse("Failed to update expense."));
     }
 };
 
@@ -171,7 +164,7 @@ export const deleteExpense = async (req: Request, res: Response): Promise<void> 
         const userId = (req as AuthRequest).user?.id;
 
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
@@ -180,30 +173,30 @@ export const deleteExpense = async (req: Request, res: Response): Promise<void> 
     } catch (error: unknown) {
         if (error instanceof Error) {
             if (error.message === "Invalid transaction id") {
-                res.status(400).json({ message: error.message });
+                res.status(400).json(createErrorResponse(error.message));
                 return;
             }
             if (error.message === "Expense not found") {
-                res.status(404).json({ message: error.message });
+                res.status(404).json(createErrorResponse(error.message));
                 return;
             }
         }
 
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("deleteExpense", error);
+        res.status(500).json(createErrorResponse("Failed to delete expense."));
     }
 };
 
 export const uploadReceipt = async (req: Request, res: Response): Promise<void> => {
     try {
         if (!req.file) {
-            res.status(400).json({ message: "No file uploaded" });
+            res.status(400).json(createErrorResponse("No file uploaded"));
             return;
         }
 
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
@@ -212,20 +205,17 @@ export const uploadReceipt = async (req: Request, res: Response): Promise<void> 
     } catch (error: unknown) {
         if (error instanceof Error) {
             if (error.message === "S3 not configured") {
-                res.status(500).json({ message: error.message });
+                res.status(500).json(createErrorResponse(error.message));
                 return;
             }
             if (error.message === "PDF file size exceeds 5MB limit") {
-                res.status(400).json({ message: error.message });
+                res.status(400).json(createErrorResponse(error.message));
                 return;
             }
         }
 
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({
-            message: "Failed to upload receipt",
-            error: errorMessage,
-        });
+        logError("uploadReceipt", error);
+        res.status(500).json(createErrorResponse("Failed to upload receipt."));
     }
 };
 
@@ -233,7 +223,7 @@ export const getReceiptUrl = async (req: Request, res: Response): Promise<void> 
     try {
         const key: string = decodeURIComponent(req.params.id);
         if (!key) {
-            res.status(400).json({ message: "Missing key" });
+            res.status(400).json(createErrorResponse("Missing key"));
             return;
         }
 
@@ -241,15 +231,12 @@ export const getReceiptUrl = async (req: Request, res: Response): Promise<void> 
         res.json(response);
     } catch (error: unknown) {
         if (error instanceof Error && error.message === "Missing key") {
-            res.status(400).json({ message: error.message });
+            res.status(400).json(createErrorResponse(error.message));
             return;
         }
 
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({
-            message: "Failed to generate receipt URL",
-            error: errorMessage,
-        });
+        logError("getReceiptUrl", error);
+        res.status(500).json(createErrorResponse("Failed to generate receipt URL."));
     }
 };
 
@@ -257,13 +244,13 @@ export const deleteReceipt = async (req: Request, res: Response): Promise<void> 
     try {
         const key: string = decodeURIComponent(req.params.id);
         if (!key) {
-            res.status(400).json({ message: "Missing key" });
+            res.status(400).json(createErrorResponse("Missing key"));
             return;
         }
 
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
@@ -272,21 +259,17 @@ export const deleteReceipt = async (req: Request, res: Response): Promise<void> 
     } catch (error: unknown) {
         if (error instanceof Error) {
             if (error.message === "Missing key") {
-                res.status(400).json({ message: error.message });
+                res.status(400).json(createErrorResponse(error.message));
                 return;
             }
             if (error.message === "S3 not configured") {
-                res.status(500).json({ message: error.message });
+                res.status(500).json(createErrorResponse(error.message));
                 return;
             }
         }
 
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        console.error("Error deleting receipt:", error);
-        res.status(500).json({
-            message: "Failed to delete receipt",
-            error: errorMessage,
-        });
+        logError("deleteReceipt", error);
+        res.status(500).json(createErrorResponse("Failed to delete receipt."));
     }
 };
 
@@ -297,7 +280,7 @@ export const deleteRecurringExpense = async (req: Request, res: Response): Promi
         const userId = (req as AuthRequest).user?.id;
 
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
@@ -306,21 +289,17 @@ export const deleteRecurringExpense = async (req: Request, res: Response): Promi
     } catch (error: unknown) {
         if (error instanceof Error) {
             if (error.message === "Invalid transaction id") {
-                res.status(400).json({ message: error.message });
+                res.status(400).json(createErrorResponse(error.message));
                 return;
             }
             if (error.message === "Recurring transaction template not found") {
-                res.status(404).json({ message: error.message });
+                res.status(404).json(createErrorResponse(error.message));
                 return;
             }
         }
 
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        console.error("Error deleting recurring expense:", error);
-        res.status(500).json({
-            message: "Internal server error",
-            error: errorMessage,
-        });
+        logError("deleteRecurringExpense", error);
+        res.status(500).json(createErrorResponse("Failed to delete recurring expense."));
     }
 };
 
@@ -335,20 +314,17 @@ export const updateTransactionBillStatus = async (req: Request, res: Response): 
     } catch (error: unknown) {
         if (error instanceof Error) {
             if (error.message === "Invalid transaction id") {
-                res.status(400).json({ message: error.message });
+                res.status(400).json(createErrorResponse(error.message));
                 return;
             }
             if (error.message === "Transaction not found") {
-                res.status(404).json({ message: error.message });
+                res.status(404).json(createErrorResponse(error.message));
                 return;
             }
         }
 
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({
-            message: "Error updating bill status",
-            error: errorMessage,
-        });
+        logError("updateTransactionBillStatus", error);
+        res.status(500).json(createErrorResponse("Failed to update bill status."));
     }
 };
 
@@ -357,15 +333,15 @@ export const getAllTransactionsForAnalytics = async (req: Request, res: Response
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "User not authenticated" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
         const response = await transactionService.getAllTransactionsForAnalytics(userId);
         res.json(response);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("getAllTransactionsForAnalytics", error);
+        res.status(500).json(createErrorResponse("Failed to get all transactions for analytics."));
     }
 };
 
@@ -376,14 +352,14 @@ export const triggerRecurringTransactionsJob = async (req: Request, res: Respons
     try {
         const userId = (req as AuthRequest).user?.id;
         if (!userId) {
-            res.status(401).json({ message: "Unauthorized" });
+            res.status(401).json(createErrorResponse("User not authenticated"));
             return;
         }
 
         const response = await transactionService.triggerRecurringTransactionsJob(userId);
         res.json(response);
     } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        res.status(500).json({ message: errorMessage });
+        logError("triggerRecurringTransactionsJob", error);
+        res.status(500).json(createErrorResponse("Failed to trigger recurring transactions job."));
     }
 };
