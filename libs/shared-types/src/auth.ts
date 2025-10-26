@@ -40,7 +40,7 @@ export const ZRegisterCredentials = ZUserType.pick({
 
 export type SettingsType = z.infer<typeof ZSettingsType>;
 
-export type LoginCredentials = Pick<UserType, "email" | "googleId" | "password">;
+export type LoginCredentials = Pick<UserType, "email" | "password">;
 export type RegisterCredentials = Pick<UserType, "email" | "name" | "password">;
 export type AuthenticatedUser = Omit<UserType, "password" | "googleId">;
 export type UserLocalType = Omit<UserType, "googleId">;
@@ -48,7 +48,6 @@ export type UserLocalType = Omit<UserType, "googleId">;
 // Runtime schema for login credentials (to use with zodResolver)
 export const ZLoginCredentials = ZUserType.pick({
     email: true,
-    googleId: true,
     password: true,
 });
 

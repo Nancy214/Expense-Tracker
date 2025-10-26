@@ -67,13 +67,27 @@ export class AuthDAO {
         };
 
         if (tokenType === "auth") {
-            const accessToken = jwt.sign(basePayload, process.env.JWT_SECRET || "your-secret-key", {
-                expiresIn: "1m",
-            });
+            const accessToken = jwt.sign(
+                basePayload,
+                process.env.JWT_SECRET ||
+                    (() => {
+                        throw new Error("JWT_SECRET environment variable is required");
+                    })(),
+                {
+                    expiresIn: "1m",
+                }
+            );
 
-            const refreshToken = jwt.sign(basePayload, process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key", {
-                expiresIn: "1h",
-            });
+            const refreshToken = jwt.sign(
+                basePayload,
+                process.env.JWT_REFRESH_SECRET ||
+                    (() => {
+                        throw new Error("JWT_REFRESH_SECRET environment variable is required");
+                    })(),
+                {
+                    expiresIn: "1h",
+                }
+            );
 
             return { accessToken, refreshToken };
         } else if (tokenType === "password_reset") {
@@ -83,7 +97,10 @@ export class AuthDAO {
                     type: "password_reset",
                     timestamp: Date.now(),
                 },
-                process.env.JWT_SECRET || "your-secret-key",
+                process.env.JWT_SECRET ||
+                    (() => {
+                        throw new Error("JWT_SECRET environment variable is required");
+                    })(),
                 { expiresIn: "10m" }
             );
         }

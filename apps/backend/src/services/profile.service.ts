@@ -10,7 +10,11 @@ import { AuthDAO } from "../daos/auth.dao";
 import { ProfileDAO } from "../daos/profile.dao";
 
 dotenv.config();
-const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
+const AWS_BUCKET_NAME =
+    process.env.AWS_BUCKET_NAME ||
+    (() => {
+        throw new Error("AWS_BUCKET_NAME environment variable is required");
+    })();
 
 export class ProfileService {
     // Helper function to delete old profile picture from S3

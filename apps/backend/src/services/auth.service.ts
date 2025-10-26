@@ -18,7 +18,11 @@ import { s3Client } from "../config/s3Client";
 import { AuthDAO } from "../daos/auth.dao";
 
 dotenv.config();
-const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME || "";
+const AWS_BUCKET_NAME =
+    process.env.AWS_BUCKET_NAME ||
+    (() => {
+        throw new Error("AWS_BUCKET_NAME environment variable is required");
+    })();
 
 export class AuthService {
     // Generate tokens - now using AuthDAO
@@ -136,7 +140,10 @@ export class AuthService {
         // Verify refresh token
         const decoded: JwtPayload = AuthDAO.verifyToken(
             refreshToken,
-            process.env.JWT_REFRESH_SECRET || "your-refresh-secret-key"
+            process.env.JWT_REFRESH_SECRET ||
+                (() => {
+                    throw new Error("JWT_REFRESH_SECRET environment variable is required");
+                })()
         );
 
         // Find user
@@ -182,12 +189,19 @@ export class AuthService {
 
         // Create the reset URL
         const resetUrl: string = `${
-            process.env.FRONTEND_URL || "http://localhost:3000"
+            process.env.FRONTEND_URL ||
+            (() => {
+                throw new Error("FRONTEND_URL environment variable is required");
+            })()
         }/reset-password?token=${resetToken}`;
 
         // Send email using SendGrid
         const sendgridApiKey: string | undefined = process.env.SENDGRID_API_KEY;
-        let fromEmail: string = process.env.SENDGRID_FROM_EMAIL || "";
+        let fromEmail: string =
+            process.env.SENDGRID_FROM_EMAIL ||
+            (() => {
+                throw new Error("SENDGRID_FROM_EMAIL environment variable is required");
+            })();
 
         if (!sendgridApiKey) {
             console.error("Forgot password error: SENDGRID_API_KEY is not configured");
@@ -255,7 +269,13 @@ export class AuthService {
         }
 
         // Verify the reset token
-        const decoded: JwtPayload = AuthDAO.verifyToken(token, process.env.JWT_SECRET || "your-secret-key");
+        const decoded: JwtPayload = AuthDAO.verifyToken(
+            token,
+            process.env.JWT_SECRET ||
+                (() => {
+                    throw new Error("JWT_SECRET environment variable is required");
+                })()
+        );
 
         // Verify it's a password reset token
         if (decoded.type !== "password_reset") {

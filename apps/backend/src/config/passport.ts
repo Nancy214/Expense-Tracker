@@ -47,7 +47,11 @@ passport.use(
     new JwtStrategy(
         {
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            secretOrKey: process.env.JWT_SECRET || "your-secret-key",
+            secretOrKey:
+                process.env.JWT_SECRET ||
+                (() => {
+                    throw new Error("JWT_SECRET environment variable is required");
+                })(),
         },
         async (jwtPayload, done) => {
             try {

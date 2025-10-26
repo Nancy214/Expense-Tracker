@@ -15,6 +15,8 @@ import profileRoutes from "./routes/profile.routes";
 import expenseRoutes from "./routes/transaction.routes";
 import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { authenticateToken } from "./middleware/auth.middleware";
 
 dotenv.config();
 
@@ -42,7 +44,7 @@ app.use(
     })
 );
 
-app.use(expressStatusMonitor());
+app.use("/status", authenticateToken, expressStatusMonitor());
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -56,13 +58,18 @@ app.use(
 // Session middleware - must come before passport
 app.use(
     session({
-        secret: process.env.SESSION_SECRET || "your-session-secret",
+        secret:
+            process.env.SESSION_SECRET ||
+            (() => {
+                throw new Error("SESSION_SECRET environment variable is required");
+            })(),
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: false, // Set to true in production with HTTPS
+            secure: process.env.NODE_ENV === "production",
             httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            sameSite: "strict",
+            maxAge: 24 * 60 * 60 * 1000,
         },
     })
 );
@@ -73,7 +80,12 @@ app.use(passport.session());
 
 // Connect to MongoDB
 mongoose
-    .connect(process.env.MONGODB_URI || "")
+    .connect(
+        process.env.MONGODB_URI ||
+            (() => {
+                throw new Error("MONGODB_URI environment variable is required");
+            })()
+    )
     .then(() => {
         console.log("Connected to MongoDB");
     })
@@ -93,8 +105,14 @@ cron.schedule("0 * * * *", async () => {
     }
 });
 
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: process.env.NODE_ENV === "production" ? 5 : 50, // 5 in production, 50 in development
+    message: "Too many login attempts, please try again later",
+});
+
 // Routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/budget", budgetRoutes);
 app.use("/api/profile", profileRoutes);
