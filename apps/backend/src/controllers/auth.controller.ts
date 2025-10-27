@@ -13,8 +13,7 @@ import type {
 import type { NextFunction, Request, Response } from "express";
 import passport from "passport";
 import { AuthService } from "../services/auth.service";
-import { logError } from "../services/error.service";
-import { createErrorResponse } from "../services/error.service";
+import { createErrorResponse, logError } from "../services/error.service";
 
 // Create service instance
 const authService = new AuthService();
@@ -38,6 +37,7 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
         { session: false },
         async (err: Error | null, user: UserLocalType | UserType | false, info: { message: string }) => {
             if (err) {
+                console.error("Passport authentication error:", err);
                 return next(err);
             }
             if (!user) {
@@ -46,9 +46,12 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
             }
 
             try {
+                console.log("Processing login for user:", { id: (user as any)._id, email: user.email });
                 const loginResponse = await authService.processLogin(user);
+                console.log("Login successful for user:", user.email);
                 res.status(200).json(loginResponse);
             } catch (error: unknown) {
+                console.error("Login processing error details:", error);
                 logError("login", error);
                 res.status(500).json(createErrorResponse("Failed to process login"));
             }
@@ -134,7 +137,7 @@ export const forgotPassword = async (
     } catch (error: unknown) {
         // Provide clearer diagnostics for SendGrid failures
         const err = error as ApiError;
-        const message = err.message as string | undefined;
+        const message = err.message;
         logError("forgotPassword", error);
         res.status(500).json(createErrorResponse(message || "Failed to send reset email. Please try again later."));
     }

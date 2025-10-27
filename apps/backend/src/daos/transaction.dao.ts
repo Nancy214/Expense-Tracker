@@ -9,9 +9,8 @@ import {
     TransactionOrBill,
     TransactionSummary,
 } from "@expense-tracker/shared-types/src";
-import { addTimeByFrequency } from "../utils/dateUtils";
 import { startOfToday, startOfDay, isAfter, addMonths, addQuarters, addYears } from "date-fns";
-import { parseDateFromAPI } from "../utils/dateUtils";
+import { parseDateFromAPI, addTimeByFrequency } from "../utils/dateUtils";
 
 export type TransactionOrBillDocument = Transaction | Bill;
 
@@ -204,13 +203,13 @@ export class TransactionDAO {
 
         // Add category filter
         if (query.categories) {
-            const categories = (query.categories as string).split(",");
+            const categories = query.categories.split(",");
             filterQuery.category = { $in: categories };
         }
 
         // Add type filter
         if (query.types) {
-            const types = (query.types as string).split(",");
+            const types = query.types.split(",");
             filterQuery.type = { $in: types };
         }
 
@@ -218,16 +217,16 @@ export class TransactionDAO {
         if (query.fromDate || query.toDate) {
             filterQuery.date = {};
             if (query.fromDate) {
-                filterQuery.date.$gte = new Date(query.fromDate as string);
+                filterQuery.date.$gte = new Date(query.fromDate);
             }
             if (query.toDate) {
-                filterQuery.date.$lte = new Date(query.toDate as string);
+                filterQuery.date.$lte = new Date(query.toDate);
             }
         }
 
         // Add search filter
         if (query.search) {
-            const searchRegex = new RegExp(query.search as string, "i");
+            const searchRegex = new RegExp(query.search, "i");
             additionalFilters.push({
                 $or: [{ title: searchRegex }, { description: searchRegex }, { category: searchRegex }],
             });

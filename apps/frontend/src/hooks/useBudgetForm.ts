@@ -87,7 +87,7 @@ export const useBudgetForm = ({
                   toRate: editingBudget.toRate || 1,
                   recurrence: editingBudget.recurrence,
                   startDate: format(editingBudget.startDate, "dd/MM/yyyy"),
-                  category: editingBudget.category as BudgetFormData["category"],
+                  category: editingBudget.category,
                   reason: undefined, // Don't pre-fill reason field
               }
             : getDefaultValues(user || undefined);

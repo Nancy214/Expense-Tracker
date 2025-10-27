@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 import { CurrencyService } from "../services/currency.service";
-import { createErrorResponse } from "../services/error.service";
-import { logError } from "../services/error.service";
+import { createErrorResponse, logError } from "../services/error.service";
 
 // Create service instance
 const currencyService = new CurrencyService();

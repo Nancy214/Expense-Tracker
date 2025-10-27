@@ -61,8 +61,10 @@ export class AuthDAO {
         user: UserType,
         tokenType: "auth" | "password_reset"
     ): string | { accessToken: string; refreshToken: string } {
+        // Handle both _id and id cases from Mongoose documents
+        const userId = (user as any)._id?.toString() || user.id?.toString() || user.id;
         const basePayload = {
-            id: user.id.toString(),
+            id: userId,
             email: user.email,
         };
 
@@ -119,19 +121,15 @@ export class AuthDAO {
      * Find or create user settings
      */
     static async findOrCreateUserSettings(userId: string): Promise<SettingsType | null> {
-        // First try to find existing settings
+        // First try to find existing settings, create new ones with defaults if none exist
         let settingsDoc = await Settings.findById(userId);
-
-        // If no settings exist, create new ones with defaults
-        if (!settingsDoc) {
-            settingsDoc = await Settings.create({
-                _id: userId,
-                monthlyReports: false,
-                expenseReminders: true,
-                billsAndBudgetsAlert: false,
-                expenseReminderTime: "18:00",
-            });
-        }
+        settingsDoc ??= await Settings.create({
+            _id: userId,
+            monthlyReports: false,
+            expenseReminders: true,
+            billsAndBudgetsAlert: false,
+            expenseReminderTime: "18:00",
+        });
 
         if (!settingsDoc) {
             return null;

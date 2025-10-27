@@ -48,9 +48,7 @@ export class ProfileService {
         let settingsDoc: SettingsType | null = await AuthDAO.findUserSettings(userId);
 
         // If no settings exist, create them with defaults
-        if (!settingsDoc) {
-            settingsDoc = await AuthDAO.findOrCreateUserSettings(userId);
-        }
+        settingsDoc ??= await AuthDAO.findOrCreateUserSettings(userId);
 
         // Generate pre-signed URL for profile picture if it exists
         let profilePictureUrl: string = "";

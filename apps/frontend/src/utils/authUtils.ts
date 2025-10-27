@@ -32,6 +32,7 @@ export const isTokenExpired = (token: string): boolean => {
         const currentTime: number = Date.now() / 1000;
         return payload.exp < currentTime;
     } catch (error) {
+        console.error("Error checking token expiration:", error);
         return true;
     }
 };
@@ -68,6 +69,7 @@ export const refreshAuthTokens = async (): Promise<{
 
         return { accessToken: newAccessToken, refreshToken: newRefreshToken };
     } catch (error) {
+        console.error("Error refreshing tokens:", error);
         handleTokenExpiration();
         return null;
     }

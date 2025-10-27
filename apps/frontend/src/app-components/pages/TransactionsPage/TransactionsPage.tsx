@@ -1,4 +1,4 @@
-import type { ActiveTab, RecurringTransactionTemplate, TransactionOrBill } from "@expense-tracker/shared-types/src";
+import type { ActiveTab, TransactionOrBill } from "@expense-tracker/shared-types/src";
 import { format, parse } from "date-fns";
 import { Plus, TrendingUp, UploadIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -592,7 +592,7 @@ const TransactionsPage = () => {
                 itemsPerPage={itemsPerPage}
                 isLoading={isLoading()}
                 // Recurring templates from API
-                recurringTemplates={apiRecurringTemplates as RecurringTransactionTemplate[]}
+                recurringTemplates={apiRecurringTemplates}
                 onFiltersChange={handleFiltersChange}
             />
             {/* Add Expense Dialog */}

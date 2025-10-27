@@ -22,6 +22,7 @@ import {
     startOfQuarter,
     startOfYear,
 } from "date-fns";
+import { logError } from "./error.service";
 import {
     fetchBills,
     fetchExpensesExcludingBills,
@@ -94,7 +95,8 @@ export class AnalyticsService {
         try {
             return await getTransactionsForPeriodDAO(userId, startDate, endDate);
         } catch (error: unknown) {
-            throw new Error("Error fetching transactions for period");
+            logError("getTransactionsForPeriod", error, userId);
+            throw error;
         }
     }
 
@@ -107,7 +109,8 @@ export class AnalyticsService {
         try {
             return await getTransactionsForMonthDAO(userId, year, month);
         } catch (error: unknown) {
-            throw new Error("Error fetching transactions for month");
+            logError("getTransactionsForMonth", error, userId);
+            throw error;
         }
     }
 
@@ -120,7 +123,8 @@ export class AnalyticsService {
         try {
             return await getDailyTransactionsForMonthDAO(userId, year, month);
         } catch (error: unknown) {
-            throw new Error("Error fetching daily transactions for month");
+            logError("getDailyTransactionsForMonth", error, userId);
+            throw error;
         }
     }
 

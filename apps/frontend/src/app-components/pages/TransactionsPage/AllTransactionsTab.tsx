@@ -22,11 +22,11 @@ import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 interface TabComponentProps {
-    data: TransactionOrBill[];
-    onEdit: (expense: TransactionOrBill) => void;
-    showRecurringIcon?: boolean;
-    showRecurringBadge?: boolean;
-    refreshAllTransactions?: () => void;
+    readonly data: TransactionOrBill[];
+    readonly onEdit: (expense: TransactionOrBill) => void;
+    readonly showRecurringIcon?: boolean;
+    readonly showRecurringBadge?: boolean;
+    readonly refreshAllTransactions?: () => void;
 }
 
 export function AllTransactionsTab({
@@ -51,7 +51,12 @@ export function AllTransactionsTab({
     } = useDeleteOperations();
 
     const handleEdit = async (expense: TransactionOrBill) => {
-        onEdit(expense);
+        // Ensure the expense has the correct ID format
+        const expenseWithId = {
+            ...expense,
+            id: (expense as any)._id || expense.id,
+        };
+        onEdit(expenseWithId);
     };
 
     const handleBillStatusUpdate = async (id: TransactionId, data: BillStatus) => {
@@ -65,9 +70,14 @@ export function AllTransactionsTab({
                 refreshAllTransactions();
             }
         } catch (error: unknown) {
+            console.error("Error updating bill status:", error);
+
+            // Provide more specific error messages
+            const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+
             toast({
                 title: "Error",
-                description: "Failed to update bill status",
+                description: `Failed to update bill status: ${errorMessage}`,
                 variant: "destructive",
             });
         }
@@ -196,7 +206,7 @@ export function AllTransactionsTab({
                     );
                 },
                 cell: ({ row }: { row: Row<TransactionOrBill> }) => {
-                    const type = row.getValue("type") as string;
+                    const type = row.getValue("type");
                     return (
                         <Badge
                             variant={type === "income" ? "default" : "secondary"}
@@ -225,7 +235,7 @@ export function AllTransactionsTab({
                     );
                 },
                 cell: ({ row }: { row: Row<TransactionOrBill> }) => {
-                    const amount: number = parseFloat(row.getValue("amount") as string);
+                    const amount: number = parseFloat(row.getValue("amount"));
                     const currency: string = row.original.currency || "INR";
                     const type: string = row.original.type || "expense";
                     const currencySymbols: Record<string, string> = {
@@ -270,6 +280,7 @@ export function AllTransactionsTab({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => {
+                                    const expenseId = (expense as any)._id || expense.id;
                                     if ("isRecurring" in expense && expense.isRecurring && !expense.templateId) {
                                         toast({
                                             title: "Warning",
@@ -279,7 +290,16 @@ export function AllTransactionsTab({
                                         });
                                         setRecurringForDelete(expense);
                                     } else {
-                                        handleDelete(expense.id!);
+                                        if (!expenseId) {
+                                            console.error("No ID found for expense:", expense);
+                                            toast({
+                                                title: "Error",
+                                                description: "Cannot delete transaction: No ID found",
+                                                variant: "destructive",
+                                            });
+                                            return;
+                                        }
+                                        handleDelete(expenseId);
                                     }
                                 }}
                                 aria-label="Delete"
@@ -290,7 +310,12 @@ export function AllTransactionsTab({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleBillStatusUpdate({ id: expense.id! }, BillStatus.PAID)}
+                                    onClick={() =>
+                                        handleBillStatusUpdate(
+                                            { id: (expense as any)._id || expense.id! },
+                                            BillStatus.PAID
+                                        )
+                                    }
                                     title="Mark as Paid"
                                     aria-label="Mark as Paid"
                                 >
@@ -301,7 +326,12 @@ export function AllTransactionsTab({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleBillStatusUpdate({ id: expense.id! }, BillStatus.UNPAID)}
+                                    onClick={() =>
+                                        handleBillStatusUpdate(
+                                            { id: (expense as any)._id || expense.id! },
+                                            BillStatus.UNPAID
+                                        )
+                                    }
                                     title="Mark as Unpaid"
                                     aria-label="Mark as Unpaid"
                                 >

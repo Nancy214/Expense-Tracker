@@ -50,21 +50,34 @@ export class AuthService {
     async processLogin(user: UserLocalType | UserType): Promise<AuthResponse> {
         // Generate tokens - cast to MongooseUserDocument for token generation
         const userDoc: UserType = user;
+
+        // Ensure user.id is properly set (handle both _id and id cases)
+        const userId = (user as any)._id?.toString() || user.id || (user as any).id?.toString();
+        if (!userId) {
+            throw new Error("User ID is missing");
+        }
+
         const { accessToken, refreshToken } = this.generateTokens(userDoc);
 
         let profilePictureUrl = "";
         if (user.profilePicture) {
-            const getCommand: GetObjectCommand = new GetObjectCommand({
-                Bucket: AWS_BUCKET_NAME,
-                Key: user.profilePicture,
-            });
-            profilePictureUrl = await getSignedUrl(s3Client, getCommand, {
-                expiresIn: 30,
-            });
+            try {
+                const getCommand: GetObjectCommand = new GetObjectCommand({
+                    Bucket: AWS_BUCKET_NAME,
+                    Key: user.profilePicture,
+                });
+                profilePictureUrl = await getSignedUrl(s3Client, getCommand, {
+                    expiresIn: 30,
+                });
+            } catch (s3Error) {
+                console.error("Error generating S3 signed URL:", s3Error);
+                // Continue without profile picture URL if S3 fails
+                profilePictureUrl = "";
+            }
         }
 
         // Always fetch or create settings
-        const settings: SettingsType | null = await AuthDAO.findOrCreateUserSettings(user.id);
+        const settings: SettingsType | null = await AuthDAO.findOrCreateUserSettings(userId);
         if (!settings) {
             throw new Error("Failed to fetch or create settings");
         }
@@ -73,7 +86,7 @@ export class AuthService {
             accessToken,
             refreshToken,
             user: {
-                id: user.id,
+                id: userId,
                 email: user.email,
                 name: user.name || "",
                 profilePicture: profilePictureUrl,

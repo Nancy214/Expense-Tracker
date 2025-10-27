@@ -80,7 +80,10 @@ export function useDeleteOperations({
     }, []);
 
     const confirmExpenseDelete = useCallback(async (): Promise<void> => {
-        if (!expenseToDelete) return;
+        if (!expenseToDelete) {
+            console.error("No expense ID to delete");
+            return;
+        }
 
         try {
             await deleteExpense({ id: expenseToDelete });

@@ -2,8 +2,7 @@ import type { TokenPayload } from "@expense-tracker/shared-types/src/auth";
 import type { ProfileData, SettingsData } from "@expense-tracker/shared-types/src/profile";
 import type { Request, Response } from "express";
 import { ProfileService } from "../services/profile.service";
-import { createErrorResponse } from "../services/error.service";
-import { logError } from "../services/error.service";
+import { createErrorResponse, logError } from "../services/error.service";
 
 // Create service instance
 const profileService = new ProfileService();

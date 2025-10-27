@@ -29,44 +29,44 @@ import { cn } from "@/lib/utils";
 
 // Filters section props types
 interface FiltersSectionProps {
-    filteredTransactions: TransactionOrBill[];
-    handleEdit: (expense: TransactionOrBill) => void;
-    handleDelete: (id: string) => void;
-    handleDeleteRecurring: (templateId: TransactionId) => void;
-    recurringTransactions?: TransactionOrBill[];
-    totalExpensesByCurrency: {
+    readonly filteredTransactions: TransactionOrBill[];
+    readonly handleEdit: (expense: TransactionOrBill) => void;
+    readonly handleDelete: (id: string) => void;
+    readonly handleDeleteRecurring: (templateId: TransactionId) => void;
+    readonly recurringTransactions?: TransactionOrBill[];
+    readonly totalExpensesByCurrency: {
         [currency: string]: { income: number; expense: number; net: number };
     };
-    parse?: (date: string, format: string, baseDate: Date) => Date;
-    loadingMonths?: boolean;
-    availableMonths?: {
+    readonly parse?: (date: string, format: string, baseDate: Date) => Date;
+    readonly loadingMonths?: boolean;
+    readonly availableMonths?: {
         label: string;
         value: { year: number; month: number };
         sortKey: number;
     }[];
-    downloadMonthlyStatementForMonth?: (month: { year: number; month: number }) => void;
-    user?: UserType | null;
-    activeTab?: ActiveTab;
-    setActiveTab?: (tab: ActiveTab) => void;
-    onRefresh?: () => void;
-    setAllExpenses?: (expenses: TransactionOrBill[]) => void;
-    setAvailableMonths?: (
+    readonly downloadMonthlyStatementForMonth?: (month: { year: number; month: number }) => void;
+    readonly user?: UserType | null;
+    readonly activeTab?: ActiveTab;
+    readonly setActiveTab?: (tab: ActiveTab) => void;
+    readonly onRefresh?: () => void;
+    readonly setAllExpenses?: (expenses: TransactionOrBill[]) => void;
+    readonly setAvailableMonths?: (
         months: {
             label: string;
             value: { year: number; month: number };
             sortKey: number;
         }[]
     ) => void;
-    refreshAllTransactions?: () => void;
-    currentPage?: number;
-    totalPages?: number;
-    onPageChange?: (page: number) => void;
-    totalItems?: number;
-    itemsPerPage?: number;
-    recurringTemplates?: RecurringTransactionTemplate[];
-    isLoading?: boolean;
+    readonly refreshAllTransactions?: () => void;
+    readonly currentPage?: number;
+    readonly totalPages?: number;
+    readonly onPageChange?: (page: number) => void;
+    readonly totalItems?: number;
+    readonly itemsPerPage?: number;
+    readonly recurringTemplates?: RecurringTransactionTemplate[];
+    readonly isLoading?: boolean;
     // Filter change callbacks
-    onFiltersChange?: (filters: {
+    readonly onFiltersChange?: (filters: {
         categories?: string[];
         types?: string[];
         dateRange?: { from?: Date; to?: Date };
