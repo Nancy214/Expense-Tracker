@@ -87,7 +87,9 @@ export function useExpenses(
         ...query,
         expenses: query.data?.expenses ?? [],
         pagination: query.data?.pagination ?? null,
-        invalidateExpenses: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses }),
+        invalidateExpenses: () => {
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expenses });
+        },
     };
 }
 
@@ -129,10 +131,11 @@ export function useAllTransactions(
     return {
         transactions: query.data?.transactions ?? [],
         pagination: query.data?.pagination ?? null,
-        invalidateAllTransactions: () =>
+        invalidateAllTransactions: () => {
             queryClient.invalidateQueries({
                 queryKey: QUERY_KEYS.allTransactions,
-            }),
+            });
+        },
         isLoading: query.isLoading,
         error: query.error,
     };

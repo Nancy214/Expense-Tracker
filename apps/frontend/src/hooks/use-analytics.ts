@@ -287,10 +287,11 @@ export function useAllTransactionsForAnalytics(): UseQueryResult<{
     return {
         ...query,
         transactions: query.data?.transactions ?? [],
-        invalidateAnalytics: () =>
+        invalidateAnalytics: () => {
             queryClient.invalidateQueries({
                 queryKey: ["all-transactions", "analytics"],
-            }),
+            });
+        },
     };
 }
 

@@ -13,13 +13,35 @@ interface DayElementProps {
     element: any;
     value: any;
     index: number;
-    getTooltipContent: (value: any) => string;
+    formatAmount: (amount: number) => string;
 }
 
-const DayElement: React.FC<DayElementProps> = ({ element, value, index, getTooltipContent }) => {
+const DayElement: React.FC<DayElementProps> = ({ element, value, index, formatAmount }) => {
     if (!value?.date) {
         return element;
     }
+
+    // Tooltip content logic moved into the component
+    const getTooltipContent = (value: any) => {
+        if (!value?.date) {
+            return "No data";
+        }
+
+        const date: string = formatToHumanReadableDate(value.date);
+        const count: number = value.count || 0;
+        const amount: number = value.amount || 0;
+        const category: string = value.category || "";
+
+        let tooltipContent: string = `${date}: ${count} activity`;
+        if (amount > 0) {
+            tooltipContent += ` (${formatAmount(amount)})`;
+        }
+        if (category) {
+            tooltipContent += ` - ${category}`;
+        }
+
+        return tooltipContent;
+    };
 
     return (
         <Tooltip key={index}>
@@ -110,28 +132,6 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
     // Calculate max value if not provided
     const calculatedMaxValue: number = maxValue || Math.max(...yearData.map((d) => d.count), 1);
 
-    // Custom tooltip content
-    const getTooltipContent = (value: any) => {
-        if (!value?.date) {
-            return "No data";
-        }
-
-        const date: string = formatToHumanReadableDate(value.date);
-        const count: number = value.count || 0;
-        const amount: number = value.amount || 0;
-        const category: string = value.category || "";
-
-        let tooltipContent: string = `${date}: ${count} activity`;
-        if (amount > 0) {
-            tooltipContent += ` (${formatAmount(amount)})`;
-        }
-        if (category) {
-            tooltipContent += ` - ${category}`;
-        }
-
-        return tooltipContent;
-    };
-
     // Custom class for styling
     const getClassForValue = (value: any) => {
         if (!value?.date) {
@@ -189,12 +189,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
                             showWeekdayLabels={true}
                             gutterSize={1}
                             transformDayElement={(element: any, value: any, index: number) => (
-                                <DayElement
-                                    element={element}
-                                    value={value}
-                                    index={index}
-                                    getTooltipContent={getTooltipContent}
-                                />
+                                <DayElement element={element} value={value} index={index} formatAmount={formatAmount} />
                             )}
                         />
                     </div>

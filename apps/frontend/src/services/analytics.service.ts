@@ -70,7 +70,11 @@ export const getExpenseCategoryBreakdown = async (
         return response.data;
     } catch (error) {
         console.error("Error fetching expense category breakdown:", error);
-        throw error as ApiError;
+        const apiError: ApiError = {
+            success: false,
+            message: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+        throw apiError;
     }
 };
 
@@ -89,7 +93,11 @@ export const getBillsCategoryBreakdown = async (
         return response.data;
     } catch (error) {
         console.error("Error fetching bills category breakdown:", error);
-        throw error as ApiError;
+        const apiError: ApiError = {
+            success: false,
+            message: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+        throw apiError;
     }
 };
 
@@ -108,7 +116,11 @@ export const getIncomeExpenseSummary = async (
         return response.data;
     } catch (error) {
         console.error("Error fetching income and expense summary:", error);
-        throw error as ApiError;
+        const apiError: ApiError = {
+            success: false,
+            message: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+        throw apiError;
     }
 };
 
@@ -127,6 +139,10 @@ export const getMonthlySavingsTrend = async (
         return response.data;
     } catch (error) {
         console.error("Error fetching monthly savings trend:", error);
-        throw error as ApiError;
+        const apiError: ApiError = {
+            success: false,
+            message: error instanceof Error ? error.message : "Unknown error occurred",
+        };
+        throw apiError;
     }
 };
