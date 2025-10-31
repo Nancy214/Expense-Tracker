@@ -273,6 +273,7 @@ const ProfileData: React.FC = () => {
                                 label="Date of Birth"
                                 placeholder="Pick a date"
                                 disabled={!isEditing}
+                                source="profile"
                                 required
                             />
                         </div>

@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTransactionForm, useTransactionMutations } from "@/hooks/use-transactions";
 import { deleteReceipt, uploadReceipt } from "@/services/transaction.service";
 import { showSaveError } from "@/utils/toastUtils";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -284,9 +285,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
                 <FormProvider {...form}>
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-1">
-                        <p className="text-sm text-gray-500">
-                            <span className="text-red-500">*</span> Required fields
-                        </p>
                         <InputField
                             name="title"
                             label="Title"
@@ -295,24 +293,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             required
                         />
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <SelectField
-                                name="type"
-                                label="Type"
-                                placeholder="Select type"
-                                options={[
-                                    {
-                                        value: TransactionType.EXPENSE,
-                                        label: "Expense",
-                                    },
-                                    {
-                                        value: TransactionType.INCOME,
-                                        label: "Income",
-                                    },
-                                ]}
-                                required
-                            />
-                            <div className="flex gap-2">
+                        <div className="flex gap-4">
+                            <div className="flex gap-2 w-full items-center">
                                 <div className="flex-1">
                                     <InputField
                                         name="amount"
@@ -367,117 +349,158 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </div>
                         )}
 
-                        {category === "Bills" ? (
-                            <div className="grid grid-cols-2 gap-4">
-                                <SelectField
-                                    name="billCategory"
-                                    label="Category"
-                                    placeholder="Select a bill category"
-                                    options={Object.values(BillCategory).map((cat: string) => ({
-                                        value: cat,
-                                        label: cat,
-                                    }))}
-                                    required
-                                />
-                                <SelectField
-                                    name="paymentMethod"
-                                    label="Payment Method"
-                                    placeholder="Select payment method"
-                                    options={Object.values(PaymentMethod).map((method: string) => ({
-                                        value: method,
-                                        label: method
-                                            .split("-")
-                                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                                            .join(" "),
-                                    }))}
-                                    required
-                                />
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-4">
-                                <SelectField
-                                    name="category"
-                                    label="Category"
-                                    placeholder="Select a category"
-                                    options={getCategoryOptions()}
-                                    required
-                                />
-                                <DateField name="date" label="Date" placeholder="Pick a date" required />
-                            </div>
-                        )}
+                        <DateField name="date" label="Date" placeholder="Pick a date" source="transaction" required />
 
-                        {category === "Bills" && (
-                            <>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <DateField name="date" label="Date" placeholder="Pick a date" required />
-                                    <DateField name="dueDate" label="Due Date" placeholder="Pick a due date" required />
-                                </div>
+                        <Accordion type="single" collapsible>
+                            <AccordionItem value="more-options" className="border-none">
+                                <AccordionTrigger>More Options</AccordionTrigger>
+                                <AccordionContent>
+                                    {category === "Bills" ? (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <SelectField
+                                                name="billCategory"
+                                                label="Category"
+                                                placeholder="Select a bill category"
+                                                options={Object.values(BillCategory).map((cat: string) => ({
+                                                    value: cat,
+                                                    label: cat,
+                                                }))}
+                                                required
+                                            />
+                                            <SelectField
+                                                name="paymentMethod"
+                                                label="Payment Method"
+                                                placeholder="Select payment method"
+                                                options={Object.values(PaymentMethod).map((method: string) => ({
+                                                    value: method,
+                                                    label: method
+                                                        .split("-")
+                                                        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                                        .join(" "),
+                                                }))}
+                                                required
+                                            />
+                                            <SelectField
+                                                name="type"
+                                                label="Type"
+                                                placeholder="Select type"
+                                                options={[
+                                                    {
+                                                        value: TransactionType.EXPENSE,
+                                                        label: "Expense",
+                                                    },
+                                                    {
+                                                        value: TransactionType.INCOME,
+                                                        label: "Income",
+                                                    },
+                                                ]}
+                                                required
+                                            />
+                                            <DateField
+                                                name="dueDate"
+                                                label="Due Date"
+                                                placeholder="Pick a due date"
+                                                required
+                                                source="bill"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <SelectField
+                                                name="category"
+                                                label="Category"
+                                                placeholder="Select a category"
+                                                options={getCategoryOptions()}
+                                                required
+                                            />
+                                            <SelectField
+                                                name="type"
+                                                label="Type"
+                                                placeholder="Select type"
+                                                options={[
+                                                    {
+                                                        value: TransactionType.EXPENSE,
+                                                        label: "Expense",
+                                                    },
+                                                    {
+                                                        value: TransactionType.INCOME,
+                                                        label: "Income",
+                                                    },
+                                                ]}
+                                                required
+                                            />
+                                        </div>
+                                    )}
+                                    {category === "Bills" && (
+                                        <>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <SelectField
+                                                    name="billFrequency"
+                                                    label="Bill Frequency"
+                                                    placeholder="Select bill frequency"
+                                                    options={Object.values(BillFrequency).map((freq: string) => ({
+                                                        value: freq,
+                                                        label: freq.charAt(0).toUpperCase() + freq.slice(1),
+                                                    }))}
+                                                    required
+                                                />
+                                                <InputField
+                                                    name="reminderDays"
+                                                    label="Reminder Days"
+                                                    type="number"
+                                                    placeholder="3"
+                                                    min={0}
+                                                    max={30}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <SelectField
-                                        name="billFrequency"
-                                        label="Bill Frequency"
-                                        placeholder="Select bill frequency"
-                                        options={Object.values(BillFrequency).map((freq: string) => ({
-                                            value: freq,
-                                            label: freq.charAt(0).toUpperCase() + freq.slice(1),
-                                        }))}
-                                        required
-                                    />
                                     <InputField
-                                        name="reminderDays"
-                                        label="Reminder Days"
-                                        type="number"
-                                        placeholder="3"
-                                        min={0}
-                                        max={30}
+                                        name="description"
+                                        label="Description"
+                                        placeholder="Description (Optional)"
+                                        maxLength={200}
                                     />
-                                </div>
-                            </>
-                        )}
 
-                        <InputField
-                            name="description"
-                            label="Description"
-                            placeholder="Description (Optional)"
-                            maxLength={200}
-                        />
+                                    {/* Recurring Transaction - only show if not Bill */}
+                                    {category !== "Bills" && (
+                                        <div className="flex items-center space-x-2">
+                                            <Switch
+                                                {...form.register("isRecurring")}
+                                                checked={isRecurring || false}
+                                                onCheckedChange={handleRecurringToggle}
+                                            />
+                                            <Label htmlFor="recurring">Enable recurring transaction</Label>
+                                        </div>
+                                    )}
 
-                        {/* Recurring Transaction - only show if not Bill */}
-                        {category !== "Bills" && (
-                            <div className="flex items-center space-x-2">
-                                <Switch
-                                    {...form.register("isRecurring")}
-                                    checked={isRecurring || false}
-                                    onCheckedChange={handleRecurringToggle}
-                                />
-                                <Label htmlFor="recurring">Enable recurring transaction</Label>
-                            </div>
-                        )}
+                                    {/* Recurring Frequency and End Date - only show if not Bill and isRecurring */}
+                                    {category !== "Bills" && isRecurring && (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <SelectField
+                                                name="recurringFrequency"
+                                                label="Frequency"
+                                                placeholder="Select frequency"
+                                                options={Object.values(RecurringFrequency).map((freq: string) => ({
+                                                    value: freq,
+                                                    label: freq.charAt(0).toUpperCase() + freq.slice(1),
+                                                }))}
+                                            />
+                                            <DateField name="endDate" label="End Date" placeholder="Pick an end date" />
+                                        </div>
+                                    )}
 
-                        {/* Recurring Frequency and End Date - only show if not Bill and isRecurring */}
-                        {category !== "Bills" && isRecurring && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <SelectField
-                                    name="recurringFrequency"
-                                    label="Frequency"
-                                    placeholder="Select frequency"
-                                    options={Object.values(RecurringFrequency).map((freq: string) => ({
-                                        value: freq,
-                                        label: freq.charAt(0).toUpperCase() + freq.slice(1),
-                                    }))}
-                                />
-                                <DateField name="endDate" label="End Date" placeholder="Pick an end date" />
-                            </div>
-                        )}
-
-                        <FileUploadField
-                            name="receipt"
-                            label="Receipt"
-                            description="Upload receipt images or PDFs"
-                            accept="image/*,application/pdf"
-                            onReceiptDeleted={onReceiptDeleted}
-                        />
+                                    <FileUploadField
+                                        name="receipt"
+                                        label="Receipt"
+                                        description="Upload receipt images or PDFs"
+                                        accept="image/*,application/pdf"
+                                        onReceiptDeleted={onReceiptDeleted}
+                                    />
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
 
                         <DialogFooter className="pt-1">
                             <Button type="submit" disabled={isSubmittingForm}>
