@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { TransactionModel } from "../models/transaction.model";
-import {
+import type {
     Bill,
     BillFrequency,
     BillStatus,
@@ -50,7 +50,7 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, use
             let current: Date = new Date(start);
             let currentDueDate: Date | undefined = template.dueDate ? new Date(template.dueDate) : undefined;
             // Bills do not currently support endDate; generate up to today
-            let end: Date = today;
+            const end: Date = today;
 
             const { id: _id, ...rest } = template;
             const templateData = rest;
@@ -101,7 +101,7 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, use
         let current: Date = new Date(start);
         // Respect endDate if provided, otherwise use today
         const providedEnd: Date | undefined = template.endDate ? new Date(template.endDate) : undefined;
-        let end: Date = providedEnd && !isAfter(startOfDay(providedEnd), startOfDay(today)) ? providedEnd : today;
+        const end: Date = providedEnd && !isAfter(startOfDay(providedEnd), startOfDay(today)) ? providedEnd : today;
 
         const { id: _id, ...rest } = template;
         const templateData = rest;
@@ -402,7 +402,7 @@ export class TransactionDAO {
         transactionData: TransactionOrBill
     ): Promise<TransactionOrBillDocument> {
         // Prepare transaction data with proper date conversion
-        let expenseData: any = {
+        const expenseData: any = {
             ...transactionData,
             userId: userId,
             // Convert date string to Date object
@@ -459,7 +459,7 @@ export class TransactionDAO {
         updateData: TransactionOrBill
     ): Promise<TransactionOrBillDocument | null> {
         // Prepare update data with proper date conversion
-        let updatePayload: any = { ...updateData };
+        const updatePayload: any = { ...updateData };
 
         // Convert date string to Date object
         if (updateData.date) {
