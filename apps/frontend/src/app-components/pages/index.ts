@@ -3,7 +3,7 @@ export { default as AnalyticsPage } from "./AnalyticsPage/AnalyticsPage";
 export { default as AreaChart } from "./AnalyticsPage/AreaChart";
 export { default as BarChart } from "./AnalyticsPage/BarChart";
 export { default as CalendarHeatmap } from "./AnalyticsPage/CalendarHeatmap";
-export { default as PieChart } from "./AnalyticsPage/PieChart";
+export { default as HorizontalBarChart } from "./AnalyticsPage/HorizontalBarChart";
 
 // Auth Pages
 export { default as ChangePasswordPage } from "./AuthPages/ChangePasswordPage";
@@ -31,10 +31,10 @@ export { AllTransactionsTab } from "./TransactionsPage/AllTransactionsTab";
 export { BillsTab } from "./TransactionsPage/BillsTab";
 export { DataTable } from "./TransactionsPage/DataTable";
 export {
-	arrayToCSV,
-	downloadCSV,
-	downloadExcel,
-	generateMonthlyStatementPDF,
+    arrayToCSV,
+    downloadCSV,
+    downloadExcel,
+    generateMonthlyStatementPDF,
 } from "./TransactionsPage/ExcelCsvPdfUtils";
 export { FiltersSection as Filters } from "./TransactionsPage/Filters";
 export { RecurringTransactionsTab } from "./TransactionsPage/RecurringTransactionsTab";

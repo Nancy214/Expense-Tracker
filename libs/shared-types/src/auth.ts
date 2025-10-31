@@ -1,151 +1,190 @@
 import { z } from "zod";
 
 export const ZUserSettings = z.object({
-	monthlyReports: z.boolean(),
-	expenseReminders: z.boolean(),
-	billsAndBudgetsAlert: z.boolean(),
-	expenseReminderTime: z.string(),
+    monthlyReports: z.boolean(),
+    expenseReminders: z.boolean(),
+    billsAndBudgetsAlert: z.boolean(),
+    expenseReminderTime: z.string(),
 });
 
 export const ZUserType = z.object({
-	id: z.string(),
-	email: z.string(),
-	name: z.string(),
-	googleId: z.string().optional(),
-	password: z.string(),
-	profilePicture: z.string().optional(),
-	phoneNumber: z.string().optional(),
-	dateOfBirth: z.string().optional(),
-	currency: z.string().optional(),
-	country: z.string().optional(),
-	timezone: z.string().optional(),
-	settings: ZUserSettings.optional(),
+    id: z.string(),
+    email: z.string(),
+    name: z.string(),
+    googleId: z.string().optional(),
+    password: z.string(),
+    profilePicture: z.string().optional(),
+    phoneNumber: z.string().optional(),
+    dateOfBirth: z.string().optional(),
+    currency: z.string().optional(),
+    country: z.string().optional(),
+    timezone: z.string().optional(),
+    settings: ZUserSettings.optional(),
 });
 
 export type UserType = z.infer<typeof ZUserType>;
 
 export const ZSettingsType = z.object({
-	userId: z.string(),
-	monthlyReports: z.boolean().optional(),
-	expenseReminders: z.boolean().optional(),
-	billsAndBudgetsAlert: z.boolean().optional(),
-	expenseReminderTime: z.string().optional(),
+    userId: z.string(),
+    monthlyReports: z.boolean().optional(),
+    expenseReminders: z.boolean().optional(),
+    billsAndBudgetsAlert: z.boolean().optional(),
+    expenseReminderTime: z.string().optional(),
 });
 
 export const ZRegisterCredentials = ZUserType.pick({
-	email: true,
-	name: true,
-	password: true,
+    email: true,
+    name: true,
+    password: true,
 });
 
 export type SettingsType = z.infer<typeof ZSettingsType>;
 
-export type LoginCredentials = Pick<UserType, "email" | "googleId" | "password">;
+export type LoginCredentials = Pick<UserType, "email" | "password">;
 export type RegisterCredentials = Pick<UserType, "email" | "name" | "password">;
 export type AuthenticatedUser = Omit<UserType, "password" | "googleId">;
 export type UserLocalType = Omit<UserType, "googleId">;
-//export type UserGoogleType = UserType;
 
 // Runtime schema for login credentials (to use with zodResolver)
 export const ZLoginCredentials = ZUserType.pick({
-	email: true,
-	googleId: true,
-	password: true,
+    email: true,
+    password: true,
 });
 
 export const ZAuthenticatedUser = ZUserType.omit({
-	password: true,
-	googleId: true,
+    password: true,
+    googleId: true,
 });
 export const ZUserLocalType = ZUserType.omit({ googleId: true });
-//export const ZUserGoogleType = ZUserType;
 
 export const ZAuthResponse = z.object({
-	accessToken: z.string().optional(),
-	refreshToken: z.string().optional(),
-	user: ZAuthenticatedUser.optional(),
-	message: z.string().optional(),
+    accessToken: z.string().optional(),
+    refreshToken: z.string().optional(),
+    user: ZAuthenticatedUser.optional(),
+    message: z.string().optional(),
 });
 
 export type AuthResponse = z.infer<typeof ZAuthResponse>;
 
 // New types for auth pages
-export const ZChangePasswordFormData = z.object({
-	currentPassword: z.string(),
-	newPassword: z.string(),
-	confirmPassword: z.string(),
-});
+export const ZChangePasswordFormData = z
+    .object({
+        currentPassword: z.string().min(1, "Current password is required"),
+        newPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[A-Z]/, "Password must contain uppercase letter")
+            .regex(/[a-z]/, "Password must contain lowercase letter")
+            .regex(/\d/, "Password must contain number")
+            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
+        confirmPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[A-Z]/, "Password must contain uppercase letter")
+            .regex(/[a-z]/, "Password must contain lowercase letter")
+            .regex(/\d/, "Password must contain number")
+            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+    })
+    .refine((data) => data.currentPassword !== data.newPassword, {
+        message: "New password must be different from current password",
+        path: ["newPassword"],
+    });
 
-//export const ZForgotPasswordRequest = z.object({ email: z.email() });
-
-//export type ForgotPasswordRequest = z.infer<typeof ZForgotPasswordRequest>;
 export type ChangePasswordFormData = z.infer<typeof ZChangePasswordFormData>;
 
 export const ZTokenPayload = z.object({
-	id: z.string(),
-	user: z.union([ZUserLocalType, ZUserType]),
+    id: z.string(),
+    user: z.union([ZUserLocalType, ZUserType]),
 });
 
 export type TokenPayload = z.infer<typeof ZTokenPayload>;
 
 export const ZJwtPayload = z.object({
-	id: z.string(),
-	email: z.string().optional(),
-	type: z.string().optional(),
-	timestamp: z.number().optional(),
+    id: z.string(),
+    email: z.string().optional(),
+    type: z.string().optional(),
+    timestamp: z.number().optional(),
 });
 
 export type JwtPayload = z.infer<typeof ZJwtPayload>;
 
 export const ZForgotPasswordRequest = z.object({
-	email: z.email(),
+    email: z.email(),
 });
 
 export type ForgotPasswordRequest = z.infer<typeof ZForgotPasswordRequest>;
 
 export const ZResetPasswordRequest = z.object({
-	token: z.string(),
-	newPassword: z.string(),
+    token: z.string(),
+    newPassword: z
+        .string()
+        .min(8, "Password must be at least 8 characters")
+        .regex(/[A-Z]/, "Password must contain uppercase letter")
+        .regex(/[a-z]/, "Password must contain lowercase letter")
+        .regex(/\d/, "Password must contain number")
+        .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
 });
 
 export type ResetPasswordRequest = z.infer<typeof ZResetPasswordRequest>;
 
 export const ZResetPasswordSchema = z
-	.object({
-		newPassword: ZUserType.pick({ password: true }),
-		confirmPassword: ZUserType.pick({ password: true }),
-	})
-	.refine((data) => data.newPassword === data.confirmPassword, {
-		message: "Passwords do not match",
-		path: ["confirmPassword"],
-	});
+    .object({
+        newPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[A-Z]/, "Password must contain uppercase letter")
+            .regex(/[a-z]/, "Password must contain lowercase letter")
+            .regex(/\d/, "Password must contain number")
+            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
+        confirmPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[A-Z]/, "Password must contain uppercase letter")
+            .regex(/[a-z]/, "Password must contain lowercase letter")
+            .regex(/\d/, "Password must contain number")
+            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+        message: "Passwords do not match",
+        path: ["confirmPassword"],
+    });
 
 export type ResetPasswordSchema = z.infer<typeof ZResetPasswordSchema>;
 
 export const ZChangePasswordRequest = z.object({
-	currentPassword: z.string(),
-	newPassword: z.string(),
+    currentPassword: ZUserType.pick({ password: true }),
+    newPassword: z
+        .string()
+        .min(8, "Password must be at least 8 characters")
+        .regex(/[A-Z]/, "Password must contain uppercase letter")
+        .regex(/[a-z]/, "Password must contain lowercase letter")
+        .regex(/\d/, "Password must contain number")
+        .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
 });
 
 export type ChangePasswordRequest = z.infer<typeof ZChangePasswordRequest>;
 
 export const ZRefreshTokenRequest = z.object({
-	refreshToken: z.string(),
+    refreshToken: z.string(),
 });
 
 export type RefreshTokenRequest = z.infer<typeof ZRefreshTokenRequest>;
 
 export const ZRefreshTokenResponse = z.object({
-	accessToken: z.string(),
-	refreshToken: z.string(),
-	message: z.string().optional(),
+    accessToken: z.string(),
+    refreshToken: z.string(),
+    message: z.string().optional(),
 });
 
 export type RefreshTokenResponse = z.infer<typeof ZRefreshTokenResponse>;
 
 export const ZPasswordResponse = z.object({
-	success: z.boolean(),
-	message: z.string().optional(),
+    success: z.boolean(),
+    message: z.string().optional(),
 });
 
 export type PasswordResponse = z.infer<typeof ZPasswordResponse>;

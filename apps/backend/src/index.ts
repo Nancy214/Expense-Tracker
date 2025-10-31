@@ -14,33 +14,65 @@ import currencyRoutes from "./routes/currency.routes";
 import profileRoutes from "./routes/profile.routes";
 import expenseRoutes from "./routes/transaction.routes";
 import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { authenticateToken } from "./middleware/auth.middleware";
 
 dotenv.config();
 
 const app = express();
 
-app.use(morgan("method :url :status - :response-time ms :date[iso]"));
-app.use(expressStatusMonitor());
+app.use(morgan(`[${process.env.NODE_ENV}] :method :url :status :response-time ms :date[iso]`));
+
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'https://cdn.jsdelivr.net'"],
+                styleSrc: ["'self'", "'unsafe-inline'", "'https://fonts.googleapis.com'"],
+                imgSrc: ["'self'", "data:", "https://*"],
+                fontSrc: ["'self'", "'fonts.gstatic.com'"],
+                connectSrc: ["'self'", "'api.fxratesapi.com'", "http://localhost:3000"],
+            },
+        },
+        crossOriginResourcePolicy: {
+            policy: "cross-origin",
+        },
+        xDnsPrefetchControl: { allow: true },
+        hidePoweredBy: true,
+    })
+);
+
+app.use("/status", authenticateToken, expressStatusMonitor());
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
     cors({
-        origin: ["http://localhost:3000", "http://localhost:8000"],
+        origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
         credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+        optionsSuccessStatus: 200,
     })
 );
 
 // Session middleware - must come before passport
 app.use(
     session({
-        secret: process.env.SESSION_SECRET || "your-session-secret",
+        secret:
+            process.env.SESSION_SECRET ||
+            (() => {
+                throw new Error("SESSION_SECRET environment variable is required");
+            })(),
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: false, // Set to true in production with HTTPS
+            secure: process.env.NODE_ENV === "production",
             httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            sameSite: "strict",
+            maxAge: 24 * 60 * 60 * 1000,
         },
     })
 );
@@ -51,7 +83,12 @@ app.use(passport.session());
 
 // Connect to MongoDB
 mongoose
-    .connect(process.env.MONGODB_URI || "")
+    .connect(
+        process.env.MONGODB_URI ||
+            (() => {
+                throw new Error("MONGODB_URI environment variable is required");
+            })()
+    )
     .then(() => {
         console.log("Connected to MongoDB");
     })
@@ -71,8 +108,19 @@ cron.schedule("0 * * * *", async () => {
     }
 });
 
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: process.env.NODE_ENV === "production" ? 5 : 50, // 5 in production, 50 in development
+    message: "Too many login attempts, please try again later",
+});
+
+// Test CORS endpoint
+app.get("/api/test-cors", (req, res) => {
+    res.json({ message: "CORS is working!", origin: req.headers.origin });
+});
+
 // Routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/budget", budgetRoutes);
 app.use("/api/profile", profileRoutes);
@@ -82,5 +130,5 @@ app.use("/api/analytics", analyticsRoutes);
 const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, async () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}, environment: ${process.env.NODE_ENV}`);
 });

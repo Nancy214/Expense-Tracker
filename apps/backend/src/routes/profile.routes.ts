@@ -2,12 +2,12 @@ import { ZProfileData, ZSettingsData } from "@expense-tracker/shared-types/src/p
 import express, { type RequestHandler } from "express";
 import { upload } from "../config/multer";
 import {
-	deleteProfilePicture,
-	getCountryTimezoneCurrency,
-	getProfile,
-	updateProfile,
-	//uploadProfilePicture,
-	updateSettings,
+    deleteProfilePicture,
+    getCountryTimezoneCurrency,
+    getProfile,
+    updateProfile,
+    //uploadProfilePicture,
+    updateSettings,
 } from "../controllers/profile.controller";
 import { authenticateToken } from "../middleware/auth.middleware";
 import { validate } from "../middleware/validate.middleware";
@@ -15,7 +15,6 @@ import { validate } from "../middleware/validate.middleware";
 const router = express.Router();
 
 // All routes require authentication
-//router.use(authenticateToken);
 
 // Country timezone currency route (must come before /:userId to avoid route conflict)
 router.get("/country-timezone-currency", getCountryTimezoneCurrency as RequestHandler);
@@ -25,27 +24,19 @@ router.get("/:userId", authenticateToken as RequestHandler, getProfile as Reques
 
 // Update profile information
 router.put(
-	"/",
-	authenticateToken as RequestHandler,
-	upload.single("profilePicture"),
-	validate(ZProfileData, "body"),
-	updateProfile as RequestHandler
+    "/",
+    authenticateToken as RequestHandler,
+    upload.single("profilePicture"),
+    validate(ZProfileData, "body"),
+    updateProfile as RequestHandler
 );
 
-// Upload profile picture
-/* router.post(
-  "/upload-picture",
-  upload.single("profilePicture"),
-  authenticateToken as RequestHandler,
-  uploadProfilePicture as RequestHandler
-);
- */
 // Update user settings
 router.put(
-	"/settings",
-	authenticateToken as RequestHandler,
-	validate(ZSettingsData, "body"),
-	updateSettings as RequestHandler
+    "/settings",
+    authenticateToken as RequestHandler,
+    validate(ZSettingsData, "body"),
+    updateSettings as RequestHandler
 );
 
 // Delete profile picture
