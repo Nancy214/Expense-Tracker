@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface InputFieldProps {
@@ -43,6 +45,7 @@ export const InputField: React.FC<InputFieldProps> = ({
 
 	const error = errors[name];
 	const [isAtLimit, setIsAtLimit] = useState(false);
+	const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
 	// Get the current field value to initialize isAtLimit state
 	const { watch } = useFormContext();
@@ -73,42 +76,83 @@ export const InputField: React.FC<InputFieldProps> = ({
 								</span>
 							)}
 						</div>
-						<Input
-							id={name}
-							type={type}
-							placeholder={placeholder}
-							disabled={disabled}
-							min={min}
-							max={max}
-							step={step}
-							autoComplete={autoComplete}
-							maxLength={maxLength}
-							className={cn(
-								"h-8",
-								error && "border-red-500 focus:border-red-500 focus:ring-red-500",
-								isAtLimit && "border-orange-400 focus:border-orange-400 focus:ring-orange-400"
-							)}
-							value={field.value || ""}
-							onChange={(e) => {
-								const value = e.target.value;
+						{type === "password" ? (
+							<div className="relative">
+								<Input
+									id={name}
+									type={isPasswordVisible ? "text" : "password"}
+									placeholder={placeholder}
+									disabled={disabled}
+									min={min}
+									max={max}
+									step={step}
+									autoComplete={autoComplete}
+									maxLength={maxLength}
+									className={cn(
+										"h-8 pr-10",
+										error && "border-red-500 focus:border-red-500 focus:ring-red-500",
+										isAtLimit && "border-orange-400 focus:border-orange-400 focus:ring-orange-400"
+									)}
+									value={field.value || ""}
+									onChange={(e) => {
+										const value = e.target.value;
+										const atLimit = maxLength ? value.length >= maxLength : false;
+										setIsAtLimit(atLimit);
+										field.onChange(value);
+									}}
+									onBlur={() => {
+										field.onBlur();
+										trigger(name);
+									}}
+								/>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+									onClick={() => setIsPasswordVisible((v) => !v)}
+								>
+									{isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+								</Button>
+							</div>
+						) : (
+							<Input
+								id={name}
+								type={type}
+								placeholder={placeholder}
+								disabled={disabled}
+								min={min}
+								max={max}
+								step={step}
+								autoComplete={autoComplete}
+								maxLength={maxLength}
+								className={cn(
+									"h-8",
+									error && "border-red-500 focus:border-red-500 focus:ring-red-500",
+									isAtLimit && "border-orange-400 focus:border-orange-400 focus:ring-orange-400"
+								)}
+								value={field.value || ""}
+								onChange={(e) => {
+									const value = e.target.value;
 
-								if (type === "number") {
-									const numValue = value === "" ? 0 : parseFloat(value);
-									field.onChange(numValue);
-								} else {
-									// Check if we're at the character limit
-									const atLimit = maxLength ? value.length >= maxLength : false;
-									setIsAtLimit(atLimit);
+									if (type === "number") {
+										const numValue = value === "" ? 0 : parseFloat(value);
+										field.onChange(numValue);
+									} else {
+										// Check if we're at the character limit
+										const atLimit = maxLength ? value.length >= maxLength : false;
+										setIsAtLimit(atLimit);
 
-									// Always allow the change - let HTML maxLength handle the limit
-									field.onChange(value);
-								}
-							}}
-							onBlur={() => {
-								field.onBlur();
-								trigger(name);
-							}}
-						/>
+										// Always allow the change - let HTML maxLength handle the limit
+										field.onChange(value);
+									}
+								}}
+								onBlur={() => {
+									field.onBlur();
+									trigger(name);
+								}}
+							/>
+						)}
 						<motion.div
 							initial={{ opacity: 0, y: -10 }}
 							animate={{
