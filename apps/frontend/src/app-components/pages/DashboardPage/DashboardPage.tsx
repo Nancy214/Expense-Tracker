@@ -25,7 +25,7 @@ interface FinancialOverviewData {
 }
 
 // Home page component
-const HomePage = () => {
+const DashboardPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -138,6 +138,10 @@ const HomePage = () => {
 
     return (
         <div className="p-4 md:p-6 lg:p-4 space-y-4 max-w-full">
+            <div>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+                <p className="text-gray-600 dark:text-gray-400">Welcome, {user?.name} 👋</p>
+            </div>
             <StatsCards />
             <ExpenseReminderBanner
                 settings={settingsData}
@@ -345,4 +349,4 @@ const HomePage = () => {
     );
 };
 
-export default HomePage;
+export default DashboardPage;
