@@ -1,0 +1,46 @@
+name: Build Backend Docker Image
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - 'apps/backend/**'
+      - 'libs/shared-types/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'apps/backend/Dockerfile'
+  pull_request:
+    branches:
+      - master
+      - main
+    paths:
+      - 'apps/backend/**'
+      - 'libs/shared-types/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'apps/backend/Dockerfile'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/backend/Dockerfile
+          push: false
+          tags: expense-tracker-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
