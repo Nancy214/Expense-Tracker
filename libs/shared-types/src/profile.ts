@@ -27,7 +27,7 @@ export const ZProfileData = z.object({
         .string()
         .min(1, "Birth date is required")
         .regex(/^\d{1,2}\/\d{1,2}\/\d{4}$/, "Date must be in DD/MM/YYYY format")
-        .refine((date) => {
+        .refine((date: string) => {
             // Parse DD/MM/YYYY format correctly
             const [day, month, year] = date.split("/").map(Number);
             const birthDate = new Date(year, month - 1, day); // month is 0-indexed
@@ -40,7 +40,7 @@ export const ZProfileData = z.object({
             }
             return age >= 13;
         }, "You must be at least 13 years old")
-        .refine((date) => {
+        .refine((date: string) => {
             // Parse DD/MM/YYYY format correctly
             const [day, month, year] = date.split("/").map(Number);
             const birthDate = new Date(year, month - 1, day); // month is 0-indexed
@@ -58,7 +58,7 @@ export const ZProfileData = z.object({
     timezone: z
         .string()
         .min(1, "Timezone is required")
-        .refine((timezone) => {
+        .refine((timezone: string) => {
             // Accept both UTC offset format (UTC+04:00) and Region/City format (Asia/Dubai)
             const utcOffsetRegex = /^UTC[+-]\d{2}:\d{2}$/;
             const regionCityRegex = /^[a-zA-Z_]+\/[a-zA-Z_]+$/;
@@ -70,14 +70,14 @@ export const ZProfileData = z.object({
             z
                 .instanceof(File)
                 .refine(
-                    (file) => file.size <= MAX_FILE_SIZE,
+                    (file: File) => file.size <= MAX_FILE_SIZE,
                     `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`
                 )
                 .refine(
-                    (file) => VALID_FILE_TYPES.includes(file.type as any),
+                    (file: File) => VALID_FILE_TYPES.includes(file.type as (typeof VALID_FILE_TYPES)[number]),
                     `File type must be one of: ${VALID_FILE_TYPES.join(", ")}`
                 ),
-            z.url("PP must be of valid image type and size").optional(),
+            z.url("Profile picture must be of valid image type and size").optional(),
             z.literal(""), // Allow empty string
         ])
         .optional(),

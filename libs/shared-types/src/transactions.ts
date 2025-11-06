@@ -166,11 +166,11 @@ export const ZTransaction = z.object({
             z
                 .instanceof(File)
                 .refine(
-                    (file) => file.size <= MAX_FILE_SIZE,
+                    (file: File) => file.size <= MAX_FILE_SIZE,
                     `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`
                 )
                 .refine(
-                    (file) => VALID_FILE_TYPES.includes(file.type as any),
+                    (file: File) => VALID_FILE_TYPES.includes(file.type as (typeof VALID_FILE_TYPES)[number]),
                     `File type must be one of: ${VALID_FILE_TYPES.join(", ")}`
                 ),
             z.string("Receipt must be of valid image type and size").optional(),
