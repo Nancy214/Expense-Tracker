@@ -67,34 +67,36 @@ export const ZAuthResponse = z.object({
 export type AuthResponse = z.infer<typeof ZAuthResponse>;
 
 // New types for auth pages
-export const ZChangePasswordFormData = z
-    .object({
-        currentPassword: z.string().min(1, "Current password is required"),
-        newPassword: z
-            .string()
-            .min(8, "Password must be at least 8 characters")
-            .regex(/[A-Z]/, "Password must contain uppercase letter")
-            .regex(/[a-z]/, "Password must contain lowercase letter")
-            .regex(/\d/, "Password must contain number")
-            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
-        confirmPassword: z
-            .string()
-            .min(8, "Password must be at least 8 characters")
-            .regex(/[A-Z]/, "Password must contain uppercase letter")
-            .regex(/[a-z]/, "Password must contain lowercase letter")
-            .regex(/\d/, "Password must contain number")
-            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
-    })
-    .refine((data) => data.newPassword === data.confirmPassword, {
+// Define the password requirements once to avoid duplication
+const passwordSchema = z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain uppercase letter")
+    .regex(/[a-z]/, "Password must contain lowercase letter")
+    .regex(/\d/, "Password must contain number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain special character");
+
+// Create the base schema
+export const ZChangePasswordFormData = z.object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: passwordSchema,
+    confirmPassword: passwordSchema,
+});
+
+// Extract the inferred type from the schema
+export type ChangePasswordFormData = z.infer<typeof ZChangePasswordFormData>;
+
+// Extend the schema with refinements that have properly typed data parameters
+export const ZChangePasswordFormDataWithRefinements = ZChangePasswordFormData.refine(
+    (data: ChangePasswordFormData) => data.newPassword === data.confirmPassword,
+    {
         message: "Passwords do not match",
         path: ["confirmPassword"],
-    })
-    .refine((data) => data.currentPassword !== data.newPassword, {
-        message: "New password must be different from current password",
-        path: ["newPassword"],
-    });
-
-export type ChangePasswordFormData = z.infer<typeof ZChangePasswordFormData>;
+    }
+).refine((data: ChangePasswordFormData) => data.currentPassword !== data.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
+});
 
 export const ZTokenPayload = z.object({
     id: z.string(),
@@ -131,29 +133,22 @@ export const ZResetPasswordRequest = z.object({
 
 export type ResetPasswordRequest = z.infer<typeof ZResetPasswordRequest>;
 
-export const ZResetPasswordSchema = z
-    .object({
-        newPassword: z
-            .string()
-            .min(8, "Password must be at least 8 characters")
-            .regex(/[A-Z]/, "Password must contain uppercase letter")
-            .regex(/[a-z]/, "Password must contain lowercase letter")
-            .regex(/\d/, "Password must contain number")
-            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
-        confirmPassword: z
-            .string()
-            .min(8, "Password must be at least 8 characters")
-            .regex(/[A-Z]/, "Password must contain uppercase letter")
-            .regex(/[a-z]/, "Password must contain lowercase letter")
-            .regex(/\d/, "Password must contain number")
-            .regex(/[^A-Za-z0-9]/, "Password must contain special character"),
-    })
-    .refine((data) => data.newPassword === data.confirmPassword, {
+export const ZResetPasswordSchema = z.object({
+    newPassword: passwordSchema,
+    confirmPassword: passwordSchema,
+});
+
+// Extract the inferred type from the schema
+export type ResetPasswordSchema = z.infer<typeof ZResetPasswordSchema>;
+
+// Extend the schema with refinement that has properly typed data parameter
+export const ZResetPasswordSchemaWithRefinement = ZResetPasswordSchema.refine(
+    (data: ResetPasswordSchema) => data.newPassword === data.confirmPassword,
+    {
         message: "Passwords do not match",
         path: ["confirmPassword"],
-    });
-
-export type ResetPasswordSchema = z.infer<typeof ZResetPasswordSchema>;
+    }
+);
 
 export const ZChangePasswordRequest = z.object({
     currentPassword: ZUserType.pick({ password: true }),
