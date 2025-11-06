@@ -594,6 +594,7 @@ const TransactionsPage = () => {
                 // Recurring templates from API
                 recurringTemplates={apiRecurringTemplates}
                 onFiltersChange={handleFiltersChange}
+                onAddTransaction={() => setIsDialogOpen(true)}
             />
 
             <AddExpenseDialog

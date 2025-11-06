@@ -1,11 +1,13 @@
 import type { BudgetLogType } from "@expense-tracker/shared-types/src";
 import { format } from "date-fns";
+import { History, PlusCircle, Edit2, Trash2 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBudgetLogs } from "@/hooks/use-budget-logs";
+import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import { BudgetLogFilters as BudgetLogFiltersComponent } from "./BudgetLogFilters";
 
 interface BudgetLogsProps {
@@ -58,16 +60,32 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
         setHasActiveFilters(false);
     };
 
-    const getChangeTypeColor = (changeType: string) => {
+    const getChangeTypeConfig = (changeType: string): { color: string; icon: React.ReactElement; label: string } => {
         switch (changeType) {
             case "created":
-                return "bg-green-500";
+                return {
+                    color: "bg-green-500",
+                    icon: <PlusCircle className="h-3 w-3" aria-hidden="true" />,
+                    label: "Budget created"
+                };
             case "updated":
-                return "bg-blue-500";
+                return {
+                    color: "bg-blue-500",
+                    icon: <Edit2 className="h-3 w-3" aria-hidden="true" />,
+                    label: "Budget updated"
+                };
             case "deleted":
-                return "bg-red-500";
+                return {
+                    color: "bg-red-500",
+                    icon: <Trash2 className="h-3 w-3" aria-hidden="true" />,
+                    label: "Budget deleted"
+                };
             default:
-                return "bg-gray-500";
+                return {
+                    color: "bg-gray-500",
+                    icon: <History className="h-3 w-3" aria-hidden="true" />,
+                    label: "Budget changed"
+                };
         }
     };
 
@@ -142,11 +160,18 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
                         <CardTitle className="text-xl">Budget Change History</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-center text-gray-500 py-4">
-                            {hasActiveFilters
-                                ? "No budget changes found matching your filters."
-                                : "No budget changes found."}
-                        </div>
+                        {hasActiveFilters ? (
+                            <div className="text-center text-gray-500 py-4">
+                                No budget changes found matching your filters.
+                            </div>
+                        ) : (
+                            <EmptyState
+                                icon={History}
+                                title="No Budget Changes Yet"
+                                description="Your budget change history will appear here. Updates to budget amounts, categories, and settings will be tracked automatically."
+                                className="border-0"
+                            />
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -163,18 +188,24 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
             />
 
             <ScrollArea className="h-[400px] pr-4 border border-gray-200 p-4">
-                {filteredLogs.map((log) => (
-                    <div key={log.id} className="mb-6 last:mb-0 p-3 border border-gray-100 rounded">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Badge className={getChangeTypeColor(log.changeType)}>
-                                {log.changeType.charAt(0).toUpperCase() + log.changeType.slice(1)}
-                            </Badge>
-                            <span className="text-sm text-gray-500">{format(new Date(log.timestamp), "PPP p")}</span>
+                {filteredLogs.map((log) => {
+                    const config = getChangeTypeConfig(log.changeType);
+                    return (
+                        <div key={log.id} className="mb-6 last:mb-0 p-3 border border-gray-100 rounded">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Badge className={config.color} aria-label={config.label}>
+                                    <span className="flex items-center gap-1">
+                                        {config.icon}
+                                        {log.changeType.charAt(0).toUpperCase() + log.changeType.slice(1)}
+                                    </span>
+                                </Badge>
+                                <span className="text-sm text-gray-500">{format(new Date(log.timestamp), "PPP p")}</span>
+                            </div>
+                            {renderChangeDetails(log.changes)}
+                            <p className="text-sm text-gray-500 mt-1">Reason: {log.reason}</p>
                         </div>
-                        {renderChangeDetails(log.changes)}
-                        <p className="text-sm text-gray-500 mt-1">Reason: {log.reason}</p>
-                    </div>
-                ))}
+                    );
+                })}
             </ScrollArea>
         </div>
     );

@@ -8,12 +8,14 @@ import type {
     TransactionOrBill,
 } from "@expense-tracker/shared-types/src";
 import { ChartTypes, Period } from "@expense-tracker/shared-types/src/analytics";
-import { AlertCircle, BarChart3, LineChart, TrendingUp } from "lucide-react";
+import { AlertCircle, BarChart3, LineChart, TrendingUp, Calendar } from "lucide-react";
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
+import { EmptyState } from "@/app-components/utility-components/EmptyState";
+import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import {
     transformExpensesToHeatmapData,
     useAllTransactionsForAnalytics,
@@ -58,6 +60,7 @@ const AnalyticsCard: React.FC<{
     isLoading: boolean;
     hasErrors: boolean;
     currency: string;
+    onAddTransaction: () => void;
 }> = ({
     selectedPeriod,
     onPeriodChange,
@@ -70,6 +73,7 @@ const AnalyticsCard: React.FC<{
     isLoading,
     hasErrors,
     currency,
+    onAddTransaction,
 }) => {
     const [activeTab, setActiveTab] = useState("expenses");
 
@@ -150,18 +154,26 @@ const AnalyticsCard: React.FC<{
                                         currency={currency}
                                     />
                                 </div>
-                            ) : (
+                            ) : isLoading ? (
                                 <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center">
                                     <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
                                     <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                                        No Category Data
+                                        Loading Category Data
                                     </h3>
                                     <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                                        {isLoading
-                                            ? "Loading category data..."
-                                            : "Add expense and bill transactions to see your category breakdown."}
+                                        Loading category data...
                                     </p>
                                 </div>
+                            ) : (
+                                <EmptyState
+                                    icon={BarChart3}
+                                    title="Start Tracking Your Spending"
+                                    description="Get insights into where your money goes. Add your first expense or bill transaction to see category breakdowns and spending patterns."
+                                    action={{
+                                        label: "Add Your First Transaction",
+                                        onClick: onAddTransaction,
+                                    }}
+                                />
                             )}
                         </TabsContent>
 
@@ -179,18 +191,26 @@ const AnalyticsCard: React.FC<{
                                     timePeriod={selectedPeriod}
                                     subPeriod={selectedSubPeriod}
                                 />
-                            ) : (
+                            ) : isLoading ? (
                                 <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center">
                                     <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
                                     <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                                        No Income/Expense Data
+                                        Loading Data
                                     </h3>
                                     <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                                        {isLoading
-                                            ? "Loading income and expense data..."
-                                            : "Add income and expense transactions to see your financial overview."}
+                                        Loading income and expense data...
                                     </p>
                                 </div>
+                            ) : (
+                                <EmptyState
+                                    icon={TrendingUp}
+                                    title="Visualize Your Cash Flow"
+                                    description="Compare your income and expenses to understand your financial health. Start by adding income and expense transactions."
+                                    action={{
+                                        label: "Add Transaction",
+                                        onClick: onAddTransaction,
+                                    }}
+                                />
                             )}
                         </TabsContent>
 
@@ -210,18 +230,26 @@ const AnalyticsCard: React.FC<{
                                         subPeriod={selectedSubPeriod}
                                     />
                                 </div>
-                            ) : (
+                            ) : isLoading ? (
                                 <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center">
                                     <LineChart className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
                                     <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                                        No Savings Data
+                                        Loading Data
                                     </h3>
                                     <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                                        {isLoading
-                                            ? "Loading savings data..."
-                                            : "Add income and expense transactions to see your savings trend."}
+                                        Loading savings data...
                                     </p>
                                 </div>
+                            ) : (
+                                <EmptyState
+                                    icon={LineChart}
+                                    title="Track Your Savings Journey"
+                                    description="Monitor how much you're saving over time. Add income and expense transactions to see your savings trend grow."
+                                    action={{
+                                        label: "Add Transaction",
+                                        onClick: onAddTransaction,
+                                    }}
+                                />
                             )}
                         </TabsContent>
                     </Tabs>
@@ -260,6 +288,7 @@ const AnalyticsCard: React.FC<{
 
 const AnalyticsPage = () => {
     const { user } = useAuth();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
     const { isLoading: expensesLoading } = useExpenses();
     const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactionsForAnalytics();
 
@@ -409,11 +438,22 @@ const AnalyticsPage = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4 sm:p-6 pt-0">
-                        <p className="text-xs sm:text-sm text-muted-foreground text-center">
-                            {isLoading
-                                ? "Loading expense data..."
-                                : "No expense data available. Add expense transactions to see your activity heatmap."}
-                        </p>
+                        {isLoading ? (
+                            <p className="text-xs sm:text-sm text-muted-foreground text-center">
+                                Loading expense data...
+                            </p>
+                        ) : (
+                            <EmptyState
+                                icon={Calendar}
+                                title="See Your Spending Patterns"
+                                description="Visualize your daily expense activity throughout the year. Add expenses to see when you spend the most."
+                                action={{
+                                    label: "Add Your First Expense",
+                                    onClick: () => setIsDialogOpen(true),
+                                }}
+                                className="border-0"
+                            />
+                        )}
                     </CardContent>
                 </Card>
             )}
@@ -431,6 +471,17 @@ const AnalyticsPage = () => {
                 isLoading={isLoading}
                 hasErrors={!!hasErrors}
                 currency={user?.currency || "INR"}
+                onAddTransaction={() => setIsDialogOpen(true)}
+            />
+
+            {/* Add Transaction Dialog */}
+            <AddExpenseDialog
+                open={isDialogOpen}
+                onOpenChange={setIsDialogOpen}
+                onSuccess={() => {
+                    // Refresh data after adding transaction
+                    window.location.reload();
+                }}
             />
         </div>
     );

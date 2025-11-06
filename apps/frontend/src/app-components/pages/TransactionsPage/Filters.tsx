@@ -72,6 +72,7 @@ interface FiltersSectionProps {
         dateRange?: { from?: Date; to?: Date };
         searchQuery?: string;
     }) => void;
+    readonly onAddTransaction?: () => void;
 }
 
 export function FiltersSection({
@@ -95,6 +96,7 @@ export function FiltersSection({
     recurringTemplates,
     isLoading = false,
     onFiltersChange,
+    onAddTransaction,
 }: FiltersSectionProps) {
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
@@ -312,6 +314,7 @@ export function FiltersSection({
                         totalItems={totalItems}
                         itemsPerPage={itemsPerPage}
                         isLoading={isLoading}
+                        onAddTransaction={onAddTransaction}
                         apiRecurringTemplates={recurringTemplates?.map((template) => ({
                             ...template,
                             endDate: template.endDate
