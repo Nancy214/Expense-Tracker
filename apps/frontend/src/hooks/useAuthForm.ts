@@ -73,7 +73,7 @@ export const useLoginForm = (): UseLoginFormReturn => {
 
         try {
             await authLogin(data);
-            navigate("/");
+            navigate("/dashboard");
         } catch (error: unknown) {
             const apiError = error as ApiError;
             const errorMessage: string = apiError.message || "Failed to login. Please check your credentials.";

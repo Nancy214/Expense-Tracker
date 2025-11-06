@@ -20,7 +20,7 @@ interface LayoutProps {
 }
 
 const navLinks = [
-    { label: "Dashboard", path: "/", icon: Home },
+    { label: "Dashboard", path: "/dashboard", icon: Home },
     { label: "Transactions", path: "/transactions", icon: Receipt },
     { label: "Budget", path: "/budget", icon: PieChart },
     { label: "Calendar", path: "/calendar", icon: Calendar },
@@ -33,8 +33,9 @@ function LayoutContent({ children }: LayoutProps) {
     const { logout, user, isAuthenticated } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
-    // Check if we're on auth pages
+    // Check if we're on auth pages or landing page
     const isAuthPage = [
+        "/",
         "/login",
         "/register",
         "/forgot-password",
@@ -59,16 +60,16 @@ function LayoutContent({ children }: LayoutProps) {
         return <div className="min-h-screen bg-gray-50 dark:bg-slate-900">{children}</div>;
     }
 
-    // Don't render layout if not authenticated
+    // When not authenticated (and not on auth pages), render a minimal wrapper so RouteGuard can redirect
     if (!isAuthenticated) {
-        return null;
+        return <div className="min-h-screen bg-gray-50 dark:bg-slate-900">{children}</div>;
     }
 
     return (
         <div className="min-h-screen bg-gray-50/50 flex flex-col">
             {/* Header */}
             <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-                <div className="flex h-16 items-center justify-between px-4 md:px-6">
+                <div className="flex h-16 items-center justify-between px-4">
                     {/* Left side - Menu button and title */}
                     <div className="flex items-center gap-4">
                         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -90,8 +91,17 @@ function LayoutContent({ children }: LayoutProps) {
                             </SheetContent>
                         </Sheet>
 
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-xl font-semibold text-gray-900">Expense Tracker</h1>
+                        <div className="sticky top-0 z-30 border-b bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+                            <div className="pt-5 pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-600 to-slate-700 text-white grid place-items-center shadow-sm">
+                                        <span className="text-sm font-semibold">T</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-xl font-bold tracking-tight text-gray-900">Trauss</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -185,6 +195,8 @@ function SidebarContent({ onItemClick }: { readonly onItemClick?: () => void }) 
 
     return (
         <div className="flex h-full flex-col">
+            {/* Sidebar brand header */}
+
             {/* Sidebar navigation */}
             <nav className="flex-1 space-y-1 p-4 overflow-y-auto relative">
                 {/* Sliding active indicator */}

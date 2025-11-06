@@ -148,8 +148,13 @@ export const transformExpensesToHeatmapData = (expenses: TransactionOrBill[]): H
         if (typeof expenseDate === "string") {
             // Check if it's already in ISO format (contains 'T' or 'Z')
             if (expenseDate.includes("T") || expenseDate.includes("Z")) {
-                // ISO format - extract date part
-                dateStr = expenseDate.split("T")[0];
+                // ISO format - extract date part in local timezone to avoid UTC conversion issues
+                // Parse the ISO string to Date and extract local date components
+                const date = new Date(expenseDate);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, "0");
+                const day = String(date.getDate()).padStart(2, "0");
+                dateStr = `${year}-${month}-${day}`;
             } else if (expenseDate.includes("/")) {
                 // Assume it's in dd/MM/yyyy format - convert to ISO
                 const dateParts = expenseDate.split("/");
@@ -157,24 +162,43 @@ export const transformExpensesToHeatmapData = (expenses: TransactionOrBill[]): H
                     const [day, month, year] = dateParts;
                     dateStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
                 } else {
-                    // Invalid format, use current date
-                    dateStr = new Date().toISOString().split("T")[0];
+                    // Invalid format, use current date in local timezone
+                    const date = new Date();
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, "0");
+                    const day = String(date.getDate()).padStart(2, "0");
+                    dateStr = `${year}-${month}-${day}`;
                 }
             } else {
                 // Try to parse as date string
                 if (isValidDateString(expenseDate)) {
-                    dateStr = new Date(expenseDate).toISOString().split("T")[0];
+                    const date = new Date(expenseDate);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, "0");
+                    const day = String(date.getDate()).padStart(2, "0");
+                    dateStr = `${year}-${month}-${day}`;
                 } else {
-                    // Invalid format, use current date
-                    dateStr = new Date().toISOString().split("T")[0];
+                    // Invalid format, use current date in local timezone
+                    const date = new Date();
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, "0");
+                    const day = String(date.getDate()).padStart(2, "0");
+                    dateStr = `${year}-${month}-${day}`;
                 }
             }
         } else if (isValidDate(expenseDate)) {
-            // Date object - convert to ISO string
-            dateStr = expenseDate.toISOString().split("T")[0];
+            // Date object - extract local date components to avoid UTC conversion
+            const year = expenseDate.getFullYear();
+            const month = String(expenseDate.getMonth() + 1).padStart(2, "0");
+            const day = String(expenseDate.getDate()).padStart(2, "0");
+            dateStr = `${year}-${month}-${day}`;
         } else {
-            // Fallback to current date for invalid dates
-            dateStr = new Date().toISOString().split("T")[0];
+            // Fallback to current date for invalid dates in local timezone
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            dateStr = `${year}-${month}-${day}`;
         }
 
         if (!acc[dateStr]) {

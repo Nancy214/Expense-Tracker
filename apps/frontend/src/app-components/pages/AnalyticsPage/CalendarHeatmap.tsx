@@ -77,7 +77,9 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
 
         const years: Set<number> = new Set<number>();
         data.forEach((item) => {
-            const itemYear = new Date(item.date).getFullYear();
+            // Use local date methods to respect user's timezone
+            const itemDate = new Date(item.date);
+            const itemYear = itemDate.getFullYear();
             years.add(itemYear);
         });
 
@@ -125,7 +127,9 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
 
     // Filter data for the specific year
     const yearData: HeatmapData[] = data.filter((item) => {
-        const itemYear: number = new Date(item.date).getFullYear();
+        // Use local date methods to respect user's timezone
+        const itemDate = new Date(item.date);
+        const itemYear: number = itemDate.getFullYear();
         return itemYear === displayYear;
     });
 

@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { formatToHumanReadableDate, parseFromDisplay } from "@/utils/dateUtils";
 
 interface DateFieldProps {
     name: string;
@@ -17,6 +18,7 @@ interface DateFieldProps {
     disabled?: boolean;
     className?: string;
     dateFormat?: string;
+    source?: string;
 }
 
 export const DateField: React.FC<DateFieldProps> = ({
@@ -27,6 +29,7 @@ export const DateField: React.FC<DateFieldProps> = ({
     disabled = false,
     className,
     dateFormat = "dd/MM/yyyy",
+    source = "transaction",
 }) => {
     const {
         register,
@@ -45,29 +48,44 @@ export const DateField: React.FC<DateFieldProps> = ({
         register(name);
     }, [register, name]);
 
-    const displayValue: string | undefined = value
-        ? format(typeof value === "string" ? parse(value, dateFormat, new Date()) : value, dateFormat)
+    const valueAsDate: Date | undefined = value
+        ? typeof value === "string"
+            ? parseFromDisplay(value)
+            : (value as Date)
         : undefined;
 
+    const humanReadable: string | undefined = valueAsDate ? formatToHumanReadableDate(valueAsDate) : undefined;
+
     return (
-        <div className={cn("space-y-1", className)}>
+        <div className={cn("space-y-1 flex items-center justify-between flex-wrap w-full", className)}>
             <Label htmlFor={name} className="text-sm font-medium">
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>
             <Popover open={isOpen} onOpenChange={setIsOpen}>
                 <PopoverTrigger asChild>
-                    <Button
-                        variant="outline"
-                        className={cn(
-                            "h-8 w-full justify-start text-left font-normal",
-                            !value && "text-muted-foreground",
-                            error && "border-red-500 focus:border-red-500 focus:ring-red-500"
-                        )}
-                        disabled={disabled}
-                    >
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {displayValue || <span>{placeholder}</span>}
-                    </Button>
+                    {source === "transaction" ? (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-muted-foreground hover:text-foreground hover:bg-transparent px-2 flex items-center gap-1"
+                        >
+                            {humanReadable}
+                            <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            className={cn(
+                                "h-8 w-full justify-start text-left font-normal",
+                                !value && "text-muted-foreground",
+                                error && "border-red-500 focus:border-red-500 focus:ring-red-500"
+                            )}
+                            disabled={disabled}
+                        >
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            {humanReadable || <span>{placeholder}</span>}
+                        </Button>
+                    )}
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                     <Calendar
@@ -93,6 +111,7 @@ export const DateField: React.FC<DateFieldProps> = ({
                 </PopoverContent>
             </Popover>
             <motion.div
+                className="basis-full"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: error ? 1 : 0, y: error ? 0 : -10 }}
                 transition={{ duration: 0.3 }}
