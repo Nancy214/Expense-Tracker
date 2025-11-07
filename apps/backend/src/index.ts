@@ -22,6 +22,18 @@ dotenv.config();
 
 const app = express();
 
+// CORS must be first to handle preflight requests
+app.use(
+    cors({
+        origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://localhost:3002"],
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+        exposedHeaders: ["Content-Range", "X-Content-Range"],
+        optionsSuccessStatus: 200,
+    })
+);
+
 app.use(morgan(`[${process.env.NODE_ENV}] :method :url :status :response-time ms :date[iso]`));
 
 app.use(
@@ -33,7 +45,7 @@ app.use(
                 styleSrc: ["'self'", "'unsafe-inline'", "'https://fonts.googleapis.com'"],
                 imgSrc: ["'self'", "data:", "https://*"],
                 fontSrc: ["'self'", "'fonts.gstatic.com'"],
-                connectSrc: ["'self'", "'api.fxratesapi.com'", "http://localhost:3000"],
+                connectSrc: ["'self'", "'api.fxratesapi.com'", "http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
             },
         },
         crossOriginResourcePolicy: {
@@ -48,15 +60,6 @@ app.use("/status", authenticateToken, expressStatusMonitor());
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(
-    cors({
-        origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-        optionsSuccessStatus: 200,
-    })
-);
 
 // Session middleware - must come before passport
 app.use(
@@ -71,7 +74,7 @@ app.use(
         cookie: {
             secure: process.env.NODE_ENV === "production",
             httpOnly: true,
-            sameSite: "strict",
+            sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
             maxAge: 24 * 60 * 60 * 1000,
         },
     })
