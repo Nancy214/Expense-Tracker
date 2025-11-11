@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ExpenseCategory } from "./transactions";
 
 export enum BudgetRecurrence {
     DAILY = "daily",
@@ -7,25 +8,13 @@ export enum BudgetRecurrence {
     YEARLY = "yearly",
 }
 
-export enum BudgetCategory {
-    ALL_CATEGORIES = "All Categories",
-    FOOD_DINING = "Food & Dining",
-    GROCERIES = "Groceries",
-    TRANSPORT = "Transport",
-    SHOPPING = "Shopping",
-    WORK = "Work",
-    HOUSEHOLD = "Household",
-    CAR = "Car",
-    ENTERTAINMENT = "Entertainment",
-    UTILITIES = "Utilities",
-    BILLS = "Bills",
-    HEALTHCARE = "Healthcare",
-    VACATION = "Vacation",
-    EDUCATION = "Education",
-    PERSONAL_CARE = "Personal Care",
-    GIFTS = "Gifts",
-    OTHER = "Other",
-}
+// BudgetCategory extends ExpenseCategory with ALL_CATEGORIES
+export const BudgetCategory = {
+    ...ExpenseCategory,
+    ALL_CATEGORIES: "All Categories",
+} as const;
+
+export type BudgetCategory = (typeof BudgetCategory)[keyof typeof BudgetCategory];
 
 export enum BudgetChangeType {
     CREATED = "created",
@@ -40,10 +29,10 @@ export enum ProgressColor {
     DANGER = "danger",
 }
 
-export const ZBudgetRecurrence = z.enum(BudgetRecurrence);
-export const ZBudgetCategory = z.enum(BudgetCategory);
-export const ZBudgetChangeType = z.enum(BudgetChangeType);
-export const ZProgressColor = z.enum(ProgressColor);
+export const ZBudgetRecurrence = z.enum(Object.values(BudgetRecurrence) as [string, ...string[]]);
+export const ZBudgetCategory = z.enum(Object.values(BudgetCategory) as [string, ...string[]]);
+export const ZBudgetChangeType = z.enum(Object.values(BudgetChangeType) as [string, ...string[]]);
+export const ZProgressColor = z.enum(Object.values(ProgressColor) as [string, ...string[]]);
 
 export const ZBudgetType = z.object({
     id: z.string(),
@@ -106,14 +95,14 @@ export const budgetSchema = z.object({
         .positive("Exchange rate must be greater than 0")
         .default(1)
         .optional(),
-    recurrence: z.enum(BudgetRecurrence, {
+    recurrence: z.enum(Object.values(BudgetRecurrence) as [string, ...string[]], {
         message: "Please select a valid recurrence",
     }),
     startDate: z
         .string({ message: "Start date is required" })
         .min(1, "Start date is required")
         .refine(isValidDate, "Please enter a valid date in DD/MM/YYYY format"),
-    category: z.enum(BudgetCategory, {
+    category: z.enum(Object.values(BudgetCategory) as [string, ...string[]], {
         message: "Please select a valid category",
     }),
     reason: z
@@ -124,6 +113,18 @@ export const budgetSchema = z.object({
 
 // Type inference from schema
 export type BudgetFormData = z.infer<typeof budgetSchema>;
+
+// Onboarding form schema - for forms that accept string inputs before conversion
+export const ZBudgetOnboardingFormSchema = z.object({
+    category: z.enum(Object.values(BudgetCategory) as [string, ...string[]], {
+        message: "Please select a valid category",
+    }),
+    amount: z.string().min(1, "Amount is required"),
+    recurrence: z.enum(Object.values(BudgetRecurrence) as [string, ...string[]], {
+        message: "Please select a valid budget type",
+    }),
+});
+export type BudgetOnboardingFormData = z.infer<typeof ZBudgetOnboardingFormSchema>;
 
 export const ZBudgetProgress = ZBudgetType.omit({ userId: true }).extend({
     periodStart: z.date(),

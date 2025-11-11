@@ -13,6 +13,7 @@ import budgetRoutes from "./routes/budget.routes";
 import currencyRoutes from "./routes/currency.routes";
 import profileRoutes from "./routes/profile.routes";
 import expenseRoutes from "./routes/transaction.routes";
+import onboardingRoutes from "./routes/onboarding.routes";
 import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -129,6 +130,7 @@ app.use("/api/budget", budgetRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/currency", currencyRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/onboarding", onboardingRoutes);
 
 const PORT = process.env.PORT || 8000;
 

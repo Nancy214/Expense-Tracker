@@ -23,6 +23,9 @@ export { default as CalendarPage } from "./CalendarPage/CalendarPage";
 // Home Pages
 export { default as DashboardPage } from "./DashboardPage/DashboardPage";
 export { default as LandingPage } from "./LandingPage/LandingPage";
+
+// Onboarding Pages
+export { OnboardingContainer } from "./OnboardingPage";
 export { default as ProfileData } from "./ProfilePage/ProfileData";
 // Profile Pages
 export { default as ProfilePage } from "./ProfilePage/ProfilePage";

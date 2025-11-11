@@ -83,6 +83,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 	// Remove blocking loading state - let RouteGuard handle loading per route
 
+	const handleUpdateUser = (userData: AuthResponse["user"]): void => {
+		setUser(userData);
+		setIsAuthenticated(true);
+	};
+
 	return (
 		<AuthContext.Provider
 			value={{
@@ -91,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 				login: handleLogin,
 				loginWithGoogle: handleGoogleLogin,
 				logout: handleLogout,
-				updateUser: (userData) => setUser(userData),
+				updateUser: handleUpdateUser,
 				//register: handleRegister,
 				isLoading,
 			}}

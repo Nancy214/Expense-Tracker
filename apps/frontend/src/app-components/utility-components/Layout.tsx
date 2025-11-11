@@ -42,6 +42,7 @@ function LayoutContent({ children }: LayoutProps) {
         "/reset-password",
         "/auth/google/callback",
         "/logout",
+        "/onboarding",
     ].includes(location.pathname);
 
     // Note: Auth guard logic moved to RouteGuard to prevent duplicate checks

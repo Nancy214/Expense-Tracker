@@ -68,11 +68,13 @@ export const SelectField: React.FC<SelectFieldProps> = ({
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
-                    {options.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                        </SelectItem>
-                    ))}
+                    {options
+                        .filter((option) => option.value !== "")
+                        .map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                            </SelectItem>
+                        ))}
                 </SelectContent>
             </Select>
             <motion.div

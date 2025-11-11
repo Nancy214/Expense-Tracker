@@ -1,9 +1,9 @@
-import type { TokenPayload } from "@expense-tracker/shared-types/src/auth";
+import type { JwtPayload } from "@expense-tracker/shared-types/src/auth";
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
-    user?: TokenPayload;
+    user?: JwtPayload;
 }
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
@@ -26,7 +26,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
                 res.status(403).json({ message: "Invalid or expired token" });
                 return;
             }
-            (req as AuthRequest).user = decoded as TokenPayload;
+            (req as AuthRequest).user = decoded as JwtPayload;
             next();
         }
     );

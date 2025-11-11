@@ -60,6 +60,20 @@ const userSchema = new Schema(
             required: false,
             default: "monthly",
         }, */
+		hasCompletedOnboarding: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
+		onboardingCompletedAt: {
+			type: Date,
+			required: false,
+		},
+		onboardingStep: {
+			type: Number,
+			required: false,
+			default: 0,
+		},
 		settings: {
 			type: Schema.Types.Mixed,
 			ref: "Settings",

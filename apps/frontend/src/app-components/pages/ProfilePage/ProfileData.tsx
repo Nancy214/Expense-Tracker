@@ -286,15 +286,18 @@ const ProfileData: React.FC = () => {
                                 options={(() => {
                                     const baseOptions =
                                         countryList.length > 0
-                                            ? countryList.map((country: string) => ({
-                                                  value: country,
-                                                  label: country,
-                                              }))
+                                            ? countryList
+                                                  .filter((country: string) => country && country !== "")
+                                                  .map((country: string) => ({
+                                                      value: country,
+                                                      label: country,
+                                                  }))
                                             : [];
                                     const currentCountry = form.watch("country");
 
                                     if (
                                         currentCountry &&
+                                        currentCountry !== "" &&
                                         !baseOptions.some((option) => option.value === currentCountry)
                                     ) {
                                         return [
@@ -320,7 +323,11 @@ const ProfileData: React.FC = () => {
                                     const currentValue = form.watch("timezone");
 
                                     // If the current value is not in the options, add it
-                                    if (currentValue && !baseOptions.some((option) => option.value === currentValue)) {
+                                    if (
+                                        currentValue &&
+                                        currentValue !== "" &&
+                                        !baseOptions.some((option) => option.value === currentValue)
+                                    ) {
                                         return [
                                             ...baseOptions,
                                             {

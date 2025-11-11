@@ -5,3 +5,7 @@ export * from "./budget";
 export * from "./error";
 export * from "./profile";
 export * from "./transactions";
+
+// Explicit exports for better TypeScript resolution
+export { ZBudgetOnboardingFormSchema } from "./budget";
+export type { BudgetOnboardingFormData } from "./budget";

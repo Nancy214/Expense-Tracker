@@ -34,7 +34,7 @@ export class AuthService {
     }
 
     // Register user
-    async register(credentials: RegisterCredentials): Promise<{ message: string; user: UserType }> {
+    async register(credentials: RegisterCredentials): Promise<AuthResponse> {
         const { email, name, password } = credentials;
 
         const user: UserType = await AuthDAO.createUser({
@@ -43,7 +43,35 @@ export class AuthService {
             password,
         });
 
-        return { message: "User registered successfully", user };
+        // Auto-login after registration - generate tokens
+        const { accessToken, refreshToken } = this.generateTokens(user);
+
+        // Get user settings
+        const userId = (user as any)._id?.toString() || user.id;
+        const settings: SettingsType | null = await AuthDAO.findOrCreateUserSettings(userId);
+
+        return {
+            accessToken,
+            refreshToken,
+            user: {
+                id: userId,
+                email: user.email,
+                name: user.name || "",
+                profilePicture: "",
+                phoneNumber: user.phoneNumber || "",
+                dateOfBirth: user.dateOfBirth || "",
+                currency: user.currency || "",
+                country: user.country || "",
+                timezone: user.timezone || "",
+                hasCompletedOnboarding: user.hasCompletedOnboarding || false,
+                settings: {
+                    monthlyReports: settings?.monthlyReports || false,
+                    expenseReminders: settings?.expenseReminders || false,
+                    billsAndBudgetsAlert: settings?.billsAndBudgetsAlert || false,
+                    expenseReminderTime: settings?.expenseReminderTime || "18:00",
+                },
+            },
+        };
     }
 
     // Process login and generate response
@@ -95,6 +123,7 @@ export class AuthService {
                 currency: user.currency || "",
                 country: user.country || "",
                 timezone: user.timezone || "",
+                hasCompletedOnboarding: user.hasCompletedOnboarding || false,
                 settings: {
                     monthlyReports: settings.monthlyReports || false,
                     expenseReminders: settings.expenseReminders || false,
@@ -136,6 +165,7 @@ export class AuthService {
                     currency: nestedUser?.currency || flat?.currency || "",
                     country: nestedUser?.country || flat?.country || "",
                     timezone: nestedUser?.timezone || flat?.timezone || "",
+                    hasCompletedOnboarding: nestedUser?.hasCompletedOnboarding || flat?.hasCompletedOnboarding || false,
                     settings,
                 },
             })
