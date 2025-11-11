@@ -1,4 +1,4 @@
-import type { BillStatus, TokenPayload } from "@expense-tracker/shared-types/src";
+import type { BillStatus, TokenPayload } from "@expense-tracker/shared-types";
 import type { Request, Response } from "express";
 import { TransactionService } from "../services/transaction.service";
 import { createErrorResponse, logError } from "../services/error.service";

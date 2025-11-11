@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     TransactionType,
     ExpenseCategory,
@@ -22,6 +22,8 @@ interface Step4FirstExpenseProps {
     onNext: () => void;
     onBack: () => void;
     budget: BudgetProgress | null;
+    initialFormData?: ExpenseOnboardingFormData | null;
+    onFormDataChange: (data: ExpenseOnboardingFormData) => void;
 }
 
 const categoryOptions = [
@@ -43,7 +45,7 @@ const categoryOptions = [
     { value: ExpenseCategory.OTHER, label: "Other", example: "Miscellaneous expense" },
 ];
 
-const Step4FirstExpense = ({ onNext, onBack, budget }: Step4FirstExpenseProps) => {
+const Step4FirstExpense = ({ onNext, onBack, budget, initialFormData, onFormDataChange }: Step4FirstExpenseProps) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { createTransaction } = useTransactionMutations();
     const { user } = useAuth();
@@ -56,7 +58,7 @@ const Step4FirstExpense = ({ onNext, onBack, budget }: Step4FirstExpenseProps) =
         formState: { errors },
     } = useForm<ExpenseOnboardingFormData>({
         resolver: zodResolver(expenseOnboardingFormSchema),
-        defaultValues: {
+        defaultValues: initialFormData || {
             title: "",
             amount: "",
             category: budget?.category || "",
@@ -65,6 +67,20 @@ const Step4FirstExpense = ({ onNext, onBack, budget }: Step4FirstExpenseProps) =
     });
 
     const selectedCategory = watch("category");
+    const title = watch("title");
+    const amount = watch("amount");
+    const date = watch("date");
+
+    // Save form data to parent state whenever it changes
+    useEffect(() => {
+        const formData = {
+            title,
+            amount,
+            category: selectedCategory,
+            date,
+        };
+        onFormDataChange(formData);
+    }, [title, amount, selectedCategory, date, onFormDataChange]);
 
     // Auto-suggest title when category changes
     const handleCategoryChange = (category: string) => {
@@ -104,7 +120,7 @@ const Step4FirstExpense = ({ onNext, onBack, budget }: Step4FirstExpenseProps) =
     return (
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
             {/* Header */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-4">
                 <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -118,7 +134,7 @@ const Step4FirstExpense = ({ onNext, onBack, budget }: Step4FirstExpenseProps) =
             </div>
 
             {/* Info Card */}
-            <div className="bg-slate-50 border border-slate-200/50 rounded-lg p-4 mb-6">
+            <div className="bg-slate-50 border border-slate-200/50 rounded-lg p-4 mb-3">
                 <div className="flex gap-3">
                     <Info className="w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5" />
                     <div className="text-sm text-slate-900">
@@ -133,7 +149,7 @@ const Step4FirstExpense = ({ onNext, onBack, budget }: Step4FirstExpenseProps) =
 
             {/* Budget Reference (if available) */}
             {budget && (
-                <div className="bg-green-50 border border-green-200/50 rounded-lg p-4 mb-6">
+                <div className="bg-green-50 border border-green-200/50 rounded-lg p-4 mb-2">
                     <p className="text-sm text-slate-900">
                         <span className="font-medium">Your {budget.category} Budget:</span>{" "}
                         <span className="text-green-700">
@@ -144,7 +160,7 @@ const Step4FirstExpense = ({ onNext, onBack, budget }: Step4FirstExpenseProps) =
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
                 {/* Title Field */}
                 <div>
                     <Label htmlFor="title" className="text-sm font-medium text-gray-700">

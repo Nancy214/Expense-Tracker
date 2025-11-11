@@ -8,7 +8,7 @@ import type {
     Transaction,
     TransactionOrBill,
     TransactionSummary,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import { startOfToday, startOfDay, isAfter, addMonths, addQuarters, addYears } from "date-fns";
 import { parseDateFromAPI, addTimeByFrequency } from "../utils/dateUtils";
 

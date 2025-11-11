@@ -143,7 +143,7 @@ const Step2ProfileSetup = ({ onNext, onBack }: Step2ProfileSetupProps) => {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
                 {/* Name Field */}
                 <div>
                     <Label htmlFor="name" className="text-sm font-medium text-gray-700">

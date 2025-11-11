@@ -1,4 +1,4 @@
-import type { ApiError } from "@expense-tracker/shared-types/src";
+import type { ApiError } from "@expense-tracker/shared-types";
 // Secure error logging utility
 export const logError = (operation: string, error: unknown, userId?: string): void => {
     const errorInfo = {

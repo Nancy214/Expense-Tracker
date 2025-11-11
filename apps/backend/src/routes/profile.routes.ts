@@ -1,4 +1,4 @@
-import { ZProfileData, ZSettingsData } from "@expense-tracker/shared-types/src/profile";
+import { ZProfileData, ZSettingsData } from "@expense-tracker/shared-types";
 import express, { type RequestHandler } from "express";
 import { upload } from "../config/multer";
 import {

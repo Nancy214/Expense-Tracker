@@ -11,11 +11,13 @@ import type {
     SettingsType,
     UserLocalType,
     UserType,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import sgMail, { type MailDataRequired } from "@sendgrid/mail";
 import dotenv from "dotenv";
 import { s3Client } from "../config/s3Client";
 import { AuthDAO } from "../daos/auth.dao";
+//import { createErrorResponse } from "./error.service";
+import { ApiError } from "@expense-tracker/shared-types";
 
 dotenv.config();
 const AWS_BUCKET_NAME =
@@ -34,7 +36,7 @@ export class AuthService {
     }
 
     // Register user
-    async register(credentials: RegisterCredentials): Promise<AuthResponse> {
+    async register(credentials: RegisterCredentials): Promise<AuthResponse | ApiError> {
         const { email, name, password } = credentials;
 
         const user: UserType = await AuthDAO.createUser({

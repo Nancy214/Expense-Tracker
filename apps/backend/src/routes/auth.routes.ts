@@ -3,7 +3,7 @@ import {
 	ZForgotPasswordRequest,
 	ZRegisterCredentials,
 	ZResetPasswordRequest,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import { Router } from "express";
 import passport from "../config/passport";
 import {

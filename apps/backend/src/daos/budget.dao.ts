@@ -5,7 +5,7 @@ import type {
     BudgetProgress,
     BudgetType,
     Transaction,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import {
     endOfDay,
     endOfMonth,

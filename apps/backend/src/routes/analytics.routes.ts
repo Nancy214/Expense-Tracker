@@ -1,4 +1,4 @@
-import { ZAnalyticsApiRequestValidationQuery } from "@expense-tracker/shared-types/src";
+import { ZAnalyticsApiRequestValidationQuery } from "@expense-tracker/shared-types";
 import { Router } from "express";
 import {
 	getBillsCategoryBreakdown,

@@ -1,4 +1,4 @@
-import type { TransactionOrBill } from "@expense-tracker/shared-types/src";
+import type { TransactionOrBill } from "@expense-tracker/shared-types";
 import { Types } from "mongoose";
 import { TransactionModel } from "../models/transaction.model";
 import { User } from "../models/user.model";

@@ -1,4 +1,4 @@
-import type { JwtPayload } from "@expense-tracker/shared-types/src/auth";
+import type { JwtPayload } from "@expense-tracker/shared-types";
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 

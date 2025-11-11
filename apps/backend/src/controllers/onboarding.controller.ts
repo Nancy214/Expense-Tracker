@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { User } from "../models/user.model";
-import { JwtPayload } from "@expense-tracker/shared-types/src/auth";
+import { JwtPayload } from "@expense-tracker/shared-types";
 
 export const updateOnboardingProgress = async (req: Request, res: Response) => {
     try {

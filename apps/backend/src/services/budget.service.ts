@@ -1,4 +1,4 @@
-import type { BudgetFormData } from "@expense-tracker/shared-types/src";
+import type { BudgetFormData } from "@expense-tracker/shared-types";
 import mongoose from "mongoose";
 import { BudgetDAO } from "../daos/budget.dao";
 import { parseDateFromAPI } from "../utils/dateUtils";

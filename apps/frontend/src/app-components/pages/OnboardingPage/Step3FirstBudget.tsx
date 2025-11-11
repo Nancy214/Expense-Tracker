@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     BudgetCategory,
     BudgetRecurrence,
@@ -21,6 +21,9 @@ interface Step3FirstBudgetProps {
     onNext: () => void;
     onBack: () => void;
     onBudgetCreated: (budget: any) => void;
+    initialFormData?: BudgetOnboardingFormData | null;
+    onFormDataChange: (data: BudgetOnboardingFormData) => void;
+    existingBudget?: any | null;
 }
 
 // Suggestion amounts for each category (in base currency)
@@ -59,7 +62,14 @@ const recurrenceOptions = Object.values(BudgetRecurrence).map((recurrence) => ({
     label: recurrence.charAt(0).toUpperCase() + recurrence.slice(1),
 }));
 
-const Step3FirstBudget = ({ onNext, onBack, onBudgetCreated }: Step3FirstBudgetProps) => {
+const Step3FirstBudget = ({
+    onNext,
+    onBack,
+    onBudgetCreated,
+    initialFormData,
+    onFormDataChange,
+    existingBudget,
+}: Step3FirstBudgetProps) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { createBudget } = useBudgets();
     const { user } = useAuth();
@@ -72,7 +82,7 @@ const Step3FirstBudget = ({ onNext, onBack, onBudgetCreated }: Step3FirstBudgetP
         formState: { errors },
     } = useForm<BudgetOnboardingFormData>({
         resolver: zodResolver(ZBudgetOnboardingFormSchema),
-        defaultValues: {
+        defaultValues: initialFormData || {
             category: "",
             amount: "",
             recurrence: BudgetRecurrence.MONTHLY,
@@ -80,6 +90,18 @@ const Step3FirstBudget = ({ onNext, onBack, onBudgetCreated }: Step3FirstBudgetP
     });
 
     const selectedCategory = watch("category");
+    const amount = watch("amount");
+    const recurrence = watch("recurrence");
+
+    // Save form data to parent state whenever it changes
+    useEffect(() => {
+        const formData = {
+            category: selectedCategory,
+            amount,
+            recurrence,
+        };
+        onFormDataChange(formData);
+    }, [selectedCategory, amount, recurrence, onFormDataChange]);
 
     // Auto-suggest amount when category changes
     const handleCategoryChange = (category: string) => {
@@ -92,6 +114,12 @@ const Step3FirstBudget = ({ onNext, onBack, onBudgetCreated }: Step3FirstBudgetP
     const onSubmit = async (data: BudgetOnboardingFormData) => {
         setIsSubmitting(true);
         try {
+            // If a budget was already created in this onboarding session, skip creation
+            if (existingBudget) {
+                onNext();
+                return;
+            }
+
             const categoryLabel = categoryOptions.find((opt) => opt.value === data.category)?.label || data.category;
             const today = new Date();
             const formattedDate = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(
@@ -130,7 +158,9 @@ const Step3FirstBudget = ({ onNext, onBack, onBudgetCreated }: Step3FirstBudgetP
                     <PiggyBank className="w-8 h-8 text-white" />
                 </motion.div>
                 <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">Create Your First Budget</h2>
-                <p className="text-slate-600">Set spending limits to help you stay on track with your financial goals</p>
+                <p className="text-slate-600">
+                    Set spending limits to help you stay on track with your financial goals
+                </p>
             </div>
 
             {/* Info Card */}
@@ -148,7 +178,7 @@ const Step3FirstBudget = ({ onNext, onBack, onBudgetCreated }: Step3FirstBudgetP
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
                 {/* Category Field */}
                 <div>
                     <Label htmlFor="category" className="text-sm font-medium text-gray-700">

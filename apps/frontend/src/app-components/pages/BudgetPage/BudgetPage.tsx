@@ -296,7 +296,7 @@ const BudgetPage: React.FC = () => {
                                                     {formatAmount(budget.amount)}
                                                 </div>
                                                 <CardDescription>
-                                                    {formatRecurrence(budget.recurrence)} Budget
+                                                    {formatRecurrence(budget.recurrence as BudgetRecurrence)} Budget
                                                 </CardDescription>
                                             </div>
                                             <div className="flex gap-1">
@@ -317,7 +317,12 @@ const BudgetPage: React.FC = () => {
                                                     <div className="flex items-center gap-2">
                                                         {getProgressIcon(progress.progress, progress.isOverBudget)}
                                                         <span className="text-xs font-medium text-muted-foreground">
-                                                            {getProgressStatus(progress.progress, progress.isOverBudget).label}
+                                                            {
+                                                                getProgressStatus(
+                                                                    progress.progress,
+                                                                    progress.isOverBudget
+                                                                ).label
+                                                            }
                                                         </span>
                                                     </div>
                                                 </div>
@@ -326,7 +331,8 @@ const BudgetPage: React.FC = () => {
                                                     variant={getProgressColor(progress.progress, progress.isOverBudget)}
                                                     className="h-2"
                                                     aria-label={`Budget progress: ${progress.progress.toFixed(1)}% - ${
-                                                        getProgressStatus(progress.progress, progress.isOverBudget).description
+                                                        getProgressStatus(progress.progress, progress.isOverBudget)
+                                                            .description
                                                     }`}
                                                 />
                                                 <div className="flex justify-between text-xs text-gray-500">
@@ -337,7 +343,10 @@ const BudgetPage: React.FC = () => {
                                                     {progress.expensesCount} transactions this recurrence
                                                 </div>
                                                 {progress.isOverBudget && (
-                                                    <div className="flex items-center gap-1 text-xs text-red-500 font-medium" role="alert">
+                                                    <div
+                                                        className="flex items-center gap-1 text-xs text-red-500 font-medium"
+                                                        role="alert"
+                                                    >
                                                         <XCircle className="h-3 w-3" aria-hidden="true" />
                                                         Over budget by {formatAmount(Math.abs(progress.remaining))}
                                                     </div>
@@ -390,7 +399,7 @@ const BudgetPage: React.FC = () => {
                 message={
                     budgetToDelete
                         ? `Are you sure you want to delete the ${formatRecurrence(
-                              budgetToDelete.recurrence
+                              budgetToDelete.recurrence as BudgetRecurrence
                           )} budget of ${formatAmount(budgetToDelete.amount)} for ${
                               budgetToDelete.category
                           }? This action cannot be undone.`

@@ -1,5 +1,5 @@
-import type { SettingsType, UserType } from "@expense-tracker/shared-types/src/auth";
-import type { CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types/src/profile";
+import type { SettingsType, UserType } from "@expense-tracker/shared-types";
+import type { CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types";
 import CountryTimezoneCurrency from "../models/countries.model";
 import { Settings, User } from "../models/user.model";
 
