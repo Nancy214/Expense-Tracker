@@ -16,11 +16,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useBills } from "@/hooks/use-bills";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
 import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
+    const currencySymbol = useCurrencySymbol();
     const [searchParams] = useSearchParams();
 
     // Separate pagination state for each tab
@@ -294,19 +296,7 @@ const TransactionsPage = () => {
         return monthsArr;
     }, [allTransactions]);
 
-    const currencySymbols: Record<string, string> = {
-        INR: "₹",
-        USD: "$",
-        EUR: "€",
-        GBP: "£",
-        JPY: "¥",
-        CAD: "C$",
-        AUD: "A$",
-        CHF: "CHF",
-        CNY: "¥",
-        KRW: "₩",
-    };
-    const symbol = currencySymbols[user?.currency || "INR"] || user?.currency || "INR";
+    const symbol = currencySymbol;
 
     // Export functionality
     const handleExport = () => {

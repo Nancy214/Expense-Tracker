@@ -4,9 +4,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useExpensesSelector } from "@/hooks/use-analytics";
 import { useBillsSelector } from "@/hooks/use-bills";
 import { useBudgets } from "@/hooks/use-budgets";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 
 export default function StatsCards() {
     const { user } = useAuth();
+    const currencySymbol = useCurrencySymbol();
     const { monthlyStats, isLoading: expensesLoading } = useExpensesSelector();
     const { upcomingAndOverdueBills, isLoading: billsLoading } = useBillsSelector();
     const { budgets, isBudgetsLoading } = useBudgets();
@@ -20,21 +22,7 @@ export default function StatsCards() {
     };
 
     const formatAmount = (amount: number) => {
-        const currencySymbols: { [key: string]: string } = {
-            INR: "₹",
-            EUR: "€",
-            GBP: "£",
-            JPY: "¥",
-            USD: "$",
-            CAD: "C$",
-            AUD: "A$",
-            CHF: "CHF",
-            CNY: "¥",
-            KRW: "₩",
-        };
-
         const currency: string = user?.currency || "INR";
-        const symbol: string = currencySymbols[currency] || currency;
 
         // Handle special cases for currencies without decimal places
         const decimals: number = ["JPY", "KRW"].includes(currency) ? 0 : 2;
@@ -47,7 +35,7 @@ export default function StatsCards() {
 
         // Position the symbol based on currency convention
         const symbolBefore: boolean = !["EUR", "GBP"].includes(currency);
-        return symbolBefore ? `${symbol}${formattedAmount}` : `${formattedAmount}${symbol}`;
+        return symbolBefore ? `${currencySymbol}${formattedAmount}` : `${formattedAmount}${currencySymbol}`;
     };
 
     if (loading) {

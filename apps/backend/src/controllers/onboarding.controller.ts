@@ -85,7 +85,7 @@ export const getOnboardingStatus = async (req: Request, res: Response) => {
 export const updateOnboardingProfile = async (req: Request, res: Response) => {
     try {
         const userId = (req.user as JwtPayload)?.id;
-        const { name, currency, country, timezone } = req.body;
+        const { name, currency, currencySymbol, country, timezone } = req.body;
 
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" });
@@ -102,6 +102,7 @@ export const updateOnboardingProfile = async (req: Request, res: Response) => {
 
         if (name) updateData.name = name;
         if (currency) updateData.currency = currency;
+        if (currencySymbol) updateData.currencySymbol = currencySymbol;
         if (country) updateData.country = country;
         if (timezone) updateData.timezone = timezone;
 

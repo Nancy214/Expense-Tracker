@@ -288,6 +288,19 @@ export function useProfileMutations(): ProfileMutationsReturn {
 }
 
 // ============================================================================
+// UTILITY HOOKS
+// ============================================================================
+
+/**
+ * Custom hook to get the currency symbol from the authenticated user
+ * @returns The currency symbol string (e.g., "$", "₹", "€") or currency code if symbol not available
+ */
+export function useCurrencySymbol(): string {
+    const { user } = useAuth();
+    return user?.currencySymbol || user?.currency || "";
+}
+
+// ============================================================================
 // FORM HOOK
 // ============================================================================
 
@@ -308,6 +321,7 @@ export function useProfileForm(): ProfileFormReturn {
 
     const form = useForm<ProfileData>({
         resolver: zodResolver(ZProfileData),
+        mode: "onChange", // Enable real-time validation
         defaultValues: {
             name: currentProfileData?.name || "",
             email: currentProfileData?.email || "",
@@ -315,6 +329,7 @@ export function useProfileForm(): ProfileFormReturn {
             phoneNumber: currentProfileData?.phoneNumber || "",
             dateOfBirth: currentProfileData?.dateOfBirth || "",
             currency: currentProfileData?.currency || "",
+            currencySymbol: currentProfileData?.currencySymbol || "",
             country: currentProfileData?.country || "",
             timezone: currentProfileData?.timezone || "",
         },
@@ -330,6 +345,7 @@ export function useProfileForm(): ProfileFormReturn {
                 phoneNumber: currentProfileData.phoneNumber || "",
                 dateOfBirth: currentProfileData.dateOfBirth || "",
                 currency: currentProfileData.currency || "",
+                currencySymbol: currentProfileData.currencySymbol || "",
                 country: currentProfileData.country || "",
                 timezone: currentProfileData.timezone || "",
             });
@@ -348,6 +364,7 @@ export function useProfileForm(): ProfileFormReturn {
                 phoneNumber: profileData.phoneNumber || "",
                 dateOfBirth: profileData.dateOfBirth || "",
                 currency: profileData.currency || "",
+                currencySymbol: profileData.currencySymbol || "",
                 country: profileData.country || "",
                 timezone: profileData.timezone || "",
             });
@@ -448,6 +465,7 @@ export function useProfileForm(): ProfileFormReturn {
                     phoneNumber: response.phoneNumber || "",
                     dateOfBirth: response.dateOfBirth || "",
                     currency: response.currency || "",
+                    currencySymbol: response.currencySymbol || "",
                     country: response.country || "",
                     timezone: response.timezone || "",
                 });
@@ -477,6 +495,7 @@ export function useProfileForm(): ProfileFormReturn {
             phoneNumber: currentProfileData?.phoneNumber || "",
             dateOfBirth: currentProfileData?.dateOfBirth || "",
             currency: currentProfileData?.currency || "",
+            currencySymbol: currentProfileData?.currencySymbol || "",
             country: currentProfileData?.country || "",
             timezone: currentProfileData?.timezone || "",
         });

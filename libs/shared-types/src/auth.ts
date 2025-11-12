@@ -17,6 +17,7 @@ export const ZUserType = z.object({
     phoneNumber: z.string().optional(),
     dateOfBirth: z.string().optional(),
     currency: z.string().optional(),
+    currencySymbol: z.string().optional(),
     country: z.string().optional(),
     timezone: z.string().optional(),
     hasCompletedOnboarding: z.boolean().optional(),

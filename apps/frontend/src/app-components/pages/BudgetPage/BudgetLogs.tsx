@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBudgetLogs } from "@/hooks/use-budget-logs";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import { BudgetLogFilters as BudgetLogFiltersComponent } from "./BudgetLogFilters";
 
@@ -25,6 +26,8 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
         categories?: string[];
     }>({});
     const [hasActiveFilters, setHasActiveFilters] = useState(false);
+
+    const currencySymbol = useCurrencySymbol();
 
     const { filteredLogs, isLoading, error } = useBudgetLogs({
         budgetId,
@@ -92,7 +95,7 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
     const formatChangeValue = (value: any) => {
         if (value === null) return "N/A";
         if (typeof value === "object" && Object.prototype.hasOwnProperty.call(value, "amount")) {
-            return `₹${value.amount}`;
+            return `${currencySymbol}${value.amount}`;
         }
         if (value instanceof Date || (typeof value === "string" && !isNaN(Date.parse(value)))) {
             return format(new Date(value), "PPP");
@@ -113,7 +116,7 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
                     <div key={`budget-${change.field}-${index}-${action}`} className="mb-2">
                         <p className="text-sm font-medium">{action} budget with:</p>
                         <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
-                            <li>Amount: ₹{values.amount}</li>
+                            <li>Amount: {currencySymbol}{values.amount}</li>
                             <li>Recurrence: {values.recurrence}</li>
                             <li>Category: {values.category}</li>
                             <li>Start Date: {format(new Date(values.startDate), "PPP")}</li>

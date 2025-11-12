@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 const BudgetPage: React.FC = () => {
@@ -33,6 +34,7 @@ const BudgetPage: React.FC = () => {
     const [showBudgetHistory, setShowBudgetHistory] = useState(false);
 
     const { toast } = useToast();
+    const currencySymbol = useCurrencySymbol();
     const { budgets = [], budgetProgress = { budgets: [] }, isBudgetsLoading: isLoading, budgetsError } = useBudgets();
 
     const {
@@ -101,10 +103,7 @@ const BudgetPage: React.FC = () => {
     };
 
     const formatAmount = (amount: number): string => {
-        return new Intl.NumberFormat("en-IN", {
-            style: "currency",
-            currency: "INR",
-        }).format(amount);
+        return `${currencySymbol}${amount.toFixed(2)}`;
     };
 
     const getProgressColor = (progress: number, isOverBudget: boolean): ProgressColor => {

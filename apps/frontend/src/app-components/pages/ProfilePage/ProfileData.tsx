@@ -108,11 +108,12 @@ const ProfileData: React.FC = () => {
     // Auto-select currency and timezone when country changes
     useEffect(() => {
         if (selectedCountry && isEditing) {
-            // Auto-select currency
-            const countryCurrencies: { code: string; name: string }[] = getCurrenciesForCountry(selectedCountry);
-            if (countryCurrencies.length > 0) {
-                const defaultCurrency = countryCurrencies[0];
-                form.setValue("currency", defaultCurrency.code);
+            // Auto-select currency and currency symbol
+            const countryDataItem = countryTimezoneData?.find((item) => item.country === selectedCountry);
+            if (countryDataItem?.currency) {
+                form.setValue("currency", countryDataItem.currency.code);
+                // Fallback to currency code if symbol is not available
+                form.setValue("currencySymbol", countryDataItem.currency.symbol || countryDataItem.currency.code);
             }
 
             // Auto-select timezone
@@ -122,7 +123,7 @@ const ProfileData: React.FC = () => {
                 form.setValue("timezone", defaultTimezone);
             }
         }
-    }, [selectedCountry, isEditing, form, getCurrenciesForCountry, getTimezonesForCountry]);
+    }, [selectedCountry, isEditing, form, countryTimezoneData, getTimezonesForCountry]);
 
     // Ensure timezone is displayed when user data is available and not editing
     useEffect(() => {

@@ -42,6 +42,11 @@ const userSchema = new Schema(
 			required: false,
 			default: "INR",
 		},
+		currencySymbol: {
+			type: String,
+			required: false,
+			default: "₹",
+		},
 		country: {
 			type: String,
 			required: false,

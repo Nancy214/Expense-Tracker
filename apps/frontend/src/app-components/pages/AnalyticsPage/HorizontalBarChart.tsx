@@ -1,5 +1,6 @@
 import type React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 
 const generateInsights = (data: { name: string; value: number }[]): string[] => {
     const insights: string[] = [];
@@ -45,24 +46,9 @@ const generateInsights = (data: { name: string; value: number }[]): string[] => 
     return insights.length > 0 ? insights : ["✅ Your distribution looks balanced. Keep up the good work!"];
 };
 
-// Format amount with currency
-const formatAmount = (amount: number, currency: string): string => {
-    // Currency symbol mapping
-    const currencySymbols: Record<string, string> = {
-        INR: "₹",
-        EUR: "€",
-        GBP: "£",
-        JPY: "¥",
-        USD: "$",
-        CAD: "C$",
-        AUD: "A$",
-        CHF: "CHF",
-        CNY: "¥",
-        KRW: "₩",
-    };
-
-    const symbol: string = currencySymbols[currency] || currency;
-    return `${symbol}${amount.toFixed(2)}`;
+// Format amount with currency symbol
+const formatAmount = (amount: number, currencySymbol: string): string => {
+    return `${currencySymbol}${amount.toFixed(2)}`;
 };
 
 // Types for the horizontal bar chart
@@ -82,6 +68,8 @@ interface HorizontalBarChartProps {
 
 // Horizontal Stacked Bar Chart Component
 const HorizontalBarChartComponent: React.FC<HorizontalBarChartProps> = ({ title, subtitle, data, currency = "₹" }) => {
+    const currencySymbol = useCurrencySymbol() || currency;
+
     return (
         <Card className="w-full max-w-2xl mx-auto">
             <CardHeader className="pb-4">
@@ -126,7 +114,7 @@ const HorizontalBarChartComponent: React.FC<HorizontalBarChartProps> = ({ title,
                                     {segment.percentage.toFixed(1)}%
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {formatAmount(segment.amount, currency)}
+                                    {formatAmount(segment.amount, currencySymbol)}
                                 </div>
                             </div>
                         </div>

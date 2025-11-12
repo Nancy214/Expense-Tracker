@@ -20,14 +20,20 @@ export const ZProfileData = z.object({
         .trim(),
     phoneNumber: z
         .string()
-        .max(MAX_PHONE_LENGTH, `Phone number must be less than ${MAX_PHONE_LENGTH} characters`)
-        .regex(/^\d+$/, "Phone number must contain only numbers")
-        .optional(),
+        .transform((val) => (val === "" ? undefined : val))
+        .optional()
+        .refine((val) => !val || /^\d+$/.test(val), "Phone number must contain only numbers")
+        .refine(
+            (val) => !val || val.length <= MAX_PHONE_LENGTH,
+            `Phone number must be less than ${MAX_PHONE_LENGTH} characters`
+        ),
     dateOfBirth: z
         .string()
-        .min(1, "Birth date is required")
-        .regex(/^\d{1,2}\/\d{1,2}\/\d{4}$/, "Date must be in DD/MM/YYYY format")
-        .refine((date: string) => {
+        .transform((val) => (val === "" ? undefined : val))
+        .optional()
+        .refine((val) => !val || /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(val), "Date must be in DD/MM/YYYY format")
+        .refine((date?: string) => {
+            if (!date) return true;
             // Parse DD/MM/YYYY format correctly
             const [day, month, year] = date.split("/").map(Number);
             const birthDate = new Date(year, month - 1, day); // month is 0-indexed
@@ -40,7 +46,8 @@ export const ZProfileData = z.object({
             }
             return age >= 13;
         }, "You must be at least 13 years old")
-        .refine((date: string) => {
+        .refine((date?: string) => {
+            if (!date) return true;
             // Parse DD/MM/YYYY format correctly
             const [day, month, year] = date.split("/").map(Number);
             const birthDate = new Date(year, month - 1, day); // month is 0-indexed
@@ -51,6 +58,10 @@ export const ZProfileData = z.object({
         .string()
         .min(1, "Currency is required")
         .regex(/^[A-Z]{3}$/, "Choose a valid currency"),
+    currencySymbol: z
+        .string()
+        .transform((val) => (val === "" ? undefined : val))
+        .optional(),
     country: z
         .string()
         .min(1, "Country is required")

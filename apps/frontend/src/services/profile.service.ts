@@ -83,17 +83,19 @@ export const updateProfile = async (profileData: ProfileData): Promise<Authentic
     try {
         const formData = new FormData();
 
-        // Add text fields
-        if (profileData.name) formData.append("name", profileData.name);
-        if (profileData.email) formData.append("email", profileData.email);
-        if (profileData.phoneNumber) formData.append("phoneNumber", profileData.phoneNumber);
-        if (profileData.dateOfBirth) formData.append("dateOfBirth", profileData.dateOfBirth);
-        if (profileData.currency) formData.append("currency", profileData.currency);
-        if (profileData.country) formData.append("country", profileData.country);
-        if (profileData.timezone) formData.append("timezone", profileData.timezone);
+        // Add text fields - always append, even if empty string
+        formData.append("name", profileData.name || "");
+        formData.append("email", profileData.email || "");
+        formData.append("phoneNumber", profileData.phoneNumber || "");
+        formData.append("dateOfBirth", profileData.dateOfBirth || "");
+        formData.append("currency", profileData.currency || "");
+        // Fallback to currency code if currencySymbol is not provided
+        formData.append("currencySymbol", (profileData as any).currencySymbol || profileData.currency || "");
+        formData.append("country", profileData.country || "");
+        formData.append("timezone", profileData.timezone || "");
 
-        // Add file if present
-        if (profileData.profilePicture) {
+        // Add file if present and it's actually a File object
+        if (profileData.profilePicture && profileData.profilePicture instanceof File) {
             formData.append("profilePicture", profileData.profilePicture);
         }
 

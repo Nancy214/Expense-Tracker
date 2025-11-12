@@ -16,6 +16,7 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { formatChartData } from "@/utils/chartUtils";
 
 const COLORS = {
@@ -69,28 +70,14 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     timePeriod = Period.MONTHLY,
     subPeriod = "",
 }) => {
+    const currencySymbol = useCurrencySymbol();
     // Format amount with currency
     const formatAmount = (amount: number): string => {
         if (amount === undefined || amount === null || isNaN(amount)) {
-            return `${currency}0.00`;
+            return `${currencySymbol}0.00`;
         }
 
-        // Currency symbol mapping
-        const currencySymbols: Record<string, string> = {
-            INR: "₹",
-            EUR: "€",
-            GBP: "£",
-            JPY: "¥",
-            USD: "$",
-            CAD: "C$",
-            AUD: "A$",
-            CHF: "CHF",
-            CNY: "¥",
-            KRW: "₩",
-        };
-
-        const symbol: string = currencySymbols[currency] || currency;
-        return `${symbol}${amount.toFixed(2)}`;
+        return `${currencySymbol}${amount.toFixed(2)}`;
     };
 
     // Generate insights based on savings data

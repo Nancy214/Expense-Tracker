@@ -5,6 +5,7 @@ import CalendarHeatmap from "react-calendar-heatmap";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 import "react-calendar-heatmap/dist/styles.css";
 
@@ -71,6 +72,7 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
     maxValue,
     year,
 }) => {
+    const currencySymbol = useCurrencySymbol();
     // Get all available years from the data
     const availableYears: number[] = useMemo(() => {
         if (data.length === 0) return [new Date().getFullYear()];
@@ -96,24 +98,10 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
     // Format amount with currency
     const formatAmount = (amount: number) => {
         if (amount === undefined || amount === null || isNaN(amount)) {
-            return `${currency}0.00`;
+            return `${currencySymbol}0.00`;
         }
 
-        const currencySymbols: { [key: string]: string } = {
-            INR: "₹",
-            EUR: "€",
-            GBP: "£",
-            JPY: "¥",
-            USD: "$",
-            CAD: "C$",
-            AUD: "A$",
-            CHF: "CHF",
-            CNY: "¥",
-            KRW: "₩",
-        };
-
-        const symbol: string = currencySymbols[currency] || currency;
-        return `${symbol}${amount.toFixed(2)}`;
+        return `${currencySymbol}${amount.toFixed(2)}`;
     };
 
     // Determine the year to display

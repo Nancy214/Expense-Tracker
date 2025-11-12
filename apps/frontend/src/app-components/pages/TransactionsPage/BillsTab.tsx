@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
@@ -32,6 +33,7 @@ export interface TabComponentProps {
 }
 
 export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTransactions, onAddTransaction }: TabComponentProps) {
+    const currencySymbol = useCurrencySymbol();
     const { toast } = useToast();
 
     const {
@@ -191,28 +193,14 @@ export function BillsTab({ data, onEdit, showRecurringIcon = false, refreshAllTr
                 },
                 cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const amount = parseFloat(row.getValue("amount"));
-                    const currency = row.original.currency || "INR";
                     const type = row.original.type || "expense";
-                    const currencySymbols: Record<string, string> = {
-                        INR: "₹",
-                        USD: "$",
-                        EUR: "€",
-                        GBP: "£",
-                        JPY: "¥",
-                        CAD: "C$",
-                        AUD: "A$",
-                        CHF: "CHF",
-                        CNY: "¥",
-                        KRW: "₩",
-                    };
-                    const symbol = currencySymbols[currency] || currency;
                     return (
                         <div
                             className={`text-right font-medium ${
                                 type === "income" ? "text-green-600" : "text-red-600"
                             }`}
                         >
-                            {symbol}
+                            {currencySymbol}
                             {amount.toFixed(2)}
                         </div>
                     );

@@ -35,7 +35,15 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        const profileData: ProfileData = req.body;
+        // Preprocess: Convert empty strings to undefined for optional fields
+        const preprocessedBody = {
+            ...req.body,
+            phoneNumber: req.body.phoneNumber === "" ? undefined : req.body.phoneNumber,
+            dateOfBirth: req.body.dateOfBirth === "" ? undefined : req.body.dateOfBirth,
+            currencySymbol: req.body.currencySymbol === "" ? undefined : req.body.currencySymbol,
+        };
+
+        const profileData: ProfileData = preprocessedBody;
         const response = await profileService.updateProfile(userId, profileData, req.file);
         res.json(response);
     } catch (error: unknown) {

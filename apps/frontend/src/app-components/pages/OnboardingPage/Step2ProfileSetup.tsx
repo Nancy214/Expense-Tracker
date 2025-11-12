@@ -97,7 +97,14 @@ const Step2ProfileSetup = ({ onNext, onBack }: Step2ProfileSetupProps) => {
     const onSubmit = async (data: OnboardingProfileSetup) => {
         setIsSubmitting(true);
         try {
-            const updatedUser = await updateProfile(data);
+            // Get the currency symbol from the country data, fallback to currency code if symbol not available
+            const countryDataItem = countryData?.find((c) => c.country === data.country);
+            const currencySymbol = countryDataItem?.currency?.symbol || data.currency;
+
+            // Add currency symbol to the data
+            const dataWithSymbol = { ...data, currencySymbol };
+
+            const updatedUser = await updateProfile(dataWithSymbol);
             if (updatedUser) {
                 updateUser(updatedUser);
             }

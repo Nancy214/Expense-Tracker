@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useExpenses } from "@/hooks/use-transactions";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import "./CalendarStyle.css";
 // Separate color mappings for expense and income categories
 const expenseColors: { [key: string]: string } = {
@@ -57,23 +58,12 @@ interface CalendarEvent {
 const CalendarPage: React.FC = () => {
 	const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
 	const { expenses = [], isLoading } = useExpenses();
+	const currencySymbol = useCurrencySymbol();
 
 	// Convert expenses to FullCalendar events
 	const calendarEvents: CalendarEvent[] = expenses.map((expense: TransactionOrBill) => {
-		const currency: string = expense.currency || "INR";
-		const currencySymbols: { [key: string]: string } = {
-			INR: "₹",
-			EUR: "€",
-			GBP: "£",
-			JPY: "¥",
-			USD: "$",
-			CAD: "C$",
-			AUD: "A$",
-			CHF: "CHF",
-			CNY: "¥",
-			KRW: "₩",
-		};
-		const symbol: string = currencySymbols[currency] || currency;
+		// Use the currency symbol from user profile
+		const symbol: string = currencySymbol || expense.currency || "INR";
 
 		// Ensure date is a string before split
 		let dateStr: string = "";
@@ -95,7 +85,7 @@ const CalendarPage: React.FC = () => {
 				category: expense.category,
 				description: expense.description,
 				amount: expense.amount,
-				currency: currency,
+				currency: expense.currency || "INR",
 				isRecurring: "isRecurring" in expense ? expense.isRecurring : false,
 				recurringFrequency: "recurringFrequency" in expense ? expense.recurringFrequency : undefined,
 			},
