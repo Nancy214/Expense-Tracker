@@ -1,6 +1,6 @@
 import type { BudgetReminder } from "@expense-tracker/shared-types/src";
 import { DollarSign, Receipt, Target, TrendingDown, TrendingUp, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import { BillAlertsUI, useBillsAndReminders } from "@/app-components/reminders-and-alerts/BillAlert";
@@ -38,11 +38,22 @@ const DashboardPage = () => {
     );
 
     const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
+    // Load dismissed expense reminder from localStorage on mount using lazy initialization
     const [dismissedExpenseReminder, setDismissedExpenseReminder] = useState<{
         time: string;
         date: string;
         timezone: string;
-    } | null>(null);
+    } | null>(() => {
+        const saved = localStorage.getItem("dismissedExpenseReminder");
+        if (!saved) return null;
+        try {
+            return JSON.parse(saved);
+        } catch (error) {
+            console.error("Error parsing dismissed expense reminder from localStorage:", error);
+            localStorage.removeItem("dismissedExpenseReminder");
+            return null;
+        }
+    });
     const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState<boolean>(false);
     const [isAddBudgetDialogOpen, setIsAddBudgetDialogOpen] = useState<boolean>(false);
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
@@ -73,27 +84,6 @@ const DashboardPage = () => {
             ? budgetProgress.budgets.reduce((acc, b) => acc + b.progress, 0) / budgetProgress.budgets.length || 0
             : 0,
     };
-
-    // Clear preselected category when dialog closes
-    useEffect(() => {
-        if (!isExpenseDialogOpen) {
-            setPreselectedCategory(undefined);
-        }
-    }, [isExpenseDialogOpen]);
-
-    // Load dismissed expense reminder from localStorage on component mount
-    useEffect(() => {
-        const savedDismissedReminder = localStorage.getItem("dismissedExpenseReminder");
-        if (savedDismissedReminder) {
-            try {
-                const parsed = JSON.parse(savedDismissedReminder);
-                setDismissedExpenseReminder(parsed);
-            } catch (error) {
-                console.error("Error parsing dismissed expense reminder from localStorage:", error);
-                localStorage.removeItem("dismissedExpenseReminder");
-            }
-        }
-    }, []);
 
     // Note: Do not auto-clear dismissed reminder on settings/timezone change here.
     // The banner itself checks time/date/timezone and will re-show appropriately.
@@ -327,7 +317,12 @@ const DashboardPage = () => {
             {/* Add Expense Dialog */}
             <AddExpenseDialog
                 open={isExpenseDialogOpen}
-                onOpenChange={setIsExpenseDialogOpen}
+                onOpenChange={(open) => {
+                    setIsExpenseDialogOpen(open);
+                    if (!open) {
+                        setPreselectedCategory(undefined);
+                    }
+                }}
                 preselectedCategory={preselectedCategory}
                 isAddBill={preselectedCategory === "Bills"}
                 onSuccess={() => {

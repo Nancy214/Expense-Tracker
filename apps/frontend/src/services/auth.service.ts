@@ -71,7 +71,6 @@ authApi.interceptors.response.use(
 );
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    console.log(API_URL);
     try {
         const response: AxiosResponse<AuthResponse> = await authApi.post("/login", credentials);
         const tokens = response.data;

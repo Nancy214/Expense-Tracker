@@ -9,7 +9,7 @@ import {
 } from "@expense-tracker/shared-types/src";
 import { format } from "date-fns";
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { DataTable } from "@/app-components/pages/TransactionsPage/DataTable";
 import { Button } from "@/components/ui/button";
@@ -150,7 +150,7 @@ export function FiltersSection({
     };
 
     // Notify parent when filters change
-    React.useEffect(() => {
+    useEffect(() => {
         notifyFiltersChange();
     }, [selectedCategories, selectedTypes, dateRangeForFilter, searchQuery]);
 

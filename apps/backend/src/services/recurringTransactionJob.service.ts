@@ -141,9 +141,7 @@ export class RecurringTransactionJobService {
 
             if (!existingInstance) {
                 await RecurringTransactionJobService.createRecurringInstance(template, todayDate, userId);
-                console.log(
-                    `[RecurringTransactionJob] Created new instance for transaction ${template.id} on ${todayInUserTimezone}`
-                );
+
                 return { created: true };
             }
         }

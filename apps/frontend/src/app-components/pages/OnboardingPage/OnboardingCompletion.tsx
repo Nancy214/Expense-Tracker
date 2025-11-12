@@ -2,52 +2,28 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Sparkles, TrendingUp, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Confetti from "react-confetti";
-import { useEffect, useState, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useAuth } from "@/context/AuthContext";
+import { createPortal } from "react-dom";
 
 interface OnboardingCompletionProps {
     onComplete: () => void;
 }
 
 const OnboardingCompletion = ({ onComplete }: OnboardingCompletionProps) => {
-    const [showConfetti, setShowConfetti] = useState(true);
-    const [windowDimensions, setWindowDimensions] = useState({
-        width: window.innerWidth,
-        height: window.innerHeight,
-    });
     const { completeOnboarding } = useOnboarding();
     const { logout } = useAuth();
     const navigate = useNavigate();
     const onboardingCalledRef = useRef(false);
 
     useEffect(() => {
-        const handleResize = () => {
-            setWindowDimensions({
-                width: window.innerWidth,
-                height: window.innerHeight,
-            });
-        };
-
-        window.addEventListener("resize", handleResize);
-
         // Mark onboarding as complete (only once, even in Strict Mode)
         if (!onboardingCalledRef.current) {
             onboardingCalledRef.current = true;
             completeOnboarding();
         }
-
-        // Stop confetti after 5 seconds
-        const timer = setTimeout(() => {
-            setShowConfetti(false);
-        }, 5000);
-
-        return () => {
-            window.removeEventListener("resize", handleResize);
-            clearTimeout(timer);
-        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -93,19 +69,17 @@ const OnboardingCompletion = ({ onComplete }: OnboardingCompletionProps) => {
 
     return (
         <>
-            {showConfetti &&
-                createPortal(
-                    <div className="fixed inset-0 pointer-events-none z-50">
-                        <Confetti
-                            width={windowDimensions.width}
-                            height={windowDimensions.height}
-                            recycle={false}
-                            numberOfPieces={500}
-                        />
-                    </div>,
-                    document.body
-                )}
-
+            {createPortal(
+                <div className="fixed inset-0 pointer-events-none z-50">
+                    <Confetti
+                        width={window.innerWidth}
+                        height={window.innerHeight}
+                        recycle={false}
+                        numberOfPieces={500}
+                    />
+                </div>,
+                document.body
+            )}
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}

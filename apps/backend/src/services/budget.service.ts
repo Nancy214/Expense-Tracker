@@ -11,8 +11,6 @@ export class BudgetService {
             throw new Error("Title, amount, currency, recurrence, start date, and category are required.");
         }
 
-        console.log("Creating budget:", budgetData);
-
         // Normalize types for DAO (expects Date for startDate)
         const preparedData = {
             ...budgetData,
@@ -80,13 +78,8 @@ export class BudgetService {
         const changes = BudgetDAO.detectBudgetChanges(oldBudgetForComparison, preparedData);
 
         if (changes.length > 0) {
-            console.log("Creating budget update log...");
             await BudgetDAO.createBudgetLog(updatedBudget.id, userId, "updated", changes, reason || "Budget update");
-            console.log("Budget update log created");
-        } else {
-            console.log("No changes detected, skipping log creation");
         }
-
         return updatedBudget;
     }
 

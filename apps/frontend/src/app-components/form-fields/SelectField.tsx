@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import React from "react";
+import React, { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,7 +44,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
     const currentValue = value === undefined ? "" : value;
 
     // Register the field
-    React.useEffect(() => {
+    useEffect(() => {
         register(name);
     }, [register, name]);
 

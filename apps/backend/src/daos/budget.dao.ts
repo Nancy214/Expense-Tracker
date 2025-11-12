@@ -283,7 +283,6 @@ export class BudgetDAO {
         budgets = await BudgetDAO.findBudgetsByUserId(userId);
 
         if (budgets.length === 0) {
-            console.log("No budgets found");
             return {
                 budgets: [],
                 totalProgress: 0,

@@ -150,6 +150,11 @@ export const updateExpense = async (req: Request, res: Response): Promise<void> 
                 res.status(404).json(createErrorResponse(error.message));
                 return;
             }
+            // Handle date parsing errors
+            if (error.message.includes("Invalid date format")) {
+                res.status(400).json(createErrorResponse(error.message));
+                return;
+            }
         }
 
         logError("updateExpense", error);

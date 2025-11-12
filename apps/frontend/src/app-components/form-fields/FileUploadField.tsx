@@ -34,7 +34,6 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
     onReceiptDeleted,
 }) => {
     const {
-        register,
         setValue,
         watch,
         formState: { errors },
@@ -59,7 +58,6 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
     useEffect(() => {
         const fetchSignedUrl = async () => {
             if (hasExistingReceipt && fieldValue) {
-                console.log("Fetching signed URL for receipt:", fieldValue);
                 setIsLoadingUrl(true);
                 try {
                     const url = await getReceiptUrl(fieldValue);
@@ -78,9 +76,14 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
         fetchSignedUrl();
     }, [hasExistingReceipt, fieldValue]);
 
+    // Cleanup object URLs to prevent memory leaks
     useEffect(() => {
-        register(name);
-    }, [register, name]);
+        const objectUrls = files.map((file) => URL.createObjectURL(file));
+
+        return () => {
+            objectUrls.forEach((url) => URL.revokeObjectURL(url));
+        };
+    }, [files]);
 
     return (
         <div className={cn("space-y-1", className)}>

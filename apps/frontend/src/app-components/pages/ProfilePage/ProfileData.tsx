@@ -84,10 +84,12 @@ const ProfileData: React.FC = () => {
         }
 
         // Return currencies for the selected country
-        return getCurrenciesForCountry(selectedCountry).map((currency: { code: string; name: string; symbol: string }) => ({
-            value: getCurrencyValue(currency),
-            label: getCurrencyLabel(currency),
-        }));
+        return getCurrenciesForCountry(selectedCountry).map(
+            (currency: { code: string; name: string; symbol: string }) => ({
+                value: getCurrencyValue(currency),
+                label: getCurrencyLabel(currency),
+            })
+        );
     }, [selectedCountry, countryTimezoneData, currencies, getCurrenciesForCountry]);
 
     // Get available timezones for the selected country
@@ -106,62 +108,24 @@ const ProfileData: React.FC = () => {
         }));
     }, [selectedCountry, getTimezonesForCountry]);
 
-    // Convert old currency codes to symbols when form loads
-    useEffect(() => {
-        if (selectedCountry && !isEditing && countryTimezoneData) {
-            const currentCurrency = form.watch("currency");
-            const countryDataItem = countryTimezoneData.find((item) => item.country === selectedCountry);
-
-            if (countryDataItem?.currency && currentCurrency) {
-                const expectedCurrencyValue = getCurrencyValue(countryDataItem.currency);
-
-                // Check if current currency needs to be updated to match expected value
-                if (currentCurrency !== expectedCurrencyValue) {
-                    form.setValue("currency", expectedCurrencyValue, { shouldValidate: false, shouldDirty: false });
-                    form.setValue("currencySymbol", expectedCurrencyValue, { shouldValidate: false, shouldDirty: false });
-                }
-            }
-        }
-    }, [selectedCountry, isEditing, form, countryTimezoneData]);
-
-    // Auto-select currency and timezone when country changes
+    // Auto-populate currency and timezone when country changes in edit mode
     useEffect(() => {
         if (selectedCountry && isEditing) {
-            // Auto-select currency and currency symbol
             const countryDataItem = countryTimezoneData?.find((item) => item.country === selectedCountry);
+
             if (countryDataItem?.currency) {
                 const currencyValue = getCurrencyValue(countryDataItem.currency);
-
                 form.setValue("currency", currencyValue, { shouldValidate: true, shouldDirty: true });
-                // Set currencySymbol to the same value for consistency
                 form.setValue("currencySymbol", currencyValue, { shouldValidate: true, shouldDirty: true });
             }
 
-            // Auto-select timezone
-            const countryTimezones: string[] = getTimezonesForCountry(selectedCountry);
+            const countryTimezones = getTimezonesForCountry(selectedCountry);
             if (countryTimezones.length > 0) {
                 const defaultTimezone = countryTimezones[0];
                 form.setValue("timezone", defaultTimezone, { shouldValidate: true, shouldDirty: true });
             }
         }
-    }, [selectedCountry, isEditing, form, countryTimezoneData, getTimezonesForCountry]);
-
-    // Ensure timezone is displayed when user data is available and not editing
-    useEffect(() => {
-        if (user?.timezone && !isEditing && selectedCountry) {
-            // Check if the user's timezone is available for the selected country
-            const countryTimezones: string[] = getTimezonesForCountry(selectedCountry);
-            if (countryTimezones.includes(user.timezone)) {
-                form.setValue("timezone", user.timezone);
-            }
-        }
-    }, [user?.timezone, isEditing, selectedCountry, form, getTimezonesForCountry]);
-
-    // Watch form changes for validation
-    useEffect(() => {
-        const subscription = form.watch(() => {});
-        return () => subscription.unsubscribe();
-    }, [form]);
+    }, [selectedCountry, isEditing]);
 
     // Don't render if user data is not available
     if (!user) {
@@ -286,7 +250,7 @@ const ProfileData: React.FC = () => {
                                 name="phoneNumber"
                                 label="Phone Number"
                                 type="tel"
-                                placeholder="+1 (555) 123-4567"
+                                placeholder="1234567890"
                                 maxLength={20}
                                 disabled={!isEditing}
                             />
