@@ -71,9 +71,9 @@ const ChangePasswordPage: React.FC = () => {
                                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                                     >
                                         {showCurrentPassword ? (
-                                            <EyeOff className="h-4 w-4" />
-                                        ) : (
                                             <Eye className="h-4 w-4" />
+                                        ) : (
+                                            <EyeOff className="h-4 w-4" />
                                         )}
                                     </Button>
                                 </div>
@@ -103,7 +103,7 @@ const ChangePasswordPage: React.FC = () => {
                                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                                         onClick={() => setShowNewPassword(!showNewPassword)}
                                     >
-                                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        {showNewPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                                     </Button>
                                 </div>
                                 {form.formState.errors.newPassword && (
@@ -135,9 +135,9 @@ const ChangePasswordPage: React.FC = () => {
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                     >
                                         {showConfirmPassword ? (
-                                            <EyeOff className="h-4 w-4" />
-                                        ) : (
                                             <Eye className="h-4 w-4" />
+                                        ) : (
+                                            <EyeOff className="h-4 w-4" />
                                         )}
                                     </Button>
                                 </div>
