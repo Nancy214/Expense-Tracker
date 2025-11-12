@@ -57,7 +57,10 @@ export const ZProfileData = z.object({
     currency: z
         .string()
         .min(1, "Currency is required")
-        .regex(/^[A-Z]{3}$/, "Choose a valid currency"),
+        .refine(
+            (val) => /^[A-Z]{3}$/.test(val) || val.length <= 3,
+            "Choose a valid currency"
+        ),
     currencySymbol: z
         .string()
         .transform((val) => (val === "" ? undefined : val))

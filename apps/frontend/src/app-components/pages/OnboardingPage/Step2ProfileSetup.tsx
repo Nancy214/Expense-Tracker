@@ -12,6 +12,7 @@ import { useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
+import { getCurrencyValue } from "@/utils/currency";
 
 interface Step2ProfileSetupProps {
     onNext: () => void;
@@ -83,9 +84,10 @@ const Step2ProfileSetup = ({ onNext, onBack }: Step2ProfileSetupProps) => {
         const country = countries.find((c) => c.code === countryCode);
         const countryDataItem = countryData?.find((c) => c.country === countryCode);
 
-        // Auto-set currency
-        if (countryDataItem?.currency?.code) {
-            setValue("currency", countryDataItem.currency.code);
+        // Auto-set currency - use symbol if available, otherwise use code
+        if (countryDataItem?.currency) {
+            const currencyValue = getCurrencyValue(countryDataItem.currency);
+            setValue("currency", currencyValue);
         }
 
         // Auto-set timezone (first one if multiple available)
@@ -97,9 +99,11 @@ const Step2ProfileSetup = ({ onNext, onBack }: Step2ProfileSetupProps) => {
     const onSubmit = async (data: OnboardingProfileSetup) => {
         setIsSubmitting(true);
         try {
-            // Get the currency symbol from the country data, fallback to currency code if symbol not available
+            // Get the currency symbol from the country data
             const countryDataItem = countryData?.find((c) => c.country === data.country);
-            const currencySymbol = countryDataItem?.currency?.symbol || data.currency;
+            const currencySymbol = countryDataItem?.currency
+                ? getCurrencyValue(countryDataItem.currency)
+                : data.currency;
 
             // Add currency symbol to the data
             const dataWithSymbol = { ...data, currencySymbol };

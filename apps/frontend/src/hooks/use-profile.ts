@@ -293,10 +293,12 @@ export function useProfileMutations(): ProfileMutationsReturn {
 
 /**
  * Custom hook to get the currency symbol from the authenticated user
+ * This uses the centralized currency utility for consistency
  * @returns The currency symbol string (e.g., "$", "₹", "€") or currency code if symbol not available
  */
 export function useCurrencySymbol(): string {
     const { user } = useAuth();
+    // Prefer currencySymbol, fall back to currency field
     return user?.currencySymbol || user?.currency || "";
 }
 

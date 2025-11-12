@@ -63,7 +63,6 @@ const BarChartComponent: React.FC<BarChartProps> = ({
     data,
     colors = COLORS,
     showInsights = true,
-    currency = "$",
     showGrid = true,
     showLegend = true,
     timePeriod = Period.MONTHLY,

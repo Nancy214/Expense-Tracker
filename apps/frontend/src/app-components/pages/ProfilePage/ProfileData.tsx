@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useCountryTimezoneCurrency, useProfileForm } from "@/hooks/use-profile";
+import { getCurrencyValue, getCurrencyLabel } from "@/utils/currency";
 
 const ProfileData: React.FC = () => {
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
@@ -40,7 +41,7 @@ const ProfileData: React.FC = () => {
 
     // Filter currencies based on selected country
     const getCurrenciesForCountry = useCallback(
-        (country: string): Array<{ code: string; name: string }> => {
+        (country: string): Array<{ code: string; name: string; symbol: string }> => {
             if (!country || !countryTimezoneData) return [];
 
             const countryData: CountryTimezoneCurrencyData | undefined = countryTimezoneData.find(
@@ -50,7 +51,7 @@ const ProfileData: React.FC = () => {
 
             // Return the currency for this country
             return [countryData.currency].filter(
-                (currency: { code: string; name: string } | undefined) => currency?.code
+                (currency: { code: string; name: string; symbol: string } | undefined) => currency?.code
             );
         },
         [countryTimezoneData]
@@ -83,9 +84,9 @@ const ProfileData: React.FC = () => {
         }
 
         // Return currencies for the selected country
-        return getCurrenciesForCountry(selectedCountry).map((currency: { code: string; name: string }) => ({
-            value: currency.code || "Not Defined",
-            label: `${currency.name} (${currency.code})`,
+        return getCurrenciesForCountry(selectedCountry).map((currency: { code: string; name: string; symbol: string }) => ({
+            value: getCurrencyValue(currency),
+            label: getCurrencyLabel(currency),
         }));
     }, [selectedCountry, countryTimezoneData, currencies, getCurrenciesForCountry]);
 
@@ -105,22 +106,42 @@ const ProfileData: React.FC = () => {
         }));
     }, [selectedCountry, getTimezonesForCountry]);
 
+    // Convert old currency codes to symbols when form loads
+    useEffect(() => {
+        if (selectedCountry && !isEditing && countryTimezoneData) {
+            const currentCurrency = form.watch("currency");
+            const countryDataItem = countryTimezoneData.find((item) => item.country === selectedCountry);
+
+            if (countryDataItem?.currency && currentCurrency) {
+                const expectedCurrencyValue = getCurrencyValue(countryDataItem.currency);
+
+                // Check if current currency needs to be updated to match expected value
+                if (currentCurrency !== expectedCurrencyValue) {
+                    form.setValue("currency", expectedCurrencyValue, { shouldValidate: false, shouldDirty: false });
+                    form.setValue("currencySymbol", expectedCurrencyValue, { shouldValidate: false, shouldDirty: false });
+                }
+            }
+        }
+    }, [selectedCountry, isEditing, form, countryTimezoneData]);
+
     // Auto-select currency and timezone when country changes
     useEffect(() => {
         if (selectedCountry && isEditing) {
             // Auto-select currency and currency symbol
             const countryDataItem = countryTimezoneData?.find((item) => item.country === selectedCountry);
             if (countryDataItem?.currency) {
-                form.setValue("currency", countryDataItem.currency.code);
-                // Fallback to currency code if symbol is not available
-                form.setValue("currencySymbol", countryDataItem.currency.symbol || countryDataItem.currency.code);
+                const currencyValue = getCurrencyValue(countryDataItem.currency);
+
+                form.setValue("currency", currencyValue, { shouldValidate: true, shouldDirty: true });
+                // Set currencySymbol to the same value for consistency
+                form.setValue("currencySymbol", currencyValue, { shouldValidate: true, shouldDirty: true });
             }
 
             // Auto-select timezone
             const countryTimezones: string[] = getTimezonesForCountry(selectedCountry);
             if (countryTimezones.length > 0) {
                 const defaultTimezone = countryTimezones[0];
-                form.setValue("timezone", defaultTimezone);
+                form.setValue("timezone", defaultTimezone, { shouldValidate: true, shouldDirty: true });
             }
         }
     }, [selectedCountry, isEditing, form, countryTimezoneData, getTimezonesForCountry]);

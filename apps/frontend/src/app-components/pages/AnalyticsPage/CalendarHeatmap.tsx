@@ -66,7 +66,6 @@ const CalendarHeatmapComponent: React.FC<CalendarHeatmapProps> = ({
     title,
     description,
     data,
-    currency = "$",
     colorScale = DEFAULT_COLORS,
     showLegend = true,
     maxValue,

@@ -64,7 +64,6 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     data = [],
     colors = COLORS,
     showInsights = true,
-    currency = "$",
     showGrid = true,
     showLegend = true,
     timePeriod = Period.MONTHLY,
