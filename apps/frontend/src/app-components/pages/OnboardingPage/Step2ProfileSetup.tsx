@@ -12,7 +12,6 @@ import { useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
-import { getCurrencyValue } from "@/utils/currency";
 
 interface Step2ProfileSetupProps {
     onNext: () => void;

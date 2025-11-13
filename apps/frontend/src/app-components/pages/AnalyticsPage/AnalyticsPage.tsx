@@ -8,11 +8,12 @@ import type {
     TransactionOrBill,
 } from "@expense-tracker/shared-types/src";
 import { ChartTypes, Period } from "@expense-tracker/shared-types/src/analytics";
-import { AlertCircle, BarChart3, LineChart, TrendingUp, Calendar } from "lucide-react";
+import { AlertCircle, BarChart3, LineChart, TrendingUp, Calendar, ChevronDown, ChevronUp, TrendingDown } from "lucide-react";
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
@@ -47,8 +48,160 @@ const transformPieDataToBarData = (
     }));
 };
 
-// AnalyticsCard component moved inline
-const AnalyticsCard: React.FC<{
+// Quick Insights Component - Simple summary for consumer users
+const QuickInsights: React.FC<{
+    expenseCategoryData: HorizontalBarData[];
+    billsCategoryData: HorizontalBarData[];
+    incomeExpenseData: BarChartData[];
+    currency: string;
+    isLoading: boolean;
+    onAddTransaction: () => void;
+}> = ({ expenseCategoryData, billsCategoryData, incomeExpenseData, currency, isLoading, onAddTransaction }) => {
+    // Calculate top 3 spending categories
+    const allCategories = [...expenseCategoryData, ...billsCategoryData]
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 3);
+
+    // Calculate spending health (income vs expenses for current period)
+    const totalIncome = incomeExpenseData
+        .filter((item) => item.category === TransactionType.INCOME)
+        .reduce((sum, item) => sum + item.value, 0);
+    const totalExpenses = incomeExpenseData
+        .filter((item) => item.category === TransactionType.EXPENSE)
+        .reduce((sum, item) => sum + item.value, 0);
+
+    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+    const isHealthy = savingsRate >= 20; // 20% savings is considered healthy
+
+    if (isLoading) {
+        return (
+            <Card className="rounded-xl shadow-lg border-slate-200 dark:border-slate-700">
+                <CardContent className="p-6">
+                    <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                        <span>Loading insights...</span>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (allCategories.length === 0) {
+        return (
+            <EmptyState
+                icon={TrendingUp}
+                title="Start Your Financial Journey"
+                description="Add your first transaction to see personalized insights about your spending."
+                action={{
+                    label: "Add Transaction",
+                    onClick: onAddTransaction,
+                }}
+            />
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            {/* Spending Health Indicator */}
+            <Card className="rounded-xl shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800">
+                <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                                Am I spending too much?
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">This month's financial health</p>
+                        </div>
+                        {isHealthy ? (
+                            <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100 border-0">
+                                <TrendingUp className="h-3 w-3 mr-1" />
+                                Healthy
+                            </Badge>
+                        ) : (
+                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-100 border-0">
+                                <TrendingDown className="h-3 w-3 mr-1" />
+                                Watch Out
+                            </Badge>
+                        )}
+                    </div>
+
+                    {/* Simple Progress Bar */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                                Saving {savingsRate.toFixed(0)}% of income
+                            </span>
+                            <span className="text-gray-600 dark:text-gray-400">Target: 20%</span>
+                        </div>
+                        <div className="relative h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                                className={`absolute top-0 left-0 h-full transition-all duration-500 ${
+                                    isHealthy
+                                        ? "bg-gradient-to-r from-green-400 to-green-600"
+                                        : "bg-gradient-to-r from-amber-400 to-amber-600"
+                                }`}
+                                style={{ width: `${Math.min(savingsRate, 100)}%` }}
+                            />
+                            {/* Target line at 20% */}
+                            <div className="absolute top-0 h-full w-0.5 bg-gray-400 dark:bg-gray-500" style={{ left: "20%" }} />
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            {isHealthy
+                                ? "Great job! You're saving more than 20% of your income."
+                                : savingsRate > 0
+                                ? `Try to save ${(20 - savingsRate).toFixed(0)}% more to reach the healthy target.`
+                                : "Consider reducing expenses or increasing income to start saving."}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Top 3 Spending Categories */}
+            <Card className="rounded-xl shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800">
+                <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                        Where is my money going?
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Top 3 spending categories</p>
+
+                    <div className="space-y-3">
+                        {allCategories.map((category, index) => {
+                            const total = allCategories.reduce((sum, c) => sum + c.value, 0);
+                            const percentage = total > 0 ? (category.value / total) * 100 : 0;
+                            const colors = ["bg-blue-500", "bg-purple-500", "bg-orange-500"];
+
+                            return (
+                                <div key={category.name} className="space-y-1">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-3 h-3 rounded-full ${colors[index]}`} />
+                                            <span className="font-medium text-gray-900 dark:text-white">
+                                                {category.name}
+                                            </span>
+                                        </div>
+                                        <span className="text-gray-600 dark:text-gray-400">
+                                            {currency}
+                                            {category.value.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden ml-5">
+                                        <div
+                                            className={`h-full ${colors[index]} transition-all duration-500`}
+                                            style={{ width: `${percentage}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+// Advanced Analytics Component - Full complexity for power users
+const AdvancedAnalytics: React.FC<{
     selectedPeriod: Period;
     onPeriodChange: (period: Period) => void;
     selectedSubPeriod: string;
@@ -58,7 +211,6 @@ const AnalyticsCard: React.FC<{
     incomeExpenseData: BarChartData[];
     savingsTrendData: AreaChartData[];
     isLoading: boolean;
-    hasErrors: boolean;
     currency: string;
     onAddTransaction: () => void;
 }> = ({
@@ -70,39 +222,14 @@ const AnalyticsCard: React.FC<{
     billsCategoryData,
     incomeExpenseData,
     savingsTrendData,
-    isLoading,
-    hasErrors,
     currency,
     onAddTransaction,
 }) => {
-    const [activeTab, setActiveTab] = useState("expenses");
-
-    const tabs = [
-        {
-            id: "expenses",
-            label: "Category Breakdown",
-            icon: BarChart3,
-            description: "Expense and bills categories breakdown and analysis",
-        },
-        {
-            id: "income",
-            label: "Income vs Expenses",
-            icon: BarChart3,
-            description: "Income and expense comparison",
-        },
-        {
-            id: "savings",
-            label: "Savings Trend",
-            icon: LineChart,
-            description: "Savings progression",
-        },
-    ];
-
     return (
-        <Card className="rounded-xl sm:rounded-2xl shadow-xl border-0 bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 overflow-hidden">
-            <CardContent className="p-0">
+        <Card className="rounded-xl shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800">
+            <CardContent className="p-6">
                 {/* Time Period Selector */}
-                <div className="p-3 sm:p-4 md:p-3 pb-3 sm:pb-4">
+                <div className="mb-6">
                     <TimePeriodSelector
                         selectedPeriod={selectedPeriod}
                         onPeriodChange={onPeriodChange}
@@ -111,176 +238,95 @@ const AnalyticsCard: React.FC<{
                     />
                 </div>
 
-                {/* Navigation Tabs */}
-                <div className="px-3 sm:px-4 md:px-3 pb-3 sm:pb-4">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-2 sm:grid-cols-3 bg-slate-100 dark:bg-slate-700 h-auto">
-                            {tabs.map((tab) => {
-                                const Icon = tab.icon;
-                                return (
-                                    <TabsTrigger
-                                        key={tab.id}
-                                        value={tab.id}
-                                        className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-3 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-slate-600 text-xs sm:text-sm"
-                                    >
-                                        <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
-                                        <span className="text-center leading-tight">{tab.label}</span>
-                                    </TabsTrigger>
-                                );
-                            })}
-                        </TabsList>
-
-                        {/* Expenses Tab - Horizontal Bar Charts Only */}
-                        <TabsContent value="expenses" className="mt-4 sm:mt-3 px-3 sm:px-0">
-                            {expenseCategoryData.length > 0 || billsCategoryData.length > 0 ? (
-                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-                                    <HorizontalStackedBarChartComponent
-                                        title="Expense Category Breakdown"
-                                        subtitle="View your expense distribution by category"
-                                        data={transformPieDataToBarData(expenseCategoryData)}
-                                        currency={currency}
-                                    />
-
-                                    <HorizontalStackedBarChartComponent
-                                        title="Bills Category Breakdown"
-                                        subtitle="View your bills distribution by category"
-                                        data={transformPieDataToBarData(billsCategoryData, [
-                                            "#F97316",
-                                            "#14B8A6",
-                                            "#EC4899",
-                                            "#EF4444",
-                                            "#10B981",
-                                        ])}
-                                        currency={currency}
-                                    />
-                                </div>
-                            ) : isLoading ? (
-                                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center">
-                                    <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                                        Loading Category Data
-                                    </h3>
-                                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                                        Loading category data...
-                                    </p>
-                                </div>
-                            ) : (
-                                <EmptyState
-                                    icon={BarChart3}
-                                    title="Start Tracking Your Spending"
-                                    description="Get insights into where your money goes. Add your first expense or bill transaction to see category breakdowns and spending patterns."
-                                    action={{
-                                        label: "Add Your First Transaction",
-                                        onClick: onAddTransaction,
-                                    }}
-                                />
-                            )}
-                        </TabsContent>
-
-                        {/* Income Tab - Bar Chart Only */}
-                        <TabsContent value="income" className="mt-4 sm:mt-3 px-3 sm:px-0">
-                            {incomeExpenseData.length > 0 ? (
-                                <BarChartComponent
-                                    title="Income vs Expenses Overview"
-                                    description="Compare your income and expenses over time"
-                                    data={incomeExpenseData}
+                {/* Category Breakdowns */}
+                <div className="space-y-6">
+                    <div>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                            Category Breakdown
+                        </h3>
+                        {expenseCategoryData.length > 0 || billsCategoryData.length > 0 ? (
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                <HorizontalStackedBarChartComponent
+                                    title="Expense Categories"
+                                    subtitle="Your expense distribution"
+                                    data={transformPieDataToBarData(expenseCategoryData)}
                                     currency={currency}
-                                    showInsights={true}
-                                    xAxisLabel="Time Period"
-                                    yAxisLabel="Amount"
-                                    timePeriod={selectedPeriod}
-                                    subPeriod={selectedSubPeriod}
                                 />
-                            ) : isLoading ? (
-                                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center">
-                                    <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                                        Loading Data
-                                    </h3>
-                                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                                        Loading income and expense data...
-                                    </p>
-                                </div>
-                            ) : (
-                                <EmptyState
-                                    icon={TrendingUp}
-                                    title="Visualize Your Cash Flow"
-                                    description="Compare your income and expenses to understand your financial health. Start by adding income and expense transactions."
-                                    action={{
-                                        label: "Add Transaction",
-                                        onClick: onAddTransaction,
-                                    }}
+                                <HorizontalStackedBarChartComponent
+                                    title="Bills Categories"
+                                    subtitle="Your bills distribution"
+                                    data={transformPieDataToBarData(billsCategoryData, [
+                                        "#F97316",
+                                        "#14B8A6",
+                                        "#EC4899",
+                                        "#EF4444",
+                                        "#10B981",
+                                    ])}
+                                    currency={currency}
                                 />
-                            )}
-                        </TabsContent>
-
-                        {/* Savings Tab - Area Chart Only */}
-                        <TabsContent value="savings" className="mt-4 sm:mt-3 px-3 sm:px-0">
-                            {savingsTrendData.length > 0 ? (
-                                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-2 sm:p-4 border border-slate-200 dark:border-slate-600">
-                                    <AreaChartComponent
-                                        title="Savings Trend"
-                                        description="Track your savings progress over time"
-                                        data={savingsTrendData}
-                                        currency={currency}
-                                        showInsights={true}
-                                        xAxisLabel="Month"
-                                        yAxisLabel="Amount"
-                                        timePeriod={selectedPeriod}
-                                        subPeriod={selectedSubPeriod}
-                                    />
-                                </div>
-                            ) : isLoading ? (
-                                <div className="bg-white dark:bg-slate-800/50 rounded-xl p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-600 text-center">
-                                    <LineChart className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                                        Loading Data
-                                    </h3>
-                                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                                        Loading savings data...
-                                    </p>
-                                </div>
-                            ) : (
-                                <EmptyState
-                                    icon={LineChart}
-                                    title="Track Your Savings Journey"
-                                    description="Monitor how much you're saving over time. Add income and expense transactions to see your savings trend grow."
-                                    action={{
-                                        label: "Add Transaction",
-                                        onClick: onAddTransaction,
-                                    }}
-                                />
-                            )}
-                        </TabsContent>
-                    </Tabs>
-                </div>
-
-                {/* Loading State */}
-                {isLoading && (
-                    <div className="p-4 sm:p-6 text-center">
-                        <div className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                            <span className="text-sm sm:text-base">Loading analytics data...</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Error State */}
-                {hasErrors && (
-                    <div className="p-4 sm:p-6">
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 sm:p-4">
-                            <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
-                                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
-                                <span className="font-semibold text-sm sm:text-base">
-                                    Unable to load analytics data
-                                </span>
                             </div>
-                            <p className="text-red-600 dark:text-red-300 mt-2 text-xs sm:text-sm">
-                                Please try refreshing the page or contact support if the issue persists.
-                            </p>
-                        </div>
+                        ) : (
+                            <EmptyState
+                                icon={BarChart3}
+                                title="No Category Data"
+                                description="Add transactions to see category breakdowns."
+                                action={{ label: "Add Transaction", onClick: onAddTransaction }}
+                            />
+                        )}
                     </div>
-                )}
+
+                    {/* Income vs Expenses */}
+                    <div>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                            Income vs Expenses
+                        </h3>
+                        {incomeExpenseData.length > 0 ? (
+                            <BarChartComponent
+                                title="Income vs Expenses"
+                                description="Compare your income and expenses"
+                                data={incomeExpenseData}
+                                currency={currency}
+                                showInsights={true}
+                                xAxisLabel="Time Period"
+                                yAxisLabel="Amount"
+                                timePeriod={selectedPeriod}
+                                subPeriod={selectedSubPeriod}
+                            />
+                        ) : (
+                            <EmptyState
+                                icon={TrendingUp}
+                                title="No Income/Expense Data"
+                                description="Add transactions to see your cash flow."
+                                action={{ label: "Add Transaction", onClick: onAddTransaction }}
+                            />
+                        )}
+                    </div>
+
+                    {/* Savings Trend */}
+                    <div>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3">Savings Trend</h3>
+                        {savingsTrendData.length > 0 ? (
+                            <AreaChartComponent
+                                title="Savings Over Time"
+                                description="Track your savings progress"
+                                data={savingsTrendData}
+                                currency={currency}
+                                showInsights={true}
+                                xAxisLabel="Month"
+                                yAxisLabel="Amount"
+                                timePeriod={selectedPeriod}
+                                subPeriod={selectedSubPeriod}
+                            />
+                        ) : (
+                            <EmptyState
+                                icon={LineChart}
+                                title="No Savings Data"
+                                description="Add income and expense transactions to see your savings trend."
+                                action={{ label: "Add Transaction", onClick: onAddTransaction }}
+                            />
+                        )}
+                    </div>
+                </div>
             </CardContent>
         </Card>
     );
@@ -289,10 +335,11 @@ const AnalyticsCard: React.FC<{
 const AnalyticsPage = () => {
     const { user } = useAuth();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [showAdvancedView, setShowAdvancedView] = useState(false);
     const { isLoading: expensesLoading } = useExpenses();
     const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactionsForAnalytics();
 
-    // Time period selector state
+    // Time period selector state - Default to MONTHLY only
     const [selectedPeriod, setSelectedPeriod] = useState<Period>(Period.MONTHLY);
     const [selectedSubPeriod, setSelectedSubPeriod] = useState<string>(() => {
         // Initialize with current month as default
@@ -391,16 +438,37 @@ const AnalyticsPage = () => {
         allTransactionsLoading;
 
     return (
-        <div className="p-3 sm:p-4 md:p-6 lg:p-4 max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
+        <div className="p-3 sm:p-4 md:p-6 lg:p-4 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+            {/* Header with Advanced View Toggle */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
                 <div>
                     <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                         Analytics & Insights
                     </h1>
                     <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                        Visualize your financial health and trends at a glance.
+                        {showAdvancedView
+                            ? "Advanced analytics and detailed reports"
+                            : "Your financial health at a glance"}
                     </p>
                 </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAdvancedView(!showAdvancedView)}
+                    className="flex items-center gap-2"
+                >
+                    {showAdvancedView ? (
+                        <>
+                            <ChevronUp className="h-4 w-4" />
+                            Simple View
+                        </>
+                    ) : (
+                        <>
+                            <ChevronDown className="h-4 w-4" />
+                            Advanced View
+                        </>
+                    )}
+                </Button>
             </div>
 
             {/* Error Alert */}
@@ -417,62 +485,74 @@ const AnalyticsPage = () => {
                 </Alert>
             )}
 
-            {/* Account Statistics Component */}
-            {/* <AccountStatistics /> */}
-
-            {/* Expense Activity Heatmap */}
-            {expenseHeatmapData.length > 0 ? (
-                <CalendarHeatmapComponent
-                    title="Expense Activity Heatmap"
-                    description="Track your daily expense activity throughout the year"
-                    data={expenseHeatmapData}
+            {/* Conditional Rendering: Simple View (default) or Advanced View */}
+            {!showAdvancedView ? (
+                // Simple View - Quick Insights
+                <QuickInsights
+                    expenseCategoryData={expenseCategoryData}
+                    billsCategoryData={billsCategoryData}
+                    incomeExpenseData={incomeExpenseData}
                     currency={user?.currencySymbol || user?.currency || "₹"}
-                    showInsights={true}
-                    showLegend={true}
+                    isLoading={isLoading}
+                    onAddTransaction={() => setIsDialogOpen(true)}
                 />
             ) : (
-                <Card className="rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl transition">
-                    <CardHeader className="p-4 sm:p-6">
-                        <CardTitle className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100">
-                            Expense Activity Heatmap
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0">
-                        {isLoading ? (
-                            <p className="text-xs sm:text-sm text-muted-foreground text-center">
-                                Loading expense data...
-                            </p>
-                        ) : (
-                            <EmptyState
-                                icon={Calendar}
-                                title="See Your Spending Patterns"
-                                description="Visualize your daily expense activity throughout the year. Add expenses to see when you spend the most."
-                                action={{
-                                    label: "Add Your First Expense",
-                                    onClick: () => setIsDialogOpen(true),
-                                }}
-                                className="border-0"
-                            />
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+                // Advanced View - Full Analytics
+                <>
+                    {/* Expense Activity Heatmap - Only in Advanced View */}
+                    {expenseHeatmapData.length > 0 ? (
+                        <CalendarHeatmapComponent
+                            title="Expense Activity Heatmap"
+                            description="Track your daily expense activity throughout the year"
+                            data={expenseHeatmapData}
+                            currency={user?.currencySymbol || user?.currency || "₹"}
+                            showInsights={true}
+                            showLegend={true}
+                        />
+                    ) : (
+                        <Card className="rounded-xl shadow-lg">
+                            <CardHeader className="p-4 sm:p-6">
+                                <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                                    Expense Activity Heatmap
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 sm:p-6 pt-0">
+                                {isLoading ? (
+                                    <p className="text-sm text-muted-foreground text-center">
+                                        Loading expense data...
+                                    </p>
+                                ) : (
+                                    <EmptyState
+                                        icon={Calendar}
+                                        title="See Your Spending Patterns"
+                                        description="Visualize your daily expense activity throughout the year. Add expenses to see when you spend the most."
+                                        action={{
+                                            label: "Add Your First Expense",
+                                            onClick: () => setIsDialogOpen(true),
+                                        }}
+                                        className="border-0"
+                                    />
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
-            {/* Main Analytics Card */}
-            <AnalyticsCard
-                selectedPeriod={selectedPeriod}
-                onPeriodChange={setSelectedPeriod}
-                selectedSubPeriod={selectedSubPeriod}
-                onSubPeriodChange={setSelectedSubPeriod}
-                expenseCategoryData={expenseCategoryData}
-                billsCategoryData={billsCategoryData}
-                incomeExpenseData={incomeExpenseData}
-                savingsTrendData={savingsTrendData}
-                isLoading={isLoading}
-                hasErrors={!!hasErrors}
-                currency={user?.currencySymbol || user?.currency || "₹"}
-                onAddTransaction={() => setIsDialogOpen(true)}
-            />
+                    {/* Advanced Analytics Component */}
+                    <AdvancedAnalytics
+                        selectedPeriod={selectedPeriod}
+                        onPeriodChange={setSelectedPeriod}
+                        selectedSubPeriod={selectedSubPeriod}
+                        onSubPeriodChange={setSelectedSubPeriod}
+                        expenseCategoryData={expenseCategoryData}
+                        billsCategoryData={billsCategoryData}
+                        incomeExpenseData={incomeExpenseData}
+                        savingsTrendData={savingsTrendData}
+                        isLoading={isLoading}
+                        currency={user?.currencySymbol || user?.currency || "₹"}
+                        onAddTransaction={() => setIsDialogOpen(true)}
+                    />
+                </>
+            )}
 
             {/* Add Transaction Dialog */}
             <AddExpenseDialog

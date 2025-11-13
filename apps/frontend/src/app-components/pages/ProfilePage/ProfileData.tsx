@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useCountryTimezoneCurrency, useProfileForm } from "@/hooks/use-profile";
-import { getCurrencyValue, getCurrencyLabel } from "@/utils/currency";
+import { getCurrencyLabel } from "@/utils/currency";
 
 const ProfileData: React.FC = () => {
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
