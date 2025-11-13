@@ -426,7 +426,7 @@ const AnalyticsPage = () => {
                     title="Expense Activity Heatmap"
                     description="Track your daily expense activity throughout the year"
                     data={expenseHeatmapData}
-                    currency={user?.currency || "INR"}
+                    currency={user?.currencySymbol || user?.currency || "₹"}
                     showInsights={true}
                     showLegend={true}
                 />
@@ -470,7 +470,7 @@ const AnalyticsPage = () => {
                 savingsTrendData={savingsTrendData}
                 isLoading={isLoading}
                 hasErrors={!!hasErrors}
-                currency={user?.currency || "INR"}
+                currency={user?.currencySymbol || user?.currency || "₹"}
                 onAddTransaction={() => setIsDialogOpen(true)}
             />
 

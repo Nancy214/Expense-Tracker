@@ -255,7 +255,7 @@ const Step3FirstBudget = ({
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <Label htmlFor="amount" className="text-sm font-medium text-gray-700">
-                            Amount ({user?.currency || "USD"}) <span className="text-red-500">*</span>
+                            Amount ({user?.currencySymbol || user?.currency || "$"}) <span className="text-red-500">*</span>
                         </Label>
                         <TooltipProvider>
                             <Tooltip>
@@ -285,7 +285,7 @@ const Step3FirstBudget = ({
                     {errors.amount && <p className="text-sm text-red-600 mt-1">{errors.amount.message}</p>}
                     {selectedCategory && (
                         <p className="text-xs text-gray-500 mt-1">
-                            💡 Suggested amount: {user?.currency || "USD"}{" "}
+                            💡 Suggested amount: {user?.currencySymbol || user?.currency || "$"}{" "}
                             {categoryOptions.find((opt) => opt.value === selectedCategory)?.suggestion}
                         </p>
                     )}

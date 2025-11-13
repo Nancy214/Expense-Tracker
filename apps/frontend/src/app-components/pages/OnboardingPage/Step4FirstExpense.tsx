@@ -153,7 +153,7 @@ const Step4FirstExpense = ({ onNext, onBack, budget, initialFormData, onFormData
                     <p className="text-sm text-slate-900">
                         <span className="font-medium">Your {budget.category} Budget:</span>{" "}
                         <span className="text-green-700">
-                            {user?.currency || "USD"} {budget.amount} / {budget.recurrence}
+                            {user?.currencySymbol || user?.currency || "$"} {budget.amount} / {budget.recurrence}
                         </span>
                     </p>
                 </div>
@@ -219,7 +219,7 @@ const Step4FirstExpense = ({ onNext, onBack, budget, initialFormData, onFormData
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <Label htmlFor="amount" className="text-sm font-medium text-gray-700">
-                                Amount ({user?.currency || "USD"}) <span className="text-red-500">*</span>
+                                Amount ({user?.currencySymbol || user?.currency || "$"}) <span className="text-red-500">*</span>
                             </Label>
                         </div>
                         <Controller

@@ -182,6 +182,7 @@ export function useProfileMutations(): ProfileMutationsReturn {
                 phoneNumber: data.phoneNumber,
                 dateOfBirth: data.dateOfBirth,
                 currency: data.currency,
+                currencySymbol: data.currencySymbol,
                 country: data.country,
                 timezone: data.timezone,
                 settings: data.settings

@@ -400,7 +400,7 @@ export class TransactionDAO {
         // Prepare transaction data with proper date conversion
         const expenseData: any = {
             ...transactionData,
-            userId: userId,
+            userId: new Types.ObjectId(userId),
             // Convert date string to Date object
             date: parseDateFromAPI(transactionData.date),
         };
@@ -455,7 +455,9 @@ export class TransactionDAO {
         updateData: TransactionOrBill
     ): Promise<TransactionOrBillDocument | null> {
         // Prepare update data with proper date conversion
-        const updatePayload: any = { ...updateData };
+        // Exclude userId from update payload - it should never be changed
+        const { userId: _, ...updateDataWithoutUserId } = updateData as any;
+        const updatePayload: any = { ...updateDataWithoutUserId };
 
         try {
             // Convert date string to Date object
