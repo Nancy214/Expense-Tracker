@@ -114,8 +114,8 @@ export const getExpensesById = async (req: Request, res: Response): Promise<void
 };
 
 export const createExpense = async (req: Request, res: Response): Promise<void> => {
+    const userId = (req as AuthRequest).user?.id;
     try {
-        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json(createErrorResponse("User not authenticated"));
             return;
@@ -124,7 +124,7 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
         const expense = await transactionService.createExpense(userId, req.body);
         res.json(expense);
     } catch (error: unknown) {
-        logError("createExpense", error);
+        logError("createExpense", error, userId);
         res.status(500).json(createErrorResponse("Failed to create expense."));
     }
 };

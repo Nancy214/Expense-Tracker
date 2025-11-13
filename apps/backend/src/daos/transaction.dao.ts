@@ -49,7 +49,8 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, use
             // Bills do not currently support endDate; generate up to today
             const end: Date = today;
 
-            const { id: _id, ...rest } = template;
+            // Exclude both id and _id from template to prevent MongoDB immutable field errors
+            const { id, _id, ...rest } = template as any;
             const templateData = rest;
 
             // Skip creating an instance on the start date to avoid duplicate for the initial bill
@@ -100,7 +101,8 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, use
         const providedEnd: Date | undefined = template.endDate ? new Date(template.endDate) : undefined;
         const end: Date = providedEnd && !isAfter(startOfDay(providedEnd), startOfDay(today)) ? providedEnd : today;
 
-        const { id: _id, ...rest } = template;
+        // Exclude both id and _id from template to prevent MongoDB immutable field errors
+        const { id, _id, ...rest } = template as any;
         const templateData = rest;
 
         while (!isAfter(startOfDay(current), startOfDay(end))) {
@@ -397,40 +399,43 @@ export class TransactionDAO {
         userId: string,
         transactionData: TransactionOrBill
     ): Promise<TransactionOrBillDocument> {
+        // Exclude id/_id from transactionData to prevent MongoDB immutable field error
+        const { id: _id, ...dataWithoutId } = transactionData as any;
+
         // Prepare transaction data with proper date conversion
         const expenseData: any = {
-            ...transactionData,
+            ...dataWithoutId,
             userId: new Types.ObjectId(userId),
             // Convert date string to Date object
-            date: parseDateFromAPI(transactionData.date),
+            date: parseDateFromAPI(dataWithoutId.date),
         };
 
         // Convert endDate if it exists (only for regular transactions, not bills)
-        if ("endDate" in transactionData && transactionData.endDate) {
-            expenseData.endDate = parseDateFromAPI(transactionData.endDate);
+        if ("endDate" in dataWithoutId && dataWithoutId.endDate) {
+            expenseData.endDate = parseDateFromAPI(dataWithoutId.endDate);
         }
 
         // If it's a bill, handle bill-specific fields
-        if (transactionData.category === "Bills" && isBillDocument(transactionData)) {
+        if (dataWithoutId.category === "Bills" && isBillDocument(dataWithoutId)) {
             // Convert dueDate to Date object
-            if (transactionData.dueDate) {
-                expenseData.dueDate = parseDateFromAPI(transactionData.dueDate);
+            if (dataWithoutId.dueDate) {
+                expenseData.dueDate = parseDateFromAPI(dataWithoutId.dueDate);
             }
 
             // Convert nextDueDate if it exists
-            if (transactionData.nextDueDate) {
-                expenseData.nextDueDate = parseDateFromAPI(transactionData.nextDueDate);
+            if (dataWithoutId.nextDueDate) {
+                expenseData.nextDueDate = parseDateFromAPI(dataWithoutId.nextDueDate);
             }
 
             // Convert lastPaidDate if it exists
-            if (transactionData.lastPaidDate) {
-                expenseData.lastPaidDate = parseDateFromAPI(transactionData.lastPaidDate);
+            if (dataWithoutId.lastPaidDate) {
+                expenseData.lastPaidDate = parseDateFromAPI(dataWithoutId.lastPaidDate);
             }
 
             // Calculate nextDueDate automatically if not provided
-            if (transactionData.dueDate && transactionData.billFrequency && !transactionData.nextDueDate) {
-                const dueDate = parseDateFromAPI(transactionData.dueDate);
-                const frequency: BillFrequency = transactionData.billFrequency;
+            if (dataWithoutId.dueDate && dataWithoutId.billFrequency && !dataWithoutId.nextDueDate) {
+                const dueDate = parseDateFromAPI(dataWithoutId.dueDate);
+                const frequency: BillFrequency = dataWithoutId.billFrequency;
                 const nextDueDate = calculateNextDueDate(dueDate, frequency);
                 expenseData.nextDueDate = nextDueDate;
             }
