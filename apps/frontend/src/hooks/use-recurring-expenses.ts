@@ -188,6 +188,11 @@ export function useRecurringExpenseMutations(): UseRecurringExpenseMutationsRetu
             queryClient.invalidateQueries({
                 queryKey: RECURRING_EXPENSE_QUERY_KEYS.recurringTemplates,
             });
+            // Invalidate analytics queries so the analytics page refreshes automatically
+            queryClient.invalidateQueries({
+                queryKey: ["analytics"],
+                exact: false,
+            });
         },
         onError: () => {
             showSaveError(toast, "Recurring Expense");
@@ -206,6 +211,11 @@ export function useRecurringExpenseMutations(): UseRecurringExpenseMutationsRetu
             queryClient.invalidateQueries({
                 queryKey: RECURRING_EXPENSE_QUERY_KEYS.recurringTemplates,
             });
+            // Invalidate analytics queries so the analytics page refreshes automatically
+            queryClient.invalidateQueries({
+                queryKey: ["analytics"],
+                exact: false,
+            });
         },
         onError: () => {
             showSaveError(toast, "Recurring Expense");
@@ -222,6 +232,11 @@ export function useRecurringExpenseMutations(): UseRecurringExpenseMutationsRetu
             // Invalidate all related queries
             queryClient.invalidateQueries({
                 queryKey: RECURRING_EXPENSE_QUERY_KEYS.recurringTemplates,
+            });
+            // Invalidate analytics queries so the analytics page refreshes automatically
+            queryClient.invalidateQueries({
+                queryKey: ["analytics"],
+                exact: false,
             });
         },
         onError: () => {
@@ -243,6 +258,11 @@ export function useRecurringExpenseMutations(): UseRecurringExpenseMutationsRetu
             // Invalidate all related queries
             queryClient.invalidateQueries({
                 queryKey: RECURRING_EXPENSE_QUERY_KEYS.recurringTemplates,
+            });
+            // Invalidate analytics queries so the analytics page refreshes automatically
+            queryClient.invalidateQueries({
+                queryKey: ["analytics"],
+                exact: false,
             });
         },
         onError: () => {

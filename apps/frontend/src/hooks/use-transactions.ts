@@ -188,6 +188,11 @@ export function useTransactionMutations(): TransactionMutationsReturn {
         queryClient.invalidateQueries({
             queryKey: [...QUERY_KEYS.allTransactions, "analytics"],
         });
+        // Invalidate all analytics queries so the analytics page refreshes automatically
+        queryClient.invalidateQueries({
+            queryKey: ["analytics"],
+            exact: false,
+        });
     };
 
     const createMutation = useMutation<TransactionResponse, Error, TransactionOrBill>({

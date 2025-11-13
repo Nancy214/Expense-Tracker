@@ -558,10 +558,6 @@ const AnalyticsPage = () => {
             <AddExpenseDialog
                 open={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
-                onSuccess={() => {
-                    // Refresh data after adding transaction
-                    window.location.reload();
-                }}
             />
         </div>
     );

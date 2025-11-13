@@ -100,6 +100,11 @@ export function useDeleteOperations({
                 queryClient.invalidateQueries({
                     queryKey: RECURRING_TEMPLATES_QUERY_KEY,
                 }),
+                // Invalidate analytics queries so the analytics page refreshes automatically
+                queryClient.invalidateQueries({
+                    queryKey: ["analytics"],
+                    exact: false,
+                }),
             ]);
         } catch (error: unknown) {
             console.error("Error deleting expense:", error);
@@ -135,6 +140,11 @@ export function useDeleteOperations({
                     }),
                     queryClient.invalidateQueries({
                         queryKey: RECURRING_TEMPLATES_QUERY_KEY,
+                    }),
+                    // Invalidate analytics queries so the analytics page refreshes automatically
+                    queryClient.invalidateQueries({
+                        queryKey: ["analytics"],
+                        exact: false,
                     }),
                 ]);
             } catch (error: unknown) {
@@ -180,6 +190,11 @@ export function useDeleteOperations({
                 }),
                 queryClient.invalidateQueries({
                     queryKey: RECURRING_TEMPLATES_QUERY_KEY,
+                }),
+                // Invalidate analytics queries so the analytics page refreshes automatically
+                queryClient.invalidateQueries({
+                    queryKey: ["analytics"],
+                    exact: false,
                 }),
             ]);
             if (onRefresh) {
