@@ -58,10 +58,10 @@ export class BudgetService {
         }
 
         // Normalize types for DAO (expects Date for startDate)
-        const preparedData: BudgetFormData = {
+        const preparedData = {
             ...budgetData,
-            startDate: startDate.toString(),
-        };
+            startDate: parseDateFromAPI(startDate),
+        } as any;
 
         // Update the budget using DAO
         const updatedBudget = await BudgetDAO.updateBudget(userId, id, preparedData);
@@ -70,12 +70,16 @@ export class BudgetService {
         }
 
         // Detect changes and create log
-        // Convert oldBudget to BudgetFormData format for comparison
-        const oldBudgetForComparison: BudgetFormData = {
+        // Convert both budgets to a comparable format for change detection
+        const oldBudgetForComparison = {
             ...oldBudget,
-            startDate: oldBudget.startDate.toISOString().split("T")[0], // Convert Date to YYYY-MM-DD string
+            startDate: oldBudget.startDate, // Keep as Date object
         };
-        const changes = BudgetDAO.detectBudgetChanges(oldBudgetForComparison, preparedData);
+        const newBudgetForComparison = {
+            ...preparedData,
+            startDate: preparedData.startDate, // Already a Date object from parseDateFromAPI
+        };
+        const changes = BudgetDAO.detectBudgetChanges(oldBudgetForComparison, newBudgetForComparison);
 
         if (changes.length > 0) {
             await BudgetDAO.createBudgetLog(updatedBudget.id, userId, "updated", changes, reason || "Budget update");
