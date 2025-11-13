@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useBudgetForm } from "@/hooks/useBudgetForm";
+import { normalizeUserCurrency } from "@/utils/currency";
 
 export interface AddBudgetDialogProps {
     open: boolean;
@@ -78,11 +79,13 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
 
     useEffect(() => {
         if (watchedCurrency) {
-            setShowExchangeRate(watchedCurrency !== user?.currency);
+            const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
+            const shouldShow = watchedCurrency !== userCurrency;
+            setShowExchangeRate(shouldShow);
         } else {
             setShowExchangeRate(false);
         }
-    }, [watchedCurrency, user?.currency]);
+    }, [watchedCurrency, user?.currency, user?.currencySymbol]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

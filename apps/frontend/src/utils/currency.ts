@@ -11,9 +11,30 @@ export function getCurrencyValue(currency: { code: string; symbol: string; name:
     if (!currency) return "";
 
     // Use symbol if it exists and is not empty/null, otherwise use code
-    return currency.symbol && currency.symbol.trim() !== ""
-        ? currency.symbol
-        : currency.code;
+    return currency.symbol && currency.symbol.trim() !== "" ? currency.symbol : currency.code;
+}
+
+/**
+ * Normalize user currency to always return a valid 3-letter currency code
+ * This handles legacy data where symbols might have been stored instead of codes
+ *
+ * @param currency - The currency field from user object
+ * @param currencySymbol - The currencySymbol field from user object (fallback)
+ * @returns A valid 3-letter currency code or "INR" as default
+ */
+export function normalizeUserCurrency(currency?: string, currencySymbol?: string): string {
+    // If currency is a valid 3-letter code, use it
+    if (currency && /^[A-Z]{3}$/.test(currency)) {
+        return currency;
+    }
+
+    // Otherwise check if currencySymbol is a valid code
+    if (currencySymbol && /^[A-Z]{3}$/.test(currencySymbol)) {
+        return currencySymbol;
+    }
+
+    // Default to INR
+    return "INR";
 }
 
 /**

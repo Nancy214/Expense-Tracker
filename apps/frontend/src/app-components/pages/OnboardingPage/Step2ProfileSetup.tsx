@@ -84,10 +84,9 @@ const Step2ProfileSetup = ({ onNext, onBack }: Step2ProfileSetupProps) => {
         const country = countries.find((c) => c.code === countryCode);
         const countryDataItem = countryData?.find((c) => c.country === countryCode);
 
-        // Auto-set currency - use symbol if available, otherwise use code
+        // Auto-set currency - always use the currency CODE, not the symbol
         if (countryDataItem?.currency) {
-            const currencyValue = getCurrencyValue(countryDataItem.currency);
-            setValue("currency", currencyValue);
+            setValue("currency", countryDataItem.currency.code);
         }
 
         // Auto-set timezone (first one if multiple available)
@@ -101,14 +100,15 @@ const Step2ProfileSetup = ({ onNext, onBack }: Step2ProfileSetupProps) => {
         try {
             // Get the currency symbol from the country data
             const countryDataItem = countryData?.find((c) => c.country === data.country);
-            const currencySymbol = countryDataItem?.currency
-                ? getCurrencyValue(countryDataItem.currency)
-                : data.currency;
+            const currencySymbol = countryDataItem?.currency?.symbol || countryDataItem?.currency?.code || data.currency;
 
-            // Add currency symbol to the data
-            const dataWithSymbol = { ...data, currencySymbol };
+            // Ensure currency is the code, not the symbol
+            const currencyCode = countryDataItem?.currency?.code || data.currency;
 
-            const updatedUser = await updateProfile(dataWithSymbol);
+            // Add currency code and symbol to the data
+            const dataWithCurrency = { ...data, currency: currencyCode, currencySymbol };
+
+            const updatedUser = await updateProfile(dataWithCurrency);
             if (updatedUser) {
                 updateUser(updatedUser);
             }

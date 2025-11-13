@@ -83,11 +83,11 @@ const ProfileData: React.FC = () => {
             return [];
         }
 
-        // Return currencies for the selected country
+        // Return currencies for the selected country - use CODE as value, formatted label for display
         return getCurrenciesForCountry(selectedCountry).map(
             (currency: { code: string; name: string; symbol: string }) => ({
-                value: getCurrencyValue(currency),
-                label: getCurrencyLabel(currency),
+                value: currency.code, // Store currency CODE
+                label: getCurrencyLabel(currency), // Display with symbol and name
             })
         );
     }, [selectedCountry, countryTimezoneData, currencies, getCurrenciesForCountry]);
@@ -114,9 +114,11 @@ const ProfileData: React.FC = () => {
             const countryDataItem = countryTimezoneData?.find((item) => item.country === selectedCountry);
 
             if (countryDataItem?.currency) {
-                const currencyValue = getCurrencyValue(countryDataItem.currency);
-                form.setValue("currency", currencyValue, { shouldValidate: true, shouldDirty: true });
-                form.setValue("currencySymbol", currencyValue, { shouldValidate: true, shouldDirty: true });
+                // Store currency CODE in currency field, symbol in currencySymbol field
+                const currencyCode = countryDataItem.currency.code;
+                const currencySymbol = countryDataItem.currency.symbol || countryDataItem.currency.code;
+                form.setValue("currency", currencyCode, { shouldValidate: true, shouldDirty: true });
+                form.setValue("currencySymbol", currencySymbol, { shouldValidate: true, shouldDirty: true });
             }
 
             const countryTimezones = getTimezonesForCountry(selectedCountry);

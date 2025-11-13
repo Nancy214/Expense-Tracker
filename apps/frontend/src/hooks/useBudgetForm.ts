@@ -12,6 +12,7 @@ import { type UseFormReturn, useForm } from "react-hook-form";
 import { useAuth } from "@/context/AuthContext";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeUserCurrency } from "@/utils/currency";
 
 /**
  * Props for the useBudgetForm hook
@@ -41,18 +42,22 @@ interface UseBudgetFormReturn {
     isEditing: boolean;
 }
 
-type HasCurrency = { currency?: string };
-export const getDefaultValues = (user?: HasCurrency): BudgetFormData => ({
-    title: "",
-    amount: 0,
-    currency: user?.currency || "INR",
-    fromRate: 1,
-    toRate: 1,
-    recurrence: BudgetRecurrence.MONTHLY,
-    startDate: format(new Date(), "dd/MM/yyyy"),
-    category: BudgetCategory.ALL_CATEGORIES,
-    reason: undefined,
-});
+type HasCurrency = { currency?: string; currencySymbol?: string };
+export const getDefaultValues = (user?: HasCurrency): BudgetFormData => {
+    const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
+
+    return {
+        title: "",
+        amount: 0,
+        currency: userCurrency,
+        fromRate: 1,
+        toRate: 1,
+        recurrence: BudgetRecurrence.MONTHLY,
+        startDate: format(new Date(), "dd/MM/yyyy"),
+        category: BudgetCategory.ALL_CATEGORIES,
+        reason: undefined,
+    };
+};
 
 /**
  * Custom hook for managing budget form state and operations
