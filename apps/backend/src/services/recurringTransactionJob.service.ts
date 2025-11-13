@@ -1,4 +1,4 @@
-import type { TransactionOrBill } from "@expense-tracker/shared-types/src";
+import type { TransactionOrBill } from "@expense-tracker/shared-types";
 import { Types } from "mongoose";
 import { TransactionModel } from "../models/transaction.model";
 import { User } from "../models/user.model";
@@ -141,9 +141,7 @@ export class RecurringTransactionJobService {
 
             if (!existingInstance) {
                 await RecurringTransactionJobService.createRecurringInstance(template, todayDate, userId);
-                console.log(
-                    `[RecurringTransactionJob] Created new instance for transaction ${template.id} on ${todayInUserTimezone}`
-                );
+
                 return { created: true };
             }
         }

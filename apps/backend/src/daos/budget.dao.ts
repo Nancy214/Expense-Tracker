@@ -5,7 +5,7 @@ import type {
     BudgetProgress,
     BudgetType,
     Transaction,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import {
     endOfDay,
     endOfMonth,
@@ -283,7 +283,6 @@ export class BudgetDAO {
         budgets = await BudgetDAO.findBudgetsByUserId(userId);
 
         if (budgets.length === 0) {
-            console.log("No budgets found");
             return {
                 budgets: [],
                 totalProgress: 0,
@@ -358,8 +357,9 @@ export class BudgetDAO {
 
     /**
      * Compare old and new budget values to detect changes
+     * Both oldBudget and newBudgetData should have startDate as Date objects
      */
-    static detectBudgetChanges(oldBudget: BudgetFormData, newBudgetData: BudgetFormData): BudgetChange[] {
+    static detectBudgetChanges(oldBudget: any, newBudgetData: any): BudgetChange[] {
         const changes: BudgetChange[] = [];
 
         if (oldBudget.title !== newBudgetData.title) {
@@ -383,7 +383,10 @@ export class BudgetDAO {
                 newValue: newBudgetData.recurrence,
             });
         }
-        if (oldBudget.startDate.toString() !== new Date(newBudgetData.startDate).toString()) {
+        // Compare dates properly - both should be Date objects at this point
+        const oldDate = oldBudget.startDate instanceof Date ? oldBudget.startDate : new Date(oldBudget.startDate);
+        const newDate = newBudgetData.startDate instanceof Date ? newBudgetData.startDate : new Date(newBudgetData.startDate);
+        if (oldDate.getTime() !== newDate.getTime()) {
             changes.push({
                 field: "startDate",
                 oldValue: oldBudget.startDate,

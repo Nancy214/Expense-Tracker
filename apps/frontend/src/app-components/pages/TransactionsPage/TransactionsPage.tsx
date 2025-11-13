@@ -16,11 +16,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useBills } from "@/hooks/use-bills";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
 import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
+    const currencySymbol = useCurrencySymbol();
     const [searchParams] = useSearchParams();
 
     // Separate pagination state for each tab
@@ -119,36 +121,22 @@ const TransactionsPage = () => {
         setAllTransactionsPage(1);
     };
 
+    // Handle tab change with pagination reset
+    const handleTabChange = (newTab: "all" | "recurring" | "bills") => {
+        setActiveTab(newTab);
+        // Reset all pagination when switching tabs
+        setAllTransactionsPage(1);
+        setRecurringTransactionsPage(1);
+        setBillsPage(1);
+    };
+
     // Handle URL parameter for tab
     useEffect(() => {
         const tabParam = searchParams.get("tab");
         if (tabParam === "bills") {
-            setActiveTab("bills");
+            handleTabChange("bills");
         }
     }, [searchParams]);
-
-    // Reset to first page when tab changes
-    useEffect(() => {
-        // Reset pagination for the tab being switched to
-        switch (activeTab) {
-            case "all":
-                setAllTransactionsPage(1);
-                break;
-            case "recurring":
-                setRecurringTransactionsPage(1);
-                break;
-            case "bills":
-                setBillsPage(1);
-                break;
-        }
-    }, [activeTab]);
-
-    // Clear preselected category when dialog closes
-    useEffect(() => {
-        if (!isDialogOpen) {
-            setPreselectedCategory(undefined);
-        }
-    }, [isDialogOpen]);
 
     // Helper to get a Date object from transaction.date
     const getTransactionDate = (t: TransactionOrBill): Date => {
@@ -294,19 +282,7 @@ const TransactionsPage = () => {
         return monthsArr;
     }, [allTransactions]);
 
-    const currencySymbols: Record<string, string> = {
-        INR: "₹",
-        USD: "$",
-        EUR: "€",
-        GBP: "£",
-        JPY: "¥",
-        CAD: "C$",
-        AUD: "A$",
-        CHF: "CHF",
-        CNY: "¥",
-        KRW: "₩",
-    };
-    const symbol = currencySymbols[user?.currency || "INR"] || user?.currency || "INR";
+    const symbol = currencySymbol;
 
     // Export functionality
     const handleExport = () => {
@@ -566,7 +542,7 @@ const TransactionsPage = () => {
                 totalExpensesByCurrency={totalExpensesByCurrency}
                 parse={parse}
                 activeTab={activeTab as ActiveTab}
-                setActiveTab={setActiveTab}
+                setActiveTab={handleTabChange}
                 refreshAllTransactions={refreshAllTransactions}
                 // Pagination props - use the correct pagination based on active tab
                 currentPage={getCurrentPage()}
@@ -594,6 +570,7 @@ const TransactionsPage = () => {
                 // Recurring templates from API
                 recurringTemplates={apiRecurringTemplates}
                 onFiltersChange={handleFiltersChange}
+                onAddTransaction={() => setIsDialogOpen(true)}
             />
 
             <AddExpenseDialog
@@ -602,6 +579,7 @@ const TransactionsPage = () => {
                     setIsDialogOpen(open);
                     if (!open) {
                         setEditingExpense(null);
+                        setPreselectedCategory(undefined);
                     }
                 }}
                 editingExpense={editingExpense}

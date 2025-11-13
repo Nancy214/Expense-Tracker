@@ -9,7 +9,7 @@ import {
     type Row,
     useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, CheckCircle, Clock, Pencil, Receipt, Repeat, Star, Trash } from "lucide-react";
+import { ArrowUpDown, CheckCircle, Clock, Pencil, Receipt, Repeat, Star, Trash, FileText } from "lucide-react";
 import { useMemo } from "react";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
+import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
@@ -27,6 +29,7 @@ interface TabComponentProps {
     readonly showRecurringIcon?: boolean;
     readonly showRecurringBadge?: boolean;
     readonly refreshAllTransactions?: () => void;
+    readonly onAddTransaction?: () => void;
 }
 
 export function AllTransactionsTab({
@@ -35,7 +38,9 @@ export function AllTransactionsTab({
     showRecurringIcon = false,
     showRecurringBadge = false,
     refreshAllTransactions,
+    onAddTransaction,
 }: TabComponentProps) {
+    const currencySymbol = useCurrencySymbol();
     const { toast } = useToast();
 
     const {
@@ -236,28 +241,14 @@ export function AllTransactionsTab({
                 },
                 cell: ({ row }: { row: Row<TransactionOrBill> }) => {
                     const amount: number = parseFloat(row.getValue("amount"));
-                    const currency: string = row.original.currency || "INR";
                     const type: string = row.original.type || "expense";
-                    const currencySymbols: Record<string, string> = {
-                        INR: "₹",
-                        USD: "$",
-                        EUR: "€",
-                        GBP: "£",
-                        JPY: "¥",
-                        CAD: "C$",
-                        AUD: "A$",
-                        CHF: "CHF",
-                        CNY: "¥",
-                        KRW: "₩",
-                    };
-                    const symbol: string = currencySymbols[currency] || currency;
                     return (
                         <div
                             className={`text-right font-medium ${
                                 type === "income" ? "text-green-600" : "text-red-600"
                             }`}
                         >
-                            {symbol}
+                            {currencySymbol}
                             {amount.toFixed(2)}
                         </div>
                     );
@@ -358,7 +349,19 @@ export function AllTransactionsTab({
     return (
         <>
             {table.getRowModel().rows?.length === 0 ? (
-                <p className="text-gray-500">No transactions found.</p>
+                <EmptyState
+                    icon={FileText}
+                    title="No Transactions Yet"
+                    description="Start tracking your finances by adding your first transaction. Record expenses, income, or bills to get insights."
+                    action={
+                        onAddTransaction
+                            ? {
+                                  label: "Add Your First Transaction",
+                                  onClick: onAddTransaction,
+                              }
+                            : undefined
+                    }
+                />
             ) : (
                 <div className="rounded-md border w-full overflow-hidden">
                     <Table>

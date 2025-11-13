@@ -1,4 +1,4 @@
-import { Period, type TokenPayload } from "@expense-tracker/shared-types/src";
+import { Period, type TokenPayload } from "@expense-tracker/shared-types";
 import type { Request, Response } from "express";
 import { AnalyticsService } from "../services/analytics.service";
 import { createErrorResponse, logError } from "../services/error.service";

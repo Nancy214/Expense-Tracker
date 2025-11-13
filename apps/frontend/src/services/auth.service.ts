@@ -71,7 +71,6 @@ authApi.interceptors.response.use(
 );
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    console.log(API_URL);
     try {
         const response: AxiosResponse<AuthResponse> = await authApi.post("/login", credentials);
         const tokens = response.data;
@@ -103,18 +102,7 @@ export const logout = async (): Promise<void> => {
 
 export const register = async (credentials: RegisterCredentials): Promise<AuthResponse> => {
     try {
-        // Create FormData for multipart/form-data
-        const formData = new FormData();
-        formData.append("email", credentials.email);
-        formData.append("name", credentials.name || "");
-        formData.append("password", credentials.password);
-
-        const response: AxiosResponse<AuthResponse> = await authApi.post("/register", formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-                withCredentials: true,
-            },
-        });
+        const response: AxiosResponse<AuthResponse> = await authApi.post("/register", credentials);
 
         const tokens = response.data;
         storeTokens(tokens);

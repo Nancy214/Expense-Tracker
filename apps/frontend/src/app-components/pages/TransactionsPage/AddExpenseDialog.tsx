@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTransactionForm, useTransactionMutations } from "@/hooks/use-transactions";
 import { deleteReceipt, uploadReceipt } from "@/services/transaction.service";
 import { showSaveError } from "@/utils/toastUtils";
+import { normalizeUserCurrency } from "@/utils/currency";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
 // Form handling type - with string dates for UI
@@ -125,11 +126,13 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
     useEffect(() => {
         if (currency) {
-            setShowExchangeRate(currency !== user?.currency);
+            const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
+            const shouldShow = currency !== userCurrency;
+            setShowExchangeRate(shouldShow);
         } else {
             setShowExchangeRate(false);
         }
-    }, [currency, user?.currency]);
+    }, [currency, user?.currency, user?.currencySymbol]);
 
     // Reset form when dialog opens or editingExpense changes
     useEffect(() => {

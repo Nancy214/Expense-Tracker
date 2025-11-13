@@ -1,7 +1,7 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { AuthenticatedUser, SettingsType, UserType } from "@expense-tracker/shared-types/src/auth";
-import type { CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types/src/profile";
+import type { AuthenticatedUser, SettingsType, UserType } from "@expense-tracker/shared-types";
+import type { CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types";
 import crypto from "crypto";
 import dotenv from "dotenv";
 import sharp from "sharp";
@@ -72,6 +72,7 @@ export class ProfileService {
             phoneNumber: userDoc.phoneNumber || "",
             dateOfBirth: userDoc.dateOfBirth || "",
             currency: userDoc.currency || "",
+            currencySymbol: userDoc.currencySymbol || "",
             country: userDoc.country || "",
             timezone: userDoc.timezone || "",
             /* budget: userDoc.budget || false,
@@ -95,7 +96,7 @@ export class ProfileService {
         const currentUser = await ProfileDAO.findUserProfilePicture(userId);
         const oldProfilePictureKey: string | undefined = currentUser?.profilePicture;
 
-        const { name, email, phoneNumber, dateOfBirth, currency, country, timezone }: ProfileData = profileData;
+        const { name, email, phoneNumber, dateOfBirth, currency, currencySymbol, country, timezone }: any = profileData;
 
         // Check if email is being changed and if it's already taken
         if (email) {
@@ -105,7 +106,7 @@ export class ProfileService {
             }
         }
 
-        const updateData: ProfileData = {
+        const updateData: any = {
             name,
             email,
             phoneNumber,
@@ -114,6 +115,9 @@ export class ProfileService {
             country,
             timezone,
         };
+
+        // Add currencySymbol - use currency code as fallback if symbol is not provided or empty
+        updateData.currencySymbol = currencySymbol || currency;
 
         if (file) {
             // Check if AWS is properly configured
@@ -195,6 +199,7 @@ export class ProfileService {
             phoneNumber: updatedUser.phoneNumber || "",
             dateOfBirth: updatedUser.dateOfBirth || "",
             currency: updatedUser.currency || "",
+            currencySymbol: updatedUser.currencySymbol || "",
             country: updatedUser.country || "",
             timezone: updatedUser.timezone || "",
             /* budget: updatedUser.budget || false,

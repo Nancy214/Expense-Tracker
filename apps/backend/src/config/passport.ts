@@ -1,4 +1,4 @@
-import type { UserType } from "@expense-tracker/shared-types/src";
+import type { UserType } from "@expense-tracker/shared-types";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import passport from "passport";

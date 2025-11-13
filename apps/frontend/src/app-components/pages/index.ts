@@ -23,6 +23,15 @@ export { default as CalendarPage } from "./CalendarPage/CalendarPage";
 // Home Pages
 export { default as DashboardPage } from "./DashboardPage/DashboardPage";
 export { default as LandingPage } from "./LandingPage/LandingPage";
+
+// Onboarding Pages
+export { default as OnboardingContainer } from "./OnboardingPage/OnboardingContainer";
+export { default as Step1Welcome } from "./OnboardingPage/Step1Welcome";
+export { default as Step2ProfileSetup } from "./OnboardingPage/Step2ProfileSetup";
+export { default as Step3FirstBudget } from "./OnboardingPage/Step3FirstBudget";
+export { default as Step4FirstExpense } from "./OnboardingPage/Step4FirstExpense";
+export { default as OnboardingCompletion } from "./OnboardingPage/OnboardingCompletion";
+
 export { default as ProfileData } from "./ProfilePage/ProfileData";
 // Profile Pages
 export { default as ProfilePage } from "./ProfilePage/ProfilePage";

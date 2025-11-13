@@ -10,6 +10,7 @@ import {
     LandingPage,
     LoginPage,
     LogoutPage,
+    OnboardingContainer,
     ProfilePage,
     RegisterPage,
     ResetPasswordPage,
@@ -75,6 +76,11 @@ const routes: RouteConfig[] = [
         requireAuth: false,
     },
     {
+        path: "/onboarding",
+        element: <OnboardingContainer />,
+        requireAuth: true,
+    },
+    {
         path: "/auth/google/callback",
         element: <GoogleCallback />,
         requireAuth: false,
@@ -125,7 +131,8 @@ export const RouteGuard = ({ children }: { children: React.ReactNode }) => {
     }
 
     // Allow authenticated users to access landing page, but redirect from login/register
-    if (!currentRoute.requireAuth && isAuthenticated && location.pathname !== "/") {
+    // Don't redirect from register page to allow navigation to onboarding
+    if (!currentRoute.requireAuth && isAuthenticated && location.pathname !== "/" && location.pathname !== "/register") {
         return <Navigate to="/dashboard" replace />;
     }
 

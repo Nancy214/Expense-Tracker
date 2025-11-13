@@ -91,6 +91,7 @@ export const useLoginForm = (): UseLoginFormReturn => {
 // Register hook
 export const useRegisterForm = (): UseRegisterFormReturn => {
     const navigate = useNavigate();
+    const { updateUser } = useAuth();
     const [error, setError] = useState<string>("");
 
     const form: UseFormReturn<RegisterCredentials> = useForm<RegisterCredentials>({
@@ -106,8 +107,12 @@ export const useRegisterForm = (): UseRegisterFormReturn => {
         setError("");
 
         try {
-            await register(data);
-            navigate("/login");
+            const response = await register(data);
+            // Store user data in localStorage and update auth context
+            localStorage.setItem("user", JSON.stringify(response.user));
+            updateUser(response.user);
+            // Navigate to onboarding - RouteGuard will handle the redirect
+            navigate("/onboarding");
         } catch (error: unknown) {
             const apiError = error as ApiError;
             const errorMessage: string = apiError.message || "Failed to register. Please try again.";

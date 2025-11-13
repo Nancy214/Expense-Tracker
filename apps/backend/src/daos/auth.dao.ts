@@ -1,4 +1,4 @@
-import type { JwtPayload, RegisterCredentials, SettingsType, UserType } from "@expense-tracker/shared-types/src";
+import type { JwtPayload, RegisterCredentials, SettingsType, UserType } from "@expense-tracker/shared-types";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Settings, User } from "../models/user.model";

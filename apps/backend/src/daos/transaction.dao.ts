@@ -8,7 +8,7 @@ import type {
     Transaction,
     TransactionOrBill,
     TransactionSummary,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import { startOfToday, startOfDay, isAfter, addMonths, addQuarters, addYears } from "date-fns";
 import { parseDateFromAPI, addTimeByFrequency } from "../utils/dateUtils";
 
@@ -21,9 +21,6 @@ const isBillDocument = (doc: TransactionOrBillDocument): doc is Bill => {
 
 // Helper function to calculate next due date for bills
 const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): Date => {
-    console.log("currentDueDate", currentDueDate);
-    console.log("frequency", frequency);
-    console.log(addMonths(currentDueDate, 1));
     switch (frequency) {
         case "monthly":
             return addMonths(currentDueDate, 1);
@@ -52,7 +49,8 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, use
             // Bills do not currently support endDate; generate up to today
             const end: Date = today;
 
-            const { id: _id, ...rest } = template;
+            // Exclude both id and _id from template to prevent MongoDB immutable field errors
+            const { id, _id, ...rest } = template as any;
             const templateData = rest;
 
             // Skip creating an instance on the start date to avoid duplicate for the initial bill
@@ -103,7 +101,8 @@ const createRecurringInstances = async (template: TransactionOrBillDocument, use
         const providedEnd: Date | undefined = template.endDate ? new Date(template.endDate) : undefined;
         const end: Date = providedEnd && !isAfter(startOfDay(providedEnd), startOfDay(today)) ? providedEnd : today;
 
-        const { id: _id, ...rest } = template;
+        // Exclude both id and _id from template to prevent MongoDB immutable field errors
+        const { id, _id, ...rest } = template as any;
         const templateData = rest;
 
         while (!isAfter(startOfDay(current), startOfDay(end))) {
@@ -183,7 +182,6 @@ export class TransactionDAO {
         page: number;
         limit: number;
     }> {
-        console.log("getAllTransactions", query);
         const page: number = parseInt(query.page || "1");
         const limit: number = parseInt(query.limit || "20");
         const skip: number = (page - 1) * limit;
@@ -401,40 +399,43 @@ export class TransactionDAO {
         userId: string,
         transactionData: TransactionOrBill
     ): Promise<TransactionOrBillDocument> {
+        // Exclude id/_id from transactionData to prevent MongoDB immutable field error
+        const { id: _id, ...dataWithoutId } = transactionData as any;
+
         // Prepare transaction data with proper date conversion
         const expenseData: any = {
-            ...transactionData,
-            userId: userId,
+            ...dataWithoutId,
+            userId: new Types.ObjectId(userId),
             // Convert date string to Date object
-            date: parseDateFromAPI(transactionData.date),
+            date: parseDateFromAPI(dataWithoutId.date),
         };
 
         // Convert endDate if it exists (only for regular transactions, not bills)
-        if ("endDate" in transactionData && transactionData.endDate) {
-            expenseData.endDate = parseDateFromAPI(transactionData.endDate);
+        if ("endDate" in dataWithoutId && dataWithoutId.endDate) {
+            expenseData.endDate = parseDateFromAPI(dataWithoutId.endDate);
         }
 
         // If it's a bill, handle bill-specific fields
-        if (transactionData.category === "Bills" && isBillDocument(transactionData)) {
+        if (dataWithoutId.category === "Bills" && isBillDocument(dataWithoutId)) {
             // Convert dueDate to Date object
-            if (transactionData.dueDate) {
-                expenseData.dueDate = parseDateFromAPI(transactionData.dueDate);
+            if (dataWithoutId.dueDate) {
+                expenseData.dueDate = parseDateFromAPI(dataWithoutId.dueDate);
             }
 
             // Convert nextDueDate if it exists
-            if (transactionData.nextDueDate) {
-                expenseData.nextDueDate = parseDateFromAPI(transactionData.nextDueDate);
+            if (dataWithoutId.nextDueDate) {
+                expenseData.nextDueDate = parseDateFromAPI(dataWithoutId.nextDueDate);
             }
 
             // Convert lastPaidDate if it exists
-            if (transactionData.lastPaidDate) {
-                expenseData.lastPaidDate = parseDateFromAPI(transactionData.lastPaidDate);
+            if (dataWithoutId.lastPaidDate) {
+                expenseData.lastPaidDate = parseDateFromAPI(dataWithoutId.lastPaidDate);
             }
 
             // Calculate nextDueDate automatically if not provided
-            if (transactionData.dueDate && transactionData.billFrequency && !transactionData.nextDueDate) {
-                const dueDate = parseDateFromAPI(transactionData.dueDate);
-                const frequency: BillFrequency = transactionData.billFrequency;
+            if (dataWithoutId.dueDate && dataWithoutId.billFrequency && !dataWithoutId.nextDueDate) {
+                const dueDate = parseDateFromAPI(dataWithoutId.dueDate);
+                const frequency: BillFrequency = dataWithoutId.billFrequency;
                 const nextDueDate = calculateNextDueDate(dueDate, frequency);
                 expenseData.nextDueDate = nextDueDate;
             }
@@ -459,46 +460,57 @@ export class TransactionDAO {
         updateData: TransactionOrBill
     ): Promise<TransactionOrBillDocument | null> {
         // Prepare update data with proper date conversion
-        const updatePayload: any = { ...updateData };
+        // Exclude userId from update payload - it should never be changed
+        const { userId: _, ...updateDataWithoutUserId } = updateData as any;
+        const updatePayload: any = { ...updateDataWithoutUserId };
 
-        // Convert date string to Date object
-        if (updateData.date) {
-            updatePayload.date = parseDateFromAPI(updateData.date);
+        try {
+            // Convert date string to Date object
+            if (updateData.date) {
+                updatePayload.date = parseDateFromAPI(updateData.date);
+            }
+
+            // Convert endDate if it exists (only for regular transactions, not bills)
+            if ("endDate" in updateData && updateData.endDate) {
+                updatePayload.endDate = parseDateFromAPI(updateData.endDate);
+            }
+
+            // If it's a bill update, handle bill-specific fields
+            if (updateData.category === "Bills" && isBillDocument(updateData)) {
+                // Convert dueDate to Date object
+                if (updateData.dueDate) {
+                    updatePayload.dueDate = parseDateFromAPI(updateData.dueDate);
+                }
+
+                // Convert nextDueDate if it exists
+                if (updateData.nextDueDate) {
+                    updatePayload.nextDueDate = parseDateFromAPI(updateData.nextDueDate);
+                }
+
+                // Convert lastPaidDate if it exists
+                if (updateData.lastPaidDate) {
+                    updatePayload.lastPaidDate = parseDateFromAPI(updateData.lastPaidDate);
+                }
+
+                // Calculate nextDueDate automatically if not provided
+                if (updateData.dueDate && updateData.billFrequency && !updateData.nextDueDate) {
+                    const dueDate = parseDateFromAPI(updateData.dueDate);
+                    const frequency = updateData.billFrequency;
+                    const nextDueDate = calculateNextDueDate(dueDate, frequency);
+                    updatePayload.nextDueDate = nextDueDate;
+                }
+            }
+        } catch (error) {
+            console.error("Error parsing dates in updateTransaction:", error);
+            throw new Error(`Invalid date format: ${error instanceof Error ? error.message : "Unknown error"}`);
         }
 
-        // Convert endDate if it exists (only for regular transactions, not bills)
-        if ("endDate" in updateData && updateData.endDate) {
-            updatePayload.endDate = parseDateFromAPI(updateData.endDate);
-        }
-
-        // If it's a bill update, handle bill-specific fields
-        if (updateData.category === "Bills" && isBillDocument(updateData)) {
-            // Convert dueDate to Date object
-            if (updateData.dueDate) {
-                updatePayload.dueDate = parseDateFromAPI(updateData.dueDate);
-            }
-
-            // Convert nextDueDate if it exists
-            if (updateData.nextDueDate) {
-                updatePayload.nextDueDate = parseDateFromAPI(updateData.nextDueDate);
-            }
-
-            // Convert lastPaidDate if it exists
-            if (updateData.lastPaidDate) {
-                updatePayload.lastPaidDate = parseDateFromAPI(updateData.lastPaidDate);
-            }
-
-            // Calculate nextDueDate automatically if not provided
-            if (updateData.dueDate && updateData.billFrequency && !updateData.nextDueDate) {
-                const dueDate = parseDateFromAPI(updateData.dueDate);
-                const frequency = updateData.billFrequency;
-                const nextDueDate = calculateNextDueDate(dueDate, frequency);
-                updatePayload.nextDueDate = nextDueDate;
-            }
-        }
-
-        const expense: TransactionOrBillDocument | null = await TransactionModel.findByIdAndUpdate(
-            new Types.ObjectId(transactionId),
+        // SECURITY FIX: Include userId in the query to ensure users can only update their own transactions
+        const expense: TransactionOrBillDocument | null = await TransactionModel.findOneAndUpdate(
+            {
+                _id: new Types.ObjectId(transactionId),
+                userId: new Types.ObjectId(userId),
+            },
             updatePayload,
             {
                 new: true,
@@ -506,8 +518,12 @@ export class TransactionDAO {
         );
 
         if (expense) {
-            // Create recurring instances
-            await createRecurringInstances(expense, new Types.ObjectId(userId));
+            try {
+                await createRecurringInstances(expense, new Types.ObjectId(userId));
+            } catch (recurringError) {
+                console.error("Error creating recurring instances:", recurringError);
+                throw recurringError;
+            }
         }
 
         return expense;

@@ -17,8 +17,12 @@ export const ZUserType = z.object({
     phoneNumber: z.string().optional(),
     dateOfBirth: z.string().optional(),
     currency: z.string().optional(),
+    currencySymbol: z.string().optional(),
     country: z.string().optional(),
     timezone: z.string().optional(),
+    hasCompletedOnboarding: z.boolean().optional(),
+    onboardingCompletedAt: z.date().optional(),
+    onboardingStep: z.number().optional(),
     settings: ZUserSettings.optional(),
 });
 
@@ -183,3 +187,28 @@ export const ZPasswordResponse = z.object({
 });
 
 export type PasswordResponse = z.infer<typeof ZPasswordResponse>;
+
+// Onboarding schemas
+export const ZOnboardingProfileSetup = z.object({
+    name: z.string().min(1, "Name is required"),
+    country: z.string().min(1, "Country is required"),
+    currency: z.string().min(1, "Currency is required"),
+    currencySymbol: z.string().optional(),
+    timezone: z.string().min(1, "Timezone is required"),
+});
+
+export type OnboardingProfileSetup = z.infer<typeof ZOnboardingProfileSetup>;
+
+export const ZOnboardingProgress = z.object({
+    step: z.number().min(0).max(4),
+});
+
+export type OnboardingProgress = z.infer<typeof ZOnboardingProgress>;
+
+export const ZOnboardingStatus = z.object({
+    hasCompletedOnboarding: z.boolean(),
+    onboardingStep: z.number(),
+    onboardingCompletedAt: z.date().nullable(),
+});
+
+export type OnboardingStatus = z.infer<typeof ZOnboardingStatus>;

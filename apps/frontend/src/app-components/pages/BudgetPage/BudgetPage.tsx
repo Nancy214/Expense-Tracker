@@ -4,19 +4,21 @@ import {
     type BudgetType,
     ProgressColor,
 } from "@expense-tracker/shared-types/src";
-import { AlertTriangle, Edit, History, Plus, Trash2, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Edit, History, Plus, Trash2, TrendingUp, Wallet, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
 import BudgetLogs from "@/app-components/pages/BudgetPage/BudgetLogs";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 const BudgetPage: React.FC = () => {
@@ -32,6 +34,7 @@ const BudgetPage: React.FC = () => {
     const [showBudgetHistory, setShowBudgetHistory] = useState(false);
 
     const { toast } = useToast();
+    const currencySymbol = useCurrencySymbol();
     const { budgets = [], budgetProgress = { budgets: [] }, isBudgetsLoading: isLoading, budgetsError } = useBudgets();
 
     const {
@@ -100,10 +103,7 @@ const BudgetPage: React.FC = () => {
     };
 
     const formatAmount = (amount: number): string => {
-        return new Intl.NumberFormat("en-IN", {
-            style: "currency",
-            currency: "INR",
-        }).format(amount);
+        return `${currencySymbol}${amount.toFixed(2)}`;
     };
 
     const getProgressColor = (progress: number, isOverBudget: boolean): ProgressColor => {
@@ -113,11 +113,46 @@ const BudgetPage: React.FC = () => {
         return ProgressColor.SUCCESS;
     };
 
+    const getProgressStatus = (progress: number, isOverBudget: boolean): { label: string; description: string } => {
+        if (isOverBudget) return { label: "Over Budget", description: "Spending has exceeded the budget limit" };
+        if (progress >= 80) return { label: "High Spending", description: "Approaching budget limit (80% or more)" };
+        if (progress >= 60) return { label: "Moderate Spending", description: "On track (60-80% of budget)" };
+        return { label: "Low Spending", description: "Well within budget (less than 60%)" };
+    };
+
     const getProgressIcon = (progress: number, isOverBudget: boolean): React.ReactElement => {
-        if (isOverBudget) return <AlertTriangle className="h-4 w-4 text-red-500" />;
-        if (progress >= 80) return <TrendingUp className="h-4 w-4 text-yellow-500" />;
-        if (progress >= 60) return <TrendingUp className="h-4 w-4 text-blue-500" />;
-        return <TrendingDown className="h-4 w-4 text-green-500" />;
+        const status = getProgressStatus(progress, isOverBudget);
+
+        if (isOverBudget) {
+            return (
+                <div className="flex items-center gap-1" aria-label={status.description}>
+                    <XCircle className="h-4 w-4 text-red-500" aria-hidden="true" />
+                    <span className="sr-only">{status.description}</span>
+                </div>
+            );
+        }
+        if (progress >= 80) {
+            return (
+                <div className="flex items-center gap-1" aria-label={status.description}>
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" aria-hidden="true" />
+                    <span className="sr-only">{status.description}</span>
+                </div>
+            );
+        }
+        if (progress >= 60) {
+            return (
+                <div className="flex items-center gap-1" aria-label={status.description}>
+                    <TrendingUp className="h-4 w-4 text-blue-500" aria-hidden="true" />
+                    <span className="sr-only">{status.description}</span>
+                </div>
+            );
+        }
+        return (
+            <div className="flex items-center gap-1" aria-label={status.description}>
+                <CheckCircle2 className="h-4 w-4 text-green-500" aria-hidden="true" />
+                <span className="sr-only">{status.description}</span>
+            </div>
+        );
     };
 
     if (isLoading) {
@@ -234,14 +269,15 @@ const BudgetPage: React.FC = () => {
                 />
 
                 {budgets.length === 0 ? (
-                    <Card>
-                        <CardContent className="flex items-center justify-center p-12">
-                            <div className="text-center">
-                                <p className="text-lg text-gray-600 mb-4">No budgets found</p>
-                                <Button onClick={handleAddBudget}>Create your first budget</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        icon={Wallet}
+                        title="Take Control of Your Spending"
+                        description="Set spending limits for different categories to stay on track with your financial goals. Create your first budget to get started."
+                        action={{
+                            label: "Create Your First Budget",
+                            onClick: handleAddBudget,
+                        }}
+                    />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {budgets.map((budget: BudgetType) => {
@@ -259,7 +295,7 @@ const BudgetPage: React.FC = () => {
                                                     {formatAmount(budget.amount)}
                                                 </div>
                                                 <CardDescription>
-                                                    {formatRecurrence(budget.recurrence)} Budget
+                                                    {formatRecurrence(budget.recurrence as BudgetRecurrence)} Budget
                                                 </CardDescription>
                                             </div>
                                             <div className="flex gap-1">
@@ -277,12 +313,26 @@ const BudgetPage: React.FC = () => {
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-sm font-medium">Progress</span>
-                                                    {getProgressIcon(progress.progress, progress.isOverBudget)}
+                                                    <div className="flex items-center gap-2">
+                                                        {getProgressIcon(progress.progress, progress.isOverBudget)}
+                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                            {
+                                                                getProgressStatus(
+                                                                    progress.progress,
+                                                                    progress.isOverBudget
+                                                                ).label
+                                                            }
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <Progress
                                                     value={progress.progress}
                                                     variant={getProgressColor(progress.progress, progress.isOverBudget)}
                                                     className="h-2"
+                                                    aria-label={`Budget progress: ${progress.progress.toFixed(1)}% - ${
+                                                        getProgressStatus(progress.progress, progress.isOverBudget)
+                                                            .description
+                                                    }`}
                                                 />
                                                 <div className="flex justify-between text-xs text-gray-500">
                                                     <span>Spent: {formatAmount(progress.totalSpent)}</span>
@@ -292,7 +342,11 @@ const BudgetPage: React.FC = () => {
                                                     {progress.expensesCount} transactions this recurrence
                                                 </div>
                                                 {progress.isOverBudget && (
-                                                    <div className="text-xs text-red-500 font-medium">
+                                                    <div
+                                                        className="flex items-center gap-1 text-xs text-red-500 font-medium"
+                                                        role="alert"
+                                                    >
+                                                        <XCircle className="h-3 w-3" aria-hidden="true" />
                                                         Over budget by {formatAmount(Math.abs(progress.remaining))}
                                                     </div>
                                                 )}
@@ -344,7 +398,7 @@ const BudgetPage: React.FC = () => {
                 message={
                     budgetToDelete
                         ? `Are you sure you want to delete the ${formatRecurrence(
-                              budgetToDelete.recurrence
+                              budgetToDelete.recurrence as BudgetRecurrence
                           )} budget of ${formatAmount(budgetToDelete.amount)} for ${
                               budgetToDelete.category
                           }? This action cannot be undone.`

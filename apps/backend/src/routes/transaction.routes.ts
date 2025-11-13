@@ -1,4 +1,4 @@
-import { ZBillStatus, ZReceiptKey, ZTransactionIdParam, ZTransactionOrBill } from "@expense-tracker/shared-types/src";
+import { ZBillStatus, ZReceiptKey, ZTransactionIdParam, ZTransactionOrBill } from "@expense-tracker/shared-types";
 import { Router } from "express";
 import { upload } from "../config/multer";
 import {

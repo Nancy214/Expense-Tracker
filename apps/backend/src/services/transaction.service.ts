@@ -5,7 +5,7 @@ import type {
     PaginatedResponse,
     PaginationQuery,
     TransactionOrBill,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import path from "path";

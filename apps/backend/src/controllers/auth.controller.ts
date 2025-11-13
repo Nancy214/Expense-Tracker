@@ -9,7 +9,7 @@ import type {
     UserLocalType,
     UserType,
     ApiError,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import type { NextFunction, Request, Response } from "express";
 import passport from "passport";
 import { AuthService } from "../services/auth.service";
@@ -46,9 +46,7 @@ export const login = (req: Request, res: Response, next: NextFunction): void => 
             }
 
             try {
-                console.log("Processing login for user:", { id: (user as any)._id, email: user.email });
                 const loginResponse = await authService.processLogin(user);
-                console.log("Login successful for user:", user.email);
                 res.status(200).json(loginResponse);
             } catch (error: unknown) {
                 console.error("Login processing error details:", error);

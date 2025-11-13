@@ -9,7 +9,7 @@ import {
 } from "@expense-tracker/shared-types/src";
 import { format } from "date-fns";
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { DataTable } from "@/app-components/pages/TransactionsPage/DataTable";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,7 @@ interface FiltersSectionProps {
         dateRange?: { from?: Date; to?: Date };
         searchQuery?: string;
     }) => void;
+    readonly onAddTransaction?: () => void;
 }
 
 export function FiltersSection({
@@ -95,6 +96,7 @@ export function FiltersSection({
     recurringTemplates,
     isLoading = false,
     onFiltersChange,
+    onAddTransaction,
 }: FiltersSectionProps) {
     // Filter-related state variables
     const [selectedCategories, setSelectedCategories] = useState<string[]>(["all"]);
@@ -148,7 +150,7 @@ export function FiltersSection({
     };
 
     // Notify parent when filters change
-    React.useEffect(() => {
+    useEffect(() => {
         notifyFiltersChange();
     }, [selectedCategories, selectedTypes, dateRangeForFilter, searchQuery]);
 
@@ -312,6 +314,7 @@ export function FiltersSection({
                         totalItems={totalItems}
                         itemsPerPage={itemsPerPage}
                         isLoading={isLoading}
+                        onAddTransaction={onAddTransaction}
                         apiRecurringTemplates={recurringTemplates?.map((template) => ({
                             ...template,
                             endDate: template.endDate

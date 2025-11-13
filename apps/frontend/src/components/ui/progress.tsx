@@ -15,6 +15,14 @@ const Progress = React.forwardRef<React.ElementRef<typeof ProgressPrimitive.Root
 			danger: "bg-red-600",
 		};
 
+		// Add pattern classes for better accessibility (helps colorblind users)
+		const patternClasses = {
+			default: "",
+			success: "after:content-[''] after:absolute after:inset-0 after:opacity-20 after:bg-[linear-gradient(45deg,transparent_25%,currentColor_25%,currentColor_50%,transparent_50%,transparent_75%,currentColor_75%,currentColor)] after:bg-[length:4px_4px]",
+			warning: "after:content-[''] after:absolute after:inset-0 after:opacity-30 after:bg-[repeating-linear-gradient(90deg,currentColor_0px,currentColor_2px,transparent_2px,transparent_4px)]",
+			danger: "after:content-[''] after:absolute after:inset-0 after:opacity-30 after:bg-[repeating-linear-gradient(135deg,currentColor_0px,currentColor_2px,transparent_2px,transparent_6px)]",
+		};
+
 		return (
 			<ProgressPrimitive.Root
 				ref={ref}
@@ -22,7 +30,7 @@ const Progress = React.forwardRef<React.ElementRef<typeof ProgressPrimitive.Root
 				{...props}
 			>
 				<ProgressPrimitive.Indicator
-					className={cn("h-full w-full flex-1 transition-all", variantClasses[variant])}
+					className={cn("h-full w-full flex-1 transition-all relative", variantClasses[variant], patternClasses[variant])}
 					style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
 				/>
 			</ProgressPrimitive.Root>

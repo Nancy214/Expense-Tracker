@@ -1,4 +1,4 @@
-import type { BillStatus, TokenPayload } from "@expense-tracker/shared-types/src";
+import type { BillStatus, TokenPayload } from "@expense-tracker/shared-types";
 import type { Request, Response } from "express";
 import { TransactionService } from "../services/transaction.service";
 import { createErrorResponse, logError } from "../services/error.service";
@@ -114,8 +114,8 @@ export const getExpensesById = async (req: Request, res: Response): Promise<void
 };
 
 export const createExpense = async (req: Request, res: Response): Promise<void> => {
+    const userId = (req as AuthRequest).user?.id;
     try {
-        const userId = (req as AuthRequest).user?.id;
         if (!userId) {
             res.status(401).json(createErrorResponse("User not authenticated"));
             return;
@@ -124,7 +124,7 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
         const expense = await transactionService.createExpense(userId, req.body);
         res.json(expense);
     } catch (error: unknown) {
-        logError("createExpense", error);
+        logError("createExpense", error, userId);
         res.status(500).json(createErrorResponse("Failed to create expense."));
     }
 };
@@ -148,6 +148,11 @@ export const updateExpense = async (req: Request, res: Response): Promise<void> 
             }
             if (error.message === "Expense not found") {
                 res.status(404).json(createErrorResponse(error.message));
+                return;
+            }
+            // Handle date parsing errors
+            if (error.message.includes("Invalid date format")) {
+                res.status(400).json(createErrorResponse(error.message));
                 return;
             }
         }

@@ -11,7 +11,7 @@ import {
     type SavingsDataForSpecificMonth,
     type SpecificPeriodIncomeExpenseData,
     type Transaction,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import {
     addMonths,
     endOfMonth,

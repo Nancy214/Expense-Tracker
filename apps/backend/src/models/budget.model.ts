@@ -1,4 +1,4 @@
-import type { BudgetType } from "@expense-tracker/shared-types/src/budget";
+import type { BudgetType } from "@expense-tracker/shared-types";
 import mongoose, { Schema } from "mongoose";
 
 export type BudgetRecurrence = "daily" | "weekly" | "monthly" | "yearly";

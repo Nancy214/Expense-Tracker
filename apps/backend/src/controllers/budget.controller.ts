@@ -1,4 +1,4 @@
-import type { BudgetFormData, TokenPayload } from "@expense-tracker/shared-types/src";
+import type { BudgetFormData, TokenPayload } from "@expense-tracker/shared-types";
 import type { Request, Response } from "express";
 import { BudgetService } from "../services/budget.service";
 import { createErrorResponse, logError } from "../services/error.service";

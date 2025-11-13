@@ -1,5 +1,5 @@
-import type { TokenPayload } from "@expense-tracker/shared-types/src/auth";
-import type { ProfileData, SettingsData } from "@expense-tracker/shared-types/src/profile";
+import type { TokenPayload } from "@expense-tracker/shared-types";
+import type { ProfileData, SettingsData } from "@expense-tracker/shared-types";
 import type { Request, Response } from "express";
 import { ProfileService } from "../services/profile.service";
 import { createErrorResponse, logError } from "../services/error.service";
@@ -35,7 +35,15 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        const profileData: ProfileData = req.body;
+        // Preprocess: Convert empty strings to undefined for optional fields
+        const preprocessedBody = {
+            ...req.body,
+            phoneNumber: req.body.phoneNumber === "" ? undefined : req.body.phoneNumber,
+            dateOfBirth: req.body.dateOfBirth === "" ? undefined : req.body.dateOfBirth,
+            currencySymbol: req.body.currencySymbol === "" ? undefined : req.body.currencySymbol,
+        };
+
+        const profileData: ProfileData = preprocessedBody;
         const response = await profileService.updateProfile(userId, profileData, req.file);
         res.json(response);
     } catch (error: unknown) {

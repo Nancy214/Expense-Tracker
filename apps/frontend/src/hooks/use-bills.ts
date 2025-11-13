@@ -193,6 +193,11 @@ export function useBillMutations(): UseBillMutationsReturn {
             showCreateSuccess(toast, "Bill");
             // Invalidate all related queries
             queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
+            // Invalidate analytics queries so the analytics page refreshes automatically
+            queryClient.invalidateQueries({
+                queryKey: ["analytics"],
+                exact: false,
+            });
         },
         onError: () => {
             showSaveError(toast, "Bill");
@@ -205,6 +210,11 @@ export function useBillMutations(): UseBillMutationsReturn {
             showUpdateSuccess(toast, "Bill");
             // Invalidate all related queries
             queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
+            // Invalidate analytics queries so the analytics page refreshes automatically
+            queryClient.invalidateQueries({
+                queryKey: ["analytics"],
+                exact: false,
+            });
         },
     });
 
@@ -221,6 +231,11 @@ export function useBillMutations(): UseBillMutationsReturn {
             });
             // Invalidate all related queries to refresh the data
             queryClient.invalidateQueries({ queryKey: BILL_QUERY_KEYS.bills });
+            // Invalidate analytics queries so the analytics page refreshes automatically
+            queryClient.invalidateQueries({
+                queryKey: ["analytics"],
+                exact: false,
+            });
         },
         onError: (error: Error, variables: { id: TransactionId; billStatus: BillStatus }) => {
             console.error("Error updating bill status:", {

@@ -187,6 +187,21 @@ export const baseTransactionSchema = ZTransaction.omit({
 });
 export type BaseTransaction = z.infer<typeof baseTransactionSchema>;
 
+// Onboarding expense form schema - for forms that accept string inputs before conversion
+export const expenseOnboardingFormSchema = z.object({
+    title: z
+        .string({ message: "Title is required" })
+        .min(1, "Title is required")
+        .max(50, "Title must be less than 50 characters")
+        .trim(),
+    amount: z.string().min(1, "Amount is required"),
+    category: z.enum(Object.values(ExpenseCategory) as [string, ...string[]], {
+        message: "Please select a valid category",
+    }),
+    date: z.string().min(1, "Date is required"),
+});
+export type ExpenseOnboardingFormData = z.infer<typeof expenseOnboardingFormSchema>;
+
 // Bill schema extends Transaction
 export const ZBill = ZTransaction.omit({
     isRecurring: true,

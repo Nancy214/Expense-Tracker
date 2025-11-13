@@ -22,6 +22,7 @@ import {
     updateExpense,
 } from "@/services/transaction.service";
 import { showCreateSuccess, showSaveError, showUpdateSuccess } from "@/utils/toastUtils";
+import { normalizeUserCurrency } from "@/utils/currency";
 
 const QUERY_KEYS = {
     expenses: ["expenses"] as const,
@@ -187,6 +188,11 @@ export function useTransactionMutations(): TransactionMutationsReturn {
         queryClient.invalidateQueries({
             queryKey: [...QUERY_KEYS.allTransactions, "analytics"],
         });
+        // Invalidate all analytics queries so the analytics page refreshes automatically
+        queryClient.invalidateQueries({
+            queryKey: ["analytics"],
+            exact: false,
+        });
     };
 
     const createMutation = useMutation<TransactionResponse, Error, TransactionOrBill>({
@@ -288,13 +294,15 @@ export const useTransactionForm = ({
             };
         }
 
+        const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
+
         return {
             title: "",
             category: (preselectedCategory || "Food & Dining") as any,
             description: "",
             amount: 0,
             date: format(new Date(), "dd/MM/yyyy"),
-            currency: user?.currency || "INR",
+            currency: userCurrency,
             type: "expense" as const,
             isRecurring: false,
             recurringFrequency: undefined,
@@ -308,7 +316,7 @@ export const useTransactionForm = ({
             reminderDays: 0,
             receipt: "",
         };
-    }, [editingExpense, preselectedCategory, user?.currency, parseDateToFormat]);
+    }, [editingExpense, preselectedCategory, user?.currency, user?.currencySymbol, parseDateToFormat]);
 
     const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
 
@@ -320,10 +328,12 @@ export const useTransactionForm = ({
 
     const handleCurrencyChange = useCallback(
         async (newCurrency: string): Promise<void> => {
-            if (newCurrency !== user?.currency) {
+            const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
+            
+            if (newCurrency !== userCurrency) {
                 try {
                     const rate = await getExchangeRate(
-                        user?.currency || "INR",
+                        userCurrency,
                         newCurrency,
                         format(new Date(), "yyyy-MM-dd")
                     );
@@ -339,7 +349,7 @@ export const useTransactionForm = ({
                 form.setValue("toRate", 1);
             }
         },
-        [form, user?.currency]
+        [form, user?.currency, user?.currencySymbol]
     );
 
     const handleRecurringToggle = useCallback(

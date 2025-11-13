@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useCountryTimezoneCurrency, useProfileForm } from "@/hooks/use-profile";
+import { getCurrencyLabel } from "@/utils/currency";
 
 const ProfileData: React.FC = () => {
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
@@ -40,7 +41,7 @@ const ProfileData: React.FC = () => {
 
     // Filter currencies based on selected country
     const getCurrenciesForCountry = useCallback(
-        (country: string): Array<{ code: string; name: string }> => {
+        (country: string): Array<{ code: string; name: string; symbol: string }> => {
             if (!country || !countryTimezoneData) return [];
 
             const countryData: CountryTimezoneCurrencyData | undefined = countryTimezoneData.find(
@@ -50,7 +51,7 @@ const ProfileData: React.FC = () => {
 
             // Return the currency for this country
             return [countryData.currency].filter(
-                (currency: { code: string; name: string } | undefined) => currency?.code
+                (currency: { code: string; name: string; symbol: string } | undefined) => currency?.code
             );
         },
         [countryTimezoneData]
@@ -82,11 +83,13 @@ const ProfileData: React.FC = () => {
             return [];
         }
 
-        // Return currencies for the selected country
-        return getCurrenciesForCountry(selectedCountry).map((currency: { code: string; name: string }) => ({
-            value: currency.code || "Not Defined",
-            label: `${currency.name} (${currency.code})`,
-        }));
+        // Return currencies for the selected country - use CODE as value, formatted label for display
+        return getCurrenciesForCountry(selectedCountry).map(
+            (currency: { code: string; name: string; symbol: string }) => ({
+                value: currency.code, // Store currency CODE
+                label: getCurrencyLabel(currency), // Display with symbol and name
+            })
+        );
     }, [selectedCountry, countryTimezoneData, currencies, getCurrenciesForCountry]);
 
     // Get available timezones for the selected country
@@ -105,41 +108,26 @@ const ProfileData: React.FC = () => {
         }));
     }, [selectedCountry, getTimezonesForCountry]);
 
-    // Auto-select currency and timezone when country changes
+    // Auto-populate currency and timezone when country changes in edit mode
     useEffect(() => {
         if (selectedCountry && isEditing) {
-            // Auto-select currency
-            const countryCurrencies: { code: string; name: string }[] = getCurrenciesForCountry(selectedCountry);
-            if (countryCurrencies.length > 0) {
-                const defaultCurrency = countryCurrencies[0];
-                form.setValue("currency", defaultCurrency.code);
+            const countryDataItem = countryTimezoneData?.find((item) => item.country === selectedCountry);
+
+            if (countryDataItem?.currency) {
+                // Store currency CODE in currency field, symbol in currencySymbol field
+                const currencyCode = countryDataItem.currency.code;
+                const currencySymbol = countryDataItem.currency.symbol || countryDataItem.currency.code;
+                form.setValue("currency", currencyCode, { shouldValidate: true, shouldDirty: true });
+                form.setValue("currencySymbol", currencySymbol, { shouldValidate: true, shouldDirty: true });
             }
 
-            // Auto-select timezone
-            const countryTimezones: string[] = getTimezonesForCountry(selectedCountry);
+            const countryTimezones = getTimezonesForCountry(selectedCountry);
             if (countryTimezones.length > 0) {
                 const defaultTimezone = countryTimezones[0];
-                form.setValue("timezone", defaultTimezone);
+                form.setValue("timezone", defaultTimezone, { shouldValidate: true, shouldDirty: true });
             }
         }
-    }, [selectedCountry, isEditing, form, getCurrenciesForCountry, getTimezonesForCountry]);
-
-    // Ensure timezone is displayed when user data is available and not editing
-    useEffect(() => {
-        if (user?.timezone && !isEditing && selectedCountry) {
-            // Check if the user's timezone is available for the selected country
-            const countryTimezones: string[] = getTimezonesForCountry(selectedCountry);
-            if (countryTimezones.includes(user.timezone)) {
-                form.setValue("timezone", user.timezone);
-            }
-        }
-    }, [user?.timezone, isEditing, selectedCountry, form, getTimezonesForCountry]);
-
-    // Watch form changes for validation
-    useEffect(() => {
-        const subscription = form.watch(() => {});
-        return () => subscription.unsubscribe();
-    }, [form]);
+    }, [selectedCountry, isEditing]);
 
     // Don't render if user data is not available
     if (!user) {
@@ -264,7 +252,7 @@ const ProfileData: React.FC = () => {
                                 name="phoneNumber"
                                 label="Phone Number"
                                 type="tel"
-                                placeholder="+1 (555) 123-4567"
+                                placeholder="1234567890"
                                 maxLength={20}
                                 disabled={!isEditing}
                             />
@@ -286,15 +274,18 @@ const ProfileData: React.FC = () => {
                                 options={(() => {
                                     const baseOptions =
                                         countryList.length > 0
-                                            ? countryList.map((country: string) => ({
-                                                  value: country,
-                                                  label: country,
-                                              }))
+                                            ? countryList
+                                                  .filter((country: string) => country && country !== "")
+                                                  .map((country: string) => ({
+                                                      value: country,
+                                                      label: country,
+                                                  }))
                                             : [];
                                     const currentCountry = form.watch("country");
 
                                     if (
                                         currentCountry &&
+                                        currentCountry !== "" &&
                                         !baseOptions.some((option) => option.value === currentCountry)
                                     ) {
                                         return [
@@ -320,7 +311,11 @@ const ProfileData: React.FC = () => {
                                     const currentValue = form.watch("timezone");
 
                                     // If the current value is not in the options, add it
-                                    if (currentValue && !baseOptions.some((option) => option.value === currentValue)) {
+                                    if (
+                                        currentValue &&
+                                        currentValue !== "" &&
+                                        !baseOptions.some((option) => option.value === currentValue)
+                                    ) {
                                         return [
                                             ...baseOptions,
                                             {

@@ -38,6 +38,7 @@ interface DataTableProps {
     readonly itemsPerPage?: number;
     readonly apiRecurringTemplates?: TransactionOrBill[];
     readonly isLoading?: boolean;
+    readonly onAddTransaction?: () => void;
 }
 
 export function DataTable({
@@ -56,6 +57,7 @@ export function DataTable({
     totalItems = 0,
     itemsPerPage = 20,
     isLoading = false,
+    onAddTransaction,
 }: DataTableProps) {
     // Sync activeTab with isRecurringTab prop
     useEffect(() => {
@@ -112,6 +114,7 @@ export function DataTable({
                     showRecurringIcon={showRecurringIcon}
                     showRecurringBadge={showRecurringBadge}
                     refreshAllTransactions={refreshAllTransactions}
+                    onAddTransaction={onAddTransaction}
                 />
             )}
 
@@ -129,6 +132,7 @@ export function DataTable({
                     onEdit={handleEdit}
                     showRecurringIcon={showRecurringIcon}
                     refreshAllTransactions={refreshAllTransactions}
+                    onAddTransaction={onAddTransaction}
                 />
             )}
 

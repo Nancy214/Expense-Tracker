@@ -1,4 +1,4 @@
-import { budgetSchema, ZBudgetParams } from "@expense-tracker/shared-types/src";
+import { budgetSchema, ZBudgetParams } from "@expense-tracker/shared-types";
 import { Router } from "express";
 import {
     createBudget,

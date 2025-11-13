@@ -1,4 +1,4 @@
-import type { UserLocalType, UserType } from "@expense-tracker/shared-types/src/auth";
+import type { UserLocalType, UserType } from "@expense-tracker/shared-types";
 import mongoose, { Schema } from "mongoose";
 
 const userSchema = new Schema(
@@ -42,6 +42,11 @@ const userSchema = new Schema(
 			required: false,
 			default: "INR",
 		},
+		currencySymbol: {
+			type: String,
+			required: false,
+			default: "₹",
+		},
 		country: {
 			type: String,
 			required: false,
@@ -60,6 +65,20 @@ const userSchema = new Schema(
             required: false,
             default: "monthly",
         }, */
+		hasCompletedOnboarding: {
+			type: Boolean,
+			required: false,
+			default: false,
+		},
+		onboardingCompletedAt: {
+			type: Date,
+			required: false,
+		},
+		onboardingStep: {
+			type: Number,
+			required: false,
+			default: 0,
+		},
 		settings: {
 			type: Schema.Types.Mixed,
 			ref: "Settings",

@@ -5,7 +5,7 @@ import {
 	type SpecificPeriodIncomeExpenseData,
 	type Transaction,
 	TransactionType,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import { TransactionModel } from "../models/transaction.model";
 import { getMonthDates } from "../utils/dateUtils";
 
