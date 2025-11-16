@@ -5,7 +5,6 @@ import session from "express-session";
 import expressStatusMonitor from "express-status-monitor";
 import mongoose from "mongoose";
 import morgan from "morgan";
-import cron from "node-cron";
 import passport from "./config/passport";
 import analyticsRoutes from "./routes/analytics.routes";
 import authRoutes from "./routes/auth.routes";
@@ -14,7 +13,6 @@ import currencyRoutes from "./routes/currency.routes";
 import profileRoutes from "./routes/profile.routes";
 import expenseRoutes from "./routes/transaction.routes";
 import onboardingRoutes from "./routes/onboarding.routes";
-import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { authenticateToken } from "./middleware/auth.middleware";
@@ -46,7 +44,13 @@ app.use(
                 styleSrc: ["'self'", "'unsafe-inline'", "'https://fonts.googleapis.com'"],
                 imgSrc: ["'self'", "data:", "https://*"],
                 fontSrc: ["'self'", "'fonts.gstatic.com'"],
-                connectSrc: ["'self'", "'api.fxratesapi.com'", "http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
+                connectSrc: [
+                    "'self'",
+                    "'api.fxratesapi.com'",
+                    "http://localhost:3000",
+                    "http://localhost:3001",
+                    "http://localhost:3002",
+                ],
             },
         },
         crossOriginResourcePolicy: {
@@ -100,17 +104,6 @@ mongoose
         console.error("MongoDB connection error:", err);
         process.exit(1);
     });
-
-// Recurring transaction job - runs every hour to process recurring transactions
-cron.schedule("0 * * * *", async () => {
-    try {
-        console.log(`[CronJob] Starting recurring transaction job at ${new Date().toISOString()}`);
-        await RecurringTransactionJobService.processAllRecurringTransactions();
-        console.log(`[CronJob] Recurring transaction job completed at ${new Date().toISOString()}`);
-    } catch (error) {
-        console.error("[CronJob] Error in recurring transaction job:", error);
-    }
-});
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes

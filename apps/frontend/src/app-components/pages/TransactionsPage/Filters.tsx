@@ -1,12 +1,4 @@
-import {
-    ActiveTab,
-    ExpenseCategory,
-    IncomeCategory,
-    type RecurringTransactionTemplate,
-    type TransactionId,
-    type TransactionOrBill,
-    type UserType,
-} from "@expense-tracker/shared-types/src";
+import { ExpenseCategory, IncomeCategory, type Transaction, type UserType } from "@expense-tracker/shared-types/src";
 import { format } from "date-fns";
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -29,11 +21,9 @@ import { cn } from "@/lib/utils";
 
 // Filters section props types
 interface FiltersSectionProps {
-    readonly filteredTransactions: TransactionOrBill[];
-    readonly handleEdit: (expense: TransactionOrBill) => void;
+    readonly filteredTransactions: Transaction[];
+    readonly handleEdit: (expense: Transaction) => void;
     readonly handleDelete: (id: string) => void;
-    readonly handleDeleteRecurring: (templateId: TransactionId) => void;
-    readonly recurringTransactions?: TransactionOrBill[];
     readonly totalExpensesByCurrency: {
         [currency: string]: { income: number; expense: number; net: number };
     };
@@ -46,10 +36,8 @@ interface FiltersSectionProps {
     }[];
     readonly downloadMonthlyStatementForMonth?: (month: { year: number; month: number }) => void;
     readonly user?: UserType | null;
-    readonly activeTab?: ActiveTab;
-    readonly setActiveTab?: (tab: ActiveTab) => void;
     readonly onRefresh?: () => void;
-    readonly setAllExpenses?: (expenses: TransactionOrBill[]) => void;
+    readonly setAllExpenses?: (expenses: Transaction[]) => void;
     readonly setAvailableMonths?: (
         months: {
             label: string;
@@ -63,7 +51,6 @@ interface FiltersSectionProps {
     readonly onPageChange?: (page: number) => void;
     readonly totalItems?: number;
     readonly itemsPerPage?: number;
-    readonly recurringTemplates?: RecurringTransactionTemplate[];
     readonly isLoading?: boolean;
     // Filter change callbacks
     readonly onFiltersChange?: (filters: {
@@ -79,21 +66,17 @@ export function FiltersSection({
     filteredTransactions,
     handleEdit,
     handleDelete,
-    recurringTransactions = [],
     totalExpensesByCurrency,
     onRefresh,
     setAllExpenses,
     setAvailableMonths,
     parse,
     refreshAllTransactions,
-    activeTab = ActiveTab.ALL,
-    setActiveTab = () => {},
     currentPage = 1,
     totalPages = 1,
     onPageChange,
     totalItems = 0,
     itemsPerPage = 20,
-    recurringTemplates,
     isLoading = false,
     onFiltersChange,
     onAddTransaction,
@@ -239,6 +222,19 @@ export function FiltersSection({
                             >
                                 Expense
                             </DropdownMenuCheckboxItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuCheckboxItem
+                                checked={selectedTypes.includes("bills")}
+                                onCheckedChange={(checked) => handleTypeFilterChange("bills", checked)}
+                            >
+                                Bills
+                            </DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem
+                                checked={selectedTypes.includes("recurring")}
+                                onCheckedChange={(checked) => handleTypeFilterChange("recurring", checked)}
+                            >
+                                Recurring Transactions
+                            </DropdownMenuCheckboxItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <div className="flex items-center gap-2">
@@ -303,11 +299,8 @@ export function FiltersSection({
                         setAllExpenses={setAllExpenses}
                         setAvailableMonths={setAvailableMonths}
                         parse={parse}
-                        recurringTransactions={recurringTransactions}
                         totalExpensesByCurrency={totalExpensesByCurrency}
                         refreshAllTransactions={refreshAllTransactions}
-                        activeTab={activeTab}
-                        setActiveTab={setActiveTab}
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={onPageChange}
@@ -315,14 +308,6 @@ export function FiltersSection({
                         itemsPerPage={itemsPerPage}
                         isLoading={isLoading}
                         onAddTransaction={onAddTransaction}
-                        apiRecurringTemplates={recurringTemplates?.map((template) => ({
-                            ...template,
-                            endDate: template.endDate
-                                ? typeof template.endDate === "string"
-                                    ? template.endDate
-                                    : template.endDate.toISOString()
-                                : undefined,
-                        }))}
                     />
                 </div>
             </CardContent>

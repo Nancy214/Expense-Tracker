@@ -5,10 +5,19 @@ import type {
     MonthlyIncomeExpenseData,
     MonthlySavingsData,
     HorizontalBarData,
-    TransactionOrBill,
+    Transaction,
 } from "@expense-tracker/shared-types/src";
 import { ChartTypes, Period } from "@expense-tracker/shared-types/src/analytics";
-import { AlertCircle, BarChart3, LineChart, TrendingUp, Calendar, ChevronDown, ChevronUp, TrendingDown } from "lucide-react";
+import {
+    AlertCircle,
+    BarChart3,
+    LineChart,
+    TrendingUp,
+    Calendar,
+    ChevronDown,
+    ChevronUp,
+    TrendingDown,
+} from "lucide-react";
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,9 +67,7 @@ const QuickInsights: React.FC<{
     onAddTransaction: () => void;
 }> = ({ expenseCategoryData, billsCategoryData, incomeExpenseData, currency, isLoading, onAddTransaction }) => {
     // Calculate top 3 spending categories
-    const allCategories = [...expenseCategoryData, ...billsCategoryData]
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 3);
+    const allCategories = [...expenseCategoryData, ...billsCategoryData].sort((a, b) => b.value - a.value).slice(0, 3);
 
     // Calculate spending health (income vs expenses for current period)
     const totalIncome = incomeExpenseData
@@ -143,7 +150,10 @@ const QuickInsights: React.FC<{
                                 style={{ width: `${Math.min(savingsRate, 100)}%` }}
                             />
                             {/* Target line at 20% */}
-                            <div className="absolute top-0 h-full w-0.5 bg-gray-400 dark:bg-gray-500" style={{ left: "20%" }} />
+                            <div
+                                className="absolute top-0 h-full w-0.5 bg-gray-400 dark:bg-gray-500"
+                                style={{ left: "20%" }}
+                            />
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                             {isHealthy
@@ -424,7 +434,7 @@ const AnalyticsPage = () => {
     const expenseHeatmapData: HeatmapData[] =
         allTransactions.length > 0
             ? transformExpensesToHeatmapData(
-                  allTransactions.filter((t: TransactionOrBill) => t.type === TransactionType.EXPENSE) // Only include expenses for the heatmap
+                  allTransactions.filter((t: Transaction) => t.type === TransactionType.EXPENSE) // Only include expenses for the heatmap
               )
             : [];
 
@@ -518,9 +528,7 @@ const AnalyticsPage = () => {
                             </CardHeader>
                             <CardContent className="p-4 sm:p-6 pt-0">
                                 {isLoading ? (
-                                    <p className="text-sm text-muted-foreground text-center">
-                                        Loading expense data...
-                                    </p>
+                                    <p className="text-sm text-muted-foreground text-center">Loading expense data...</p>
                                 ) : (
                                     <EmptyState
                                         icon={Calendar}
@@ -555,10 +563,7 @@ const AnalyticsPage = () => {
             )}
 
             {/* Add Transaction Dialog */}
-            <AddExpenseDialog
-                open={isDialogOpen}
-                onOpenChange={setIsDialogOpen}
-            />
+            <AddExpenseDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
         </div>
     );
 };

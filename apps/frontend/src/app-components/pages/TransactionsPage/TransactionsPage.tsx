@@ -1,8 +1,7 @@
-import type { ActiveTab, TransactionOrBill } from "@expense-tracker/shared-types/src";
+import type { Transaction } from "@expense-tracker/shared-types/src";
 import { format, parse } from "date-fns";
 import { Plus, TrendingUp, UploadIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import {
     downloadCSV,
@@ -15,20 +14,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
-import { useBills } from "@/hooks/use-bills";
 import { useCurrencySymbol } from "@/hooks/use-profile";
-import { useRecurringTemplates } from "@/hooks/use-recurring-expenses";
 import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
     const currencySymbol = useCurrencySymbol();
-    const [searchParams] = useSearchParams();
 
-    // Separate pagination state for each tab
-    const [allTransactionsPage, setAllTransactionsPage] = useState(1);
-    const [recurringTransactionsPage, setRecurringTransactionsPage] = useState(1);
-    const [billsPage, setBillsPage] = useState(1);
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(20);
 
     // Filter state
@@ -39,30 +33,17 @@ const TransactionsPage = () => {
         searchQuery?: string;
     }>({});
 
-    // Use the appropriate hook based on active tab
+    // Fetch all transactions
     const {
         transactions: allTransactions,
         pagination: allTransactionsPagination,
         invalidateAllTransactions,
         isLoading: isAllTransactionsLoading,
-    } = useAllTransactions(allTransactionsPage, itemsPerPage, filters);
-    const {
-        bills,
-        pagination: billsPagination,
-        invalidateBills,
-        isLoading: isBillsLoading,
-    } = useBills(billsPage, itemsPerPage);
-    const {
-        recurringTemplates: apiRecurringTemplates,
-        pagination: recurringPagination,
-        invalidateRecurringTemplates,
-        isLoading: isRecurringLoading,
-    } = useRecurringTemplates(recurringTransactionsPage, itemsPerPage);
+    } = useAllTransactions(currentPage, itemsPerPage, filters);
     const { summary } = useTransactionSummary();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingExpense, setEditingExpense] = useState<TransactionOrBill | null>(null);
-    const [activeTab, setActiveTab] = useState<"all" | "recurring" | "bills">("all");
+    const [editingExpense, setEditingExpense] = useState<Transaction | null>(null);
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
 
     // Export functionality state
@@ -74,39 +55,9 @@ const TransactionsPage = () => {
         format: "csv",
     });
 
-    // Get current page based on active tab
-    const getCurrentPage = (): number => {
-        switch (activeTab) {
-            case "all":
-                return allTransactionsPage;
-            case "recurring":
-                return recurringTransactionsPage;
-            case "bills":
-                return billsPage;
-            default:
-                return allTransactionsPage;
-        }
-    };
-
-    // Get current loading state based on active tab
-    const isLoading = (): boolean => {
-        switch (activeTab) {
-            case "all":
-                return isAllTransactionsLoading;
-            case "recurring":
-                return isRecurringLoading;
-            case "bills":
-                return isBillsLoading;
-            default:
-                return false;
-        }
-    };
-
-    // Combined refresh function that invalidates both all transactions and bills
+    // Refresh function
     const refreshAllTransactions = (): void => {
         invalidateAllTransactions();
-        invalidateBills();
-        invalidateRecurringTemplates();
     };
 
     // Handle filter changes
@@ -118,28 +69,11 @@ const TransactionsPage = () => {
     }) => {
         setFilters(newFilters);
         // Reset to first page when filters change
-        setAllTransactionsPage(1);
+        setCurrentPage(1);
     };
-
-    // Handle tab change with pagination reset
-    const handleTabChange = (newTab: "all" | "recurring" | "bills") => {
-        setActiveTab(newTab);
-        // Reset all pagination when switching tabs
-        setAllTransactionsPage(1);
-        setRecurringTransactionsPage(1);
-        setBillsPage(1);
-    };
-
-    // Handle URL parameter for tab
-    useEffect(() => {
-        const tabParam = searchParams.get("tab");
-        if (tabParam === "bills") {
-            handleTabChange("bills");
-        }
-    }, [searchParams]);
 
     // Helper to get a Date object from transaction.date
-    const getTransactionDate = (t: TransactionOrBill): Date => {
+    const getTransactionDate = (t: Transaction): Date => {
         if (typeof t.date === "string") {
             // Try dd/MM/yyyy first, fallback to ISO
             const parsed = parse(t.date, "dd/MM/yyyy", new Date());
@@ -153,24 +87,7 @@ const TransactionsPage = () => {
         return new Date();
     };
 
-    // Use recurring templates from API instead of filtering from expenses
-    const recurringTemplates = apiRecurringTemplates;
-
-    // Get the appropriate data based on active tab
-    const getCurrentData = (): TransactionOrBill[] => {
-        switch (activeTab) {
-            case "all":
-                return allTransactions;
-            case "recurring":
-                return apiRecurringTemplates as TransactionOrBill[];
-            case "bills":
-                return bills;
-            default:
-                return allTransactions;
-        }
-    };
-
-    const currentData = getCurrentData();
+    const currentData = allTransactions;
 
     // Calculate total expenses by currency
     const totalExpensesByCurrency: {
@@ -230,25 +147,10 @@ const TransactionsPage = () => {
         {}
     );
 
-    // Handle page change for different tabs
+    // Handle page change
     const handlePageChange = (page: number): void => {
-        // Prevent changing page if it's the same as current
-        const currentPageForTab = getCurrentPage();
-        if (page === currentPageForTab) return;
-
-        // Update the page state based on active tab
-        switch (activeTab) {
-            case "all":
-                setAllTransactionsPage(page);
-                break;
-            case "recurring":
-                setRecurringTransactionsPage(page);
-                break;
-            case "bills":
-                setBillsPage(page);
-                break;
-        }
-
+        if (page === currentPage) return;
+        setCurrentPage(page);
         // Scroll to top of the table
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
@@ -502,14 +404,6 @@ const TransactionsPage = () => {
                             </div>
                         </div>
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">{summary.totalRecurringTemplates}</div>
-                            <div className="text-sm text-muted-foreground">Recurring Transactions</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                                {symbol}
-                                {(summary.totalRecurringAmount || 0).toFixed(2)}
-                            </div>
-                        </div>
-                        <div className="text-center p-4 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-purple-600">{summary.totalBills}</div>
                             <div className="text-sm text-muted-foreground">Total Bills</div>
                             <div className="text-xs text-muted-foreground mt-1">
@@ -523,52 +417,21 @@ const TransactionsPage = () => {
 
             {/* Filters */}
             <FiltersSection
-                filteredTransactions={
-                    activeTab === "all"
-                        ? allTransactions
-                        : activeTab === "recurring"
-                        ? (apiRecurringTemplates as TransactionOrBill[])
-                        : activeTab === "bills"
-                        ? bills
-                        : allTransactions
-                }
-                handleEdit={(expense: TransactionOrBill) => {
+                filteredTransactions={allTransactions}
+                handleEdit={(expense: Transaction) => {
                     setEditingExpense(expense);
                     setIsDialogOpen(true);
                 }}
                 handleDelete={() => {}} // This will be handled by ExpenseDataTable
-                handleDeleteRecurring={() => {}} // This will be handled by ExpenseDataTable
-                recurringTransactions={recurringTemplates as TransactionOrBill[]}
                 totalExpensesByCurrency={totalExpensesByCurrency}
                 parse={parse}
-                activeTab={activeTab as ActiveTab}
-                setActiveTab={handleTabChange}
                 refreshAllTransactions={refreshAllTransactions}
-                // Pagination props - use the correct pagination based on active tab
-                currentPage={getCurrentPage()}
-                totalPages={
-                    activeTab === "all"
-                        ? allTransactionsPagination?.totalPages || 1
-                        : activeTab === "recurring"
-                        ? recurringPagination?.totalPages || 1
-                        : activeTab === "bills"
-                        ? billsPagination?.totalPages || 1
-                        : 1
-                }
+                currentPage={currentPage}
+                totalPages={allTransactionsPagination?.totalPages || 1}
                 onPageChange={handlePageChange}
-                totalItems={
-                    activeTab === "all"
-                        ? allTransactionsPagination?.total || 0
-                        : activeTab === "recurring"
-                        ? recurringPagination?.total || 0
-                        : activeTab === "bills"
-                        ? billsPagination?.total || 0
-                        : 0
-                }
+                totalItems={allTransactionsPagination?.total || 0}
                 itemsPerPage={itemsPerPage}
-                isLoading={isLoading()}
-                // Recurring templates from API
-                recurringTemplates={apiRecurringTemplates}
+                isLoading={isAllTransactionsLoading}
                 onFiltersChange={handleFiltersChange}
                 onAddTransaction={() => setIsDialogOpen(true)}
             />

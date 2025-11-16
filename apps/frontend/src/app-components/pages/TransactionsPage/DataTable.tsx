@@ -1,22 +1,17 @@
-import { ActiveTab, type TransactionOrBill } from "@expense-tracker/shared-types/src";
-import { useEffect, useMemo } from "react";
+import { type Transaction } from "@expense-tracker/shared-types/src";
 import { PaginationWrapper } from "@/components/ui/pagination";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AllTransactionsTab } from "./AllTransactionsTab";
-import { BillsTab } from "./BillsTab";
-import { RecurringTransactionsTab } from "./RecurringTransactionsTab";
 
 // Data table props types
 interface DataTableProps {
-    readonly data: TransactionOrBill[];
-    readonly onEdit: (expense: TransactionOrBill) => void;
+    readonly data: Transaction[];
+    readonly onEdit: (expense: Transaction) => void;
     readonly onDelete: (expenseId: string) => void;
     readonly showRecurringIcon?: boolean;
     readonly showRecurringBadge?: boolean;
-    readonly isRecurringTab?: boolean;
     readonly parse?: (date: string, format: string, baseDate: Date) => Date;
     readonly onRefresh?: () => void;
-    readonly setAllExpenses?: (expenses: TransactionOrBill[]) => void;
+    readonly setAllExpenses?: (expenses: Transaction[]) => void;
     readonly setAvailableMonths?: (
         months: {
             label: string;
@@ -24,19 +19,15 @@ interface DataTableProps {
             sortKey: number;
         }[]
     ) => void;
-    readonly recurringTransactions?: TransactionOrBill[];
     readonly totalExpensesByCurrency?: {
         [currency: string]: { income: number; expense: number; net: number };
     };
     readonly refreshAllTransactions?: () => void;
-    readonly activeTab?: ActiveTab;
-    readonly setActiveTab?: (tab: ActiveTab) => void;
     readonly currentPage?: number;
     readonly totalPages?: number;
     readonly onPageChange?: (page: number) => void;
     readonly totalItems?: number;
     readonly itemsPerPage?: number;
-    readonly apiRecurringTemplates?: TransactionOrBill[];
     readonly isLoading?: boolean;
     readonly onAddTransaction?: () => void;
 }
@@ -46,11 +37,7 @@ export function DataTable({
     onEdit,
     showRecurringIcon = false,
     showRecurringBadge = false,
-    isRecurringTab = false,
-    recurringTransactions = [],
     refreshAllTransactions,
-    activeTab = ActiveTab.ALL,
-    setActiveTab,
     currentPage = 1,
     totalPages = 1,
     onPageChange,
@@ -59,89 +46,27 @@ export function DataTable({
     isLoading = false,
     onAddTransaction,
 }: DataTableProps) {
-    // Sync activeTab with isRecurringTab prop
-    useEffect(() => {
-        if (isRecurringTab && setActiveTab) {
-            setActiveTab(ActiveTab.RECURRING);
-        }
-    }, [isRecurringTab, setActiveTab]);
-
-    // Filter expenses with category "Bills" for the bills tab - optimized with useMemo
-    const billExpenses = useMemo(() => {
-        return data.filter((expense) => expense.category === "Bills");
-    }, [data]);
-
-    const handleEdit = async (expense: TransactionOrBill) => {
+    const handleEdit = async (expense: Transaction) => {
         onEdit(expense);
     };
 
-    // Get the appropriate data for each tab
-    const getTabData = () => {
-        if (isRecurringTab) {
-            return data;
-        }
-        switch (activeTab) {
-            case ActiveTab.ALL:
-                return data;
-            case ActiveTab.BILLS:
-                return billExpenses;
-            case ActiveTab.RECURRING:
-                return recurringTransactions;
-            default:
-                return data;
-        }
-    };
-
-    const tabData = getTabData();
-
     return (
         <>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab?.(value as ActiveTab)} className="">
-                    <TabsList>
-                        <TabsTrigger value="all">All Transactions</TabsTrigger>
-                        <TabsTrigger value="recurring">Recurring Transactions</TabsTrigger>
-                        <TabsTrigger value="bills">Bills</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-            </div>
-
-            {/* Render appropriate tab component */}
-            {activeTab === ActiveTab.ALL && (
-                <AllTransactionsTab
-                    data={tabData}
-                    onEdit={handleEdit}
-                    showRecurringIcon={showRecurringIcon}
-                    showRecurringBadge={showRecurringBadge}
-                    refreshAllTransactions={refreshAllTransactions}
-                    onAddTransaction={onAddTransaction}
-                />
-            )}
-
-            {activeTab === ActiveTab.RECURRING && (
-                <RecurringTransactionsTab
-                    data={tabData}
-                    onEdit={handleEdit}
-                    refreshAllTransactions={refreshAllTransactions}
-                />
-            )}
-
-            {activeTab === ActiveTab.BILLS && (
-                <BillsTab
-                    data={tabData}
-                    onEdit={handleEdit}
-                    showRecurringIcon={showRecurringIcon}
-                    refreshAllTransactions={refreshAllTransactions}
-                    onAddTransaction={onAddTransaction}
-                />
-            )}
+            <AllTransactionsTab
+                data={data}
+                onEdit={handleEdit}
+                showRecurringIcon={showRecurringIcon}
+                showRecurringBadge={showRecurringBadge}
+                refreshAllTransactions={refreshAllTransactions}
+                onAddTransaction={onAddTransaction}
+            />
 
             {/* Pagination */}
             {onPageChange && (
                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-sm text-muted-foreground">
                         Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                        {(currentPage - 1) * itemsPerPage + tabData.length} of {totalItems} results
+                        {(currentPage - 1) * itemsPerPage + data.length} of {totalItems} results
                     </div>
 
                     {totalPages > 1 && (

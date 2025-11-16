@@ -38,7 +38,6 @@ export { default as ProfilePage } from "./ProfilePage/ProfilePage";
 export { default as SettingsData } from "./ProfilePage/SettingsData";
 export { default as AddExpenseDialog } from "./TransactionsPage/AddExpenseDialog";
 export { AllTransactionsTab } from "./TransactionsPage/AllTransactionsTab";
-export { BillsTab } from "./TransactionsPage/BillsTab";
 export { DataTable } from "./TransactionsPage/DataTable";
 export {
     arrayToCSV,
@@ -47,6 +46,5 @@ export {
     generateMonthlyStatementPDF,
 } from "./TransactionsPage/ExcelCsvPdfUtils";
 export { FiltersSection as Filters } from "./TransactionsPage/Filters";
-export { RecurringTransactionsTab } from "./TransactionsPage/RecurringTransactionsTab";
 // Transaction Pages
 export { default as TransactionsPage } from "./TransactionsPage/TransactionsPage";

@@ -7,7 +7,7 @@ import {
     type MonthlySavingsTrendResponse,
     type MonthlyStats,
     type Period,
-    type TransactionOrBill,
+    type Transaction,
     TransactionType,
 } from "@expense-tracker/shared-types/src";
 import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -138,8 +138,8 @@ const isValidDateString = (dateStr: string): boolean => {
     return !isNaN(date.getTime());
 };
 
-export const transformExpensesToHeatmapData = (expenses: TransactionOrBill[]): HeatmapData[] => {
-    const groupedByDate = expenses.reduce((acc: Record<string, GroupedExpenseData>, expense: TransactionOrBill) => {
+export const transformExpensesToHeatmapData = (expenses: Transaction[]): HeatmapData[] => {
+    const groupedByDate = expenses.reduce((acc: Record<string, GroupedExpenseData>, expense: Transaction) => {
         let dateStr: string;
 
         // Handle different date formats with proper type checking
@@ -287,20 +287,20 @@ export function useInvalidateAnalytics(): AnalyticsInvalidationReturn {
 }
 
 export function useAllTransactionsForAnalytics(): UseQueryResult<{
-    transactions: TransactionOrBill[];
+    transactions: Transaction[];
 }> & {
-    transactions: TransactionOrBill[];
+    transactions: Transaction[];
     invalidateAnalytics: () => void;
 } {
     const { isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
 
-    const query = useQuery<{ transactions: TransactionOrBill[] }>({
+    const query = useQuery<{ transactions: Transaction[] }>({
         queryKey: ["all-transactions", "analytics"],
         staleTime: 30 * 1000,
         gcTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false,
-        queryFn: async (): Promise<{ transactions: TransactionOrBill[] }> => {
+        queryFn: async (): Promise<{ transactions: Transaction[] }> => {
             if (!isAuthenticated) return { transactions: [] };
             const response = await getAllTransactionsForAnalytics();
             return { transactions: response?.transactions || [] };
@@ -321,7 +321,7 @@ export function useAllTransactionsForAnalytics(): UseQueryResult<{
 
 // Derived Data Hook types
 interface ExpensesSelectorReturn {
-    expenses: TransactionOrBill[];
+    expenses: Transaction[];
     isLoading: boolean;
     invalidateExpenses: () => void;
     monthlyStats: MonthlyStats;
@@ -335,7 +335,7 @@ export function useExpensesSelector(): ExpensesSelectorReturn {
 
     const monthlyStats = useMemo((): MonthlyStats => {
         // Use all transactions for accurate monthly stats calculation
-        const currentMonthTransactions = allTransactions.filter((t: TransactionOrBill) => {
+        const currentMonthTransactions = allTransactions.filter((t: Transaction) => {
             // Include all transactions for stats calculation - both regular and recurring
             // The backend should only return actual transactions, not templates
 
@@ -358,12 +358,12 @@ export function useExpensesSelector(): ExpensesSelectorReturn {
         });
 
         const totalIncome = currentMonthTransactions
-            .filter((t: TransactionOrBill) => t.type === TransactionType.INCOME)
-            .reduce((sum: number, t: TransactionOrBill) => sum + (t.amount || 0), 0);
+            .filter((t: Transaction) => t.type === TransactionType.INCOME)
+            .reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0);
 
         const totalExpenses = currentMonthTransactions
-            .filter((t: TransactionOrBill) => t.type === TransactionType.EXPENSE)
-            .reduce((sum: number, t: TransactionOrBill) => sum + (t.amount || 0), 0);
+            .filter((t: Transaction) => t.type === TransactionType.EXPENSE)
+            .reduce((sum: number, t: Transaction) => sum + (t.amount || 0), 0);
 
         return {
             totalIncome,

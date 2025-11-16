@@ -2,7 +2,6 @@ import { Calendar, DollarSign, TrendingDown, TrendingUp, Wallet } from "lucide-r
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import { useExpensesSelector } from "@/hooks/use-analytics";
-import { useBillsSelector } from "@/hooks/use-bills";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useCurrencySymbol } from "@/hooks/use-profile";
 
@@ -10,15 +9,13 @@ export default function StatsCards() {
     const { user } = useAuth();
     const currencySymbol = useCurrencySymbol();
     const { monthlyStats, isLoading: expensesLoading } = useExpensesSelector();
-    const { upcomingAndOverdueBills, isLoading: billsLoading } = useBillsSelector();
     const { budgets, isBudgetsLoading } = useBudgets();
 
-    const loading = expensesLoading || billsLoading || isBudgetsLoading;
+    const loading = expensesLoading || isBudgetsLoading;
     const error: string | null = null;
     const stats = monthlyStats && {
         ...monthlyStats,
         activeBudgetsCount: budgets?.length || 0,
-        upcomingBillsCount: upcomingAndOverdueBills.upcoming.length,
     };
 
     const formatAmount = (amount: number) => {
@@ -117,12 +114,6 @@ export default function StatsCards() {
                     <CardTitle className="text-xs sm:text-sm font-medium text-orange-900">Upcoming Bills</CardTitle>
                     <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
                 </CardHeader>
-                <CardContent>
-                    <div className="text-lg sm:text-xl xl:text-2xl font-bold text-orange-900">
-                        {stats?.upcomingBillsCount}
-                    </div>
-                    <p className="text-xs text-orange-700 mt-1">Due within 7 days</p>
-                </CardContent>
             </Card>
         </div>
     );

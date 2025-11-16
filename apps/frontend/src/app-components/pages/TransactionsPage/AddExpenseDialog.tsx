@@ -1,16 +1,4 @@
-import {
-    type Bill,
-    BillCategory,
-    BillFrequency,
-    BillStatus,
-    ExpenseCategory,
-    IncomeCategory,
-    PaymentMethod,
-    RecurringFrequency,
-    type Transaction,
-    type TransactionOrBill,
-    TransactionType,
-} from "@expense-tracker/shared-types/src";
+import { ExpenseCategory, IncomeCategory, type Transaction, TransactionType } from "@expense-tracker/shared-types/src";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
@@ -20,8 +8,6 @@ import { InputField } from "@/app-components/form-fields/InputField";
 import { SelectField } from "@/app-components/form-fields/SelectField";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
@@ -38,33 +24,22 @@ export interface TransactionFormData {
     amount: number;
     currency: string;
     category: string;
-    billCategory?: string;
-    paymentMethod?: string;
     date: string;
-    dueDate?: string;
-    billFrequency?: string;
-    reminderDays?: number;
     description?: string;
-    isRecurring?: boolean;
-    recurringFrequency?: string;
-    endDate?: string;
     receipt?: File | string;
     fromRate?: number;
     toRate?: number;
-    nextDueDate?: string;
-    lastPaidDate?: string;
 }
 
 // Dialog props types
 export interface AddExpenseDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    editingExpense?: TransactionOrBill | null;
+    editingExpense?: Transaction | null;
     onSuccess?: () => void;
     onReceiptDeleted?: () => void;
     triggerButton?: React.ReactNode;
     preselectedCategory?: string;
-    isAddBill?: boolean;
 }
 
 const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
@@ -75,7 +50,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     onReceiptDeleted,
     triggerButton,
     preselectedCategory,
-    isAddBill,
 }) => {
     const { toast } = useToast();
     const { user } = useAuth();
@@ -86,20 +60,9 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
     const { createTransaction, updateTransaction, isCreating, isUpdating } = useTransactionMutations();
 
-    const {
-        form,
-        category,
-        type,
-        isRecurring,
-        currency,
-        resetForm,
-        isEditing,
-        handleCurrencyChange,
-        handleRecurringToggle,
-    } = useTransactionForm({
+    const { form, type, currency, resetForm, isEditing, handleCurrencyChange } = useTransactionForm({
         editingExpense,
         preselectedCategory,
-        isAddBill,
     });
 
     const {
@@ -191,42 +154,21 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 }
             }
 
-            let transactionData: Transaction | Bill;
-
-            if (data.category === ExpenseCategory.BILLS) {
-                transactionData = {
-                    ...data,
-                    userId: user?.id || "",
-                    date: data.date,
-                    dueDate: data.dueDate as string,
-                    receipt: finalReceipt,
-                    nextDueDate: data.nextDueDate,
-                    billFrequency: data.billFrequency as BillFrequency,
-                    paymentMethod: data.paymentMethod as PaymentMethod,
-                    billStatus: BillStatus.UNPAID,
-                    reminderDays: data.reminderDays ?? 0,
-                    billCategory: data.billCategory as BillCategory,
-                };
-            } else {
-                transactionData = {
-                    title: data.title,
-                    type: data.type,
-                    amount: data.amount,
-                    currency: data.currency,
-                    category: data.category,
-                    description: data.description || "",
-                    userId: user?.id || "",
-                    date: data.date,
-                    ...(data.fromRate !== undefined && {
-                        fromRate: data.fromRate,
-                    }),
-                    ...(data.toRate !== undefined && { toRate: data.toRate }),
-                    isRecurring: data.isRecurring || false,
-                    recurringFrequency: data.recurringFrequency as any,
-                    receipt: finalReceipt,
-                    endDate: data.endDate || undefined,
-                };
-            }
+            const transactionData: Transaction = {
+                title: data.title,
+                type: data.type,
+                amount: data.amount,
+                currency: data.currency,
+                category: data.category,
+                description: data.description || "",
+                userId: user?.id || "",
+                date: data.date,
+                ...(data.fromRate !== undefined && {
+                    fromRate: data.fromRate,
+                }),
+                ...(data.toRate !== undefined && { toRate: data.toRate }),
+                receipt: finalReceipt,
+            };
 
             if (isEditing && editingExpense?.id) {
                 await updateTransaction({
@@ -275,15 +217,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             {triggerButton && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>
-                        {isEditing
-                            ? category === "Bills"
-                                ? "Edit Bill"
-                                : "Edit Transaction"
-                            : category === "Bills"
-                            ? "Add Bill"
-                            : "Add Transaction"}
-                    </DialogTitle>
+                    <DialogTitle>{isEditing ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
                 </DialogHeader>
 
                 <FormProvider {...form}>
@@ -358,106 +292,31 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             <AccordionItem value="more-options" className="border-none">
                                 <AccordionTrigger>More Options</AccordionTrigger>
                                 <AccordionContent>
-                                    {category === "Bills" ? (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <SelectField
-                                                name="billCategory"
-                                                label="Category"
-                                                placeholder="Select a bill category"
-                                                options={Object.values(BillCategory).map((cat: string) => ({
-                                                    value: cat,
-                                                    label: cat,
-                                                }))}
-                                                required
-                                            />
-                                            <SelectField
-                                                name="paymentMethod"
-                                                label="Payment Method"
-                                                placeholder="Select payment method"
-                                                options={Object.values(PaymentMethod).map((method: string) => ({
-                                                    value: method,
-                                                    label: method
-                                                        .split("-")
-                                                        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                                                        .join(" "),
-                                                }))}
-                                                required
-                                            />
-                                            <SelectField
-                                                name="type"
-                                                label="Type"
-                                                placeholder="Select type"
-                                                options={[
-                                                    {
-                                                        value: TransactionType.EXPENSE,
-                                                        label: "Expense",
-                                                    },
-                                                    {
-                                                        value: TransactionType.INCOME,
-                                                        label: "Income",
-                                                    },
-                                                ]}
-                                                required
-                                            />
-                                            <DateField
-                                                name="dueDate"
-                                                label="Due Date"
-                                                placeholder="Pick a due date"
-                                                required
-                                                source="bill"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <SelectField
-                                                name="category"
-                                                label="Category"
-                                                placeholder="Select a category"
-                                                options={getCategoryOptions()}
-                                                required
-                                            />
-                                            <SelectField
-                                                name="type"
-                                                label="Type"
-                                                placeholder="Select type"
-                                                options={[
-                                                    {
-                                                        value: TransactionType.EXPENSE,
-                                                        label: "Expense",
-                                                    },
-                                                    {
-                                                        value: TransactionType.INCOME,
-                                                        label: "Income",
-                                                    },
-                                                ]}
-                                                required
-                                            />
-                                        </div>
-                                    )}
-                                    {category === "Bills" && (
-                                        <>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <SelectField
-                                                    name="billFrequency"
-                                                    label="Bill Frequency"
-                                                    placeholder="Select bill frequency"
-                                                    options={Object.values(BillFrequency).map((freq: string) => ({
-                                                        value: freq,
-                                                        label: freq.charAt(0).toUpperCase() + freq.slice(1),
-                                                    }))}
-                                                    required
-                                                />
-                                                <InputField
-                                                    name="reminderDays"
-                                                    label="Reminder Days"
-                                                    type="number"
-                                                    placeholder="3"
-                                                    min={0}
-                                                    max={30}
-                                                />
-                                            </div>
-                                        </>
-                                    )}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <SelectField
+                                            name="type"
+                                            label="Type"
+                                            placeholder="Select type"
+                                            options={[
+                                                {
+                                                    value: TransactionType.EXPENSE,
+                                                    label: "Expense",
+                                                },
+                                                {
+                                                    value: TransactionType.INCOME,
+                                                    label: "Income",
+                                                },
+                                            ]}
+                                            required
+                                        />
+                                        <SelectField
+                                            name="category"
+                                            label="Category"
+                                            placeholder="Select a category"
+                                            options={getCategoryOptions()}
+                                            required
+                                        />
+                                    </div>
 
                                     <InputField
                                         name="description"
@@ -465,34 +324,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                         placeholder="Description (Optional)"
                                         maxLength={200}
                                     />
-
-                                    {/* Recurring Transaction - only show if not Bill */}
-                                    {category !== "Bills" && (
-                                        <div className="flex items-center space-x-2">
-                                            <Switch
-                                                {...form.register("isRecurring")}
-                                                checked={isRecurring || false}
-                                                onCheckedChange={handleRecurringToggle}
-                                            />
-                                            <Label htmlFor="recurring">Enable recurring transaction</Label>
-                                        </div>
-                                    )}
-
-                                    {/* Recurring Frequency and End Date - only show if not Bill and isRecurring */}
-                                    {category !== "Bills" && isRecurring && (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <SelectField
-                                                name="recurringFrequency"
-                                                label="Frequency"
-                                                placeholder="Select frequency"
-                                                options={Object.values(RecurringFrequency).map((freq: string) => ({
-                                                    value: freq,
-                                                    label: freq.charAt(0).toUpperCase() + freq.slice(1),
-                                                }))}
-                                            />
-                                            <DateField name="endDate" label="End Date" placeholder="Pick an end date" />
-                                        </div>
-                                    )}
 
                                     <FileUploadField
                                         name="receipt"
@@ -507,15 +338,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
                         <DialogFooter className="pt-1">
                             <Button type="submit" disabled={isSubmittingForm}>
-                                {isSubmittingForm
-                                    ? "Saving..."
-                                    : isEditing
-                                    ? category === "Bills"
-                                        ? "Update Bill"
-                                        : "Update Transaction"
-                                    : category === "Bills"
-                                    ? "Add Bill"
-                                    : "Add Transaction"}
+                                {isSubmittingForm ? "Saving..." : isEditing ? "Update Transaction" : "Add Transaction"}
                             </Button>
                             <Button type="button" onClick={handleCancel} variant="outline">
                                 Cancel

@@ -2,7 +2,7 @@ import {
     baseTransactionSchema,
     type PaginationInfo,
     type TransactionId,
-    type TransactionOrBill,
+    type Transaction,
     type TransactionResponse,
     type TransactionSummary,
 } from "@expense-tracker/shared-types/src";
@@ -52,12 +52,12 @@ const DEFAULT_SUMMARY: TransactionSummary = {
 
 // Query response types
 interface ExpensesQueryResponse {
-    expenses: TransactionOrBill[];
+    expenses: Transaction[];
     pagination: PaginationInfo | null;
 }
 
 interface AllTransactionsQueryResponse {
-    transactions: TransactionOrBill[];
+    transactions: Transaction[];
     pagination: PaginationInfo | null;
 }
 
@@ -66,7 +66,7 @@ export function useExpenses(
     page: number = 1,
     limit: number = 20
 ): UseQueryResult<ExpensesQueryResponse> & {
-    expenses: TransactionOrBill[];
+    expenses: Transaction[];
     pagination: PaginationInfo | null;
     invalidateExpenses: () => void;
 } {
@@ -109,7 +109,7 @@ export function useAllTransactions(
     limit: number = 20,
     filters?: TransactionFilters
 ): {
-    transactions: TransactionOrBill[];
+    transactions: Transaction[];
     pagination: PaginationInfo | null;
     invalidateAllTransactions: () => void;
     isLoading: boolean;
@@ -168,8 +168,8 @@ export function useTransactionSummary(): UseQueryResult<TransactionSummaryQueryR
 }
 
 interface TransactionMutationsReturn {
-    createTransaction: (data: TransactionOrBill) => Promise<TransactionResponse>;
-    updateTransaction: (params: { id: TransactionId; data: TransactionOrBill }) => Promise<TransactionResponse>;
+    createTransaction: (data: Transaction) => Promise<TransactionResponse>;
+    updateTransaction: (params: { id: TransactionId; data: Transaction }) => Promise<TransactionResponse>;
     isCreating: boolean;
     isUpdating: boolean;
     createError: Error | null;
@@ -195,7 +195,7 @@ export function useTransactionMutations(): TransactionMutationsReturn {
         });
     };
 
-    const createMutation = useMutation<TransactionResponse, Error, TransactionOrBill>({
+    const createMutation = useMutation<TransactionResponse, Error, Transaction>({
         mutationFn: createExpense,
         onSuccess: () => {
             showCreateSuccess(toast, "Transaction");
@@ -204,7 +204,7 @@ export function useTransactionMutations(): TransactionMutationsReturn {
         onError: () => showSaveError(toast, "Transaction"),
     });
 
-    const updateMutation = useMutation<TransactionResponse, Error, { id: TransactionId; data: TransactionOrBill }>({
+    const updateMutation = useMutation<TransactionResponse, Error, { id: TransactionId; data: Transaction }>({
         mutationFn: ({ id, data }) => updateExpense(id, data),
         onSuccess: () => {
             showUpdateSuccess(toast, "Transaction");
@@ -225,21 +225,18 @@ export function useTransactionMutations(): TransactionMutationsReturn {
 
 // Form Hook types
 interface UseTransactionFormProps {
-    editingExpense?: TransactionOrBill | null;
+    editingExpense?: Transaction | null;
     preselectedCategory?: string;
-    isAddBill?: boolean;
 }
 
 interface TransactionFormReturn {
     form: UseFormReturn<any>;
     category: string;
     type: "expense" | "income";
-    isRecurring: boolean;
     currency: string;
     isEditing: boolean;
     resetForm: () => void;
     handleCurrencyChange: (newCurrency: string) => Promise<void>;
-    handleRecurringToggle: (checked: boolean) => void;
 }
 
 export const useTransactionForm = ({
@@ -269,27 +266,8 @@ export const useTransactionForm = ({
                 date: parseDateToFormat(editingExpense.date),
                 currency: editingExpense.currency,
                 type: editingExpense.type,
-                isRecurring: "isRecurring" in editingExpense ? editingExpense.isRecurring ?? false : false,
-                recurringFrequency:
-                    "recurringFrequency" in editingExpense ? (editingExpense.recurringFrequency as any) : undefined,
                 fromRate: editingExpense.fromRate || 1,
                 toRate: editingExpense.toRate || 1,
-                endDate:
-                    "endDate" in editingExpense
-                        ? editingExpense.endDate
-                            ? parseDateToFormat(editingExpense.endDate)
-                            : undefined
-                        : undefined,
-                dueDate:
-                    "dueDate" in editingExpense
-                        ? editingExpense.dueDate
-                            ? parseDateToFormat(editingExpense.dueDate)
-                            : undefined
-                        : undefined,
-                billCategory: "billCategory" in editingExpense ? (editingExpense.billCategory as any) : "Rent/Mortgage",
-                paymentMethod: "paymentMethod" in editingExpense ? (editingExpense.paymentMethod as any) : "manual",
-                billFrequency: "billFrequency" in editingExpense ? (editingExpense.billFrequency as any) : "monthly",
-                reminderDays: "reminderDays" in editingExpense ? editingExpense.reminderDays || 0 : 0,
                 receipt: editingExpense.receipt || "",
             };
         }
@@ -304,16 +282,8 @@ export const useTransactionForm = ({
             date: format(new Date(), "dd/MM/yyyy"),
             currency: userCurrency,
             type: "expense" as const,
-            isRecurring: false,
-            recurringFrequency: undefined,
             fromRate: 1,
             toRate: 1,
-            endDate: undefined,
-            dueDate: undefined,
-            billCategory: "Rent/Mortgage",
-            paymentMethod: "manual",
-            billFrequency: "monthly",
-            reminderDays: 0,
             receipt: "",
         };
     }, [editingExpense, preselectedCategory, user?.currency, user?.currencySymbol, parseDateToFormat]);
@@ -329,14 +299,10 @@ export const useTransactionForm = ({
     const handleCurrencyChange = useCallback(
         async (newCurrency: string): Promise<void> => {
             const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
-            
+
             if (newCurrency !== userCurrency) {
                 try {
-                    const rate = await getExchangeRate(
-                        userCurrency,
-                        newCurrency,
-                        format(new Date(), "yyyy-MM-dd")
-                    );
+                    const rate = await getExchangeRate(userCurrency, newCurrency, format(new Date(), "yyyy-MM-dd"));
                     form.setValue("fromRate", 1);
                     form.setValue("toRate", rate.rate);
                 } catch (error) {
@@ -352,26 +318,13 @@ export const useTransactionForm = ({
         [form, user?.currency, user?.currencySymbol]
     );
 
-    const handleRecurringToggle = useCallback(
-        (checked: boolean): void => {
-            form.setValue("isRecurring", checked);
-            if (!checked) {
-                form.setValue("recurringFrequency", undefined);
-                form.setValue("endDate", undefined);
-            }
-        },
-        [form]
-    );
-
     return {
         form,
         category: form.watch("category"),
         type: form.watch("type"),
-        isRecurring: form.watch("isRecurring"),
         currency: form.watch("currency"),
         isEditing: !!editingExpense,
         resetForm: useCallback((): void => form.reset(defaultValues), [form, defaultValues]),
         handleCurrencyChange,
-        handleRecurringToggle,
     };
 };

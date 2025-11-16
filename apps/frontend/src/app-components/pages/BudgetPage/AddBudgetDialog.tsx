@@ -56,7 +56,7 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
     const categoryOptions: { value: BudgetCategory; label: string }[] = Object.values(BudgetCategory).map(
         (category) => ({
             value: category as BudgetCategory,
-            label: category === BudgetCategory.BILLS ? BudgetCategory.BILLS : (category as string),
+            label: category as BudgetCategory,
         })
     );
 

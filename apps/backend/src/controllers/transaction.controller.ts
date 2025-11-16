@@ -1,4 +1,4 @@
-import type { BillStatus, TokenPayload } from "@expense-tracker/shared-types";
+import type { TokenPayload } from "@expense-tracker/shared-types";
 import type { Request, Response } from "express";
 import { TransactionService } from "../services/transaction.service";
 import { createErrorResponse, logError } from "../services/error.service";
@@ -43,38 +43,7 @@ export const getAllTransactions = async (req: Request, res: Response): Promise<v
     }
 };
 
-// New function for getting bills with pagination
-export const getBills = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
 
-        const response = await transactionService.getBills(userId, req.query as any);
-        res.json(response);
-    } catch (error: unknown) {
-        logError("getBills", error);
-        res.status(500).json(createErrorResponse("Failed to get bills."));
-    }
-};
-
-export const getRecurringTemplates = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
-
-        const response = await transactionService.getRecurringTemplates(userId, req.query as any);
-        res.json(response);
-    } catch (error: unknown) {
-        logError("getRecurringTemplates", error);
-        res.status(500).json(createErrorResponse("Failed to get recurring templates."));
-    }
-};
 
 export const getTransactionSummary = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -277,60 +246,7 @@ export const deleteReceipt = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-// Delete a recurring template and all its instances
-export const deleteRecurringExpense = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const userId = (req as AuthRequest).user?.id;
 
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
-
-        const response = await transactionService.deleteRecurringExpense(userId, id);
-        res.json(response);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            if (error.message === "Invalid transaction id") {
-                res.status(400).json(createErrorResponse(error.message));
-                return;
-            }
-            if (error.message === "Recurring transaction template not found") {
-                res.status(404).json(createErrorResponse(error.message));
-                return;
-            }
-        }
-
-        logError("deleteRecurringExpense", error);
-        res.status(500).json(createErrorResponse("Failed to delete recurring expense."));
-    }
-};
-
-// Update bill status for transactions
-export const updateTransactionBillStatus = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const { billStatus } = req.body as { billStatus: BillStatus };
-
-        const response = await transactionService.updateTransactionBillStatus(id, billStatus);
-        res.json(response);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            if (error.message === "Invalid transaction id") {
-                res.status(400).json(createErrorResponse(error.message));
-                return;
-            }
-            if (error.message === "Transaction not found") {
-                res.status(404).json(createErrorResponse(error.message));
-                return;
-            }
-        }
-
-        logError("updateTransactionBillStatus", error);
-        res.status(500).json(createErrorResponse("Failed to update bill status."));
-    }
-};
 
 // New function for getting all transactions for analytics (no pagination)
 export const getAllTransactionsForAnalytics = async (req: Request, res: Response): Promise<void> => {
@@ -349,21 +265,3 @@ export const getAllTransactionsForAnalytics = async (req: Request, res: Response
     }
 };
 
-/**
- * Manually trigger recurring transaction processing for the current user
- */
-export const triggerRecurringTransactionsJob = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
-
-        const response = await transactionService.triggerRecurringTransactionsJob(userId);
-        res.json(response);
-    } catch (error: unknown) {
-        logError("triggerRecurringTransactionsJob", error);
-        res.status(500).json(createErrorResponse("Failed to trigger recurring transactions job."));
-    }
-};

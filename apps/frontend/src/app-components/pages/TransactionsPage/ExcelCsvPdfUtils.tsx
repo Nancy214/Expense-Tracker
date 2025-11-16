@@ -1,8 +1,8 @@
-import type { TransactionOrBill } from "@expense-tracker/shared-types/src";
+import type { Transaction } from "@expense-tracker/shared-types/src";
 
 export interface MonthlyStatementPDFOptions {
-    allExpenses: TransactionOrBill[];
-    filteredTransactions: TransactionOrBill[];
+    allExpenses: Transaction[];
+    filteredTransactions: Transaction[];
     userCurrency: string;
     now: Date;
     monthName: string;
@@ -18,7 +18,7 @@ export interface MonthlyStatementPDFOptions {
 }
 
 // Utility to convert array of objects to CSV, excluding _id, userId, templateId
-export function arrayToCSV(data: TransactionOrBill[]): string {
+export function arrayToCSV(data: Transaction[]): string {
     if (!data.length) return "";
 
     const replacer = (_key: string, value: unknown) => (value ? value : "");
@@ -63,7 +63,7 @@ export function arrayToCSV(data: TransactionOrBill[]): string {
     return csv;
 }
 
-export function downloadCSV(data: TransactionOrBill[], filename = "expenses.csv"): void {
+export function downloadCSV(data: Transaction[], filename = "expenses.csv"): void {
     const csv = arrayToCSV(data);
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -78,7 +78,7 @@ export function downloadCSV(data: TransactionOrBill[], filename = "expenses.csv"
 
 // Utility to export to Excel using xlsx
 import * as XLSX from "xlsx";
-export function downloadExcel(data: TransactionOrBill[], filename = "expenses.xlsx"): void {
+export function downloadExcel(data: Transaction[], filename = "expenses.xlsx"): void {
     if (!data.length) return;
 
     const exclude = ["_id", "userId", "templateId"];
@@ -207,59 +207,6 @@ export function generateMonthlyStatementPDF({
             ];
         });
 
-    // Bills table
-    const billsRows = monthlyTransactions
-        .filter((t) => t.category === "Bills")
-        .map((t) => {
-            let dateObj: Date;
-            if (typeof t.date === "string") {
-                dateObj = parse(t.date, "dd/MM/yyyy", new Date());
-                if (isNaN(dateObj.getTime())) {
-                    dateObj = new Date(t.date);
-                }
-            } else {
-                dateObj = t.date;
-            }
-
-            let dueDateStr = "";
-            if ("dueDate" in t && t.dueDate) {
-                let dueDateObj: Date;
-                if (typeof (t as any).dueDate === "string") {
-                    dueDateObj = parse((t as any).dueDate, "dd/MM/yyyy", new Date());
-                    if (isNaN(dueDateObj.getTime())) {
-                        dueDateObj = new Date((t as any).dueDate);
-                    }
-                } else {
-                    dueDateObj = (t as any).dueDate;
-                }
-                dueDateStr = format(dueDateObj, "dd/MM/yyyy");
-            }
-
-            // Get status with proper formatting
-            let status = (t as any).billStatus || "unpaid";
-            if (status === "paid") {
-                status = "Paid";
-            } else if (status === "unpaid") {
-                status = "Unpaid";
-            } else if (status === "pending") {
-                status = "Pending";
-            } else if (status === "overdue") {
-                status = "Overdue";
-            }
-
-            return [
-                format(dateObj, "dd/MM/yyyy"),
-                t.title || "",
-                t.amount !== undefined ? t.amount.toFixed(2) : "",
-                (t as any).billCategory || "-",
-                status,
-                dueDateStr,
-                (t as any).billFrequency
-                    ? (t as any).billFrequency.charAt(0).toUpperCase() + (t as any).billFrequency.slice(1)
-                    : "-",
-            ];
-        });
-
     // PDF generation
     const doc = new jsPDF();
     let y = 18;
@@ -370,41 +317,6 @@ export function generateMonthlyStatementPDF({
             },
             headStyles: {
                 fillColor: [41, 128, 185],
-                textColor: 255,
-                fontStyle: "bold",
-                halign: "left",
-                fontSize: 10,
-                cellPadding: 3,
-            },
-            alternateRowStyles: {
-                fillColor: [245, 245, 245],
-            },
-            margin: { left: 14, right: 14 },
-            theme: "grid",
-        });
-    }
-
-    // Bills table
-    if (billsRows.length > 0) {
-        y = (doc as any).lastAutoTable.finalY + 12;
-        doc.setFontSize(14);
-        doc.setTextColor(40);
-        doc.text("Bills", 14, y);
-        y += 5;
-        autoTable(doc, {
-            startY: y,
-            head: [["Date", "Title", "Amount", "Category", "Status", "Due Date", "Frequency"]],
-            body: billsRows,
-            styles: {
-                fontSize: 9,
-                cellPadding: 2,
-                halign: "left",
-                valign: "middle",
-                overflow: "linebreak",
-                textColor: [40, 40, 40],
-            },
-            headStyles: {
-                fillColor: [231, 76, 60], // Red color for bills
                 textColor: 255,
                 fontStyle: "bold",
                 halign: "left",

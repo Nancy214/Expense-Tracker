@@ -41,7 +41,6 @@ const categoryOptions = [
     { value: ExpenseCategory.EDUCATION, label: "Education", example: "Course fee" },
     { value: ExpenseCategory.PERSONAL_CARE, label: "Personal Care", example: "Haircut" },
     { value: ExpenseCategory.GIFTS, label: "Gifts", example: "Birthday gift" },
-    { value: ExpenseCategory.BILLS, label: "Bills", example: "Monthly bill payment" },
     { value: ExpenseCategory.OTHER, label: "Other", example: "Miscellaneous expense" },
 ];
 

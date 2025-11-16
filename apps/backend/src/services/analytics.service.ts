@@ -1,5 +1,4 @@
 import {
-    type Bill,
     type BillsCategoryBreakdownResponse,
     type ExpenseCategoryBreakdownResponse,
     type IncomeExpenseSummaryResponse,
@@ -33,7 +32,7 @@ import {
 import { getMonthDates, getMonthName } from "../utils/dateUtils";
 
 // Union type for all transaction documents
-export type AnyTransactionDocument = Transaction | Bill;
+export type AnyTransactionDocument = Transaction;
 
 export class AnalyticsService {
     // Helper function to get date range based on period and subPeriod
@@ -194,13 +193,14 @@ export class AnalyticsService {
         }
 
         // Get bill transactions for the user within the specified period
-        const bills: Bill[] = await fetchBills(userId, dateFilter);
+        // Note: Bills are no longer a separate category, return empty breakdown
+        const bills: Transaction[] = await fetchBills(userId, dateFilter);
 
-        // Aggregate by billCategory
+        // Aggregate by billCategory (empty since bills are no longer separate)
         const billCategoryBreakdown: { [key: string]: number } = {};
-        bills.forEach((bill: Bill) => {
-            const billData: Bill = bill;
-            const billCategory: string = billData.billCategory || "";
+        bills.forEach((bill: Transaction) => {
+            const billData: Transaction = bill;
+            const billCategory: string = (billData as any).billCategory || "";
             billCategoryBreakdown[billCategory] = (billCategoryBreakdown[billCategory] || 0) + billData.amount;
         });
 

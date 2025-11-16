@@ -1,9 +1,8 @@
 import type {
-    BillStatus,
     MonthlyStats,
     PaginationInfo,
     TransactionId,
-    TransactionOrBill,
+    Transaction,
     TransactionResponse,
     TransactionSummary,
 } from "@expense-tracker/shared-types/src";
@@ -89,7 +88,7 @@ expenseApi.interceptors.response.use(
 export const getExpenses = async (
     page: number = 1,
     limit: number = 20
-): Promise<{ expenses: TransactionOrBill[]; pagination: PaginationInfo }> => {
+): Promise<{ expenses: Transaction[]; pagination: PaginationInfo }> => {
     try {
         const response = await expenseApi.get(`/get-expenses?page=${page}&limit=${limit}`);
         return response.data;
@@ -114,7 +113,7 @@ export const getAllTransactions = async (
     limit: number = 20,
     filters?: TransactionFilters
 ): Promise<{
-    transactions: TransactionOrBill[];
+    transactions: Transaction[];
     pagination: PaginationInfo;
 }> => {
     try {
@@ -150,7 +149,7 @@ export const getAllTransactions = async (
 };
 
 export const getAllTransactionsForAnalytics = async (): Promise<{
-    transactions: TransactionOrBill[];
+    transactions: Transaction[];
 }> => {
     try {
         const response = await expenseApi.get(`/get-all-transactions-analytics`);
@@ -161,34 +160,6 @@ export const getAllTransactionsForAnalytics = async (): Promise<{
     }
 };
 
-export const getBills = async (
-    page: number = 1,
-    limit: number = 20
-): Promise<{ bills: TransactionOrBill[]; pagination: PaginationInfo }> => {
-    try {
-        const response = await expenseApi.get(`/get-bills?page=${page}&limit=${limit}`);
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching bills:", error);
-        throw error;
-    }
-};
-
-export const getRecurringTemplates = async (
-    page: number = 1,
-    limit: number = 20
-): Promise<{
-    recurringTemplates: TransactionOrBill[];
-    pagination: PaginationInfo;
-}> => {
-    try {
-        const response = await expenseApi.get(`/get-recurring-templates?page=${page}&limit=${limit}`);
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching recurring templates:", error);
-        throw error;
-    }
-};
 
 export const getTransactionSummary = async (): Promise<{
     summary: TransactionSummary;
@@ -202,7 +173,7 @@ export const getTransactionSummary = async (): Promise<{
     }
 };
 
-export const createExpense = async (expense: TransactionOrBill): Promise<TransactionResponse> => {
+export const createExpense = async (expense: Transaction): Promise<TransactionResponse> => {
     try {
         const response = await expenseApi.post(`/add-expenses`, expense);
         return response.data;
@@ -212,23 +183,9 @@ export const createExpense = async (expense: TransactionOrBill): Promise<Transac
     }
 };
 
-export const updateExpense = async (id: TransactionId, data: TransactionOrBill): Promise<TransactionResponse> => {
+export const updateExpense = async (id: TransactionId, data: Transaction): Promise<TransactionResponse> => {
     try {
-        // Create a copy of the expense to avoid mutating the original
-        const expenseToUpdate: TransactionOrBill = { ...data };
-
-        // Handle date conversion for bill-specific fields
-        if ("dueDate" in data && data.dueDate) {
-            (expenseToUpdate as any).dueDate = convertToISOString(data.dueDate);
-        }
-        if ("nextDueDate" in data && data.nextDueDate) {
-            (expenseToUpdate as any).nextDueDate = convertToISOString(data.nextDueDate);
-        }
-        if ("lastPaidDate" in data && data.lastPaidDate) {
-            (expenseToUpdate as any).lastPaidDate = convertToISOString(data.lastPaidDate);
-        }
-
-        const response = await expenseApi.put(`/${id.id}`, expenseToUpdate);
+        const response = await expenseApi.put(`/${id.id}`, data);
         return response.data;
     } catch (error) {
         console.error("Error updating expense:", error);
@@ -256,19 +213,19 @@ export const getMonthlyStats = async (): Promise<MonthlyStats> => {
         const currentYear = now.getFullYear();
 
         // Filter expenses for current month
-        const monthlyExpenses = expenses.filter((expense: TransactionOrBill) => {
+        const monthlyExpenses = expenses.filter((expense: Transaction) => {
             const expenseDate = new Date(expense.date);
             return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
         });
 
         // Calculate totals
         const totalIncome = monthlyExpenses
-            .filter((expense: TransactionOrBill) => expense.type === "income")
-            .reduce((sum: number, expense: TransactionOrBill) => sum + expense.amount, 0);
+            .filter((expense: Transaction) => expense.type === "income")
+            .reduce((sum: number, expense: Transaction) => sum + expense.amount, 0);
 
         const totalExpenses = monthlyExpenses
-            .filter((expense: TransactionOrBill) => expense.type === "expense")
-            .reduce((sum: number, expense: TransactionOrBill) => sum + expense.amount, 0);
+            .filter((expense: Transaction) => expense.type === "expense")
+            .reduce((sum: number, expense: Transaction) => sum + expense.amount, 0);
 
         const balance = totalIncome - totalExpenses;
 
@@ -284,15 +241,6 @@ export const getMonthlyStats = async (): Promise<MonthlyStats> => {
     }
 };
 
-// Add a function to trigger the recurring expenses job manually
-export const triggerRecurringExpensesJob = async (): Promise<void> => {
-    try {
-        await expenseApi.post("/trigger-recurring");
-    } catch (error) {
-        console.error("Error triggering recurring expenses job:", error);
-        throw error;
-    }
-};
 
 export const uploadReceipt = async (file: File): Promise<string> => {
     const formData = new FormData();
@@ -322,27 +270,3 @@ export const deleteReceipt = async (key: string): Promise<void> => {
     }
 };
 
-export const deleteRecurringExpense = async (params: TransactionId): Promise<void> => {
-    try {
-        await expenseApi.delete(`/recurring/${params.id}`);
-    } catch (error) {
-        console.error("Error deleting recurring expense:", error);
-        throw error;
-    }
-};
-
-// Update bill status for transactions
-export const updateTransactionBillStatus = async (
-    id: TransactionId,
-    billStatus: BillStatus
-): Promise<TransactionResponse> => {
-    try {
-        const response = await expenseApi.patch(`/${id.id}/bill-status`, {
-            billStatus,
-        });
-        return response.data;
-    } catch (error) {
-        console.error("Error updating transaction bill status:", error);
-        throw error;
-    }
-};

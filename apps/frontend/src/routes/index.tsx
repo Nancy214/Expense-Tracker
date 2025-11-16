@@ -40,11 +40,7 @@ const routes: RouteConfig[] = [
         element: <TransactionsPage />,
         requireAuth: true,
     },
-    /* {
-        path: "/bills",
-        element: <BillsPage />,
-        requireAuth: true,
-    }, */
+
     {
         path: "/budget",
         element: <BudgetPage />,
@@ -132,7 +128,12 @@ export const RouteGuard = ({ children }: { children: React.ReactNode }) => {
 
     // Allow authenticated users to access landing page, but redirect from login/register
     // Don't redirect from register page to allow navigation to onboarding
-    if (!currentRoute.requireAuth && isAuthenticated && location.pathname !== "/" && location.pathname !== "/register") {
+    if (
+        !currentRoute.requireAuth &&
+        isAuthenticated &&
+        location.pathname !== "/" &&
+        location.pathname !== "/register"
+    ) {
         return <Navigate to="/dashboard" replace />;
     }
 
