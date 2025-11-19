@@ -1,4 +1,4 @@
-import { format, parse, parseISO } from "date-fns";
+import { format, parse, parseISO, isValid } from "date-fns";
 
 // Type definitions for better type safety
 export type DateInput = Date | string;
@@ -41,5 +41,6 @@ export const isInCurrentMonth = (date: Date): boolean => {
 export const formatToHumanReadableDate = (date: Date | string): string => {
 	if (!date) return "-";
 	const dateObj: Date = typeof date === "string" ? parseISO(date) : date;
+	if (!isValid(dateObj)) return "-";
 	return format(dateObj, "dd MMM yyyy");
 };

@@ -3,6 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { AuthenticatedUser, SettingsType, UserType } from "@expense-tracker/shared-types";
 import type { CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types";
 import crypto from "crypto";
+import { format, isValid, parse } from "date-fns";
 import dotenv from "dotenv";
 import sharp from "sharp";
 import { isAWSConfigured, s3Client } from "../config/s3Client";
@@ -70,7 +71,7 @@ export class ProfileService {
             email: userDoc.email,
             profilePicture: profilePictureUrl,
             phoneNumber: userDoc.phoneNumber || "",
-            dateOfBirth: userDoc.dateOfBirth || "",
+            dateOfBirth: userDoc.dateOfBirth && isValid(new Date(userDoc.dateOfBirth)) ? format(new Date(userDoc.dateOfBirth), "dd/MM/yyyy") : "",
             currency: userDoc.currency || "",
             currencySymbol: userDoc.currencySymbol || "",
             country: userDoc.country || "",
@@ -110,7 +111,7 @@ export class ProfileService {
             name,
             email,
             phoneNumber,
-            dateOfBirth,
+            dateOfBirth: dateOfBirth ? parse(dateOfBirth, "dd/MM/yyyy", new Date()) : undefined,
             currency,
             country,
             timezone,
@@ -197,7 +198,7 @@ export class ProfileService {
             email: updatedUser.email,
             profilePicture: profilePictureUrl,
             phoneNumber: updatedUser.phoneNumber || "",
-            dateOfBirth: updatedUser.dateOfBirth || "",
+            dateOfBirth: updatedUser.dateOfBirth && isValid(new Date(updatedUser.dateOfBirth)) ? format(new Date(updatedUser.dateOfBirth), "dd/MM/yyyy") : "",
             currency: updatedUser.currency || "",
             currencySymbol: updatedUser.currencySymbol || "",
             country: updatedUser.country || "",
