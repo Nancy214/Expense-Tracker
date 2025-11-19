@@ -200,6 +200,16 @@ export const deleteExpense = async (params: TransactionId): Promise<void> => {
     }
 };
 
+export const deleteRecurringSeries = async (params: TransactionId): Promise<{ deletedCount: number }> => {
+    try {
+        const response = await expenseApi.delete(`/${params.id}/series`);
+        return response.data;
+    } catch (error) {
+        console.error("Error deleting recurring series:", error);
+        throw error;
+    }
+};
+
 export const getMonthlyStats = async (): Promise<MonthlyStats> => {
     try {
         // Fetch all expenses for stats

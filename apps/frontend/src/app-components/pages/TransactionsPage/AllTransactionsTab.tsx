@@ -12,6 +12,7 @@ import {
 import { ArrowUpDown, Pencil, Trash, FileText, Repeat } from "lucide-react";
 import { useMemo } from "react";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
+import { RecurringDeleteDialog } from "@/app-components/utility-components/RecurringDeleteDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -48,6 +49,12 @@ export function AllTransactionsTab({
         confirmExpenseDelete: confirmDelete,
         cancelDelete,
         setIsDeleteDialogOpen,
+        isRecurringDeleteDialogOpen,
+        handleRecurringExpenseDelete,
+        confirmRecurringDeleteSingle,
+        confirmRecurringDeleteAll,
+        cancelRecurringDelete,
+        setIsRecurringDeleteDialogOpen,
     } = useDeleteOperations();
 
     const handleEdit = async (expense: Transaction) => {
@@ -185,6 +192,10 @@ export function AllTransactionsTab({
                 header: "Actions",
                 cell: ({ row }: { row: Row<Transaction> }) => {
                     const expense: Transaction = row.original;
+                    const isRecurringTemplate = expense.isRecurring;
+                    const parentRecurringId = (expense as any).parentRecurringId;
+                    const isRecurringInstance = !!parentRecurringId;
+                    const isRecurringTransaction = isRecurringTemplate || isRecurringInstance;
 
                     return (
                         <div className="flex gap-2">
@@ -205,7 +216,16 @@ export function AllTransactionsTab({
                                         });
                                         return;
                                     }
-                                    handleDelete(expenseId);
+
+                                    if (isRecurringTransaction) {
+                                        handleRecurringExpenseDelete({
+                                            id: expenseId,
+                                            isRecurring: !!isRecurringTemplate,
+                                            parentRecurringId: parentRecurringId,
+                                        });
+                                    } else {
+                                        handleDelete(expenseId);
+                                    }
                                 }}
                                 aria-label="Delete"
                             >
@@ -295,6 +315,25 @@ export function AllTransactionsTab({
                 onCancel={cancelDelete}
                 title="Delete Expense"
                 message="Are you sure you want to delete this expense? This action cannot be undone."
+            />
+
+            {/* Confirmation dialog for recurring delete */}
+            <RecurringDeleteDialog
+                open={isRecurringDeleteDialogOpen}
+                onOpenChange={setIsRecurringDeleteDialogOpen}
+                onDeleteSingle={async () => {
+                    await confirmRecurringDeleteSingle();
+                    if (refreshAllTransactions) {
+                        refreshAllTransactions();
+                    }
+                }}
+                onDeleteAll={async () => {
+                    await confirmRecurringDeleteAll();
+                    if (refreshAllTransactions) {
+                        refreshAllTransactions();
+                    }
+                }}
+                onCancel={cancelRecurringDelete}
             />
         </>
     );

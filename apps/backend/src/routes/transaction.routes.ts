@@ -5,6 +5,7 @@ import {
     createExpense,
     deleteExpense,
     deleteReceipt,
+    deleteRecurringSeries,
     getAllTransactions,
     getAllTransactionsForAnalytics,
     getExpenses,
@@ -35,6 +36,7 @@ router.put(
     updateExpense
 );
 router.delete("/:id", authenticateToken, validate(ZTransactionIdParam, "params"), deleteExpense);
+router.delete("/:id/series", authenticateToken, validate(ZTransactionIdParam, "params"), deleteRecurringSeries);
 
 // Manual trigger for recurring transaction job (for testing)
 router.post("/process-recurring", authenticateToken, async (req, res) => {

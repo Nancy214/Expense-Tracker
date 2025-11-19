@@ -343,4 +343,56 @@ export class TransactionDAO {
             }
         );
     }
+
+    /**
+     * Delete all transactions in a recurring series
+     * This deletes the template and all generated instances
+     */
+    static async deleteRecurringSeries(
+        userId: string,
+        transactionId: string
+    ): Promise<{ deletedCount: number }> {
+        const transaction = await TransactionModel.findOne({
+            _id: new Types.ObjectId(transactionId),
+            userId: new Types.ObjectId(userId),
+        });
+
+        if (!transaction) {
+            return { deletedCount: 0 };
+        }
+
+        let templateId: Types.ObjectId;
+
+        // Check if this is a template or an instance
+        if (transaction.isRecurring) {
+            // This is the template itself
+            templateId = transaction._id as Types.ObjectId;
+        } else if ((transaction as any).parentRecurringId) {
+            // This is an instance, get the parent template ID
+            templateId = (transaction as any).parentRecurringId;
+        } else {
+            // Not a recurring transaction, just delete this one
+            await TransactionModel.findOneAndDelete({
+                _id: new Types.ObjectId(transactionId),
+                userId: new Types.ObjectId(userId),
+            });
+            return { deletedCount: 1 };
+        }
+
+        // Delete all instances that reference this template
+        const instancesResult = await TransactionModel.deleteMany({
+            userId: new Types.ObjectId(userId),
+            parentRecurringId: templateId,
+        });
+
+        // Delete the template itself
+        const templateResult = await TransactionModel.deleteOne({
+            _id: templateId,
+            userId: new Types.ObjectId(userId),
+        });
+
+        return {
+            deletedCount: instancesResult.deletedCount + templateResult.deletedCount,
+        };
+    }
 }

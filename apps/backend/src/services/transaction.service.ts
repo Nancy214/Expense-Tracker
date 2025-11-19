@@ -193,4 +193,21 @@ export class TransactionService {
         const transactions = await TransactionDAO.getAllTransactionsForAnalytics(userId);
         return { transactions };
     }
+
+    async deleteRecurringSeries(userId: string, id: string) {
+        // Validate ObjectId early to avoid cast errors
+        if (!mongoose.isValidObjectId(id)) {
+            throw new Error("Invalid transaction id");
+        }
+
+        const result = await TransactionDAO.deleteRecurringSeries(userId, id);
+        if (result.deletedCount === 0) {
+            throw new Error("Expense not found");
+        }
+
+        return {
+            message: "Recurring series deleted",
+            deletedCount: result.deletedCount
+        };
+    }
 }

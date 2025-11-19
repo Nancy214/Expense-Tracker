@@ -174,6 +174,35 @@ export const deleteExpense = async (req: Request, res: Response): Promise<void> 
     }
 };
 
+export const deleteRecurringSeries = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const userId = (req as AuthRequest).user?.id;
+
+        if (!userId) {
+            res.status(401).json(createErrorResponse("User not authenticated"));
+            return;
+        }
+
+        const response = await transactionService.deleteRecurringSeries(userId, id);
+        res.json(response);
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            if (error.message === "Invalid transaction id") {
+                res.status(400).json(createErrorResponse(error.message));
+                return;
+            }
+            if (error.message === "Expense not found") {
+                res.status(404).json(createErrorResponse(error.message));
+                return;
+            }
+        }
+
+        logError("deleteRecurringSeries", error);
+        res.status(500).json(createErrorResponse("Failed to delete recurring series."));
+    }
+};
+
 export const uploadReceipt = async (req: Request, res: Response): Promise<void> => {
     try {
         if (!req.file) {
