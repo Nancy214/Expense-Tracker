@@ -5,6 +5,7 @@ import session from "express-session";
 import expressStatusMonitor from "express-status-monitor";
 import mongoose from "mongoose";
 import morgan from "morgan";
+import cron from "node-cron";
 import passport from "./config/passport";
 import analyticsRoutes from "./routes/analytics.routes";
 import authRoutes from "./routes/auth.routes";
@@ -16,6 +17,7 @@ import onboardingRoutes from "./routes/onboarding.routes";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { authenticateToken } from "./middleware/auth.middleware";
+import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 
 dotenv.config();
 
@@ -99,6 +101,22 @@ mongoose
     )
     .then(() => {
         console.log("Connected to MongoDB");
+
+        // Initialize recurring transaction cron job
+        // Runs every day at midnight (00:00)
+        cron.schedule("0 0 * * *", async () => {
+            console.log("[Cron] Running recurring transaction job...");
+            try {
+                const result = await RecurringTransactionJobService.processAllRecurringTransactions();
+                console.log(
+                    `[Cron] Recurring transaction job completed. Created: ${result.totalCreated}, Processed: ${result.totalProcessed}, Errors: ${result.errors.length}`
+                );
+            } catch (error) {
+                console.error("[Cron] Recurring transaction job failed:", error);
+            }
+        });
+
+        console.log("[Cron] Recurring transaction job scheduled to run daily at midnight");
     })
     .catch((err) => {
         console.error("MongoDB connection error:", err);

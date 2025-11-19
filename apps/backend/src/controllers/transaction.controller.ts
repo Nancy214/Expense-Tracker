@@ -2,6 +2,7 @@ import type { TokenPayload } from "@expense-tracker/shared-types";
 import type { Request, Response } from "express";
 import { TransactionService } from "../services/transaction.service";
 import { createErrorResponse, logError } from "../services/error.service";
+import { RecurringTransactionJobService } from "../services/recurringTransactionJob.service";
 
 export interface AuthRequest extends Request {
     user?: TokenPayload;
@@ -91,6 +92,19 @@ export const createExpense = async (req: Request, res: Response): Promise<void> 
         }
 
         const expense = await transactionService.createExpense(userId, req.body);
+
+        // If this is a recurring transaction with autoCreate enabled,
+        // immediately process it to create any past instances
+        if (expense.isRecurring && expense.autoCreate && expense.recurringActive) {
+            try {
+                const result = await RecurringTransactionJobService.processUserRecurringTransactionsManually(userId);
+                console.log(`[createExpense] Processed recurring transaction: ${result.message}`);
+            } catch (jobError) {
+                // Log but don't fail the request - the transaction was created successfully
+                console.error("[createExpense] Failed to process recurring instances:", jobError);
+            }
+        }
+
         res.json(expense);
     } catch (error: unknown) {
         logError("createExpense", error, userId);

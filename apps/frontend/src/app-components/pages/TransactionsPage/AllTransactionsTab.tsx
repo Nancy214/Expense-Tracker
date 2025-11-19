@@ -9,12 +9,13 @@ import {
     type Row,
     useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, Pencil, Trash, FileText } from "lucide-react";
+import { ArrowUpDown, Pencil, Trash, FileText, Repeat } from "lucide-react";
 import { useMemo } from "react";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { useCurrencySymbol } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
@@ -90,8 +91,26 @@ export function AllTransactionsTab({
                 size: 200,
                 cell: ({ row }: { row: Row<Transaction> }) => {
                     const expense = row.original;
+                    const isRecurringTemplate = expense.isRecurring;
+                    const isRecurringInstance = !!(expense as any).parentRecurringId;
 
-                    return <span className="flex items-center gap-2">{expense.title}</span>;
+                    return (
+                        <span className="flex items-center gap-2">
+                            {expense.title}
+                            {(isRecurringTemplate || isRecurringInstance) && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Repeat className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Recurring Transaction</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
+                        </span>
+                    );
                 },
             },
             {

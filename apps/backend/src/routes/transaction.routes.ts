@@ -15,6 +15,7 @@ import {
 } from "../controllers/transaction.controller";
 import { authenticateToken } from "../middleware/auth.middleware";
 import { validate } from "../middleware/validate.middleware";
+import { RecurringTransactionJobService } from "../services/recurringTransactionJob.service";
 
 const router = Router();
 
@@ -34,5 +35,35 @@ router.put(
     updateExpense
 );
 router.delete("/:id", authenticateToken, validate(ZTransactionIdParam, "params"), deleteExpense);
+
+// Manual trigger for recurring transaction job (for testing)
+router.post("/process-recurring", authenticateToken, async (req, res) => {
+    try {
+        const userId = (req as any).user.id;
+        const result = await RecurringTransactionJobService.processUserRecurringTransactionsManually(userId);
+        res.json(result);
+    } catch (error) {
+        console.error("Error processing recurring transactions:", error);
+        res.status(500).json({
+            success: false,
+            message: error instanceof Error ? error.message : "Unknown error"
+        });
+    }
+});
+
+// Get recurring transaction status
+router.get("/recurring-status", authenticateToken, async (req, res) => {
+    try {
+        const userId = (req as any).user.id;
+        const status = await RecurringTransactionJobService.getRecurringTransactionStatus(userId);
+        res.json(status);
+    } catch (error) {
+        console.error("Error getting recurring status:", error);
+        res.status(500).json({
+            success: false,
+            message: error instanceof Error ? error.message : "Unknown error"
+        });
+    }
+});
 
 export default router;
