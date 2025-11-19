@@ -7,13 +7,12 @@ import type {
     TransactionSummary,
 } from "@expense-tracker/shared-types/src";
 import axios from "axios";
-import { isValid } from "date-fns";
 import { refreshAuthTokens } from "@/utils/authUtils";
 
 const API_URL = `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/expenses`;
 
 // Helper function for safe date conversion (returns ISO string)
-const convertToISOString = (dateValue: string | Date | undefined): string | undefined => {
+/* const convertToISOString = (dateValue: string | Date | undefined): string | undefined => {
     if (!dateValue) return undefined;
 
     if (typeof dateValue === "string") {
@@ -39,7 +38,7 @@ const convertToISOString = (dateValue: string | Date | undefined): string | unde
     }
 
     return undefined;
-};
+}; */
 
 const expenseApi = axios.create({
     baseURL: API_URL,
@@ -160,7 +159,6 @@ export const getAllTransactionsForAnalytics = async (): Promise<{
     }
 };
 
-
 export const getTransactionSummary = async (): Promise<{
     summary: TransactionSummary;
 }> => {
@@ -241,7 +239,6 @@ export const getMonthlyStats = async (): Promise<MonthlyStats> => {
     }
 };
 
-
 export const uploadReceipt = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -269,4 +266,3 @@ export const deleteReceipt = async (key: string): Promise<void> => {
         throw error;
     }
 };
-

@@ -1,4 +1,4 @@
-import type { BudgetReminder } from "@expense-tracker/shared-types/src";
+import { Period, type BudgetReminder } from "@expense-tracker/shared-types/src";
 import {
     DollarSign,
     Receipt,
@@ -83,7 +83,7 @@ const DashboardPage = () => {
     const { budgetProgress, budgetReminders: budgetRemindersData, isProgressLoading, remindersError } = useBudgets();
 
     // Get expense breakdown by category for the current month
-    const { data: expenseBreakdown } = useExpenseCategoryBreakdown("month");
+    const { data: expenseBreakdown } = useExpenseCategoryBreakdown(Period.MONTHLY);
 
     // Financial Overview data
     const financialData: FinancialOverviewData = {
