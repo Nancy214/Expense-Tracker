@@ -105,6 +105,12 @@ const Step4FirstExpense = ({ onNext, onBack, budget, initialFormData, onFormData
                 currency: user?.currency || "USD",
                 userId: user?.id || "",
                 isRecurring: false,
+                recurringActive: false,
+                autoCreate: false,
+                fromRate: 1,
+                toRate: 1,
+                description: "",
+                receipt: "",
             };
 
             await createTransaction(transactionData);
@@ -218,7 +224,8 @@ const Step4FirstExpense = ({ onNext, onBack, budget, initialFormData, onFormData
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <Label htmlFor="amount" className="text-sm font-medium text-gray-700">
-                                Amount ({user?.currencySymbol || user?.currency || "$"}) <span className="text-red-500">*</span>
+                                Amount ({user?.currencySymbol || user?.currency || "$"}){" "}
+                                <span className="text-red-500">*</span>
                             </Label>
                         </div>
                         <Controller

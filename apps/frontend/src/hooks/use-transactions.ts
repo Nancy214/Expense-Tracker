@@ -269,6 +269,13 @@ export const useTransactionForm = ({
                 fromRate: editingExpense.fromRate || 1,
                 toRate: editingExpense.toRate || 1,
                 receipt: editingExpense.receipt || "",
+                isRecurring: editingExpense.isRecurring || false,
+                recurringFrequency: editingExpense.recurringFrequency,
+                recurringEndDate: editingExpense.recurringEndDate
+                    ? parseDateToFormat(editingExpense.recurringEndDate.toString())
+                    : undefined,
+                recurringActive: editingExpense.recurringActive ?? true,
+                autoCreate: editingExpense.autoCreate ?? true,
             };
         }
 
@@ -285,6 +292,11 @@ export const useTransactionForm = ({
             fromRate: 1,
             toRate: 1,
             receipt: "",
+            isRecurring: false,
+            recurringFrequency: undefined,
+            recurringEndDate: undefined,
+            recurringActive: true,
+            autoCreate: true,
         };
     }, [editingExpense, preselectedCategory, user?.currency, user?.currencySymbol, parseDateToFormat]);
 

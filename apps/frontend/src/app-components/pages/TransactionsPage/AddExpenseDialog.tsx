@@ -1,11 +1,19 @@
-import { ExpenseCategory, IncomeCategory, type Transaction, TransactionType } from "@expense-tracker/shared-types/src";
+import {
+    ExpenseCategory,
+    IncomeCategory,
+    RecurringFrequency,
+    type Transaction,
+    TransactionType,
+} from "@expense-tracker/shared-types/src";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
+import { CheckboxField } from "@/app-components/form-fields/CheckboxField";
 import { DateField } from "@/app-components/form-fields/DateField";
 import { FileUploadField } from "@/app-components/form-fields/FileUploadField";
 import { InputField } from "@/app-components/form-fields/InputField";
 import { SelectField } from "@/app-components/form-fields/SelectField";
+import { SwitchField } from "@/app-components/form-fields/SwitchField";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
@@ -29,6 +37,11 @@ export interface TransactionFormData {
     receipt?: File | string;
     fromRate?: number;
     toRate?: number;
+    isRecurring: boolean;
+    recurringFrequency?: RecurringFrequency;
+    recurringEndDate?: string;
+    recurringActive: boolean;
+    autoCreate: boolean;
 }
 
 // Dialog props types
@@ -67,8 +80,12 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
     const {
         handleSubmit,
+        watch,
+
         formState: { isSubmitting },
     } = form;
+
+    const isRecurring = watch("isRecurring");
 
     // Use mutation loading states
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
@@ -168,6 +185,17 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 }),
                 ...(data.toRate !== undefined && { toRate: data.toRate }),
                 receipt: finalReceipt,
+                isRecurring: data.isRecurring,
+                recurringActive: data.recurringActive,
+                autoCreate: data.autoCreate,
+                ...(data.isRecurring &&
+                    data.recurringFrequency && {
+                        recurringFrequency: data.recurringFrequency,
+                    }),
+                ...(data.isRecurring &&
+                    data.recurringEndDate && {
+                        recurringEndDate: data.recurringEndDate,
+                    }),
             };
 
             if (isEditing && editingExpense?.id) {
@@ -292,7 +320,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             <AccordionItem value="more-options" className="border-none">
                                 <AccordionTrigger>More Options</AccordionTrigger>
                                 <AccordionContent>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-x-4">
                                         <SelectField
                                             name="type"
                                             label="Type"
@@ -316,22 +344,70 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                             options={getCategoryOptions()}
                                             required
                                         />
+
+                                        <div className="col-span-2">
+                                            <InputField
+                                                name="description"
+                                                label="Description"
+                                                placeholder="Description (Optional)"
+                                                maxLength={200}
+                                            />
+                                        </div>
+
+                                        <div className="col-span-2 pt-1">
+                                            <SwitchField
+                                                name="isRecurring"
+                                                label="Recurring Transaction"
+                                                description="Set this transaction to repeat automatically"
+                                            />
+                                        </div>
+
+                                        {isRecurring && (
+                                            <>
+                                                <SelectField
+                                                    name="recurringFrequency"
+                                                    label="Frequency"
+                                                    placeholder="Select frequency"
+                                                    options={[
+                                                        { value: RecurringFrequency.DAILY, label: "Daily" },
+                                                        { value: RecurringFrequency.WEEKLY, label: "Weekly" },
+                                                        { value: RecurringFrequency.MONTHLY, label: "Monthly" },
+                                                        { value: RecurringFrequency.QUARTERLY, label: "Quarterly" },
+                                                        { value: RecurringFrequency.YEARLY, label: "Yearly" },
+                                                    ]}
+                                                    required
+                                                />
+
+                                                <DateField
+                                                    name="recurringEndDate"
+                                                    label="End Date"
+                                                    placeholder="Optional end date"
+                                                    source="recurring"
+                                                />
+
+                                                <CheckboxField
+                                                    name="autoCreate"
+                                                    label="Auto-create"
+                                                    description="Auto-create or remind only"
+                                                />
+
+                                                <CheckboxField
+                                                    name="recurringActive"
+                                                    label="Active"
+                                                    description="You can pause/resume recurring transactions"
+                                                />
+                                            </>
+                                        )}
                                     </div>
-
-                                    <InputField
-                                        name="description"
-                                        label="Description"
-                                        placeholder="Description (Optional)"
-                                        maxLength={200}
-                                    />
-
-                                    <FileUploadField
-                                        name="receipt"
-                                        label="Receipt"
-                                        description="Upload receipt images or PDFs"
-                                        accept="image/*,application/pdf"
-                                        onReceiptDeleted={onReceiptDeleted}
-                                    />
+                                    <div className="col-span-2">
+                                        <FileUploadField
+                                            name="receipt"
+                                            label="Receipt"
+                                            description="Upload receipt images or PDFs"
+                                            accept="image/*,application/pdf"
+                                            onReceiptDeleted={onReceiptDeleted}
+                                        />
+                                    </div>
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>

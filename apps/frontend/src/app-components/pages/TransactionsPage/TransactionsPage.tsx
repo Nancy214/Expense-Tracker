@@ -263,7 +263,6 @@ const TransactionsPage = () => {
     return (
         <div className="p-4 md:p-6 lg:p-4 space-y-6 max-w-full">
             {/* Budget Reminders */}
-            {/* <BudgetRemindersUI user={user} activeReminders={activeReminders} dismissReminder={dismissReminder} /> */}
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -376,7 +375,7 @@ const TransactionsPage = () => {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="text-center p-4 bg-muted/50 rounded-lg">
                             <div className="text-2xl font-bold text-green-600">{summary.totalIncome}</div>
                             <div className="text-sm text-muted-foreground">Total Income Transactions</div>
@@ -401,14 +400,6 @@ const TransactionsPage = () => {
                             <div className="text-xs text-muted-foreground mt-1">
                                 Avg: {symbol}
                                 {(summary.averageTransactionAmount || 0).toFixed(2)}
-                            </div>
-                        </div>
-                        <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-purple-600">{summary.totalBills}</div>
-                            <div className="text-sm text-muted-foreground">Total Bills</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                                {symbol}
-                                {(summary.totalBillsAmount || 0).toFixed(2)}
                             </div>
                         </div>
                     </div>

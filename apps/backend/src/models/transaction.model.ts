@@ -48,6 +48,43 @@ const TransactionSchema = new Schema(
             type: String,
             default: "",
         },
+
+        // Recurring fields
+        isRecurring: {
+            type: Boolean,
+            default: false,
+            index: true,
+        },
+        recurringFrequency: {
+            type: String,
+            enum: ["daily", "weekly", "monthly", "quarterly", "yearly"],
+            // Only set if isRecurring = true
+        },
+
+        recurringEndDate: {
+            type: Date,
+            // Optional: when to stop creating recurring transactions
+        },
+        recurringActive: {
+            type: Boolean,
+            default: true,
+            // User can pause/resume recurring transactions
+        },
+        autoCreate: {
+            type: Boolean,
+            default: true,
+            // true = auto-create transaction
+            // false = send reminder only
+        },
+
+        // Link to parent recurring transaction
+        parentRecurringId: {
+            type: Schema.Types.ObjectId,
+            ref: "Transaction",
+            index: true,
+            // If this transaction was generated from a recurring one,
+            // this points to the parent template
+        },
     },
     {
         versionKey: false,

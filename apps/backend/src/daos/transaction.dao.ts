@@ -1,10 +1,6 @@
 import { Types } from "mongoose";
 import { TransactionModel } from "../models/transaction.model";
-import type {
-    PaginationQuery,
-    Transaction,
-    TransactionSummary,
-} from "@expense-tracker/shared-types";
+import type { PaginationQuery, Transaction, TransactionSummary } from "@expense-tracker/shared-types";
 import { parseDateFromAPI } from "../utils/dateUtils";
 
 export type TransactionDocument = Transaction;
@@ -127,7 +123,6 @@ export class TransactionDAO {
         return { transactions, total, page, limit };
     }
 
-
     /**
      * Get transaction summary statistics for a user
      */
@@ -157,16 +152,21 @@ export class TransactionDAO {
                 ? allTransactions.reduce((sum, t) => sum + (t.amount || 0), 0) / allTransactions.length
                 : 0;
 
+        // Calculate recurring transaction statistics
+        const recurringTemplates = allTransactions.filter((t) => t.isRecurring === true);
+        const totalRecurringTemplates: number = recurringTemplates.length;
+        const totalRecurringAmount: number = recurringTemplates.reduce((sum, t) => sum + (t.amount || 0), 0);
+
         return {
             totalTransactions,
             totalIncome,
             totalExpenses,
             totalBills: 0,
-            totalRecurringTemplates: 0,
+            totalRecurringTemplates,
             totalIncomeAmount,
             totalExpenseAmount,
             totalBillsAmount: 0,
-            totalRecurringAmount: 0,
+            totalRecurringAmount,
             averageTransactionAmount,
         };
     }
@@ -184,10 +184,7 @@ export class TransactionDAO {
     /**
      * Create a new transaction
      */
-    static async createTransaction(
-        userId: string,
-        transactionData: Transaction
-    ): Promise<TransactionDocument> {
+    static async createTransaction(userId: string, transactionData: Transaction): Promise<TransactionDocument> {
         // Exclude id/_id from transactionData to prevent MongoDB immutable field error
         const { id: _id, ...dataWithoutId } = transactionData as any;
 
@@ -198,6 +195,10 @@ export class TransactionDAO {
             // Convert date string to Date object
             date: parseDateFromAPI(dataWithoutId.date),
         };
+
+        if (dataWithoutId.recurringEndDate) {
+            expenseData.recurringEndDate = parseDateFromAPI(dataWithoutId.recurringEndDate);
+        }
 
         const expense: TransactionDocument = (
             await TransactionModel.create(expenseData)
@@ -223,6 +224,10 @@ export class TransactionDAO {
             // Convert date string to Date object
             if (updateData.date) {
                 updatePayload.date = parseDateFromAPI(updateData.date);
+            }
+
+            if (updateData.recurringEndDate) {
+                updatePayload.recurringEndDate = parseDateFromAPI(updateData.recurringEndDate);
             }
         } catch (error) {
             console.error("Error parsing dates in updateTransaction:", error);
@@ -286,7 +291,6 @@ export class TransactionDAO {
 
         return await TransactionModel.countDocuments(query);
     }
-
 
     /**
      * Find transactions by date range

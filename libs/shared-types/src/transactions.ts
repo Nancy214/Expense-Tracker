@@ -35,6 +35,14 @@ export enum IncomeCategory {
     OTHER_INCOME = "Other Income",
 }
 
+export enum RecurringFrequency {
+    DAILY = "daily",
+    WEEKLY = "weekly",
+    MONTHLY = "monthly",
+    QUARTERLY = "quarterly",
+    YEARLY = "yearly",
+}
+
 const VALID_FILE_TYPES = ["image/jpeg", "image/png", "image/jpg", "image/webp", "application/pdf"] as const;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -117,6 +125,16 @@ export const ZTransaction = z.object({
             z.literal(""), // Allow empty string
         ])
         .optional(),
+    isRecurring: z.boolean().optional(),
+    recurringFrequency: z.enum(Object.values(RecurringFrequency) as [string, ...string[]]).optional(),
+    recurringEndDate: z
+        .string()
+        .min(1)
+        .refine(isValidDate, "Please enter a valid date in DD/MM/YYYY format")
+        .optional(),
+    recurringActive: z.boolean().optional(),
+    autoCreate: z.boolean().optional(),
+    parentRecurringId: z.string().optional(),
 });
 export type Transaction = z.infer<typeof ZTransaction>;
 
