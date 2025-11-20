@@ -115,9 +115,8 @@ const QuickInsights: React.FC<{
                     <div className="flex items-start justify-between mb-4">
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                                Am I spending too much?
+                                This month's financial health
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">This month's financial health</p>
                         </div>
                         {isHealthy ? (
                             <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100 border-0">
@@ -151,7 +150,7 @@ const QuickInsights: React.FC<{
                             />
                             {/* Target line at 20% */}
                             <div
-                                className="absolute top-0 h-full w-0.5 bg-gray-400 dark:bg-gray-500"
+                                className="absolute top-0 h-full w-0.5 bg-gray-600 dark:bg-gray-400"
                                 style={{ left: "20%" }}
                             />
                         </div>
@@ -170,7 +169,7 @@ const QuickInsights: React.FC<{
             <Card className="rounded-xl shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800">
                 <CardContent className="p-6">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                        Where is my money going?
+                        Where is your money going?
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Top 3 spending categories</p>
 
@@ -262,7 +261,7 @@ const AdvancedAnalytics: React.FC<{
                                     data={transformPieDataToBarData(expenseCategoryData)}
                                     currency={currency}
                                 />
-                                <HorizontalStackedBarChartComponent
+                                {/* <HorizontalStackedBarChartComponent
                                     title="Bills Categories"
                                     subtitle="Your bills distribution"
                                     data={transformPieDataToBarData(billsCategoryData, [
@@ -273,7 +272,7 @@ const AdvancedAnalytics: React.FC<{
                                         "#10B981",
                                     ])}
                                     currency={currency}
-                                />
+                                /> */}
                             </div>
                         ) : (
                             <EmptyState
