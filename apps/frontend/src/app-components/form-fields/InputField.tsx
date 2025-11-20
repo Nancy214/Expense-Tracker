@@ -58,7 +58,7 @@ export const InputField: React.FC<InputFieldProps> = ({
     }, [fieldValue, maxLength]);
 
     return (
-        <div className={cn("space-y-1", className)}>
+        <div className={cn("space-y-2", className)}>
             <Controller
                 name={name}
                 control={control}

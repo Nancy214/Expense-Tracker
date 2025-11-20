@@ -57,7 +57,7 @@ export const DateField: React.FC<DateFieldProps> = ({
     const humanReadable: string | undefined = valueAsDate ? formatForDatePicker(valueAsDate) : undefined;
 
     return (
-        <div className={cn("space-y-1 flex items-center flex-wrap w-full", className)}>
+        <div className={cn("space-y-2 flex items-center flex-wrap w-full", className)}>
             <Label htmlFor={name} className="text-sm font-medium">
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>

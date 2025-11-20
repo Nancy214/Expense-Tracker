@@ -69,8 +69,8 @@ function LayoutContent({ children }: LayoutProps) {
     return (
         <div className="min-h-screen bg-gray-50/50 flex flex-col">
             {/* Header */}
-            <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-                <div className="flex h-16 items-center justify-between px-4">
+            <header className="sticky top-0 z-50 w-full supports-[backdrop-filter]:bg-white/60">
+                <div className="flex mx-2 mt-2 h-16 bg-white/95 backdrop-blur items-center justify-between px-4 rounded-lg border shadow-sm ">
                     {/* Left side - Menu button and title */}
                     <div className="flex items-center gap-4">
                         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -92,8 +92,8 @@ function LayoutContent({ children }: LayoutProps) {
                             </SheetContent>
                         </Sheet>
 
-                        <div className="sticky top-0 z-30 border-b bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-                            <div className="pt-5 pb-3">
+                        <div className="sticky top-0 z-30">
+                            <div className="py-3">
                                 <div className="flex items-center gap-3">
                                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-600 to-slate-700 text-white grid place-items-center shadow-sm">
                                         <span className="text-sm font-semibold">T</span>

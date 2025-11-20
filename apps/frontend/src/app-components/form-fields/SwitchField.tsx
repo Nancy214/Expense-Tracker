@@ -39,7 +39,7 @@ export const SwitchField: React.FC<SwitchFieldProps> = ({
     }, [register, name]);
 
     return (
-        <div className={cn("space-y-1", className)}>
+        <div className={cn("space-y-2", className)}>
             <div className="flex items-center gap-2">
                 <Switch
                     checked={value}

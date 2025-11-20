@@ -76,7 +76,7 @@ export const CurrencyAmountField: React.FC<CurrencyAmountFieldProps> = ({
     }, [register, currencyName]);
 
     return (
-        <div className={cn("space-y-1", className)}>
+        <div className={cn("space-y-2", className)}>
             <div className="flex">
                 <Label htmlFor={amountName} className="text-sm font-medium">
                     {label} {required && <span className="text-red-500">*</span>}
@@ -99,7 +99,7 @@ export const CurrencyAmountField: React.FC<CurrencyAmountFieldProps> = ({
                             <span className="truncate">{currentCurrencyValue || currencyPlaceholder}</span>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 max-h-[300px] overflow-y-auto">
+                    <DropdownMenuContent className="w-64 max-h-[350px] overflow-y-auto">
                         {currencyOptions
                             .filter((option) => option.value !== "")
                             .map((option) => (
@@ -110,8 +110,9 @@ export const CurrencyAmountField: React.FC<CurrencyAmountFieldProps> = ({
                                         trigger(currencyName);
                                         onCurrencyChange?.(option.value);
                                     }}
+                                    className="flex items-center"
                                 >
-                                    <span className="font-medium">{option.label}</span>
+                                    <span className="font-medium w-8 flex-shrink-0">{option.label}</span>
                                     {option.name && (
                                         <span className="text-xs text-muted-foreground ml-2">{option.name}</span>
                                     )}

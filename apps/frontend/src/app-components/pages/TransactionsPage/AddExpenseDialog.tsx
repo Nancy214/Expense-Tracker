@@ -93,19 +93,26 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
 
     // Extract currency options from the cached data, removing duplicates and empty values
-    const currencyOptions: { value: string; label: string; name: string }[] = Array.isArray(countryTimezoneData)
-        ? countryTimezoneData
-              .map((item) => ({
-                  value: item.currency.code,
-                  label: item.currency.code,
-                  name: item.currency.name,
-              }))
-              .filter((option) => option.value && option.value.trim() !== "") // Remove empty values
-              .filter(
-                  (option, index, self) => index === self.findIndex((o) => o.value === option.value) // Remove duplicates
-              )
-              .sort((a, b) => a.value.localeCompare(b.value)) // Sort alphabetically
-        : [];
+    const currencyOptions: { value: string; label: string; name: string }[] =
+        countryTimezoneData && countryTimezoneData.length > 0
+            ? (() => {
+                  const seen = new Set<string>();
+                  const options: { value: string; label: string; name: string }[] = [];
+                  for (const item of countryTimezoneData) {
+                      const value = item.currency.code;
+                      if (value && value.trim() !== "" && !seen.has(value)) {
+                          seen.add(value);
+                          options.push({
+                              value,
+                              label: value,
+                              name: item.currency.name,
+                          });
+                      }
+                  }
+                  options.sort((a, b) => a.value.localeCompare(b.value));
+                  return options;
+              })()
+            : [];
 
     useEffect(() => {
         if (currency) {
@@ -254,10 +261,10 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 </DialogHeader>
 
                 <FormProvider {...form}>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         <DateField name="date" label="" placeholder="Pick a date" source="transaction" />
 
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <Tabs
                                 value={type as TransactionType}
                                 onValueChange={(value) => {
@@ -297,7 +304,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </Tabs>
                         </div>
 
-                        <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
                             <div>
                                 <CurrencyAmountField
                                     amountName="amount"
@@ -382,7 +389,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             <AccordionItem value="more-options" className="border-none">
                                 <AccordionTrigger>More Options</AccordionTrigger>
                                 <AccordionContent>
-                                    <div className="grid grid-cols-2 gap-x-4 px-1">
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-1">
                                         <div className="col-span-2">
                                             <InputField
                                                 name="description"
@@ -392,7 +399,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                             />
                                         </div>
 
-                                        <div className="col-span-2 pt-1">
+                                        <div className="col-span-2">
                                             <SwitchField
                                                 name="isRecurring"
                                                 label="Recurring Transaction"
@@ -446,7 +453,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </AccordionItem>
                         </Accordion>
 
-                        <DialogFooter className="pt-1">
+                        <DialogFooter className="pt-4">
                             <Button type="submit" disabled={isSubmittingForm}>
                                 {isSubmittingForm ? "Saving..." : isEditing ? "Update Transaction" : "Add Transaction"}
                             </Button>
