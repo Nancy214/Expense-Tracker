@@ -9,6 +9,7 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { CheckboxField } from "@/app-components/form-fields/CheckboxField";
+import { CurrencyAmountField } from "@/app-components/form-fields/CurrencyAmountField";
 import { DateField } from "@/app-components/form-fields/DateField";
 import { FileUploadField } from "@/app-components/form-fields/FileUploadField";
 import { InputField } from "@/app-components/form-fields/InputField";
@@ -24,6 +25,8 @@ import { deleteReceipt, uploadReceipt } from "@/services/transaction.service";
 import { showSaveError } from "@/utils/toastUtils";
 import { normalizeUserCurrency } from "@/utils/currency";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -81,7 +84,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const {
         handleSubmit,
         watch,
-
+        setValue,
         formState: { isSubmitting },
     } = form;
 
@@ -91,11 +94,12 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
 
     // Extract currency options from the cached data, removing duplicates and empty values
-    const currencyOptions: { value: string; label: string }[] = Array.isArray(countryTimezoneData)
+    const currencyOptions: { value: string; label: string; name: string }[] = Array.isArray(countryTimezoneData)
         ? countryTimezoneData
               .map((item) => ({
                   value: item.currency.code,
                   label: item.currency.code,
+                  name: item.currency.name,
               }))
               .filter((option) => option.value && option.value.trim() !== "") // Remove empty values
               .filter(
@@ -245,11 +249,99 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             {triggerButton && <DialogTrigger asChild>{triggerButton}</DialogTrigger>}
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{isEditing ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2">
+                        {isEditing ? "Edit Transaction" : "Add Transaction"}
+                    </DialogTitle>
                 </DialogHeader>
 
                 <FormProvider {...form}>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-1">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+                        <DateField name="date" label="" placeholder="Pick a date" source="transaction" />
+
+                        <div className="space-y-1">
+                            <Tabs
+                                value={type as TransactionType}
+                                onValueChange={(value) => {
+                                    setValue("type", value as TransactionType);
+                                    // Set default category based on type
+                                    if (value === TransactionType.INCOME) {
+                                        setValue("category", IncomeCategory.SALARY);
+                                    } else if (value === TransactionType.EXPENSE) {
+                                        // Set to first expense category or keep current
+                                        setValue("category", Object.values(ExpenseCategory)[0]);
+                                    }
+                                }}
+                                className="w-full"
+                            >
+                                <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+                                    <TabsTrigger
+                                        value={TransactionType.EXPENSE}
+                                        className={cn(
+                                            "data-[state=active]:bg-red-600 data-[state=active]:text-white",
+                                            "data-[state=active]:shadow-md hover:bg-red-50",
+                                            "transition-all duration-200"
+                                        )}
+                                    >
+                                        Expense
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value={TransactionType.INCOME}
+                                        className={cn(
+                                            "data-[state=active]:bg-green-600 data-[state=active]:text-white",
+                                            "data-[state=active]:shadow-md hover:bg-green-50",
+                                            "transition-all duration-200"
+                                        )}
+                                    >
+                                        Income
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        </div>
+
+                        <div className="flex items-end gap-1">
+                            <div className="flex-1">
+                                <CurrencyAmountField
+                                    amountName="amount"
+                                    currencyName="currency"
+                                    label="Amount"
+                                    amountPlaceholder="0.00"
+                                    currencyPlaceholder="Currency"
+                                    currencyOptions={getCurrencyOptions()}
+                                    required
+                                    step={0.01}
+                                    min={0}
+                                    onCurrencyChange={(value) => handleCurrencyChange(value)}
+                                />
+                            </div>
+                            <div className="flex-shrink-0">
+                                <FileUploadField
+                                    name="receipt"
+                                    label=""
+                                    accept="image/*,application/pdf"
+                                    onReceiptDeleted={onReceiptDeleted}
+                                    iconOnly
+                                />
+                            </div>
+                            <div className="flex-1 ml-2">
+                                <SelectField
+                                    key={type}
+                                    name="category"
+                                    label="Category"
+                                    placeholder="Select a category"
+                                    options={getCategoryOptions()}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <FileUploadField
+                            name="receipt"
+                            label=""
+                            accept="image/*,application/pdf"
+                            onReceiptDeleted={onReceiptDeleted}
+                            className="hidden"
+                        />
+
                         <InputField
                             name="title"
                             label="Title"
@@ -257,32 +349,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             maxLength={50}
                             required
                         />
-
-                        <div className="flex gap-4">
-                            <div className="flex gap-2 w-full items-center">
-                                <div className="flex-1">
-                                    <InputField
-                                        name="amount"
-                                        label="Amount"
-                                        type="number"
-                                        placeholder="0.00"
-                                        required
-                                        step={0.01}
-                                        min={0}
-                                    />
-                                </div>
-                                <div className="w-24">
-                                    <SelectField
-                                        name="currency"
-                                        label="Currency"
-                                        placeholder="Currency"
-                                        options={getCurrencyOptions()}
-                                        required
-                                        onChange={(value) => handleCurrencyChange(value)}
-                                    />
-                                </div>
-                            </div>
-                        </div>
 
                         {showExchangeRate && (
                             <div className="grid grid-cols-2 gap-4">
@@ -314,37 +380,11 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </div>
                         )}
 
-                        <DateField name="date" label="Date" placeholder="Pick a date" source="transaction" required />
-
                         <Accordion type="single" collapsible>
                             <AccordionItem value="more-options" className="border-none">
                                 <AccordionTrigger>More Options</AccordionTrigger>
                                 <AccordionContent>
-                                    <div className="grid grid-cols-2 gap-x-4">
-                                        <SelectField
-                                            name="type"
-                                            label="Type"
-                                            placeholder="Select type"
-                                            options={[
-                                                {
-                                                    value: TransactionType.EXPENSE,
-                                                    label: "Expense",
-                                                },
-                                                {
-                                                    value: TransactionType.INCOME,
-                                                    label: "Income",
-                                                },
-                                            ]}
-                                            required
-                                        />
-                                        <SelectField
-                                            name="category"
-                                            label="Category"
-                                            placeholder="Select a category"
-                                            options={getCategoryOptions()}
-                                            required
-                                        />
-
+                                    <div className="grid grid-cols-2 gap-x-4 px-1">
                                         <div className="col-span-2">
                                             <InputField
                                                 name="description"
@@ -385,29 +425,25 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                                     source="recurring"
                                                 />
 
-                                                <CheckboxField
-                                                    name="autoCreate"
-                                                    label="Auto-create"
-                                                    description="Auto-create or remind only"
-                                                />
+                                                {isEditing && (
+                                                    <>
+                                                        <CheckboxField
+                                                            name="autoCreate"
+                                                            label="Auto-create"
+                                                            description="Auto-create or remind only"
+                                                        />
 
-                                                <CheckboxField
-                                                    name="recurringActive"
-                                                    label="Active"
-                                                    description="You can pause/resume recurring transactions"
-                                                />
+                                                        <CheckboxField
+                                                            name="recurringActive"
+                                                            label="Active"
+                                                            description="You can pause/resume recurring transactions"
+                                                        />
+                                                    </>
+                                                )}
                                             </>
                                         )}
                                     </div>
-                                    <div className="col-span-2">
-                                        <FileUploadField
-                                            name="receipt"
-                                            label="Receipt"
-                                            description="Upload receipt images or PDFs"
-                                            accept="image/*,application/pdf"
-                                            onReceiptDeleted={onReceiptDeleted}
-                                        />
-                                    </div>
+                                    <div className="col-span-2"></div>
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>

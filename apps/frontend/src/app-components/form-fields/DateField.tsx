@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { formatToHumanReadableDate, parseFromDisplay } from "@/utils/dateUtils";
+import { formatForDatePicker, parseFromDisplay } from "@/utils/dateUtils";
 
 interface DateFieldProps {
     name: string;
@@ -54,10 +54,10 @@ export const DateField: React.FC<DateFieldProps> = ({
             : (value as Date)
         : undefined;
 
-    const humanReadable: string | undefined = valueAsDate ? formatToHumanReadableDate(valueAsDate) : undefined;
+    const humanReadable: string | undefined = valueAsDate ? formatForDatePicker(valueAsDate) : undefined;
 
     return (
-        <div className={cn("space-y-1 flex items-center justify-between flex-wrap w-full", className)}>
+        <div className={cn("space-y-1 flex items-center flex-wrap w-full", className)}>
             <Label htmlFor={name} className="text-sm font-medium">
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>
@@ -69,8 +69,8 @@ export const DateField: React.FC<DateFieldProps> = ({
                             size="sm"
                             className="h-8 text-muted-foreground hover:text-foreground hover:bg-transparent px-2 flex items-center gap-1"
                         >
-                            {humanReadable}
                             <CalendarIcon className="h-4 w-4" />
+                            {humanReadable}
                         </Button>
                     ) : (
                         <Button

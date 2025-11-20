@@ -64,7 +64,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
                 }}
                 disabled={disabled}
             >
-                <SelectTrigger className={cn("h-8", error && "border-red-500 focus:border-red-500 focus:ring-red-500")}>
+                <SelectTrigger className={cn("h-8 border", error && "border-red-500 focus:border-red-500 focus:ring-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
