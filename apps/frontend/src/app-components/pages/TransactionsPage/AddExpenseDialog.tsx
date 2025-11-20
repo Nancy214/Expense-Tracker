@@ -8,7 +8,6 @@ import {
 import type React from "react";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
-import { CheckboxField } from "@/app-components/form-fields/CheckboxField";
 import { CurrencyAmountField } from "@/app-components/form-fields/CurrencyAmountField";
 import { DateField } from "@/app-components/form-fields/DateField";
 import { FileUploadField } from "@/app-components/form-fields/FileUploadField";
@@ -298,8 +297,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </Tabs>
                         </div>
 
-                        <div className="flex items-end gap-1">
-                            <div className="flex-1">
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+                            <div>
                                 <CurrencyAmountField
                                     amountName="amount"
                                     currencyName="currency"
@@ -313,7 +312,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     onCurrencyChange={(value) => handleCurrencyChange(value)}
                                 />
                             </div>
-                            <div className="flex-shrink-0">
+                            <div className="pb-1">
                                 <FileUploadField
                                     name="receipt"
                                     label=""
@@ -322,7 +321,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                     iconOnly
                                 />
                             </div>
-                            <div className="flex-1 ml-2">
+                            <div>
                                 <SelectField
                                     key={type}
                                     name="category"
@@ -333,7 +332,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                 />
                             </div>
                         </div>
-
                         <FileUploadField
                             name="receipt"
                             label=""
@@ -427,16 +425,16 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
                                                 {isEditing && (
                                                     <>
-                                                        <CheckboxField
+                                                        <SwitchField
                                                             name="autoCreate"
                                                             label="Auto-create"
-                                                            description="Auto-create or remind only"
+                                                            description="Switch on to auto-create the transaction."
                                                         />
 
-                                                        <CheckboxField
+                                                        <SwitchField
                                                             name="recurringActive"
                                                             label="Active"
-                                                            description="You can pause/resume recurring transactions"
+                                                            description="Switch on to activate the recurring transaction."
                                                         />
                                                     </>
                                                 )}
