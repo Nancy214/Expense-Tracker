@@ -26,6 +26,8 @@ import { normalizeUserCurrency } from "@/utils/currency";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { Repeat, XCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -69,6 +71,14 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const { toast } = useToast();
     const { user } = useAuth();
     const [showExchangeRate, setShowExchangeRate] = useState<boolean>(false);
+    const [autoCreateAlert, setAutoCreateAlert] = useState<{ show: boolean; enabled: boolean }>({
+        show: false,
+        enabled: false,
+    });
+    const [recurringActiveAlert, setRecurringActiveAlert] = useState<{ show: boolean; enabled: boolean }>({
+        show: false,
+        enabled: false,
+    });
 
     // Use the cached hook instead of direct API call
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
@@ -88,6 +98,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     } = form;
 
     const isRecurring = watch("isRecurring");
+    const autoCreate = watch("autoCreate");
+    const recurringActive = watch("recurringActive");
 
     // Use mutation loading states
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
@@ -128,8 +140,33 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     useEffect(() => {
         if (open) {
             resetForm();
+            // Reset alerts when dialog opens
+            setAutoCreateAlert({ show: false, enabled: false });
+            setRecurringActiveAlert({ show: false, enabled: false });
         }
     }, [open, editingExpense, resetForm]);
+
+    // Track autoCreate changes and show alert only when false
+    useEffect(() => {
+        if (isEditing && isRecurring) {
+            if (!autoCreate) {
+                setAutoCreateAlert({ show: true, enabled: false });
+            } else {
+                setAutoCreateAlert({ show: false, enabled: true });
+            }
+        }
+    }, [autoCreate, isEditing, isRecurring]);
+
+    // Track recurringActive changes and show alert only when false
+    useEffect(() => {
+        if (isEditing && isRecurring) {
+            if (!recurringActive) {
+                setRecurringActiveAlert({ show: true, enabled: false });
+            } else {
+                setRecurringActiveAlert({ show: false, enabled: true });
+            }
+        }
+    }, [recurringActive, isEditing, isRecurring]);
 
     const onSubmit = async (data: TransactionFormData) => {
         try {
@@ -261,7 +298,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 </DialogHeader>
 
                 <FormProvider {...form}>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
                         <DateField name="date" label="" placeholder="Pick a date" source="transaction" />
 
                         <div className="space-y-2">
@@ -399,12 +436,9 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                             />
                                         </div>
 
-                                        <div className="col-span-2">
-                                            <SwitchField
-                                                name="isRecurring"
-                                                label="Recurring Transaction"
-                                                description="Set this transaction to repeat automatically"
-                                            />
+                                        <div className="col-span-2 flex items-start gap-1">
+                                            <SwitchField name="isRecurring" label="Repeat Transaction" description="" />{" "}
+                                            <Repeat className="w-4 h-4 text-gray-500 mt-1" />
                                         </div>
 
                                         {isRecurring && (
@@ -432,17 +466,54 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
 
                                                 {isEditing && (
                                                     <>
-                                                        <SwitchField
-                                                            name="autoCreate"
-                                                            label="Auto-create"
-                                                            description="Switch on to auto-create the transaction."
-                                                        />
+                                                        <div>
+                                                            <SwitchField
+                                                                name="autoCreate"
+                                                                label="Auto Create"
+                                                                description=""
+                                                            />
+                                                            {autoCreateAlert.show && (
+                                                                <Alert
+                                                                    className={cn(
+                                                                        "mt-2 transition-all",
+                                                                        "border-orange-500 bg-orange-50 text-orange-800"
+                                                                    )}
+                                                                >
+                                                                    <AlertDescription className="flex items-center gap-2">
+                                                                        <XCircle className="h-4 w-4 flex-shrink-0" />
+                                                                        <span className="text-xs">
+                                                                            Disabling this option will just send a
+                                                                            reminder and not create the transaction
+                                                                            automatically.
+                                                                        </span>
+                                                                    </AlertDescription>
+                                                                </Alert>
+                                                            )}
+                                                        </div>
 
-                                                        <SwitchField
-                                                            name="recurringActive"
-                                                            label="Active"
-                                                            description="Switch on to activate the recurring transaction."
-                                                        />
+                                                        <div>
+                                                            <SwitchField
+                                                                name="recurringActive"
+                                                                label="Active"
+                                                                description=""
+                                                            />
+                                                            {recurringActiveAlert.show && (
+                                                                <Alert
+                                                                    className={cn(
+                                                                        "mt-2 transition-all",
+                                                                        "border-orange-500 bg-orange-50 text-orange-800"
+                                                                    )}
+                                                                >
+                                                                    <AlertDescription className="flex items-center gap-2">
+                                                                        <XCircle className="h-4 w-4 flex-shrink-0" />
+                                                                        <span className="text-xs">
+                                                                            Disabling this will pause the recurring
+                                                                            series. No new transactions will be created.
+                                                                        </span>
+                                                                    </AlertDescription>
+                                                                </Alert>
+                                                            )}
+                                                        </div>
                                                     </>
                                                 )}
                                             </>
@@ -453,7 +524,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </AccordionItem>
                         </Accordion>
 
-                        <DialogFooter className="pt-4">
+                        <DialogFooter>
                             <Button type="submit" disabled={isSubmittingForm}>
                                 {isSubmittingForm ? "Saving..." : isEditing ? "Update Transaction" : "Add Transaction"}
                             </Button>
