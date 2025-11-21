@@ -73,14 +73,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const { toast } = useToast();
     const { user } = useAuth();
     const [showExchangeRate, setShowExchangeRate] = useState<boolean>(false);
-    const [autoCreateAlert, setAutoCreateAlert] = useState<{ show: boolean; enabled: boolean }>({
-        show: false,
-        enabled: false,
-    });
-    const [recurringActiveAlert, setRecurringActiveAlert] = useState<{ show: boolean; enabled: boolean }>({
-        show: false,
-        enabled: false,
-    });
 
     // Use the cached hook instead of direct API call
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
@@ -144,48 +136,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     useEffect(() => {
         if (open) {
             resetForm();
-            // Reset alerts when dialog opens
-            setAutoCreateAlert({ show: false, enabled: false });
-            setRecurringActiveAlert({ show: false, enabled: false });
-
-            // Auto-fill title for new transactions after reset
-            if (!isEditing) {
-                const currentCategory = form.getValues("category");
-                const currentDate = form.getValues("date");
-
-                if (currentCategory && currentDate) {
-                    const parsedDate = parse(currentDate, "dd/MM/yyyy", new Date());
-                    if (isValid(parsedDate)) {
-                        const formattedDate = formatForDatePicker(parsedDate);
-                        const autoTitle = `${currentCategory} - ${formattedDate}`;
-                        setValue("title", autoTitle);
-                    }
-                }
-            }
         }
-    }, [open, editingExpense, resetForm, isEditing, form, setValue]);
-
-    // Track autoCreate changes and show alert only when false
-    useEffect(() => {
-        if (isEditing && isRecurring) {
-            if (!autoCreate) {
-                setAutoCreateAlert({ show: true, enabled: false });
-            } else {
-                setAutoCreateAlert({ show: false, enabled: true });
-            }
-        }
-    }, [autoCreate, isEditing, isRecurring]);
-
-    // Track recurringActive changes and show alert only when false
-    useEffect(() => {
-        if (isEditing && isRecurring) {
-            if (!recurringActive) {
-                setRecurringActiveAlert({ show: true, enabled: false });
-            } else {
-                setRecurringActiveAlert({ show: false, enabled: true });
-            }
-        }
-    }, [recurringActive, isEditing, isRecurring]);
+    }, [open, editingExpense, resetForm]);
 
     // Auto-fill title with category and date
     useEffect(() => {
@@ -504,7 +456,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                                                 label="Auto Create"
                                                                 description=""
                                                             />
-                                                            {autoCreateAlert.show && (
+                                                            {!autoCreate && (
                                                                 <Alert
                                                                     className={cn(
                                                                         "mt-2 transition-all",
@@ -529,7 +481,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                                                 label="Active"
                                                                 description=""
                                                             />
-                                                            {recurringActiveAlert.show && (
+                                                            {!recurringActive && (
                                                                 <Alert
                                                                     className={cn(
                                                                         "mt-2 transition-all",
