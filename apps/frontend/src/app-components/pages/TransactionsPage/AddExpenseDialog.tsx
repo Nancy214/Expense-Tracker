@@ -28,6 +28,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Repeat, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { parse, isValid } from "date-fns";
+import { formatForDatePicker } from "@/utils/dateUtils";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -100,6 +102,8 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const isRecurring = watch("isRecurring");
     const autoCreate = watch("autoCreate");
     const recurringActive = watch("recurringActive");
+    const category = watch("category");
+    const date = watch("date");
 
     // Use mutation loading states
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
@@ -143,8 +147,23 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             // Reset alerts when dialog opens
             setAutoCreateAlert({ show: false, enabled: false });
             setRecurringActiveAlert({ show: false, enabled: false });
+
+            // Auto-fill title for new transactions after reset
+            if (!isEditing) {
+                const currentCategory = form.getValues("category");
+                const currentDate = form.getValues("date");
+
+                if (currentCategory && currentDate) {
+                    const parsedDate = parse(currentDate, "dd/MM/yyyy", new Date());
+                    if (isValid(parsedDate)) {
+                        const formattedDate = formatForDatePicker(parsedDate);
+                        const autoTitle = `${currentCategory} - ${formattedDate}`;
+                        setValue("title", autoTitle);
+                    }
+                }
+            }
         }
-    }, [open, editingExpense, resetForm]);
+    }, [open, editingExpense, resetForm, isEditing, form, setValue]);
 
     // Track autoCreate changes and show alert only when false
     useEffect(() => {
@@ -167,6 +186,19 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             }
         }
     }, [recurringActive, isEditing, isRecurring]);
+
+    // Auto-fill title with category and date
+    useEffect(() => {
+        if (category && date && !isEditing) {
+            // Parse date from dd/MM/yyyy format
+            const parsedDate = parse(date, "dd/MM/yyyy", new Date());
+            if (isValid(parsedDate)) {
+                const formattedDate = formatForDatePicker(parsedDate);
+                const autoTitle = `${category} - ${formattedDate}`;
+                setValue("title", autoTitle);
+            }
+        }
+    }, [category, date, isEditing, setValue]);
 
     const onSubmit = async (data: TransactionFormData) => {
         try {
