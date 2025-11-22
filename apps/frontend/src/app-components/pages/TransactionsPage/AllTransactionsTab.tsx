@@ -78,11 +78,11 @@ export function AllTransactionsTab({
                         </Button>
                     );
                 },
-                size: 100,
+                size: 150,
                 cell: ({ row }: { row: Row<Transaction> }) => {
                     const date = row.getValue("date");
                     if (!date || (typeof date !== "string" && !(date instanceof Date))) return "-";
-                    return <span>{formatToHumanReadableDate(date)}</span>;
+                    return <span>{formatToHumanReadableDate(date, "EEE, MMM dd, yyyy")}</span>;
                 },
             },
             {
@@ -185,7 +185,7 @@ export function AllTransactionsTab({
                         </div>
                     );
                 },
-                size: 100,
+                size: 70,
             },
             {
                 id: "actions",

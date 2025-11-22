@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { addDays, addMonths, addQuarters, addWeeks, addYears } from "date-fns";
 import { TransactionModel } from "../models/transaction.model";
 import { User } from "../models/user.model";
 import { TransactionDAO } from "../daos/transaction.dao";
@@ -189,9 +190,17 @@ export class RecurringTransactionJobService {
             parentRecurringId: templateId,
         }).sort({ date: -1 });
 
-        let lastOccurrenceDate = lastInstance
-            ? new Date(lastInstance.date)
-            : new Date(template.date);
+        // If there are instances, start from the last one
+        // If no instances exist, we need to check if template date itself needs an instance
+        let currentDate: Date;
+        if (lastInstance) {
+            currentDate = new Date(lastInstance.date);
+        } else {
+            // No instances yet - start from one period BEFORE template date
+            // This ensures the first iteration creates an instance for the template date itself
+            const templateDate = new Date(template.date);
+            currentDate = this.calculatePreviousDueDate(templateDate, frequency);
+        }
 
         // Create all missed instances up to endBoundary
         let createdCount = 0;
@@ -202,7 +211,7 @@ export class RecurringTransactionJobService {
             iterations++;
 
             // Calculate the next due date
-            const nextDueDate = this.calculateNextDueDate(lastOccurrenceDate, frequency);
+            const nextDueDate = this.calculateNextDueDate(currentDate, frequency);
             const nextDueDateStart = getStartOfDay(nextDueDate);
 
             // Stop if next due date is after the end boundary
@@ -230,7 +239,7 @@ export class RecurringTransactionJobService {
             }
 
             // Move to the next occurrence
-            lastOccurrenceDate = nextDueDate;
+            currentDate = nextDueDate;
         }
 
         // Check if we should deactivate (end date has passed)
@@ -258,6 +267,29 @@ export class RecurringTransactionJobService {
      */
     static calculateNextDueDate(lastOccurrence: Date, frequency: string): Date {
         return addTimeByFrequency(lastOccurrence, frequency);
+    }
+
+    /**
+     * Calculate the previous due date based on frequency
+     * This is used to go back one period from a given date
+     */
+    static calculatePreviousDueDate(date: Date, frequency: string): Date {
+        const newDate = new Date(date);
+
+        switch (frequency) {
+            case "daily":
+                return addDays(newDate, -1);
+            case "weekly":
+                return addWeeks(newDate, -1);
+            case "monthly":
+                return addMonths(newDate, -1);
+            case "quarterly":
+                return addQuarters(newDate, -1);
+            case "yearly":
+                return addYears(newDate, -1);
+            default:
+                return newDate;
+        }
     }
 
     /**

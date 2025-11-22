@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { Repeat, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { parse, isValid } from "date-fns";
-import { formatForDatePicker } from "@/utils/dateUtils";
+import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -145,7 +145,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
             // Parse date from dd/MM/yyyy format
             const parsedDate = parse(date, "dd/MM/yyyy", new Date());
             if (isValid(parsedDate)) {
-                const formattedDate = formatForDatePicker(parsedDate);
+                const formattedDate = formatToHumanReadableDate(parsedDate, "EEE, MMM dd, yyyy");
                 const autoTitle = `${category} - ${formattedDate}`;
                 setValue("title", autoTitle);
             }

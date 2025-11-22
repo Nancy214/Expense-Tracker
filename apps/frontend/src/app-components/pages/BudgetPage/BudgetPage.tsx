@@ -354,7 +354,8 @@ const BudgetPage: React.FC = () => {
                                         )}
                                         <div className="text-xs text-gray-500">
                                             <p className="mt-1">
-                                                Starts from {formatToHumanReadableDate(budget.startDate)}
+                                                Starts from{" "}
+                                                {formatToHumanReadableDate(budget.startDate, "EEE, MMM dd, yyyy")}
                                             </p>
                                         </div>
                                     </CardContent>

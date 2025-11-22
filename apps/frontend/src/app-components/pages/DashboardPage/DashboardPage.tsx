@@ -321,7 +321,7 @@ const DashboardPage = () => {
                         <div className="space-y-4">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-2">
-                                    <p className="text-white/90 text-sm font-medium">Net Cash Flow This Month</p>
+                                    <p className="text-white/90 text-sm font-medium">Balance This Month</p>
                                     <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
                                         {formatAmount(monthlyStats.balance || 0)}
                                     </h2>

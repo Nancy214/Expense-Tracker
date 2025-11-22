@@ -38,16 +38,18 @@ export const isInCurrentMonth = (date: Date): boolean => {
     return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
 };
 
-export const formatToHumanReadableDate = (date: Date | string): string => {
+export const formatToHumanReadableDate = (date: Date | string, formatString: string = "dd MMM yyyy"): string => {
     if (!date) return "-";
     const dateObj: Date = typeof date === "string" ? parseISO(date) : date;
     if (!isValid(dateObj)) return "-";
-    return format(dateObj, "dd MMM yyyy");
-};
-
-export const formatForDatePicker = (date: Date | string): string => {
-    if (!date) return "-";
-    const dateObj: Date = typeof date === "string" ? parseISO(date) : date;
-    if (!isValid(dateObj)) return "-";
-    return format(dateObj, "EEEE, MMM dd, yyyy");
+    switch (formatString) {
+        case "MMM dd, yyyy":
+            return format(dateObj, "MMM dd, yyyy");
+        case "EEE, MMM dd, yyyy":
+            return format(dateObj, "EEE, MMM dd, yyyy");
+        case "EEEE, MMM dd, yyyy":
+            return format(dateObj, "EEEE, MMM dd, yyyy");
+        default:
+            return format(dateObj, "dd MMM yyyy");
+    }
 };
