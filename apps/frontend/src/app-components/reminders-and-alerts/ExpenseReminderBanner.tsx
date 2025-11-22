@@ -45,7 +45,7 @@ export function ExpenseReminderBanner({ settings, dismissedReminder, onDismiss }
             return;
         }
 
-        let interval: NodeJS.Timeout | undefined;
+        let interval: ReturnType<typeof setInterval> | undefined;
         const checkReminder = () => {
             if (effectiveSettings.expenseReminders && effectiveSettings.expenseReminderTime) {
                 // Check if reminder time has passed
