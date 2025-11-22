@@ -1,4 +1,4 @@
-import { BillStatus, type TransactionId, type TransactionOrBill } from "@expense-tracker/shared-types/src";
+import type { Transaction } from "@expense-tracker/shared-types/src";
 import {
     type Column,
     type ColumnDef,
@@ -9,9 +9,10 @@ import {
     type Row,
     useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, CheckCircle, Clock, Pencil, Receipt, Repeat, Star, Trash, FileText } from "lucide-react";
+import { ArrowUpDown, Pencil, Trash, FileText, Repeat } from "lucide-react";
 import { useMemo } from "react";
 import { DeleteConfirmationDialog } from "@/app-components/utility-components/deleteDialog";
+import { RecurringDeleteDialog } from "@/app-components/utility-components/RecurringDeleteDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,12 +21,11 @@ import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { useCurrencySymbol } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/app-components/utility-components/EmptyState";
-import { updateTransactionBillStatus } from "@/services/transaction.service";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
 interface TabComponentProps {
-    readonly data: TransactionOrBill[];
-    readonly onEdit: (expense: TransactionOrBill) => void;
+    readonly data: Transaction[];
+    readonly onEdit: (expense: Transaction) => void;
     readonly showRecurringIcon?: boolean;
     readonly showRecurringBadge?: boolean;
     readonly refreshAllTransactions?: () => void;
@@ -44,18 +44,20 @@ export function AllTransactionsTab({
     const { toast } = useToast();
 
     const {
-        recurringToDelete,
         isDeleteDialogOpen,
         handleExpenseDelete: handleDelete,
-        handleRecurringDelete,
         confirmExpenseDelete: confirmDelete,
         cancelDelete,
-        setRecurringForDelete,
-        clearRecurringDelete,
         setIsDeleteDialogOpen,
+        isRecurringDeleteDialogOpen,
+        handleRecurringExpenseDelete,
+        confirmRecurringDeleteSingle,
+        confirmRecurringDeleteAll,
+        cancelRecurringDelete,
+        setIsRecurringDeleteDialogOpen,
     } = useDeleteOperations();
 
-    const handleEdit = async (expense: TransactionOrBill) => {
+    const handleEdit = async (expense: Transaction) => {
         // Ensure the expense has the correct ID format
         const expenseWithId = {
             ...expense,
@@ -64,35 +66,11 @@ export function AllTransactionsTab({
         onEdit(expenseWithId);
     };
 
-    const handleBillStatusUpdate = async (id: TransactionId, data: BillStatus) => {
-        try {
-            await updateTransactionBillStatus(id, data);
-            toast({
-                title: "Success",
-                description: "Bill status updated successfully",
-            });
-            if (refreshAllTransactions) {
-                refreshAllTransactions();
-            }
-        } catch (error: unknown) {
-            console.error("Error updating bill status:", error);
-
-            // Provide more specific error messages
-            const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-
-            toast({
-                title: "Error",
-                description: `Failed to update bill status: ${errorMessage}`,
-                variant: "destructive",
-            });
-        }
-    };
-
-    const columns: ColumnDef<TransactionOrBill>[] = useMemo(
+    const columns: ColumnDef<Transaction>[] = useMemo(
         () => [
             {
                 accessorKey: "date",
-                header: ({ column }: { column: Column<TransactionOrBill> }) => {
+                header: ({ column }: { column: Column<Transaction> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Date
@@ -100,16 +78,16 @@ export function AllTransactionsTab({
                         </Button>
                     );
                 },
-                size: 100,
-                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
+                size: 150,
+                cell: ({ row }: { row: Row<Transaction> }) => {
                     const date = row.getValue("date");
                     if (!date || (typeof date !== "string" && !(date instanceof Date))) return "-";
-                    return <span>{formatToHumanReadableDate(date)}</span>;
+                    return <span>{formatToHumanReadableDate(date, "EEE, MMM dd, yyyy")}</span>;
                 },
             },
             {
                 accessorKey: "title",
-                header: ({ column }: { column: Column<TransactionOrBill> }) => {
+                header: ({ column }: { column: Column<Transaction> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Title
@@ -118,71 +96,25 @@ export function AllTransactionsTab({
                     );
                 },
                 size: 200,
-                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
+                cell: ({ row }: { row: Row<Transaction> }) => {
                     const expense = row.original;
-                    const isRecurringInstance =
-                        !("isRecurring" in expense) || (!expense.isRecurring && !!expense.templateId);
-                    const isMainRecurringTemplate =
-                        "isRecurring" in expense && expense.isRecurring && !expense.templateId;
-                    const isBill = expense.category === "Bills";
+                    const isRecurringTemplate = expense.isRecurring;
+                    const isRecurringInstance = !!(expense as any).parentRecurringId;
 
                     return (
                         <span className="flex items-center gap-2">
                             {expense.title}
-                            {showRecurringIcon && isRecurringInstance && (
+                            {(isRecurringTemplate || isRecurringInstance) && (
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Repeat className="h-4 w-4 text-blue-500 cursor-help" />
+                                            <Repeat className="h-4 w-4 text-blue-500 flex-shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p>Generated recurring transaction instance</p>
+                                            <p>Recurring Transaction</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
-                            )}
-                            {isMainRecurringTemplate && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Main recurring transaction template</p>
-                                            <p>Deleting this will delete all its instances</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
-                            {isBill && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Receipt className="h-4 w-4 text-orange-500 cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Bill transaction</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
-                            {showRecurringBadge && "recurringFrequency" in expense && expense.recurringFrequency && (
-                                <Badge
-                                    variant={isMainRecurringTemplate ? "default" : "secondary"}
-                                    className={`flex items-center gap-1 text-xs ${
-                                        isMainRecurringTemplate ? "bg-yellow-100 text-yellow-800 border-yellow-300" : ""
-                                    }`}
-                                >
-                                    {isMainRecurringTemplate ? (
-                                        <Star className="h-3 w-3 text-yellow-600 fill-yellow-600" />
-                                    ) : (
-                                        <Repeat className="h-3 w-3 text-blue-500" />
-                                    )}
-                                    {"recurringFrequency" in expense &&
-                                        expense.recurringFrequency.charAt(0).toUpperCase() +
-                                            expense.recurringFrequency.slice(1)}
-                                    {isMainRecurringTemplate && " (Template)"}
-                                </Badge>
                             )}
                         </span>
                     );
@@ -190,7 +122,7 @@ export function AllTransactionsTab({
             },
             {
                 accessorKey: "category",
-                header: ({ column }: { column: Column<TransactionOrBill> }) => {
+                header: ({ column }: { column: Column<Transaction> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Category
@@ -202,7 +134,7 @@ export function AllTransactionsTab({
             },
             {
                 accessorKey: "type",
-                header: ({ column }: { column: Column<TransactionOrBill> }) => {
+                header: ({ column }: { column: Column<Transaction> }) => {
                     return (
                         <Button variant="ghost" onClick={() => column.toggleSorting()}>
                             Type
@@ -210,7 +142,7 @@ export function AllTransactionsTab({
                         </Button>
                     );
                 },
-                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
+                cell: ({ row }: { row: Row<Transaction> }) => {
                     const type = row.getValue("type");
                     return (
                         <Badge
@@ -229,7 +161,7 @@ export function AllTransactionsTab({
             },
             {
                 accessorKey: "amount",
-                header: ({ column }: { column: Column<TransactionOrBill> }) => {
+                header: ({ column }: { column: Column<Transaction> }) => {
                     return (
                         <div className="text-right">
                             <Button variant="ghost" onClick={() => column.toggleSorting()}>
@@ -239,7 +171,7 @@ export function AllTransactionsTab({
                         </div>
                     );
                 },
-                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
+                cell: ({ row }: { row: Row<Transaction> }) => {
                     const amount: number = parseFloat(row.getValue("amount"));
                     const type: string = row.original.type || "expense";
                     return (
@@ -253,14 +185,17 @@ export function AllTransactionsTab({
                         </div>
                     );
                 },
-                size: 100,
+                size: 70,
             },
             {
                 id: "actions",
                 header: "Actions",
-                cell: ({ row }: { row: Row<TransactionOrBill> }) => {
-                    const expense: TransactionOrBill = row.original;
-                    const isBill: boolean = expense.category === "Bills";
+                cell: ({ row }: { row: Row<Transaction> }) => {
+                    const expense: Transaction = row.original;
+                    const isRecurringTemplate = expense.isRecurring;
+                    const parentRecurringId = (expense as any).parentRecurringId;
+                    const isRecurringInstance = !!parentRecurringId;
+                    const isRecurringTransaction = isRecurringTemplate || isRecurringInstance;
 
                     return (
                         <div className="flex gap-2">
@@ -272,24 +207,23 @@ export function AllTransactionsTab({
                                 size="icon"
                                 onClick={() => {
                                     const expenseId = (expense as any)._id || expense.id;
-                                    if ("isRecurring" in expense && expense.isRecurring && !expense.templateId) {
+                                    if (!expenseId) {
+                                        console.error("No ID found for expense:", expense);
                                         toast({
-                                            title: "Warning",
-                                            description:
-                                                "Deleting this recurring transaction will delete all its instances.",
+                                            title: "Error",
+                                            description: "Cannot delete transaction: No ID found",
                                             variant: "destructive",
                                         });
-                                        setRecurringForDelete(expense);
+                                        return;
+                                    }
+
+                                    if (isRecurringTransaction) {
+                                        handleRecurringExpenseDelete({
+                                            id: expenseId,
+                                            isRecurring: !!isRecurringTemplate,
+                                            parentRecurringId: parentRecurringId,
+                                        });
                                     } else {
-                                        if (!expenseId) {
-                                            console.error("No ID found for expense:", expense);
-                                            toast({
-                                                title: "Error",
-                                                description: "Cannot delete transaction: No ID found",
-                                                variant: "destructive",
-                                            });
-                                            return;
-                                        }
                                         handleDelete(expenseId);
                                     }
                                 }}
@@ -297,38 +231,6 @@ export function AllTransactionsTab({
                             >
                                 <Trash className="h-4 w-4" />
                             </Button>
-                            {isBill && "billStatus" in expense && expense.billStatus !== BillStatus.PAID && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() =>
-                                        handleBillStatusUpdate(
-                                            { id: (expense as any)._id || expense.id! },
-                                            BillStatus.PAID
-                                        )
-                                    }
-                                    title="Mark as Paid"
-                                    aria-label="Mark as Paid"
-                                >
-                                    <CheckCircle className="h-4 w-4" />
-                                </Button>
-                            )}
-                            {isBill && "billStatus" in expense && expense.billStatus === BillStatus.PAID && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() =>
-                                        handleBillStatusUpdate(
-                                            { id: (expense as any)._id || expense.id! },
-                                            BillStatus.UNPAID
-                                        )
-                                    }
-                                    title="Mark as Unpaid"
-                                    aria-label="Mark as Unpaid"
-                                >
-                                    <Clock className="h-4 w-4" />
-                                </Button>
-                            )}
                         </div>
                     );
                 },
@@ -366,7 +268,7 @@ export function AllTransactionsTab({
                 <div className="rounded-md border w-full overflow-hidden">
                     <Table>
                         <TableHeader>
-                            {table.getHeaderGroups().map((headerGroup: HeaderGroup<TransactionOrBill>) => (
+                            {table.getHeaderGroups().map((headerGroup: HeaderGroup<Transaction>) => (
                                 <TableRow key={headerGroup.id}>
                                     {headerGroup.headers.map((header) => {
                                         return (
@@ -400,26 +302,6 @@ export function AllTransactionsTab({
                 </div>
             )}
 
-            {/* Confirmation dialog for recurring delete */}
-            <DeleteConfirmationDialog
-                open={!!recurringToDelete}
-                onOpenChange={(open) => !open && clearRecurringDelete()}
-                onConfirm={async () => {
-                    if (recurringToDelete) {
-                        await handleRecurringDelete({
-                            id: recurringToDelete.id!,
-                        });
-                        clearRecurringDelete();
-                        if (refreshAllTransactions) {
-                            refreshAllTransactions();
-                        }
-                    }
-                }}
-                onCancel={() => clearRecurringDelete()}
-                title="Delete Recurring Transaction"
-                message="Are you sure you want to delete this recurring transaction and all its instances? This action cannot be undone."
-                confirmText="Delete All"
-            />
             {/* Confirmation dialog for single delete */}
             <DeleteConfirmationDialog
                 open={isDeleteDialogOpen}
@@ -433,6 +315,25 @@ export function AllTransactionsTab({
                 onCancel={cancelDelete}
                 title="Delete Expense"
                 message="Are you sure you want to delete this expense? This action cannot be undone."
+            />
+
+            {/* Confirmation dialog for recurring delete */}
+            <RecurringDeleteDialog
+                open={isRecurringDeleteDialogOpen}
+                onOpenChange={setIsRecurringDeleteDialogOpen}
+                onDeleteSingle={async () => {
+                    await confirmRecurringDeleteSingle();
+                    if (refreshAllTransactions) {
+                        refreshAllTransactions();
+                    }
+                }}
+                onDeleteAll={async () => {
+                    await confirmRecurringDeleteAll();
+                    if (refreshAllTransactions) {
+                        refreshAllTransactions();
+                    }
+                }}
+                onCancel={cancelRecurringDelete}
             />
         </>
     );

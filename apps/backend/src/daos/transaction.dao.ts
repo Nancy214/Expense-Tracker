@@ -1,133 +1,9 @@
 import { Types } from "mongoose";
 import { TransactionModel } from "../models/transaction.model";
-import type {
-    Bill,
-    BillFrequency,
-    BillStatus,
-    PaginationQuery,
-    Transaction,
-    TransactionOrBill,
-    TransactionSummary,
-} from "@expense-tracker/shared-types";
-import { startOfToday, startOfDay, isAfter, addMonths, addQuarters, addYears } from "date-fns";
-import { parseDateFromAPI, addTimeByFrequency } from "../utils/dateUtils";
+import type { PaginationQuery, Transaction, TransactionSummary } from "@expense-tracker/shared-types";
+import { parseDateFromAPI } from "../utils/dateUtils";
 
-export type TransactionOrBillDocument = Transaction | Bill;
-
-// Type guard to check if a document is a bill document
-const isBillDocument = (doc: TransactionOrBillDocument): doc is Bill => {
-    return doc.category === "Bills";
-};
-
-// Helper function to calculate next due date for bills
-const calculateNextDueDate = (currentDueDate: Date, frequency: BillFrequency): Date => {
-    switch (frequency) {
-        case "monthly":
-            return addMonths(currentDueDate, 1);
-        case "quarterly":
-            return addQuarters(currentDueDate, 1);
-        case "yearly":
-            return addYears(currentDueDate, 1);
-        case "one-time":
-            // For one-time bills, return the same date
-            return new Date(currentDueDate);
-        default:
-            return new Date(currentDueDate);
-    }
-};
-
-// Helper function to create recurring instances
-const createRecurringInstances = async (template: TransactionOrBillDocument, userId: Types.ObjectId): Promise<void> => {
-    const templateId = template.id;
-    if (isBillDocument(template)) {
-        // Handle bill frequency
-        if (template.billFrequency) {
-            const start: Date = new Date(template.date);
-            const today: Date = startOfToday();
-            let current: Date = new Date(start);
-            let currentDueDate: Date | undefined = template.dueDate ? new Date(template.dueDate) : undefined;
-            // Bills do not currently support endDate; generate up to today
-            const end: Date = today;
-
-            // Exclude both id and _id from template to prevent MongoDB immutable field errors
-            const { id, _id, ...rest } = template as any;
-            const templateData = rest;
-
-            // Skip creating an instance on the start date to avoid duplicate for the initial bill
-            current = addTimeByFrequency(current, template.billFrequency);
-            if (currentDueDate) {
-                currentDueDate = addTimeByFrequency(currentDueDate, template.billFrequency);
-            }
-
-            while (!isAfter(startOfDay(current), startOfDay(end))) {
-                // Calculate next due date for this instance
-                const nextDueDate = currentDueDate
-                    ? addTimeByFrequency(currentDueDate, template.billFrequency)
-                    : undefined;
-
-                const instanceData = {
-                    ...templateData,
-                    isRecurring: false,
-                    date: current,
-                    templateId: templateId,
-                    ...(currentDueDate && { dueDate: currentDueDate }),
-                    ...(nextDueDate && { nextDueDate }),
-                };
-
-                await TransactionModel.updateOne(
-                    {
-                        templateId: templateId,
-                        date: current,
-                        userId: userId,
-                    },
-                    { $set: instanceData },
-                    { upsert: true }
-                );
-
-                // Bill frequency logic - advance both date and due date
-                current = addTimeByFrequency(current, template.billFrequency);
-                if (currentDueDate) {
-                    currentDueDate = addTimeByFrequency(currentDueDate, template.billFrequency);
-                }
-            }
-        }
-    } else if (template.isRecurring && template.recurringFrequency) {
-        // Handle regular transaction frequency
-
-        const start: Date = new Date(template.date);
-        const today: Date = startOfToday();
-        let current: Date = new Date(start);
-        // Respect endDate if provided, otherwise use today
-        const providedEnd: Date | undefined = template.endDate ? new Date(template.endDate) : undefined;
-        const end: Date = providedEnd && !isAfter(startOfDay(providedEnd), startOfDay(today)) ? providedEnd : today;
-
-        // Exclude both id and _id from template to prevent MongoDB immutable field errors
-        const { id, _id, ...rest } = template as any;
-        const templateData = rest;
-
-        while (!isAfter(startOfDay(current), startOfDay(end))) {
-            await TransactionModel.updateOne(
-                {
-                    templateId: templateId,
-                    date: current,
-                    userId: userId,
-                },
-                {
-                    $set: {
-                        ...templateData,
-                        isRecurring: false,
-                        date: current,
-                        templateId: templateId,
-                    },
-                },
-                { upsert: true }
-            );
-
-            // Regular transaction frequency logic
-            current = addTimeByFrequency(current, template.recurringFrequency);
-        }
-    }
-};
+export type TransactionDocument = Transaction;
 
 export class TransactionDAO {
     /**
@@ -137,7 +13,7 @@ export class TransactionDAO {
         userId: string,
         paginationQuery: PaginationQuery
     ): Promise<{
-        expenses: TransactionOrBill[];
+        expenses: Transaction[];
         total: number;
         page: number;
         limit: number;
@@ -152,7 +28,7 @@ export class TransactionDAO {
         });
 
         // Get paginated expenses
-        const expenses: TransactionOrBill[] = await TransactionModel.find({
+        const expenses: Transaction[] = await TransactionModel.find({
             userId: new Types.ObjectId(userId),
         })
             .sort({ date: -1 })
@@ -177,7 +53,7 @@ export class TransactionDAO {
             limit?: string;
         }
     ): Promise<{
-        transactions: TransactionOrBillDocument[];
+        transactions: TransactionDocument[];
         total: number;
         page: number;
         limit: number;
@@ -239,7 +115,7 @@ export class TransactionDAO {
         const total: number = await TransactionModel.countDocuments(filterQuery);
 
         // Get filtered and paginated transactions
-        const transactions: TransactionOrBillDocument[] = await TransactionModel.find(filterQuery)
+        const transactions: TransactionDocument[] = await TransactionModel.find(filterQuery)
             .sort({ date: -1 })
             .skip(skip)
             .limit(limit);
@@ -248,135 +124,48 @@ export class TransactionDAO {
     }
 
     /**
-     * Get paginated bills for a user
-     */
-    static async getBills(
-        userId: string,
-        paginationQuery: PaginationQuery
-    ): Promise<{
-        bills: TransactionOrBillDocument[];
-        total: number;
-        page: number;
-        limit: number;
-    }> {
-        const page: number = parseInt(paginationQuery.page || "1");
-        const limit: number = parseInt(paginationQuery.limit || "20");
-        const skip: number = (page - 1) * limit;
-
-        // Get total count for pagination (only bills)
-        const total: number = await TransactionModel.countDocuments({
-            userId: new Types.ObjectId(userId),
-            category: "Bills",
-        });
-
-        // Get paginated bills
-        const bills: TransactionOrBillDocument[] = await TransactionModel.find({
-            userId: new Types.ObjectId(userId),
-            category: "Bills",
-        })
-            .sort({ date: -1 })
-            .skip(skip)
-            .limit(limit);
-
-        return { bills, total, page, limit };
-    }
-
-    /**
-     * Get paginated recurring templates for a user
-     */
-    static async getRecurringTemplates(
-        userId: string,
-        paginationQuery: PaginationQuery
-    ): Promise<{
-        recurringTemplates: TransactionOrBillDocument[];
-        total: number;
-        page: number;
-        limit: number;
-    }> {
-        const page: number = parseInt(paginationQuery.page || "1");
-        const limit: number = parseInt(paginationQuery.limit || "20");
-        const skip: number = (page - 1) * limit;
-
-        // Get total count for pagination (only recurring templates)
-        const total: number = await TransactionModel.countDocuments({
-            userId: new Types.ObjectId(userId),
-            isRecurring: true,
-            templateId: null,
-        });
-
-        // Get paginated recurring templates
-        const recurringTemplates: TransactionOrBillDocument[] = await TransactionModel.find({
-            userId: new Types.ObjectId(userId),
-            isRecurring: true,
-            templateId: null,
-        })
-            .sort({ date: -1 })
-            .skip(skip)
-            .limit(limit);
-
-        return { recurringTemplates, total, page, limit };
-    }
-
-    /**
      * Get transaction summary statistics for a user
      */
     static async getTransactionSummary(userId: string): Promise<TransactionSummary> {
         // Get all transactions for the user
-        const allTransactions: TransactionOrBillDocument[] = await TransactionModel.find({
+        const allTransactions: TransactionDocument[] = await TransactionModel.find({
             userId: new Types.ObjectId(userId),
         });
 
         // Calculate summary statistics
-        const allNonTemplateTransactions: TransactionOrBillDocument[] = allTransactions.filter((t) => {
-            if (isBillDocument(t)) return true; // Bills don't have templateId
-            return !t.templateId; // Only check templateId for regular transactions
-        });
-
-        const totalTransactions: number = allNonTemplateTransactions.length;
-        const totalIncome: number = allNonTemplateTransactions.filter((t) => t.type === "income").length;
-        const totalExpenses: number = allNonTemplateTransactions.filter((t) => t.type === "expense").length;
-        const totalBills: number = allNonTemplateTransactions.filter((t) => t.category === "Bills").length;
-        const totalRecurringTemplates: number = allTransactions.filter((t) => {
-            if (isBillDocument(t)) return false; // Bills are not recurring templates
-            return t.isRecurring && !t.templateId;
-        }).length;
+        const totalTransactions: number = allTransactions.length;
+        const totalIncome: number = allTransactions.filter((t) => t.type === "income").length;
+        const totalExpenses: number = allTransactions.filter((t) => t.type === "expense").length;
 
         // Calculate total amounts
-        const totalIncomeAmount: number = allNonTemplateTransactions
+        const totalIncomeAmount: number = allTransactions
             .filter((t) => t.type === "income")
             .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-        const totalExpenseAmount: number = allNonTemplateTransactions
+        const totalExpenseAmount: number = allTransactions
             .filter((t) => t.type === "expense")
-            .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-        const totalBillsAmount: number = allNonTemplateTransactions
-            .filter((t) => t.category === "Bills")
-            .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-        const totalRecurringAmount: number = allTransactions
-            .filter((t) => {
-                if (isBillDocument(t)) return false; // Bills are not recurring templates
-                return t.isRecurring && !t.templateId;
-            })
             .reduce((sum, t) => sum + (t.amount || 0), 0);
 
         // Calculate average transaction amount
         const averageTransactionAmount: number =
-            allNonTemplateTransactions.length > 0
-                ? allNonTemplateTransactions.reduce((sum, t) => sum + (t.amount || 0), 0) /
-                  allNonTemplateTransactions.length
+            allTransactions.length > 0
+                ? allTransactions.reduce((sum, t) => sum + (t.amount || 0), 0) / allTransactions.length
                 : 0;
+
+        // Calculate recurring transaction statistics
+        const recurringTemplates = allTransactions.filter((t) => t.isRecurring === true);
+        const totalRecurringTemplates: number = recurringTemplates.length;
+        const totalRecurringAmount: number = recurringTemplates.reduce((sum, t) => sum + (t.amount || 0), 0);
 
         return {
             totalTransactions,
             totalIncome,
             totalExpenses,
-            totalBills,
+            totalBills: 0,
             totalRecurringTemplates,
             totalIncomeAmount,
             totalExpenseAmount,
-            totalBillsAmount,
+            totalBillsAmount: 0,
             totalRecurringAmount,
             averageTransactionAmount,
         };
@@ -385,7 +174,7 @@ export class TransactionDAO {
     /**
      * Get a transaction by ID for a specific user
      */
-    static async getTransactionById(userId: string, transactionId: string): Promise<TransactionOrBillDocument | null> {
+    static async getTransactionById(userId: string, transactionId: string): Promise<TransactionDocument | null> {
         return await TransactionModel.findOne({
             userId: new Types.ObjectId(userId),
             _id: new Types.ObjectId(transactionId),
@@ -395,10 +184,7 @@ export class TransactionDAO {
     /**
      * Create a new transaction
      */
-    static async createTransaction(
-        userId: string,
-        transactionData: TransactionOrBill
-    ): Promise<TransactionOrBillDocument> {
+    static async createTransaction(userId: string, transactionData: Transaction): Promise<TransactionDocument> {
         // Exclude id/_id from transactionData to prevent MongoDB immutable field error
         const { id: _id, ...dataWithoutId } = transactionData as any;
 
@@ -410,43 +196,13 @@ export class TransactionDAO {
             date: parseDateFromAPI(dataWithoutId.date),
         };
 
-        // Convert endDate if it exists (only for regular transactions, not bills)
-        if ("endDate" in dataWithoutId && dataWithoutId.endDate) {
-            expenseData.endDate = parseDateFromAPI(dataWithoutId.endDate);
+        if (dataWithoutId.recurringEndDate) {
+            expenseData.recurringEndDate = parseDateFromAPI(dataWithoutId.recurringEndDate);
         }
 
-        // If it's a bill, handle bill-specific fields
-        if (dataWithoutId.category === "Bills" && isBillDocument(dataWithoutId)) {
-            // Convert dueDate to Date object
-            if (dataWithoutId.dueDate) {
-                expenseData.dueDate = parseDateFromAPI(dataWithoutId.dueDate);
-            }
-
-            // Convert nextDueDate if it exists
-            if (dataWithoutId.nextDueDate) {
-                expenseData.nextDueDate = parseDateFromAPI(dataWithoutId.nextDueDate);
-            }
-
-            // Convert lastPaidDate if it exists
-            if (dataWithoutId.lastPaidDate) {
-                expenseData.lastPaidDate = parseDateFromAPI(dataWithoutId.lastPaidDate);
-            }
-
-            // Calculate nextDueDate automatically if not provided
-            if (dataWithoutId.dueDate && dataWithoutId.billFrequency && !dataWithoutId.nextDueDate) {
-                const dueDate = parseDateFromAPI(dataWithoutId.dueDate);
-                const frequency: BillFrequency = dataWithoutId.billFrequency;
-                const nextDueDate = calculateNextDueDate(dueDate, frequency);
-                expenseData.nextDueDate = nextDueDate;
-            }
-        }
-
-        const expense: TransactionOrBillDocument = (
+        const expense: TransactionDocument = (
             await TransactionModel.create(expenseData)
-        ).toObject() as TransactionOrBillDocument;
-
-        // Create recurring instances
-        await createRecurringInstances(expense, new Types.ObjectId(userId));
+        ).toObject() as TransactionDocument;
 
         return expense;
     }
@@ -457,8 +213,8 @@ export class TransactionDAO {
     static async updateTransaction(
         userId: string,
         transactionId: string,
-        updateData: TransactionOrBill
-    ): Promise<TransactionOrBillDocument | null> {
+        updateData: Transaction
+    ): Promise<TransactionDocument | null> {
         // Prepare update data with proper date conversion
         // Exclude userId from update payload - it should never be changed
         const { userId: _, ...updateDataWithoutUserId } = updateData as any;
@@ -470,35 +226,8 @@ export class TransactionDAO {
                 updatePayload.date = parseDateFromAPI(updateData.date);
             }
 
-            // Convert endDate if it exists (only for regular transactions, not bills)
-            if ("endDate" in updateData && updateData.endDate) {
-                updatePayload.endDate = parseDateFromAPI(updateData.endDate);
-            }
-
-            // If it's a bill update, handle bill-specific fields
-            if (updateData.category === "Bills" && isBillDocument(updateData)) {
-                // Convert dueDate to Date object
-                if (updateData.dueDate) {
-                    updatePayload.dueDate = parseDateFromAPI(updateData.dueDate);
-                }
-
-                // Convert nextDueDate if it exists
-                if (updateData.nextDueDate) {
-                    updatePayload.nextDueDate = parseDateFromAPI(updateData.nextDueDate);
-                }
-
-                // Convert lastPaidDate if it exists
-                if (updateData.lastPaidDate) {
-                    updatePayload.lastPaidDate = parseDateFromAPI(updateData.lastPaidDate);
-                }
-
-                // Calculate nextDueDate automatically if not provided
-                if (updateData.dueDate && updateData.billFrequency && !updateData.nextDueDate) {
-                    const dueDate = parseDateFromAPI(updateData.dueDate);
-                    const frequency = updateData.billFrequency;
-                    const nextDueDate = calculateNextDueDate(dueDate, frequency);
-                    updatePayload.nextDueDate = nextDueDate;
-                }
+            if (updateData.recurringEndDate) {
+                updatePayload.recurringEndDate = parseDateFromAPI(updateData.recurringEndDate);
             }
         } catch (error) {
             console.error("Error parsing dates in updateTransaction:", error);
@@ -506,7 +235,7 @@ export class TransactionDAO {
         }
 
         // SECURITY FIX: Include userId in the query to ensure users can only update their own transactions
-        const expense: TransactionOrBillDocument | null = await TransactionModel.findOneAndUpdate(
+        const expense: TransactionDocument | null = await TransactionModel.findOneAndUpdate(
             {
                 _id: new Types.ObjectId(transactionId),
                 userId: new Types.ObjectId(userId),
@@ -517,22 +246,13 @@ export class TransactionDAO {
             }
         );
 
-        if (expense) {
-            try {
-                await createRecurringInstances(expense, new Types.ObjectId(userId));
-            } catch (recurringError) {
-                console.error("Error creating recurring instances:", recurringError);
-                throw recurringError;
-            }
-        }
-
         return expense;
     }
 
     /**
      * Delete a transaction
      */
-    static async deleteTransaction(userId: string, transactionId: string): Promise<TransactionOrBillDocument | null> {
+    static async deleteTransaction(userId: string, transactionId: string): Promise<TransactionDocument | null> {
         return await TransactionModel.findOneAndDelete({
             _id: new Types.ObjectId(transactionId),
             userId: new Types.ObjectId(userId),
@@ -540,64 +260,12 @@ export class TransactionDAO {
     }
 
     /**
-     * Update bill status for a transaction
-     */
-    static async updateTransactionBillStatus(
-        transactionId: string,
-        billStatus: BillStatus
-    ): Promise<TransactionOrBillDocument | null> {
-        return await TransactionModel.findByIdAndUpdate(
-            new Types.ObjectId(transactionId),
-            { billStatus },
-            { new: true }
-        );
-    }
-
-    /**
      * Get all transactions for analytics (no pagination)
      */
-    static async getAllTransactionsForAnalytics(userId: string): Promise<TransactionOrBillDocument[]> {
+    static async getAllTransactionsForAnalytics(userId: string): Promise<TransactionDocument[]> {
         return await TransactionModel.find({
             userId: new Types.ObjectId(userId),
-            // Don't filter by templateId or isRecurring - include all actual transactions
         }).sort({ date: -1 });
-    }
-
-    /**
-     * Delete a recurring template and all its instances
-     */
-    static async deleteRecurringTemplate(
-        userId: string,
-        templateId: string
-    ): Promise<{
-        template: TransactionOrBillDocument | null;
-        deletedInstancesCount: number;
-    }> {
-        // Find the recurring template
-        const template: TransactionOrBillDocument | null = await TransactionModel.findOne({
-            _id: new Types.ObjectId(templateId),
-            userId: new Types.ObjectId(userId),
-            isRecurring: true,
-            templateId: null,
-        });
-
-        if (!template) {
-            return { template: null, deletedInstancesCount: 0 };
-        }
-
-        // Delete all instances of this recurring transaction
-        const deleteResult = await TransactionModel.deleteMany({
-            templateId: new Types.ObjectId(templateId),
-            userId: new Types.ObjectId(userId),
-        });
-
-        // Delete the template itself
-        await TransactionModel.findByIdAndDelete(new Types.ObjectId(templateId));
-
-        return {
-            template,
-            deletedInstancesCount: deleteResult.deletedCount || 0,
-        };
     }
 
     /**
@@ -625,37 +293,13 @@ export class TransactionDAO {
     }
 
     /**
-     * Find transactions by template ID
-     */
-    static async findTransactionsByTemplateId(
-        userId: string,
-        templateId: string
-    ): Promise<TransactionOrBillDocument[]> {
-        return await TransactionModel.find({
-            userId: new Types.ObjectId(userId),
-            templateId: new Types.ObjectId(templateId),
-        });
-    }
-
-    /**
-     * Find recurring templates for a user
-     */
-    static async findRecurringTemplates(userId: string): Promise<TransactionOrBillDocument[]> {
-        return await TransactionModel.find({
-            userId: new Types.ObjectId(userId),
-            isRecurring: true,
-            templateId: null,
-        });
-    }
-
-    /**
      * Find transactions by date range
      */
     static async findTransactionsByDateRange(
         userId: string,
         startDate: Date,
         endDate: Date
-    ): Promise<TransactionOrBillDocument[]> {
+    ): Promise<TransactionDocument[]> {
         return await TransactionModel.find({
             userId: new Types.ObjectId(userId),
             date: {
@@ -668,7 +312,7 @@ export class TransactionDAO {
     /**
      * Find transactions by category
      */
-    static async findTransactionsByCategory(userId: string, category: string): Promise<TransactionOrBillDocument[]> {
+    static async findTransactionsByCategory(userId: string, category: string): Promise<TransactionDocument[]> {
         return await TransactionModel.find({
             userId: new Types.ObjectId(userId),
             category: category,
@@ -678,7 +322,7 @@ export class TransactionDAO {
     /**
      * Find transactions by type (income/expense)
      */
-    static async findTransactionsByType(userId: string, type: string): Promise<TransactionOrBillDocument[]> {
+    static async findTransactionsByType(userId: string, type: string): Promise<TransactionDocument[]> {
         return await TransactionModel.find({
             userId: new Types.ObjectId(userId),
             type: type,
@@ -698,5 +342,57 @@ export class TransactionDAO {
                 $unset: { receipt: 1 },
             }
         );
+    }
+
+    /**
+     * Delete all transactions in a recurring series
+     * This deletes the template and all generated instances
+     */
+    static async deleteRecurringSeries(
+        userId: string,
+        transactionId: string
+    ): Promise<{ deletedCount: number }> {
+        const transaction = await TransactionModel.findOne({
+            _id: new Types.ObjectId(transactionId),
+            userId: new Types.ObjectId(userId),
+        });
+
+        if (!transaction) {
+            return { deletedCount: 0 };
+        }
+
+        let templateId: Types.ObjectId;
+
+        // Check if this is a template or an instance
+        if (transaction.isRecurring) {
+            // This is the template itself
+            templateId = transaction._id as Types.ObjectId;
+        } else if ((transaction as any).parentRecurringId) {
+            // This is an instance, get the parent template ID
+            templateId = (transaction as any).parentRecurringId;
+        } else {
+            // Not a recurring transaction, just delete this one
+            await TransactionModel.findOneAndDelete({
+                _id: new Types.ObjectId(transactionId),
+                userId: new Types.ObjectId(userId),
+            });
+            return { deletedCount: 1 };
+        }
+
+        // Delete all instances that reference this template
+        const instancesResult = await TransactionModel.deleteMany({
+            userId: new Types.ObjectId(userId),
+            parentRecurringId: templateId,
+        });
+
+        // Delete the template itself
+        const templateResult = await TransactionModel.deleteOne({
+            _id: templateId,
+            userId: new Types.ObjectId(userId),
+        });
+
+        return {
+            deletedCount: instancesResult.deletedCount + templateResult.deletedCount,
+        };
     }
 }

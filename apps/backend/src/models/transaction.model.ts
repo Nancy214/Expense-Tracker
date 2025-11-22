@@ -9,7 +9,7 @@ const TransactionSchema = new Schema(
         },
         title: {
             type: String,
-            required: true,
+            required: false,
         },
         amount: {
             type: Number,
@@ -44,64 +44,46 @@ const TransactionSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "User",
         },
-        isRecurring: {
-            type: Boolean,
-            default: false,
-        },
-        recurringFrequency: {
-            type: String,
-            enum: ["daily", "weekly", "monthly", "yearly"],
-            required: false,
-        },
-        endDate: {
-            type: Date,
-            required: false,
-        },
-        templateId: {
-            type: Schema.Types.ObjectId,
-            ref: "Expense",
-            default: null,
-        },
         receipt: {
             type: String,
             default: "",
         },
-        // Bill-specific fields - ADDED
-        billCategory: {
+
+        // Recurring fields
+        isRecurring: {
+            type: Boolean,
+            default: false,
+            index: true,
+        },
+        recurringFrequency: {
             type: String,
-            required: false,
+            enum: ["daily", "weekly", "monthly", "quarterly", "yearly"],
+            // Only set if isRecurring = true
         },
-        reminderDays: {
-            type: Number,
-            required: false,
-            default: 3,
-        },
-        dueDate: {
+
+        recurringEndDate: {
             type: Date,
-            required: false,
+            // Optional: when to stop creating recurring transactions
         },
-        billStatus: {
-            type: String,
-            enum: ["unpaid", "paid", "overdue", "pending"],
-            default: "unpaid",
+        recurringActive: {
+            type: Boolean,
+            default: true,
+            // User can pause/resume recurring transactions
         },
-        billFrequency: {
-            type: String,
-            enum: ["monthly", "quarterly", "yearly", "one-time"],
-            default: "monthly",
+        autoCreate: {
+            type: Boolean,
+            default: true,
+            // true = auto-create transaction
+            // false = send reminder only
         },
-        nextDueDate: {
-            type: Date,
-            required: false,
-        },
-        lastPaidDate: {
-            type: Date,
-            required: false,
-        },
-        paymentMethod: {
-            type: String,
-            enum: ["manual", "auto-pay", "bank-transfer", "credit-card", "debit-card", "cash"],
-            default: "manual",
+
+        // Link to parent recurring transaction
+        parentRecurringId: {
+            type: Schema.Types.ObjectId,
+            ref: "Transaction",
+            index: true,
+            // If this transaction was generated from a recurring one,
+            // this points to the parent template
         },
     },
     {

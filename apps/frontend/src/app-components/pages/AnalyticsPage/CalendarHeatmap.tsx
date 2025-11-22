@@ -28,7 +28,7 @@ const DayElement: React.FC<DayElementProps> = ({ element, value, index, formatAm
             return "No data";
         }
 
-        const date: string = formatToHumanReadableDate(value.date);
+        const date: string = formatToHumanReadableDate(value.date, "MMM dd, yyyy");
         const count: number = value.count || 0;
         const amount: number = value.amount || 0;
         const category: string = value.category || "";

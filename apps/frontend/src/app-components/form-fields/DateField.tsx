@@ -54,10 +54,12 @@ export const DateField: React.FC<DateFieldProps> = ({
             : (value as Date)
         : undefined;
 
-    const humanReadable: string | undefined = valueAsDate ? formatToHumanReadableDate(valueAsDate) : undefined;
+    const humanReadable: string | undefined = valueAsDate
+        ? formatToHumanReadableDate(valueAsDate, "EEEE, MMM dd, yyyy")
+        : undefined;
 
     return (
-        <div className={cn("space-y-1 flex items-center justify-between flex-wrap w-full", className)}>
+        <div className={cn("space-y-2 flex items-center flex-wrap w-full", className)}>
             <Label htmlFor={name} className="text-sm font-medium">
                 {label} {required && <span className="text-red-500">*</span>}
             </Label>
@@ -69,8 +71,8 @@ export const DateField: React.FC<DateFieldProps> = ({
                             size="sm"
                             className="h-8 text-muted-foreground hover:text-foreground hover:bg-transparent px-2 flex items-center gap-1"
                         >
-                            {humanReadable}
                             <CalendarIcon className="h-4 w-4" />
+                            {humanReadable}
                         </Button>
                     ) : (
                         <Button

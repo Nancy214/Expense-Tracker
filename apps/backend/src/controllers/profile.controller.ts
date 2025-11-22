@@ -1,5 +1,4 @@
-import type { TokenPayload } from "@expense-tracker/shared-types";
-import type { ProfileData, SettingsData } from "@expense-tracker/shared-types";
+import type { ProfileData, SettingsData, TokenPayload } from "@expense-tracker/shared-types";
 import type { Request, Response } from "express";
 import { ProfileService } from "../services/profile.service";
 import { createErrorResponse, logError } from "../services/error.service";

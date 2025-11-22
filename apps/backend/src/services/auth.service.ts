@@ -13,6 +13,7 @@ import type {
     UserType,
 } from "@expense-tracker/shared-types";
 import sgMail, { type MailDataRequired } from "@sendgrid/mail";
+import { format, isValid } from "date-fns";
 import dotenv from "dotenv";
 import { s3Client } from "../config/s3Client";
 import { AuthDAO } from "../daos/auth.dao";
@@ -61,7 +62,7 @@ export class AuthService {
                 name: user.name || "",
                 profilePicture: "",
                 phoneNumber: user.phoneNumber || "",
-                dateOfBirth: user.dateOfBirth || "",
+                dateOfBirth: user.dateOfBirth && isValid(new Date(user.dateOfBirth)) ? format(new Date(user.dateOfBirth), "dd/MM/yyyy") : "",
                 currency: user.currency || "",
                 currencySymbol: user.currencySymbol || "",
                 country: user.country || "",
@@ -122,7 +123,7 @@ export class AuthService {
                 name: user.name || "",
                 profilePicture: profilePictureUrl,
                 phoneNumber: user.phoneNumber || "",
-                dateOfBirth: user.dateOfBirth || "",
+                dateOfBirth: user.dateOfBirth && isValid(new Date(user.dateOfBirth)) ? format(new Date(user.dateOfBirth), "dd/MM/yyyy") : "",
                 currency: user.currency || "",
                 currencySymbol: user.currencySymbol || "",
                 country: user.country || "",
@@ -165,7 +166,7 @@ export class AuthService {
                     name: nestedUser?.name || flat?.name || "",
                     profilePicture: nestedUser?.profilePicture || flat?.profilePicture || "",
                     phoneNumber: nestedUser?.phoneNumber || flat?.phoneNumber || "",
-                    dateOfBirth: nestedUser?.dateOfBirth || flat?.dateOfBirth || "",
+                    dateOfBirth: (nestedUser?.dateOfBirth || flat?.dateOfBirth) && isValid(new Date(nestedUser?.dateOfBirth || flat?.dateOfBirth)) ? format(new Date(nestedUser?.dateOfBirth || flat?.dateOfBirth), "dd/MM/yyyy") : "",
                     currency: nestedUser?.currency || flat?.currency || "",
                     currencySymbol: nestedUser?.currencySymbol || flat?.currencySymbol || "",
                     country: nestedUser?.country || flat?.country || "",

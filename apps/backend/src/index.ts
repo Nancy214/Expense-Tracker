@@ -14,10 +14,10 @@ import currencyRoutes from "./routes/currency.routes";
 import profileRoutes from "./routes/profile.routes";
 import expenseRoutes from "./routes/transaction.routes";
 import onboardingRoutes from "./routes/onboarding.routes";
-import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { authenticateToken } from "./middleware/auth.middleware";
+import { RecurringTransactionJobService } from "./services/recurringTransactionJob.service";
 
 dotenv.config();
 
@@ -46,7 +46,13 @@ app.use(
                 styleSrc: ["'self'", "'unsafe-inline'", "'https://fonts.googleapis.com'"],
                 imgSrc: ["'self'", "data:", "https://*"],
                 fontSrc: ["'self'", "'fonts.gstatic.com'"],
-                connectSrc: ["'self'", "'api.fxratesapi.com'", "http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
+                connectSrc: [
+                    "'self'",
+                    "'api.fxratesapi.com'",
+                    "http://localhost:3000",
+                    "http://localhost:3001",
+                    "http://localhost:3002",
+                ],
             },
         },
         crossOriginResourcePolicy: {
@@ -95,22 +101,27 @@ mongoose
     )
     .then(() => {
         console.log("Connected to MongoDB");
+
+        // Initialize recurring transaction cron job
+        // Runs every day at midnight (00:00)
+        cron.schedule("0 0 * * *", async () => {
+            console.log("[Cron] Running recurring transaction job...");
+            try {
+                const result = await RecurringTransactionJobService.processAllRecurringTransactions();
+                console.log(
+                    `[Cron] Recurring transaction job completed. Created: ${result.totalCreated}, Processed: ${result.totalProcessed}, Errors: ${result.errors.length}`
+                );
+            } catch (error) {
+                console.error("[Cron] Recurring transaction job failed:", error);
+            }
+        });
+
+        console.log("[Cron] Recurring transaction job scheduled to run daily at midnight");
     })
     .catch((err) => {
         console.error("MongoDB connection error:", err);
         process.exit(1);
     });
-
-// Recurring transaction job - runs every hour to process recurring transactions
-cron.schedule("0 * * * *", async () => {
-    try {
-        console.log(`[CronJob] Starting recurring transaction job at ${new Date().toISOString()}`);
-        await RecurringTransactionJobService.processAllRecurringTransactions();
-        console.log(`[CronJob] Recurring transaction job completed at ${new Date().toISOString()}`);
-    } catch (error) {
-        console.error("[CronJob] Error in recurring transaction job:", error);
-    }
-});
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes

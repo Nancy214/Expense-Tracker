@@ -56,7 +56,7 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
     const categoryOptions: { value: BudgetCategory; label: string }[] = Object.values(BudgetCategory).map(
         (category) => ({
             value: category as BudgetCategory,
-            label: category === BudgetCategory.BILLS ? BudgetCategory.BILLS : (category as string),
+            label: category as BudgetCategory,
         })
     );
 
@@ -104,9 +104,8 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
                             <InputField
                                 name="title"
                                 label="Budget Title"
-                                placeholder="Enter budget title"
+                                placeholder="Enter budget title (Optional)"
                                 maxLength={100}
-                                required
                             />
                             <SelectField
                                 name="category"

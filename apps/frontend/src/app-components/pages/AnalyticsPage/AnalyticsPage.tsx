@@ -5,10 +5,19 @@ import type {
     MonthlyIncomeExpenseData,
     MonthlySavingsData,
     HorizontalBarData,
-    TransactionOrBill,
+    Transaction,
 } from "@expense-tracker/shared-types/src";
 import { ChartTypes, Period } from "@expense-tracker/shared-types/src/analytics";
-import { AlertCircle, BarChart3, LineChart, TrendingUp, Calendar, ChevronDown, ChevronUp, TrendingDown } from "lucide-react";
+import {
+    AlertCircle,
+    BarChart3,
+    LineChart,
+    TrendingUp,
+    Calendar,
+    ChevronDown,
+    ChevronUp,
+    TrendingDown,
+} from "lucide-react";
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,9 +67,7 @@ const QuickInsights: React.FC<{
     onAddTransaction: () => void;
 }> = ({ expenseCategoryData, billsCategoryData, incomeExpenseData, currency, isLoading, onAddTransaction }) => {
     // Calculate top 3 spending categories
-    const allCategories = [...expenseCategoryData, ...billsCategoryData]
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 3);
+    const allCategories = [...expenseCategoryData, ...billsCategoryData].sort((a, b) => b.value - a.value).slice(0, 3);
 
     // Calculate spending health (income vs expenses for current period)
     const totalIncome = incomeExpenseData
@@ -108,9 +115,8 @@ const QuickInsights: React.FC<{
                     <div className="flex items-start justify-between mb-4">
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                                Am I spending too much?
+                                This month's financial health
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">This month's financial health</p>
                         </div>
                         {isHealthy ? (
                             <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100 border-0">
@@ -143,7 +149,10 @@ const QuickInsights: React.FC<{
                                 style={{ width: `${Math.min(savingsRate, 100)}%` }}
                             />
                             {/* Target line at 20% */}
-                            <div className="absolute top-0 h-full w-0.5 bg-gray-400 dark:bg-gray-500" style={{ left: "20%" }} />
+                            <div
+                                className="absolute top-0 h-full w-0.5 bg-gray-600 dark:bg-gray-400"
+                                style={{ left: "20%" }}
+                            />
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                             {isHealthy
@@ -160,7 +169,7 @@ const QuickInsights: React.FC<{
             <Card className="rounded-xl shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800">
                 <CardContent className="p-6">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                        Where is my money going?
+                        Where is your money going?
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Top 3 spending categories</p>
 
@@ -252,7 +261,7 @@ const AdvancedAnalytics: React.FC<{
                                     data={transformPieDataToBarData(expenseCategoryData)}
                                     currency={currency}
                                 />
-                                <HorizontalStackedBarChartComponent
+                                {/* <HorizontalStackedBarChartComponent
                                     title="Bills Categories"
                                     subtitle="Your bills distribution"
                                     data={transformPieDataToBarData(billsCategoryData, [
@@ -263,7 +272,7 @@ const AdvancedAnalytics: React.FC<{
                                         "#10B981",
                                     ])}
                                     currency={currency}
-                                />
+                                /> */}
                             </div>
                         ) : (
                             <EmptyState
@@ -424,7 +433,7 @@ const AnalyticsPage = () => {
     const expenseHeatmapData: HeatmapData[] =
         allTransactions.length > 0
             ? transformExpensesToHeatmapData(
-                  allTransactions.filter((t: TransactionOrBill) => t.type === TransactionType.EXPENSE) // Only include expenses for the heatmap
+                  allTransactions.filter((t: Transaction) => t.type === TransactionType.EXPENSE) // Only include expenses for the heatmap
               )
             : [];
 
@@ -518,9 +527,7 @@ const AnalyticsPage = () => {
                             </CardHeader>
                             <CardContent className="p-4 sm:p-6 pt-0">
                                 {isLoading ? (
-                                    <p className="text-sm text-muted-foreground text-center">
-                                        Loading expense data...
-                                    </p>
+                                    <p className="text-sm text-muted-foreground text-center">Loading expense data...</p>
                                 ) : (
                                     <EmptyState
                                         icon={Calendar}
@@ -555,10 +562,7 @@ const AnalyticsPage = () => {
             )}
 
             {/* Add Transaction Dialog */}
-            <AddExpenseDialog
-                open={isDialogOpen}
-                onOpenChange={setIsDialogOpen}
-            />
+            <AddExpenseDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
         </div>
     );
 };

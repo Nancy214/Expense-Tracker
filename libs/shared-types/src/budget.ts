@@ -37,7 +37,7 @@ export const ZProgressColor = z.enum(Object.values(ProgressColor) as [string, ..
 export const ZBudgetType = z.object({
     id: z.string(),
     userId: z.string(),
-    title: z.string(),
+    title: z.string().optional().or(z.literal("")),
     amount: z.number(),
     currency: z.string(),
     fromRate: z.number().optional(),
@@ -73,9 +73,11 @@ const isValidAmount = (amount: number): boolean => {
 
 export const budgetSchema = z.object({
     title: z
-        .string({ message: "Title is required" })
-        .min(1, "Title is required")
-        .max(100, "Title cannot exceed 100 characters"),
+        .string({ message: "Title must be a string" })
+        .max(100, "Title cannot exceed 100 characters")
+        .trim()
+        .optional()
+        .or(z.literal("")),
     amount: z
         .number({ message: "Amount must be a number" })
         .positive("Amount must be greater than 0")

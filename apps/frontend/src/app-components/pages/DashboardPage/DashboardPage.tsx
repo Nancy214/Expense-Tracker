@@ -1,4 +1,4 @@
-import type { BudgetReminder } from "@expense-tracker/shared-types/src";
+import { Period, type BudgetReminder } from "@expense-tracker/shared-types/src";
 import {
     DollarSign,
     Receipt,
@@ -10,18 +10,25 @@ import {
     ArrowUpRight,
     Sparkles,
     Plus,
+    ShoppingCart,
+    Home,
+    Car,
+    Utensils,
+    Film,
+    Heart,
+    Zap,
+    CreditCard,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";
-import { BillAlertsUI, useBillsAndReminders } from "@/app-components/reminders-and-alerts/BillAlert";
 import { BudgetRemindersUI } from "@/app-components/reminders-and-alerts/BudgetReminders";
 import { ExpenseReminderBanner } from "@/app-components/reminders-and-alerts/ExpenseReminderBanner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/context/AuthContext";
-import { useExpensesSelector } from "@/hooks/use-analytics";
+import { useExpensesSelector, useExpenseCategoryBreakdown } from "@/hooks/use-analytics";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useSettings, useCurrencySymbol } from "@/hooks/use-profile";
 import AddExpenseDialog from "../TransactionsPage/AddExpenseDialog";
@@ -70,11 +77,13 @@ const DashboardPage = () => {
     const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState<boolean>(false);
     const [isAddBudgetDialogOpen, setIsAddBudgetDialogOpen] = useState<boolean>(false);
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
-    const [showDetails, setShowDetails] = useState<boolean>(false);
+    const [showDetails, setShowDetails] = useState<boolean>(true);
 
     const { monthlyStats, isLoading: statsLoading } = useExpensesSelector();
-    const { upcomingBills, overdueBills, billReminders } = useBillsAndReminders();
     const { budgetProgress, budgetReminders: budgetRemindersData, isProgressLoading, remindersError } = useBudgets();
+
+    // Get expense breakdown by category for the current month
+    const { data: expenseBreakdown } = useExpenseCategoryBreakdown(Period.MONTHLY);
 
     // Financial Overview data
     const financialData: FinancialOverviewData = {
@@ -140,13 +149,6 @@ const DashboardPage = () => {
 
     // Get the most urgent alert to show
     const getMostUrgentAlert = () => {
-        if (overdueBills.length > 0) {
-            return {
-                type: "overdue",
-                message: `${overdueBills.length} overdue bill${overdueBills.length > 1 ? "s" : ""}`,
-                severity: "high",
-            };
-        }
         if (financialData.overBudgetCount > 0) {
             return {
                 type: "budget",
@@ -156,13 +158,7 @@ const DashboardPage = () => {
                 severity: "high",
             };
         }
-        if (upcomingBills.length > 0) {
-            return {
-                type: "upcoming",
-                message: `${upcomingBills.length} bill${upcomingBills.length > 1 ? "s" : ""} due soon`,
-                severity: "medium",
-            };
-        }
+
         if (financialData.warningBudgetCount > 0) {
             return {
                 type: "warning",
@@ -177,21 +173,132 @@ const DashboardPage = () => {
 
     const urgentAlert = getMostUrgentAlert();
 
-    // Get smart insight message
+    // Get smart insight message with actionable link
     const getSmartInsight = () => {
         if (financialData.savingsRate >= 20) {
-            return { message: "Great job! You're saving well this month", icon: Sparkles, color: "text-green-600" };
+            return {
+                message: `Saving ${financialData.savingsRate.toFixed(0)}% of income - keep it up!`,
+                action: "View Analytics",
+                link: "/analytics",
+                icon: Sparkles,
+                color: "text-green-600",
+            };
         }
-        if (monthlyStats.balance > 0) {
-            return { message: "You're on track this month", icon: TrendingUp, color: "text-blue-600" };
+        if (financialData.totalBudgets === 0) {
+            return {
+                message: "Set budgets to track spending better",
+                action: "Set Budget",
+                link: "/budget",
+                icon: Target,
+                color: "text-blue-600",
+            };
         }
         if (financialData.expenseRate > 90) {
-            return { message: "Consider reviewing your spending", icon: Target, color: "text-orange-600" };
+            return {
+                message: `Spending ${financialData.expenseRate.toFixed(0)}% of income`,
+                action: "Review Spending",
+                link: "/analytics",
+                icon: TrendingDown,
+                color: "text-orange-600",
+            };
         }
-        return { message: "Track your expenses to stay on budget", icon: DollarSign, color: "text-gray-600" };
+        if (monthlyStats.balance > 0) {
+            return {
+                message: `Positive cash flow of ${formatAmount(monthlyStats.balance)}`,
+                action: "View Details",
+                link: "/analytics",
+                icon: TrendingUp,
+                color: "text-blue-600",
+            };
+        }
+        if (monthlyStats.balance < 0) {
+            return {
+                message: `Deficit of ${formatAmount(Math.abs(monthlyStats.balance))}`,
+                action: "Review Budget",
+                link: "/budget",
+                icon: Target,
+                color: "text-red-600",
+            };
+        }
+        return {
+            message: "Start tracking expenses to build insights",
+            action: "Add Transaction",
+            link: "#",
+            icon: DollarSign,
+            color: "text-gray-600",
+        };
     };
 
     const smartInsight = getSmartInsight();
+
+    // Get category icon
+    const getCategoryIcon = (category: string) => {
+        const categoryLower = category.toLowerCase();
+        if (
+            categoryLower.includes("food") ||
+            categoryLower.includes("dining") ||
+            categoryLower.includes("restaurant")
+        ) {
+            return Utensils;
+        }
+        if (categoryLower.includes("shopping") || categoryLower.includes("retail")) {
+            return ShoppingCart;
+        }
+        if (categoryLower.includes("transport") || categoryLower.includes("car") || categoryLower.includes("fuel")) {
+            return Car;
+        }
+        if (categoryLower.includes("entertainment") || categoryLower.includes("movie")) {
+            return Film;
+        }
+        if (categoryLower.includes("health") || categoryLower.includes("medical")) {
+            return Heart;
+        }
+        if (categoryLower.includes("utilities") || categoryLower.includes("bill")) {
+            return Zap;
+        }
+        if (categoryLower.includes("housing") || categoryLower.includes("rent") || categoryLower.includes("mortgage")) {
+            return Home;
+        }
+        return CreditCard;
+    };
+
+    // Get category color
+    const getCategoryColor = (category: string) => {
+        const categoryLower = category.toLowerCase();
+        if (categoryLower.includes("food")) return "bg-orange-100 text-orange-600 dark:bg-orange-900/20";
+        if (categoryLower.includes("shopping")) return "bg-pink-100 text-pink-600 dark:bg-pink-900/20";
+        if (categoryLower.includes("transport")) return "bg-blue-100 text-blue-600 dark:bg-blue-900/20";
+        if (categoryLower.includes("entertainment")) return "bg-purple-100 text-purple-600 dark:bg-purple-900/20";
+        if (categoryLower.includes("health")) return "bg-red-100 text-red-600 dark:bg-red-900/20";
+        if (categoryLower.includes("utilities")) return "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20";
+        if (categoryLower.includes("housing")) return "bg-green-100 text-green-600 dark:bg-green-900/20";
+        return "bg-gray-100 text-gray-600 dark:bg-gray-900/20";
+    };
+
+    // Get recent transactions (last 5 from current month)
+    const { expenses: allExpenses } = useExpensesSelector();
+    const recentTransactions = allExpenses
+        .filter((t) => {
+            let transactionDate: Date;
+            if (typeof t.date === "string") {
+                const dateStr = t.date;
+                if (dateStr.includes("T") || dateStr.includes("Z")) {
+                    transactionDate = new Date(dateStr);
+                } else {
+                    transactionDate = new Date(dateStr);
+                }
+            } else {
+                transactionDate = t.date as Date;
+            }
+            const now = new Date();
+            return transactionDate.getMonth() === now.getMonth() && transactionDate.getFullYear() === now.getFullYear();
+        })
+        .sort((a, b) => {
+            const dateA = typeof a.date === "string" ? new Date(a.date) : (a.date as Date);
+            const dateB = typeof b.date === "string" ? new Date(b.date) : (b.date as Date);
+            return dateB.getTime() - dateA.getTime();
+        })
+        .slice(0, 6);
 
     return (
         <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -204,7 +311,7 @@ const DashboardPage = () => {
             </div>
 
             {/* Hero Card - Primary Metric */}
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-400/90 via-teal-400/90 to-cyan-400/90">
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600">
                 <CardContent className="p-8">
                     {statsLoading || isProgressLoading ? (
                         <div className="flex items-center justify-center h-32">
@@ -214,30 +321,52 @@ const DashboardPage = () => {
                         <div className="space-y-4">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-2">
-                                    <p className="text-white/90 text-sm font-medium">Your Balance This Month</p>
+                                    <p className="text-white/90 text-sm font-medium">Balance This Month</p>
                                     <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
                                         {formatAmount(monthlyStats.balance || 0)}
                                     </h2>
                                     <div className="flex items-center gap-4 text-white/80 text-sm">
-                                        <span className="flex items-center gap-1">
-                                            <TrendingUp className="h-4 w-4" />
-                                            {formatAmount(monthlyStats.totalIncome || 0)}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            <TrendingDown className="h-4 w-4" />
-                                            {formatAmount(monthlyStats.totalExpenses || 0)}
-                                        </span>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-xs text-white/60 font-medium">Income</span>
+                                            <span className="flex items-center gap-1">
+                                                <TrendingUp className="h-4 w-4" />
+                                                {formatAmount(monthlyStats.totalIncome || 0)}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-xs text-white/60 font-medium">Expenses</span>
+                                            <span className="flex items-center gap-1">
+                                                <TrendingDown className="h-4 w-4" />
+                                                {formatAmount(monthlyStats.totalExpenses || 0)}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                                <smartInsight.icon
-                                    className={`h-8 w-8 ${smartInsight.color} bg-white/10 p-1.5 rounded-lg`}
-                                />
+                                {(() => {
+                                    const InsightIcon = smartInsight.icon;
+                                    return <InsightIcon className="h-8 w-8 text-white bg-white/20 p-1.5 rounded-lg" />;
+                                })()}
                             </div>
 
                             {/* Smart Insight */}
-                            <div className="flex items-center gap-2 text-white/90 text-sm bg-white/10 backdrop-blur-sm rounded-lg p-3">
-                                <Sparkles className="h-4 w-4 flex-shrink-0" />
-                                <span>{smartInsight.message}</span>
+                            <div
+                                className="flex items-center justify-between gap-2 text-sm bg-white/20 backdrop-blur-sm rounded-lg p-3 cursor-pointer hover:bg-white/25 transition-colors"
+                                onClick={() => {
+                                    if (smartInsight.link === "#") {
+                                        setIsExpenseDialogOpen(true);
+                                    } else {
+                                        navigate(smartInsight.link);
+                                    }
+                                }}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="h-4 w-4 flex-shrink-0 text-white" />
+                                    <span className="text-white font-medium">{smartInsight.message}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs font-medium text-white/90 hover:text-white">
+                                    <span>{smartInsight.action}</span>
+                                    <ArrowUpRight className="h-3 w-3" />
+                                </div>
                             </div>
                         </div>
                     )}
@@ -331,6 +460,14 @@ const DashboardPage = () => {
             <div className="grid grid-cols-2 gap-3">
                 <Button
                     variant="outline"
+                    className="h-12 font-medium hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300"
+                    onClick={() => setIsAddBudgetDialogOpen(true)}
+                >
+                    <Target className="h-4 w-4 mr-2 text-purple-600" />
+                    Set Budget
+                </Button>
+                <Button
+                    variant="outline"
                     className="h-12 font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300"
                     onClick={() => {
                         setPreselectedCategory("Bills");
@@ -340,15 +477,67 @@ const DashboardPage = () => {
                     <Receipt className="h-4 w-4 mr-2 text-blue-600" />
                     Add Bill
                 </Button>
-                <Button
-                    variant="outline"
-                    className="h-12 font-medium hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300"
-                    onClick={() => setIsAddBudgetDialogOpen(true)}
-                >
-                    <Target className="h-4 w-4 mr-2 text-purple-600" />
-                    Set Budget
-                </Button>
             </div>
+
+            {/* Recent Transactions */}
+            {recentTransactions.length > 0 && (
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs"
+                                onClick={() => navigate("/transactions")}
+                            >
+                                View All
+                                <ArrowUpRight className="h-3 w-3 ml-1" />
+                            </Button>
+                        </div>
+                        <div className="space-y-2">
+                            {recentTransactions.map((transaction, index) => {
+                                const Icon = getCategoryIcon(transaction.category || "Other");
+                                const transactionDate =
+                                    typeof transaction.date === "string"
+                                        ? new Date(transaction.date)
+                                        : (transaction.date as Date);
+                                return (
+                                    <div
+                                        key={transaction.id || index}
+                                        className="flex items-center justify-between p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                                        onClick={() => navigate("/transactions")}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div
+                                                className={`p-2 rounded-full ${getCategoryColor(
+                                                    transaction.category || ""
+                                                )}`}
+                                            >
+                                                <Icon className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                    {transaction.description || transaction.category}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {transactionDate.toLocaleDateString("en-US", {
+                                                        month: "short",
+                                                        day: "numeric",
+                                                    })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                            {formatAmount(transaction.amount)}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Progressive Disclosure - Detailed Stats */}
             <Collapsible open={showDetails} onOpenChange={setShowDetails}>
@@ -356,7 +545,14 @@ const DashboardPage = () => {
                     <CardContent className="p-4">
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" className="w-full justify-between hover:bg-muted/50">
-                                <span className="font-semibold text-base">Financial Details</span>
+                                <div className="flex flex-col items-start">
+                                    <span className="font-semibold text-base">Financial Details</span>
+                                    {!showDetails && (
+                                        <span className="text-xs text-muted-foreground">
+                                            Savings rate, spending breakdown, budget status & alerts
+                                        </span>
+                                    )}
+                                </div>
                                 {showDetails ? (
                                     <ChevronUp className="h-5 w-5 text-muted-foreground" />
                                 ) : (
@@ -400,6 +596,65 @@ const DashboardPage = () => {
                                 </div>
                             </div>
 
+                            {/* Category Breakdown */}
+                            {expenseBreakdown?.data && expenseBreakdown.data.length > 0 && (
+                                <div className="space-y-2">
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        Spending by Category
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {expenseBreakdown.data.slice(0, 5).map((category) => {
+                                            const percentage =
+                                                monthlyStats.totalExpenses > 0
+                                                    ? (category.value / monthlyStats.totalExpenses) * 100
+                                                    : 0;
+                                            const Icon = getCategoryIcon(category.name);
+                                            return (
+                                                <div key={category.name} className="space-y-1">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <div className="flex items-center gap-2">
+                                                            <div
+                                                                className={`p-1 rounded ${getCategoryColor(
+                                                                    category.name
+                                                                )}`}
+                                                            >
+                                                                <Icon className="h-3 w-3" />
+                                                            </div>
+                                                            <span className="font-medium">{category.name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-muted-foreground text-xs">
+                                                                {percentage.toFixed(0)}%
+                                                            </span>
+                                                            <span className="font-semibold">
+                                                                {formatAmount(category.value)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                                                            style={{ width: `${percentage}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {expenseBreakdown.data.length > 5 && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="w-full text-xs"
+                                            onClick={() => navigate("/analytics")}
+                                        >
+                                            View All Categories
+                                            <ArrowUpRight className="h-3 w-3 ml-1" />
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Additional Alerts - Only if user expanded */}
                             {billsAndBudgetsAlertEnabled && (
                                 <>
@@ -422,14 +677,6 @@ const DashboardPage = () => {
                                             />
                                         )
                                     )}
-
-                                    {/* Bill Alerts - All details */}
-                                    <BillAlertsUI
-                                        billsAndBudgetsAlertEnabled={billsAndBudgetsAlertEnabled}
-                                        overdueBills={overdueBills}
-                                        upcomingBills={upcomingBills}
-                                        billReminders={billReminders}
-                                    />
                                 </>
                             )}
                         </CollapsibleContent>
@@ -447,7 +694,6 @@ const DashboardPage = () => {
                     }
                 }}
                 preselectedCategory={preselectedCategory}
-                isAddBill={preselectedCategory === "Bills"}
                 onSuccess={() => {
                     navigate("/transactions");
                 }}

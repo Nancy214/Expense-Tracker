@@ -49,7 +49,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
     }, [register, name]);
 
     return (
-        <div className={cn("space-y-1", className)}>
+        <div className={cn("space-y-2", className)}>
             <div className="flex items-center justify-between">
                 <Label htmlFor={name} className="text-sm font-medium">
                     {label} {required && <span className="text-red-500">*</span>}
@@ -64,7 +64,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
                 }}
                 disabled={disabled}
             >
-                <SelectTrigger className={cn("h-8", error && "border-red-500 focus:border-red-500 focus:ring-red-500")}>
+                <SelectTrigger className={cn("h-8 border", error && "border-red-500 focus:border-red-500 focus:ring-red-500")}>
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
