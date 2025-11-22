@@ -1,4 +1,4 @@
-import { BudgetCategory, BudgetChangeType } from "@expense-tracker/shared-types/src";
+import { BudgetCategory, BudgetChangeType, type BudgetCategoryType } from "@expense-tracker/shared-types";
 import { format } from "date-fns";
 import { CalendarIcon, ChevronDownIcon, X } from "lucide-react";
 import React, { useState } from "react";
@@ -30,7 +30,7 @@ interface BudgetLogFiltersProps {
 export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFilters }: BudgetLogFiltersProps) {
 	// Filter-related state variables
 	const [selectedChangeTypes, setSelectedChangeTypes] = useState<BudgetChangeType[]>([BudgetChangeType.CREATED]);
-	const [selectedCategories, setSelectedCategories] = useState<BudgetCategory[]>([BudgetCategory.ALL_CATEGORIES]);
+	const [selectedCategories, setSelectedCategories] = useState<BudgetCategoryType[]>([BudgetCategory.ALL_CATEGORIES]);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [dateRangeForFilter, setDateRangeForFilter] = useState<DateRange | undefined>(undefined);
 
@@ -42,7 +42,7 @@ export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFil
 			to?: Date;
 		};
 		searchQuery?: string;
-		categories?: BudgetCategory[];
+		categories?: BudgetCategoryType[];
 	} = {
 		changeTypes: selectedChangeTypes.includes(BudgetChangeType.CREATED) ? undefined : selectedChangeTypes,
 		categories: selectedCategories.includes(BudgetCategory.ALL_CATEGORIES) ? undefined : selectedCategories,
@@ -82,7 +82,7 @@ export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFil
 	};
 
 	// Handle category selection
-	const handleCategoryToggle = (category: BudgetCategory) => {
+	const handleCategoryToggle = (category: BudgetCategoryType) => {
 		if (category === BudgetCategory.ALL_CATEGORIES) {
 			setSelectedCategories([BudgetCategory.ALL_CATEGORIES]);
 		} else {
@@ -173,8 +173,8 @@ export function BudgetLogFilters({ onFiltersChange, onClearFilters, hasActiveFil
 							{Object.values(BudgetCategory).map((category) => (
 								<DropdownMenuCheckboxItem
 									key={category}
-									checked={selectedCategories.includes(category as BudgetCategory)}
-									onCheckedChange={() => handleCategoryToggle(category as BudgetCategory)}
+									checked={selectedCategories.includes(category as BudgetCategoryType)}
+									onCheckedChange={() => handleCategoryToggle(category as BudgetCategoryType)}
 								>
 									{category}
 								</DropdownMenuCheckboxItem>

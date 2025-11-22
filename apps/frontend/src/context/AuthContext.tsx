@@ -1,4 +1,4 @@
-import type { AuthenticatedUser, AuthResponse, LoginCredentials } from "@expense-tracker/shared-types/src";
+import type { AuthenticatedUser, AuthResponse, LoginCredentials } from "@expense-tracker/shared-types";
 import type React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 import { login, logout } from "@/services/auth.service";

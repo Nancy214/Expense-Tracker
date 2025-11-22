@@ -1,4 +1,4 @@
-import { type AreaChartData, type BarChartData, Period } from "@expense-tracker/shared-types/src";
+import { type AreaChartData, type BarChartData, Period } from "@expense-tracker/shared-types";
 import { format, getDaysInMonth, isDate, isValid as isValidDate, parse, parseISO } from "date-fns";
 import { formatToHumanReadableDate } from "./dateUtils";
 

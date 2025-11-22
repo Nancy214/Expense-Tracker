@@ -1,4 +1,4 @@
-import type { CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src";
+import type { CountryTimezoneCurrencyData } from "@expense-tracker/shared-types";
 
 /**
  * Get the currency value to use (symbol if available, otherwise code)

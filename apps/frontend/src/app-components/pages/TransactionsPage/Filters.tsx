@@ -1,4 +1,4 @@
-import { ExpenseCategory, IncomeCategory, type Transaction, type UserType } from "@expense-tracker/shared-types/src";
+import { ExpenseCategory, IncomeCategory, type Transaction, type UserType } from "@expense-tracker/shared-types";
 import { format } from "date-fns";
 import { CalendarIcon, ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";

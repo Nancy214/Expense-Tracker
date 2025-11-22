@@ -1,4 +1,4 @@
-import type { MonthlyStats, PaginationInfo, TransactionId, Transaction, TransactionResponse, TransactionSummary } from "@expense-tracker/shared-types/src";
+import type { MonthlyStats, PaginationInfo, TransactionId, Transaction, TransactionResponse, TransactionSummary } from "@expense-tracker/shared-types";
 import axios from "axios";
 import { refreshAuthTokens } from "@/utils/authUtils";
 

@@ -1,4 +1,4 @@
-import { type Transaction } from "@expense-tracker/shared-types/src";
+import { type Transaction } from "@expense-tracker/shared-types";
 import { PaginationWrapper } from "@/components/ui/pagination";
 import { AllTransactionsTab } from "./AllTransactionsTab";
 

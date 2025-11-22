@@ -1,4 +1,4 @@
-import type { CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/src";
+import type { CountryTimezoneCurrencyData } from "@expense-tracker/shared-types";
 import { Camera, Edit3, Save } from "lucide-react";
 import { useCallback, useEffect, useMemo } from "react";
 import { FormProvider } from "react-hook-form";

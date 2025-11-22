@@ -7,5 +7,4 @@ export * from "./profile";
 export * from "./transactions";
 
 // Explicit exports for better TypeScript resolution
-export { ZBudgetOnboardingFormSchema } from "./budget";
-export type { BudgetOnboardingFormData } from "./budget";
+export { BudgetRecurrence, BudgetCategory, ZBudgetOnboardingFormSchema, type BudgetOnboardingFormData } from "./budget";

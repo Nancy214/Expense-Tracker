@@ -1,4 +1,4 @@
-import type { Transaction } from "@expense-tracker/shared-types/src";
+import type { Transaction } from "@expense-tracker/shared-types";
 import { type Column, type ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, type HeaderGroup, type Row, useReactTable } from "@tanstack/react-table";
 import { ArrowUpDown, Pencil, Trash, FileText, Repeat } from "lucide-react";
 import { useMemo } from "react";

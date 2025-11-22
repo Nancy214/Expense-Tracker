@@ -1,4 +1,4 @@
-import { ExpenseCategory, IncomeCategory, RecurringFrequency, type Transaction, TransactionType } from "@expense-tracker/shared-types/src";
+import { ExpenseCategory, IncomeCategory, RecurringFrequency, type Transaction, TransactionType } from "@expense-tracker/shared-types";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";

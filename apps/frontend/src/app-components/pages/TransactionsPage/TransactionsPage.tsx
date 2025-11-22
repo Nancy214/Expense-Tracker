@@ -1,4 +1,4 @@
-import type { Transaction } from "@expense-tracker/shared-types/src";
+import type { Transaction } from "@expense-tracker/shared-types";
 import { format, parse } from "date-fns";
 import { Plus, TrendingUp, UploadIcon } from "lucide-react";
 import { useMemo, useState } from "react";

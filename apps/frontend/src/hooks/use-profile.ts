@@ -1,4 +1,4 @@
-import { type AuthenticatedUser, type CountryTimezoneCurrencyData, type ProfileData, type SettingsData, ZProfileData } from "@expense-tracker/shared-types/src";
+import { type AuthenticatedUser, type CountryTimezoneCurrencyData, type ProfileData, type SettingsData, ZProfileData } from "@expense-tracker/shared-types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type UseQueryResult, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";

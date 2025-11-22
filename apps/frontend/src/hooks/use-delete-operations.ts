@@ -1,4 +1,4 @@
-import type { BudgetType } from "@expense-tracker/shared-types/src";
+import type { BudgetType } from "@expense-tracker/shared-types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { useBudgets } from "@/hooks/use-budgets";

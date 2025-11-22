@@ -7,7 +7,7 @@ import {
 	Period,
 	TransactionType,
 	type TransformedBarData,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import type React from "react";
 import { Bar, CartesianGrid, Legend, BarChart as RechartsBarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useCurrencySymbol } from "@/hooks/use-profile";

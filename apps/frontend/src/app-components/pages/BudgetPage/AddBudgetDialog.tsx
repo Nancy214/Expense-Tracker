@@ -1,4 +1,4 @@
-import { BudgetCategory, BudgetRecurrence, type BudgetType } from "@expense-tracker/shared-types/src";
+import { BudgetRecurrence, type BudgetType, BudgetCategory, type BudgetCategoryType } from "@expense-tracker/shared-types";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
 import { DateField } from "@/app-components/form-fields/DateField";
@@ -39,9 +39,9 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({ open, onOpenChange, e
 		onOpenChange,
 	});
 
-	const categoryOptions: { value: BudgetCategory; label: string }[] = Object.values(BudgetCategory).map((category) => ({
-		value: category as BudgetCategory,
-		label: category as BudgetCategory,
+	const categoryOptions: { value: BudgetCategoryType; label: string }[] = Object.values(BudgetCategory).map((category) => ({
+		value: category as BudgetCategoryType,
+		label: category as BudgetCategoryType,
 	}));
 
 	// Extract currency options from the cached data, removing duplicates and empty values

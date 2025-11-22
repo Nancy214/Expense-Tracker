@@ -6,7 +6,7 @@ import type {
 	RegisterCredentials,
 	ResetPasswordRequest,
 	UserType,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import axios, { type AxiosError, type AxiosResponse } from "axios";
 import { refreshAuthTokens, removeTokens } from "@/utils/authUtils";
 

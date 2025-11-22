@@ -1,4 +1,4 @@
-import type { AuthenticatedUser, BudgetReminder } from "@expense-tracker/shared-types/src";
+import type { AuthenticatedUser, BudgetReminder } from "@expense-tracker/shared-types";
 import { Notification } from "@/app-components/utility-components/Notification";
 import { useSettings } from "@/hooks/use-profile";
 

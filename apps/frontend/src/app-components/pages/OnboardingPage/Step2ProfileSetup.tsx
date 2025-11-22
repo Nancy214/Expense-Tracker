@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ZOnboardingProfileSetup, type OnboardingProfileSetup } from "@expense-tracker/shared-types/src";
+import { ZOnboardingProfileSetup, type OnboardingProfileSetup } from "@expense-tracker/shared-types";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";

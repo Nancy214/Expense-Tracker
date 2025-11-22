@@ -1,4 +1,4 @@
-import type { BudgetLogType } from "@expense-tracker/shared-types/src";
+import type { BudgetLogType } from "@expense-tracker/shared-types";
 import { type UseMutationResult, type UseQueryResult, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";

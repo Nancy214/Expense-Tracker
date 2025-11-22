@@ -1,4 +1,4 @@
-import type { BudgetLogType } from "@expense-tracker/shared-types/src";
+import type { BudgetLogType } from "@expense-tracker/shared-types";
 import { format } from "date-fns";
 import { History, PlusCircle, Edit2, Trash2 } from "lucide-react";
 import type React from "react";

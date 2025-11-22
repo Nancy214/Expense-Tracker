@@ -1,4 +1,4 @@
-import type { CalendarHeatmapProps, HeatmapData } from "@expense-tracker/shared-types/src";
+import type { CalendarHeatmapProps, HeatmapData } from "@expense-tracker/shared-types";
 import type React from "react";
 import { useMemo, useState } from "react";
 import CalendarHeatmap from "react-calendar-heatmap";

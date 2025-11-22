@@ -1,4 +1,4 @@
-import type { AuthenticatedUser, SettingsData as SettingsDataType } from "@expense-tracker/shared-types/src";
+import type { AuthenticatedUser, SettingsData as SettingsDataType } from "@expense-tracker/shared-types";
 import { LogOut, Save, Settings, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";

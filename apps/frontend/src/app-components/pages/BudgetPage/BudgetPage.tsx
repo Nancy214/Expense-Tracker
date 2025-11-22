@@ -1,4 +1,4 @@
-import { type BudgetProgress, type BudgetRecurrence, type BudgetType, ProgressColor } from "@expense-tracker/shared-types/src";
+import { type BudgetProgress, type BudgetRecurrence, type BudgetType, ProgressColor } from "@expense-tracker/shared-types";
 import { AlertTriangle, CheckCircle2, Edit, History, Plus, Trash2, TrendingUp, Wallet, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import AddBudgetDialog from "@/app-components/pages/BudgetPage/AddBudgetDialog";

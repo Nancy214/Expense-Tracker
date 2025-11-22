@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
-import { BudgetCategory, BudgetRecurrence, ZBudgetOnboardingFormSchema, type BudgetOnboardingFormData } from "@expense-tracker/shared-types";
+import { BudgetCategory, BudgetRecurrence, ZBudgetOnboardingFormSchema, type BudgetOnboardingFormData, type BudgetCategoryType } from "@expense-tracker/shared-types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useAuth } from "@/context/AuthContext";
@@ -22,7 +22,7 @@ interface Step3FirstBudgetProps {
 }
 
 // Suggestion amounts for each category (in base currency)
-const categorySuggestions: Record<BudgetCategory, string> = {
+const categorySuggestions: Record<BudgetCategoryType, string> = {
 	[BudgetCategory.ALL_CATEGORIES]: "1000",
 	[BudgetCategory.GROCERIES]: "500",
 	[BudgetCategory.TRANSPORT]: "300",
@@ -113,7 +113,7 @@ const Step3FirstBudget = ({ onNext, onBack, onBudgetCreated, initialFormData, on
 			const formattedDate = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
 			const budgetData = {
 				title: `${categoryLabel} Budget`,
-				category: data.category as BudgetCategory,
+				category: data.category as BudgetCategoryType,
 				amount: parseFloat(data.amount),
 				recurrence: data.recurrence as BudgetRecurrence,
 				currency: user?.currency || "USD",

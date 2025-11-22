@@ -5,7 +5,7 @@ import {
 	type Transaction,
 	type TransactionResponse,
 	type TransactionSummary,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type UseQueryResult, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isValid, parse, parseISO } from "date-fns";

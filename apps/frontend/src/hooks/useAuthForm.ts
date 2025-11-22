@@ -10,7 +10,7 @@ import {
 	ZLoginCredentials,
 	ZRegisterCredentials,
 	ZResetPasswordSchema,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { type UseFormReturn, useForm } from "react-hook-form";

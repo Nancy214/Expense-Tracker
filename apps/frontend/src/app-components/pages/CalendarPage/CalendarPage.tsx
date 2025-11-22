@@ -1,5 +1,5 @@
 // FullCalendar components
-import type { Transaction, TransactionType } from "@expense-tracker/shared-types/src";
+import type { Transaction, TransactionType } from "@expense-tracker/shared-types";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";

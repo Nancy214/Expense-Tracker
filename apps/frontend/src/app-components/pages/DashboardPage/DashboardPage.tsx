@@ -1,4 +1,4 @@
-import { Period, type BudgetReminder } from "@expense-tracker/shared-types/src";
+import { Period, type BudgetReminder } from "@expense-tracker/shared-types";
 import {
 	DollarSign,
 	Receipt,

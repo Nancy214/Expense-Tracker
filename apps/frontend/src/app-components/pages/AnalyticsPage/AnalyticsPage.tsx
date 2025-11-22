@@ -1,5 +1,5 @@
-import type { AreaChartData, BarChartData, HeatmapData, MonthlyIncomeExpenseData, MonthlySavingsData, HorizontalBarData, Transaction } from "@expense-tracker/shared-types/src";
-import { ChartTypes, Period } from "@expense-tracker/shared-types/src/analytics";
+import type { AreaChartData, BarChartData, HeatmapData, MonthlyIncomeExpenseData, MonthlySavingsData, HorizontalBarData, Transaction } from "@expense-tracker/shared-types";
+import { ChartTypes, Period } from "@expense-tracker/shared-types";
 import { AlertCircle, BarChart3, LineChart, TrendingUp, Calendar, ChevronDown, ChevronUp, TrendingDown } from "lucide-react";
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,7 +19,7 @@ import {
 } from "@/hooks/use-analytics";
 import { useExpenses } from "@/hooks/use-transactions";
 import "react-calendar-heatmap/dist/styles.css";
-import { TransactionType } from "@expense-tracker/shared-types/src";
+import { TransactionType } from "@expense-tracker/shared-types";
 import AreaChartComponent from "./AreaChart";
 import BarChartComponent from "./BarChart";
 import CalendarHeatmapComponent from "./CalendarHeatmap";

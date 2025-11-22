@@ -1,4 +1,4 @@
-import { BudgetCategory, type BudgetFormData, BudgetRecurrence, type BudgetType, budgetSchema } from "@expense-tracker/shared-types/src";
+import { BudgetCategory, type BudgetFormData, BudgetRecurrence, type BudgetType, budgetSchema } from "@expense-tracker/shared-types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";

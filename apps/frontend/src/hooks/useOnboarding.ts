@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { OnboardingProfileSetup, AuthenticatedUser } from "@expense-tracker/shared-types/src";
+import type { OnboardingProfileSetup, AuthenticatedUser } from "@expense-tracker/shared-types";
 import axiosInstance from "@/services/axiosInstance";
 
 export const useOnboarding = () => {

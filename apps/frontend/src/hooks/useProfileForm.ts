@@ -1,4 +1,4 @@
-import { type AuthenticatedUser, type ProfileData, ZProfileData } from "@expense-tracker/shared-types/src";
+import { type AuthenticatedUser, type ProfileData, ZProfileData } from "@expense-tracker/shared-types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useEffect, useState } from "react";
 import { type UseFormReturn, useForm } from "react-hook-form";

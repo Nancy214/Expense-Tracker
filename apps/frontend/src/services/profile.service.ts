@@ -1,4 +1,4 @@
-import type { AuthenticatedUser, CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types/src";
+import type { AuthenticatedUser, CountryTimezoneCurrencyData, ProfileData, SettingsData } from "@expense-tracker/shared-types";
 import axios, { type AxiosResponse } from "axios";
 import { refreshAuthTokens } from "@/utils/authUtils";
 

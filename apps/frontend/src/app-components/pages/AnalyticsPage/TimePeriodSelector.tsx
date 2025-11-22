@@ -1,4 +1,4 @@
-import { Period } from "@expense-tracker/shared-types/src";
+import { Period } from "@expense-tracker/shared-types";
 import { BarChart3, Calendar, PieChart, TrendingUp } from "lucide-react";
 import type React from "react";
 import { Button } from "@/components/ui/button";

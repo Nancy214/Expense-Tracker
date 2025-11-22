@@ -9,7 +9,7 @@ import {
 	type Period,
 	type Transaction,
 	TransactionType,
-} from "@expense-tracker/shared-types/src";
+} from "@expense-tracker/shared-types";
 import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";

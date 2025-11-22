@@ -14,7 +14,7 @@ export const BudgetCategory = {
 	ALL_CATEGORIES: "All Categories",
 } as const;
 
-export type BudgetCategory = (typeof BudgetCategory)[keyof typeof BudgetCategory];
+export type BudgetCategoryType = (typeof BudgetCategory)[keyof typeof BudgetCategory];
 
 export enum BudgetChangeType {
 	CREATED = "created",

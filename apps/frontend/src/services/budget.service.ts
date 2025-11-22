@@ -1,4 +1,4 @@
-import type { ApiError, BudgetFormData, BudgetLogType, BudgetParams, BudgetProgressResponse, BudgetReminder, BudgetType } from "@expense-tracker/shared-types/src";
+import type { ApiError, BudgetFormData, BudgetLogType, BudgetParams, BudgetProgressResponse, BudgetReminder, BudgetType } from "@expense-tracker/shared-types";
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { refreshAuthTokens } from "@/utils/authUtils";
 

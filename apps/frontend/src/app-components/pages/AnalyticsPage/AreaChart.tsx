@@ -1,4 +1,4 @@
-import { type AreaChartData, type AreaChartProps, type ChartTooltipProps, ChartTypes, Period } from "@expense-tracker/shared-types/src";
+import { type AreaChartData, type AreaChartProps, type ChartTooltipProps, ChartTypes, Period } from "@expense-tracker/shared-types";
 import type React from "react";
 import { Area, CartesianGrid, Legend, AreaChart as RechartsAreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useCurrencySymbol } from "@/hooks/use-profile";
