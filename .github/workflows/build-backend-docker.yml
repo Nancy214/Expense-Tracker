@@ -9,7 +9,7 @@ on:
             - "apps/backend/**"
             - "libs/shared-types/**"
             - "package.json"
-            - "package-lock.json"
+            - "pnpm-lock.yaml"
             - "apps/backend/Dockerfile"
     pull_request:
         branches:
@@ -19,7 +19,7 @@ on:
             - "apps/backend/**"
             - "libs/shared-types/**"
             - "package.json"
-            - "package-lock.json"
+            - "pnpm-lock.yaml"
             - "apps/backend/Dockerfile"
     workflow_dispatch:
 

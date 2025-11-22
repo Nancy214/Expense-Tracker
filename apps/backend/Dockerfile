@@ -3,28 +3,34 @@ FROM node:22.17.1-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Enable corepack and prepare pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy package files and pnpm workspace configuration
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install all dependencies (including devDependencies for building)
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Build the TypeScript code
-RUN npm run build
+RUN pnpm run build
 
 # Production stage
 FROM node:22.17.1-alpine AS production
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Enable corepack and prepare pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy package files and pnpm workspace configuration
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN pnpm install --frozen-lockfile --prod && pnpm store prune
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
@@ -45,4 +51,4 @@ EXPOSE 8000
 #   CMD node -e "require('http').get('http://localhost:8000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the application
-CMD ["npm", "run", "serve"]
+CMD ["pnpm", "run", "serve"]
