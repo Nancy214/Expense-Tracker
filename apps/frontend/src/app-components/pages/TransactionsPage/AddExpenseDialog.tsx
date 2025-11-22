@@ -28,6 +28,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Repeat, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -350,35 +351,6 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             className="hidden"
                         />
 
-                        <div className="col-span-2 flex items-start gap-1">
-                            <SwitchField name="isRecurring" label="Repeat Transaction" description="" />{" "}
-                            <Repeat className="w-4 h-4 text-gray-500 mt-1" />
-                        </div>
-                        {isRecurring && (
-                            <div className="grid grid-cols-2 gap-3">
-                                <SelectField
-                                    name="recurringFrequency"
-                                    label="Frequency"
-                                    placeholder="Select frequency"
-                                    options={[
-                                        { value: RecurringFrequency.DAILY, label: "Daily" },
-                                        { value: RecurringFrequency.WEEKLY, label: "Weekly" },
-                                        { value: RecurringFrequency.MONTHLY, label: "Monthly" },
-                                        { value: RecurringFrequency.QUARTERLY, label: "Quarterly" },
-                                        { value: RecurringFrequency.YEARLY, label: "Yearly" },
-                                    ]}
-                                    required
-                                />
-
-                                <DateField
-                                    name="recurringEndDate"
-                                    label="End Date"
-                                    placeholder="Optional end date"
-                                    source="recurring"
-                                />
-                            </div>
-                        )}
-
                         {showExchangeRate && (
                             <div className="grid grid-cols-2 gap-4">
                                 <InputField
@@ -409,6 +381,35 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             </div>
                         )}
 
+                        <div className="col-span-2 flex items-start gap-1">
+                            <SwitchField name="isRecurring" label="Repeat Transaction" description="" />{" "}
+                            <Repeat className="w-4 h-4 text-gray-500 mt-1" />
+                        </div>
+                        {isRecurring && (
+                            <div className="grid grid-cols-2 gap-3">
+                                <SelectField
+                                    name="recurringFrequency"
+                                    label="Frequency"
+                                    placeholder="Select frequency"
+                                    options={[
+                                        { value: RecurringFrequency.DAILY, label: "Daily" },
+                                        { value: RecurringFrequency.WEEKLY, label: "Weekly" },
+                                        { value: RecurringFrequency.MONTHLY, label: "Monthly" },
+                                        { value: RecurringFrequency.QUARTERLY, label: "Quarterly" },
+                                        { value: RecurringFrequency.YEARLY, label: "Yearly" },
+                                    ]}
+                                    required
+                                />
+
+                                <DateField
+                                    name="recurringEndDate"
+                                    label="End Date"
+                                    placeholder="Optional end date"
+                                    source="recurring"
+                                />
+                            </div>
+                        )}
+
                         <Accordion type="single" collapsible>
                             <AccordionItem value="more-options" className="border-none">
                                 <AccordionTrigger>More Options</AccordionTrigger>
@@ -428,47 +429,60 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                         />
 
                                         {isRecurring && isEditing && (
-                                            <>
-                                                <div>
-                                                    <SwitchField name="autoCreate" label="Auto Create" description="" />
-                                                    {!autoCreate && (
-                                                        <Alert
-                                                            className={cn(
-                                                                "mt-2 transition-all",
-                                                                "border-orange-500 bg-orange-50 text-orange-800"
-                                                            )}
-                                                        >
-                                                            <AlertDescription className="flex items-center gap-2">
-                                                                <XCircle className="h-4 w-4 flex-shrink-0" />
-                                                                <span className="text-xs">
-                                                                    Disabling this option will just send a reminder and
-                                                                    not create the transaction automatically.
-                                                                </span>
-                                                            </AlertDescription>
-                                                        </Alert>
-                                                    )}
-                                                </div>
+                                            <div className="col-span-2 space-y-4">
+                                                <Label className="text-sm font-medium">
+                                                    Repeat Transaction Settings
+                                                </Label>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <SwitchField
+                                                            name="autoCreate"
+                                                            label="Auto Create"
+                                                            description=""
+                                                        />
+                                                        {!autoCreate && (
+                                                            <Alert
+                                                                className={cn(
+                                                                    "mt-2 transition-all",
+                                                                    "border-orange-500 bg-orange-50 text-orange-800"
+                                                                )}
+                                                            >
+                                                                <AlertDescription className="flex items-center gap-2">
+                                                                    <XCircle className="h-4 w-4 flex-shrink-0" />
+                                                                    <span className="text-xs">
+                                                                        Disabling this option will just send a reminder
+                                                                        and not create the transaction automatically.
+                                                                    </span>
+                                                                </AlertDescription>
+                                                            </Alert>
+                                                        )}
+                                                    </div>
 
-                                                <div>
-                                                    <SwitchField name="recurringActive" label="Active" description="" />
-                                                    {!recurringActive && (
-                                                        <Alert
-                                                            className={cn(
-                                                                "mt-2 transition-all",
-                                                                "border-orange-500 bg-orange-50 text-orange-800"
-                                                            )}
-                                                        >
-                                                            <AlertDescription className="flex items-center gap-2">
-                                                                <XCircle className="h-4 w-4 flex-shrink-0" />
-                                                                <span className="text-xs">
-                                                                    Disabling this will pause the recurring series. No
-                                                                    new transactions will be created.
-                                                                </span>
-                                                            </AlertDescription>
-                                                        </Alert>
-                                                    )}
+                                                    <div>
+                                                        <SwitchField
+                                                            name="recurringActive"
+                                                            label="Active"
+                                                            description=""
+                                                        />
+                                                        {!recurringActive && (
+                                                            <Alert
+                                                                className={cn(
+                                                                    "mt-2 transition-all",
+                                                                    "border-orange-500 bg-orange-50 text-orange-800"
+                                                                )}
+                                                            >
+                                                                <AlertDescription className="flex items-center gap-2">
+                                                                    <XCircle className="h-4 w-4 flex-shrink-0" />
+                                                                    <span className="text-xs">
+                                                                        Disabling this will pause the recurring series.
+                                                                        No new transactions will be created.
+                                                                    </span>
+                                                                </AlertDescription>
+                                                            </Alert>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </>
+                                            </div>
                                         )}
                                     </div>
                                     <div className="col-span-2"></div>
