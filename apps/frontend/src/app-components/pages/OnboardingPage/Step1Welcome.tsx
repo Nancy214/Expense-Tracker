@@ -28,12 +28,7 @@ const Step1Welcome = ({ onNext, onSkip, userName }: Step1WelcomeProps) => {
 	];
 
 	return (
-		<motion.div
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5 }}
-			className="text-center"
-		>
+		<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center">
 			{/* Welcome Icon */}
 			<motion.div
 				initial={{ scale: 0 }}
@@ -45,32 +40,16 @@ const Step1Welcome = ({ onNext, onSkip, userName }: Step1WelcomeProps) => {
 			</motion.div>
 
 			{/* Welcome Message */}
-			<motion.h1
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={{ delay: 0.3 }}
-				className="text-3xl md:text-4xl font-bold text-gray-900 mb-3"
-			>
+			<motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
 				Welcome{userName ? `, ${userName}` : ""}! 👋
 			</motion.h1>
 
-			<motion.p
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={{ delay: 0.4 }}
-				className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto"
-			>
-				Let's get you set up in just a few steps. We'll help you create your first budget and track your first expense
-				so you can start seeing value immediately.
+			<motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+				Let's get you set up in just a few steps. We'll help you create your first budget and track your first expense so you can start seeing value immediately.
 			</motion.p>
 
 			{/* Features Grid */}
-			<motion.div
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={{ delay: 0.5 }}
-				className="grid md:grid-cols-3 gap-6 mb-10"
-			>
+			<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="grid md:grid-cols-3 gap-6 mb-10">
 				{features.map((feature, index) => (
 					<motion.div
 						key={index}
@@ -79,9 +58,7 @@ const Step1Welcome = ({ onNext, onSkip, userName }: Step1WelcomeProps) => {
 						transition={{ delay: 0.6 + index * 0.1 }}
 						className="p-6 bg-gradient-to-br from-green-50/30 to-white rounded-xl border border-slate-200/50"
 					>
-						<div className="inline-flex items-center justify-center w-12 h-12 bg-white rounded-lg shadow-sm mb-4">
-							{feature.icon}
-						</div>
+						<div className="inline-flex items-center justify-center w-12 h-12 bg-white rounded-lg shadow-sm mb-4">{feature.icon}</div>
 						<h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
 						<p className="text-sm text-gray-600">{feature.description}</p>
 					</motion.div>
@@ -89,32 +66,17 @@ const Step1Welcome = ({ onNext, onSkip, userName }: Step1WelcomeProps) => {
 			</motion.div>
 
 			{/* Action Buttons */}
-			<motion.div
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={{ delay: 0.9 }}
-				className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-			>
+			<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
 				<Button onClick={onNext} size="lg" className="w-full sm:w-auto px-8 py-6 text-lg font-semibold shadow-lg">
 					Let's Get Started
 				</Button>
-				<Button
-					onClick={onSkip}
-					variant="ghost"
-					size="lg"
-					className="w-full sm:w-auto text-gray-600 hover:text-gray-900"
-				>
+				<Button onClick={onSkip} variant="ghost" size="lg" className="w-full sm:w-auto text-gray-600 hover:text-gray-900">
 					Skip for now
 				</Button>
 			</motion.div>
 
 			{/* Time Estimate */}
-			<motion.p
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={{ delay: 1.0 }}
-				className="text-sm text-gray-500 mt-6"
-			>
+			<motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0 }} className="text-sm text-gray-500 mt-6">
 				Takes about 2 minutes ⏱️
 			</motion.p>
 		</motion.div>

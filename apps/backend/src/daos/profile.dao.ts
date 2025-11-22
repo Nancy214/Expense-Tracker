@@ -43,20 +43,14 @@ export class ProfileDAO {
 	 * Update user profile picture
 	 */
 	static async updateUserProfilePicture(userId: string, profilePictureKey: string): Promise<UserType | null> {
-		return await User.findByIdAndUpdate(
-			userId,
-			{ profilePicture: profilePictureKey },
-			{ new: true, runValidators: true }
-		).select("-password");
+		return await User.findByIdAndUpdate(userId, { profilePicture: profilePictureKey }, { new: true, runValidators: true }).select("-password");
 	}
 
 	/**
 	 * Remove user profile picture
 	 */
 	static async removeUserProfilePicture(userId: string): Promise<UserType | null> {
-		return await User.findByIdAndUpdate(userId, { profilePicture: "" }, { new: true, runValidators: true }).select(
-			"-password"
-		);
+		return await User.findByIdAndUpdate(userId, { profilePicture: "" }, { new: true, runValidators: true }).select("-password");
 	}
 
 	/**

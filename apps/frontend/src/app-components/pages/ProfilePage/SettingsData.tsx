@@ -110,10 +110,8 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 				settings: {
 					monthlyReports: updatedSettings.monthlyReports ?? user?.settings?.monthlyReports ?? false,
 					expenseReminders: updatedSettings.expenseReminders ?? user?.settings?.expenseReminders ?? true,
-					billsAndBudgetsAlert:
-						updatedSettings.billsAndBudgetsAlert ?? user?.settings?.billsAndBudgetsAlert ?? false,
-					expenseReminderTime:
-						updatedSettings.expenseReminderTime || user?.settings?.expenseReminderTime || "18:00",
+					billsAndBudgetsAlert: updatedSettings.billsAndBudgetsAlert ?? user?.settings?.billsAndBudgetsAlert ?? false,
+					expenseReminderTime: updatedSettings.expenseReminderTime || user?.settings?.expenseReminderTime || "18:00",
 				},
 			};
 			localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -164,12 +162,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 							<Label>Bills & Budgets Alert</Label>
 							<p className="text-xs text-muted-foreground">Get notified about bills and budget limits</p>
 						</div>
-						<Switch
-							checked={settings.billsAndBudgetsAlert}
-							onCheckedChange={(checked: boolean) =>
-								handleSettingsChange("billsAndBudgetsAlert", checked)
-							}
-						/>
+						<Switch checked={settings.billsAndBudgetsAlert} onCheckedChange={(checked: boolean) => handleSettingsChange("billsAndBudgetsAlert", checked)} />
 					</div>
 
 					<div className="flex items-center justify-between">
@@ -177,10 +170,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 							<Label>Monthly Reports</Label>
 							<p className="text-xs text-muted-foreground">Receive monthly expense summaries</p>
 						</div>
-						<Switch
-							checked={settings.monthlyReports}
-							onCheckedChange={(checked: boolean) => handleSettingsChange("monthlyReports", checked)}
-						/>
+						<Switch checked={settings.monthlyReports} onCheckedChange={(checked: boolean) => handleSettingsChange("monthlyReports", checked)} />
 					</div>
 
 					<div className="flex items-center justify-between">
@@ -188,17 +178,11 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 							<Label>Expense Reminders</Label>
 							<p className="text-xs text-muted-foreground">Remind me to log expenses</p>
 						</div>
-						<Switch
-							checked={settings.expenseReminders}
-							onCheckedChange={(checked: boolean) => handleSettingsChange("expenseReminders", checked)}
-						/>
+						<Switch checked={settings.expenseReminders} onCheckedChange={(checked: boolean) => handleSettingsChange("expenseReminders", checked)} />
 					</div>
 					{settings.expenseReminders && (
 						<div className="flex flex-col gap-1 mt-2">
-							<Label
-								htmlFor="expenseReminderTime"
-								className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1"
-							>
+							<Label htmlFor="expenseReminderTime" className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
 								Reminder Time
 							</Label>
 							<Input
@@ -219,9 +203,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 								style={{ maxWidth: 160 }}
 								autoComplete="off"
 							/>
-							<span className="text-xs text-muted-foreground">
-								You'll get a reminder at this time every day.
-							</span>
+							<span className="text-xs text-muted-foreground">You'll get a reminder at this time every day.</span>
 						</div>
 					)}
 
@@ -241,11 +223,7 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3">
-					<Button
-						variant="outline"
-						className="w-full justify-start"
-						onClick={() => navigate("/change-password")}
-					>
+					<Button variant="outline" className="w-full justify-start" onClick={() => navigate("/change-password")}>
 						<Shield className="h-4 w-4 mr-2" />
 						Change Password
 					</Button>

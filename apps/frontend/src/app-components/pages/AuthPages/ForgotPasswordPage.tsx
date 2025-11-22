@@ -17,35 +17,19 @@ const ForgotPasswordPage: React.FC = () => {
 					<Card>
 						<CardHeader>
 							<CardTitle className="text-2xl">Forgot Password</CardTitle>
-							<CardDescription>
-								Enter your email address and we'll send you a link to reset your password.
-							</CardDescription>
+							<CardDescription>Enter your email address and we'll send you a link to reset your password.</CardDescription>
 						</CardHeader>
 						<CardContent>
 							{error && <div className="mb-4 p-2 text-sm text-red-500 bg-red-50 rounded">{error}</div>}
-							{success && (
-								<div className="mb-4 p-2 text-sm text-green-500 bg-green-50 rounded">{success}</div>
-							)}
+							{success && <div className="mb-4 p-2 text-sm text-green-500 bg-green-50 rounded">{success}</div>}
 							<FormProvider {...form}>
 								<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-									<InputField
-										name="email"
-										label="Email"
-										type="email"
-										placeholder="Enter your email"
-										maxLength={30}
-										required
-										autoComplete="email"
-									/>
+									<InputField name="email" label="Email" type="email" placeholder="Enter your email" maxLength={30} required autoComplete="email" />
 									<Button type="submit" disabled={isSubmitting} className="w-full">
 										{isSubmitting ? "Sending..." : "Send Reset Email"}
 									</Button>
 									<div className="mt-4 text-center text-sm">
-										<Button
-											variant="link"
-											className="p-0 text-sm"
-											onClick={() => navigate("/login")}
-										>
+										<Button variant="link" className="p-0 text-sm" onClick={() => navigate("/login")}>
 											Back to Login
 										</Button>
 									</div>

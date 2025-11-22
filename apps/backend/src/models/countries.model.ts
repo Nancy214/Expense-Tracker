@@ -14,10 +14,6 @@ const countryTimezoneCurrencySchema = new mongoose.Schema(
 	}
 );
 
-const CountryTimezoneCurrency = mongoose.model(
-	"CountryTimezoneCurrency",
-	countryTimezoneCurrencySchema,
-	"countrytimezonecurrencys"
-);
+const CountryTimezoneCurrency = mongoose.model("CountryTimezoneCurrency", countryTimezoneCurrencySchema, "countrytimezonecurrencys");
 
 export default CountryTimezoneCurrency;

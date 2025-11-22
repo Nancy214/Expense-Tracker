@@ -1,11 +1,6 @@
 import express from "express";
 import { authenticateToken } from "../middleware/auth.middleware";
-import {
-	completeOnboarding,
-	getOnboardingStatus,
-	updateOnboardingProfile,
-	updateOnboardingProgress,
-} from "../controllers/onboarding.controller";
+import { completeOnboarding, getOnboardingStatus, updateOnboardingProfile, updateOnboardingProgress } from "../controllers/onboarding.controller";
 
 const router = express.Router();
 

@@ -14,14 +14,7 @@ interface CheckboxFieldProps {
 	className?: string;
 }
 
-export const CheckboxField: React.FC<CheckboxFieldProps> = ({
-	name,
-	label,
-	description,
-	required = false,
-	disabled = false,
-	className,
-}) => {
+export const CheckboxField: React.FC<CheckboxFieldProps> = ({ name, label, description, required = false, disabled = false, className }) => {
 	const {
 		register,
 		setValue,
@@ -43,8 +36,8 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
 			<div className="flex items-center space-x-2">
 				<Checkbox
 					checked={value}
-					onCheckedChange={(checked) => {
-						setValue(name, checked === true, { shouldValidate: true });
+					onCheckedChange={(checked: boolean | "indeterminate") => {
+						setValue(name, checked, { shouldValidate: true });
 						trigger(name);
 					}}
 					disabled={disabled}
@@ -57,11 +50,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
 					{description && <p className="text-xs text-muted-foreground">{description}</p>}
 				</div>
 			</div>
-			<motion.div
-				initial={{ opacity: 0, y: -10 }}
-				animate={{ opacity: error ? 1 : 0, y: error ? 0 : -10 }}
-				transition={{ duration: 0.3 }}
-			>
+			<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: error ? 1 : 0, y: error ? 0 : -10 }} transition={{ duration: 0.3 }}>
 				{error && <p className="text-xs text-red-500">{error.message as string}</p>}
 			</motion.div>
 		</div>

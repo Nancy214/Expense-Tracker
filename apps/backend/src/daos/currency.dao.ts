@@ -26,9 +26,7 @@ export class CurrencyDAO {
 	static async getExchangeRate(from: string, to: string, date?: string): Promise<ExchangeRateResponse> {
 		const dateParam: string = date || new Date().toISOString().split("T")[0];
 
-		const response: AxiosResponse<FxRatesApiResponse> = await axios.get(
-			`https://api.fxratesapi.com/convert?from=${from}&to=${to}&date=${dateParam}&amount=1`
-		);
+		const response: AxiosResponse<FxRatesApiResponse> = await axios.get(`https://api.fxratesapi.com/convert?from=${from}&to=${to}&date=${dateParam}&amount=1`);
 
 		return {
 			success: true,

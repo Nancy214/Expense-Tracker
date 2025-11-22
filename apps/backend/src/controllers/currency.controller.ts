@@ -6,14 +6,14 @@ import { createErrorResponse, logError } from "../services/error.service";
 const currencyService = new CurrencyService();
 
 export const getExchangeRate = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { from, to, date } = req.query;
+	try {
+		const { from, to, date } = req.query;
 
-        const successResponse = await currencyService.getExchangeRate(from as string, to as string, date as string);
+		const successResponse = await currencyService.getExchangeRate(from as string, to as string, date as string);
 
-        res.status(200).json(successResponse);
-    } catch (error: unknown) {
-        logError("getExchangeRate", error);
-        res.status(500).json(createErrorResponse(error instanceof Error ? error.message : "Unknown error occurred"));
-    }
+		res.status(200).json(successResponse);
+	} catch (error: unknown) {
+		logError("getExchangeRate", error);
+		res.status(500).json(createErrorResponse(error instanceof Error ? error.message : "Unknown error occurred"));
+	}
 };

@@ -8,10 +8,10 @@ import type { CountryTimezoneCurrencyData } from "@expense-tracker/shared-types/
  * @returns The currency symbol if available and not empty, otherwise the currency code
  */
 export function getCurrencyValue(currency: { code: string; symbol: string; name: string } | undefined): string {
-    if (!currency) return "";
+	if (!currency) return "";
 
-    // Use symbol if it exists and is not empty/null, otherwise use code
-    return currency.symbol && currency.symbol.trim() !== "" ? currency.symbol : currency.code;
+	// Use symbol if it exists and is not empty/null, otherwise use code
+	return currency.symbol && currency.symbol.trim() !== "" ? currency.symbol : currency.code;
 }
 
 /**
@@ -23,18 +23,18 @@ export function getCurrencyValue(currency: { code: string; symbol: string; name:
  * @returns A valid 3-letter currency code or "INR" as default
  */
 export function normalizeUserCurrency(currency?: string, currencySymbol?: string): string {
-    // If currency is a valid 3-letter code, use it
-    if (currency && /^[A-Z]{3}$/.test(currency)) {
-        return currency;
-    }
+	// If currency is a valid 3-letter code, use it
+	if (currency && /^[A-Z]{3}$/.test(currency)) {
+		return currency;
+	}
 
-    // Otherwise check if currencySymbol is a valid code
-    if (currencySymbol && /^[A-Z]{3}$/.test(currencySymbol)) {
-        return currencySymbol;
-    }
+	// Otherwise check if currencySymbol is a valid code
+	if (currencySymbol && /^[A-Z]{3}$/.test(currencySymbol)) {
+		return currencySymbol;
+	}
 
-    // Default to INR
-    return "INR";
+	// Default to INR
+	return "INR";
 }
 
 /**
@@ -45,10 +45,10 @@ export function normalizeUserCurrency(currency?: string, currencySymbol?: string
  * @returns Formatted currency label for display
  */
 export function getCurrencyLabel(currency: { code: string; symbol: string; name: string } | undefined): string {
-    if (!currency) return "";
+	if (!currency) return "";
 
-    const displaySymbol = currency.symbol || currency.code;
-    return `${displaySymbol} - ${currency.name} (${currency.code})`;
+	const displaySymbol = currency.symbol || currency.code;
+	return `${displaySymbol} - ${currency.name} (${currency.code})`;
 }
 
 /**
@@ -58,14 +58,11 @@ export function getCurrencyLabel(currency: { code: string; symbol: string; name:
  * @param countryData - Array of country timezone currency data
  * @returns The currency object for the country or undefined
  */
-export function getCurrencyForCountry(
-    country: string,
-    countryData: CountryTimezoneCurrencyData[] | undefined
-): { code: string; symbol: string; name: string } | undefined {
-    if (!country || !countryData) return undefined;
+export function getCurrencyForCountry(country: string, countryData: CountryTimezoneCurrencyData[] | undefined): { code: string; symbol: string; name: string } | undefined {
+	if (!country || !countryData) return undefined;
 
-    const countryDataItem = countryData.find((item) => item.country === country);
-    return countryDataItem?.currency;
+	const countryDataItem = countryData.find((item) => item.country === country);
+	return countryDataItem?.currency;
 }
 
 /**
@@ -76,12 +73,9 @@ export function getCurrencyForCountry(
  * @param countryData - Array of country timezone currency data
  * @returns The currency symbol if available, otherwise the currency code
  */
-export function getCurrencyValueForCountry(
-    country: string,
-    countryData: CountryTimezoneCurrencyData[] | undefined
-): string {
-    const currency = getCurrencyForCountry(country, countryData);
-    return getCurrencyValue(currency);
+export function getCurrencyValueForCountry(country: string, countryData: CountryTimezoneCurrencyData[] | undefined): string {
+	const currency = getCurrencyForCountry(country, countryData);
+	return getCurrencyValue(currency);
 }
 
 /**
@@ -93,15 +87,15 @@ export function getCurrencyValueForCountry(
  * @returns Formatted currency string
  */
 export function formatCurrency(amount: number, currencySymbol: string, locale: string = "en-US"): string {
-    if (!currencySymbol) return amount.toString();
+	if (!currencySymbol) return amount.toString();
 
-    // Format the number with locale-specific formatting
-    const formattedAmount = new Intl.NumberFormat(locale, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(Math.abs(amount));
+	// Format the number with locale-specific formatting
+	const formattedAmount = new Intl.NumberFormat(locale, {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(Math.abs(amount));
 
-    // Add currency symbol and handle negative values
-    const sign = amount < 0 ? "-" : "";
-    return `${sign}${currencySymbol}${formattedAmount}`;
+	// Add currency symbol and handle negative values
+	const sign = amount < 0 ? "-" : "";
+	return `${sign}${currencySymbol}${formattedAmount}`;
 }

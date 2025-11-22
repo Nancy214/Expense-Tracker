@@ -1,21 +1,7 @@
-import {
-	ZChangePasswordRequest,
-	ZForgotPasswordRequest,
-	ZRegisterCredentials,
-	ZResetPasswordRequest,
-} from "@expense-tracker/shared-types";
+import { ZChangePasswordRequest, ZForgotPasswordRequest, ZRegisterCredentials, ZResetPasswordRequest } from "@expense-tracker/shared-types";
 import { Router } from "express";
 import passport from "../config/passport";
-import {
-	changePassword,
-	forgotPassword,
-	googleAuthCallback,
-	login,
-	logout,
-	refreshToken,
-	register,
-	resetPassword,
-} from "../controllers/auth.controller";
+import { changePassword, forgotPassword, googleAuthCallback, login, logout, refreshToken, register, resetPassword } from "../controllers/auth.controller";
 import { authenticateToken } from "../middleware/auth.middleware";
 import { validate } from "../middleware/validate.middleware";
 

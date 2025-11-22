@@ -54,9 +54,7 @@ const ResetPasswordPage: React.FC = () => {
 						</CardHeader>
 						<CardContent>
 							{error && <div className="mb-4 p-2 text-sm text-red-500 bg-red-50 rounded">{error}</div>}
-							{success && (
-								<div className="mb-4 p-2 text-sm text-green-500 bg-green-50 rounded">{success}</div>
-							)}
+							{success && <div className="mb-4 p-2 text-sm text-green-500 bg-green-50 rounded">{success}</div>}
 							<FormProvider {...form}>
 								<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
 									<InputField
@@ -81,11 +79,7 @@ const ResetPasswordPage: React.FC = () => {
 										{isSubmitting ? "Resetting..." : "Reset Password"}
 									</Button>
 									<div className="mt-4 text-center text-sm">
-										<Button
-											variant="link"
-											className="p-0 text-sm"
-											onClick={() => navigate("/login")}
-										>
+										<Button variant="link" className="p-0 text-sm" onClick={() => navigate("/login")}>
 											Back to Login
 										</Button>
 									</div>

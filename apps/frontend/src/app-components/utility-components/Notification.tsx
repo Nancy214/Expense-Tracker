@@ -25,9 +25,7 @@ const Notification: React.FC<NotificationProps> = ({ type, title, message, onClo
 
 	return (
 		<div className={cn("flex items-start gap-3 p-4 border rounded-lg shadow-sm", typeStyles[type], className)}>
-			<div className={cn("flex-shrink-0", iconStyles[type])}>
-				{type === "danger" ? <AlertTriangle className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-			</div>
+			<div className={cn("flex-shrink-0", iconStyles[type])}>{type === "danger" ? <AlertTriangle className="h-5 w-5" /> : <Bell className="h-5 w-5" />}</div>
 			<div className="flex-1 min-w-0">
 				<h4 className="font-medium">{title}</h4>
 				<p className="text-sm mt-1">{message}</p>

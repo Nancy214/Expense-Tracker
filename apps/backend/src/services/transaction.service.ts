@@ -1,10 +1,6 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type {
-    PaginatedResponse,
-    PaginationQuery,
-    Transaction,
-} from "@expense-tracker/shared-types";
+import type { PaginatedResponse, PaginationQuery, Transaction } from "@expense-tracker/shared-types";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import path from "path";
@@ -13,201 +9,194 @@ import { isAWSConfigured, s3Client } from "../config/s3Client";
 import { TransactionDAO } from "../daos/transaction.dao";
 
 export class TransactionService {
-    async getExpenses(userId: string, query: PaginationQuery) {
-        const { expenses, total, page, limit } = await TransactionDAO.getExpenses(userId, query);
+	async getExpenses(userId: string, query: PaginationQuery) {
+		const { expenses, total, page, limit } = await TransactionDAO.getExpenses(userId, query);
 
-        const response: PaginatedResponse<Transaction> = {
-            expenses,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasNextPage: page < Math.ceil(total / limit),
-                hasPrevPage: page > 1,
-            },
-        };
+		const response: PaginatedResponse<Transaction> = {
+			expenses,
+			pagination: {
+				page,
+				limit,
+				total,
+				totalPages: Math.ceil(total / limit),
+				hasNextPage: page < Math.ceil(total / limit),
+				hasPrevPage: page > 1,
+			},
+		};
 
-        return response;
-    }
+		return response;
+	}
 
-    async getAllTransactions(userId: string, query: any) {
-        const { transactions, total, page, limit } = await TransactionDAO.getAllTransactions(userId, query);
+	async getAllTransactions(userId: string, query: any) {
+		const { transactions, total, page, limit } = await TransactionDAO.getAllTransactions(userId, query);
 
-        const response: PaginatedResponse<Transaction> = {
-            transactions,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasNextPage: page < Math.ceil(total / limit),
-                hasPrevPage: page > 1,
-            },
-        };
+		const response: PaginatedResponse<Transaction> = {
+			transactions,
+			pagination: {
+				page,
+				limit,
+				total,
+				totalPages: Math.ceil(total / limit),
+				hasNextPage: page < Math.ceil(total / limit),
+				hasPrevPage: page > 1,
+			},
+		};
 
-        return response;
-    }
+		return response;
+	}
 
+	async getTransactionSummary(userId: string) {
+		const summary = await TransactionDAO.getTransactionSummary(userId);
+		return { summary };
+	}
 
+	async getExpensesById(userId: string, id: string) {
+		const expense = await TransactionDAO.getTransactionById(userId, id);
+		if (!expense) {
+			throw new Error("Expense not found");
+		}
+		return { expenses: [expense] };
+	}
 
-    async getTransactionSummary(userId: string) {
-        const summary = await TransactionDAO.getTransactionSummary(userId);
-        return { summary };
-    }
+	async createExpense(userId: string, expenseData: any) {
+		const expense: Transaction = await TransactionDAO.createTransaction(userId, expenseData);
+		return expense;
+	}
 
-    async getExpensesById(userId: string, id: string) {
-        const expense = await TransactionDAO.getTransactionById(userId, id);
-        if (!expense) {
-            throw new Error("Expense not found");
-        }
-        return { expenses: [expense] };
-    }
+	async updateExpense(userId: string, id: string, updateData: any) {
+		// Validate ObjectId early to avoid cast errors
+		if (!mongoose.isValidObjectId(id)) {
+			throw new Error("Invalid transaction id");
+		}
 
-    async createExpense(userId: string, expenseData: any) {
-        const expense: Transaction = await TransactionDAO.createTransaction(userId, expenseData);
-        return expense;
-    }
+		const expense = await TransactionDAO.updateTransaction(userId, id, updateData);
+		if (!expense) {
+			throw new Error("Expense not found");
+		}
+		return expense;
+	}
 
-    async updateExpense(userId: string, id: string, updateData: any) {
-        // Validate ObjectId early to avoid cast errors
-        if (!mongoose.isValidObjectId(id)) {
-            throw new Error("Invalid transaction id");
-        }
+	async deleteExpense(userId: string, id: string) {
+		// Validate ObjectId early to avoid cast errors
+		if (!mongoose.isValidObjectId(id)) {
+			throw new Error("Invalid transaction id");
+		}
 
-        const expense = await TransactionDAO.updateTransaction(userId, id, updateData);
-        if (!expense) {
-            throw new Error("Expense not found");
-        }
-        return expense;
-    }
+		const expense = await TransactionDAO.deleteTransaction(userId, id);
+		if (!expense) {
+			throw new Error("Expense not found");
+		}
 
-    async deleteExpense(userId: string, id: string) {
-        // Validate ObjectId early to avoid cast errors
-        if (!mongoose.isValidObjectId(id)) {
-            throw new Error("Invalid transaction id");
-        }
+		return { message: "Expense deleted" };
+	}
 
-        const expense = await TransactionDAO.deleteTransaction(userId, id);
-        if (!expense) {
-            throw new Error("Expense not found");
-        }
+	async uploadReceipt(userId: string, file: Express.Multer.File) {
+		if (!file) {
+			throw new Error("No file uploaded");
+		}
 
-        return { message: "Expense deleted" };
-    }
+		if (!isAWSConfigured) {
+			throw new Error("S3 not configured");
+		}
 
-    async uploadReceipt(userId: string, file: Express.Multer.File) {
-        if (!file) {
-            throw new Error("No file uploaded");
-        }
+		const timestamp: number = Date.now();
+		const originalName: string = file.originalname;
+		const hashInput: string = `${originalName}_${timestamp}_${userId}`;
+		let fileName: string = crypto
+			.createHash("sha256")
+			.update(hashInput)
+			.digest("hex")
+			.replace(/[^a-zA-Z0-9]/g, "");
+		const ext: string = path.extname(originalName) || ".jpg";
+		fileName = `${fileName}${ext}`;
+		const s3Key: string = `receipt/${fileName}`;
 
-        if (!isAWSConfigured) {
-            throw new Error("S3 not configured");
-        }
+		let fileBuffer: Buffer = file.buffer;
+		let contentType: string = file.mimetype;
 
-        const timestamp: number = Date.now();
-        const originalName: string = file.originalname;
-        const hashInput: string = `${originalName}_${timestamp}_${userId}`;
-        let fileName: string = crypto
-            .createHash("sha256")
-            .update(hashInput)
-            .digest("hex")
-            .replace(/[^a-zA-Z0-9]/g, "");
-        const ext: string = path.extname(originalName) || ".jpg";
-        fileName = `${fileName}${ext}`;
-        const s3Key: string = `receipt/${fileName}`;
+		// Restrict PDF size (e.g., 5MB)
+		if (contentType === "application/pdf" && fileBuffer.length > 5 * 1024 * 1024) {
+			throw new Error("PDF file size exceeds 5MB limit");
+		}
 
-        let fileBuffer: Buffer = file.buffer;
-        let contentType: string = file.mimetype;
+		// If image, process with sharp
+		if (contentType.startsWith("image/")) {
+			fileBuffer = await sharp(file.buffer).resize({ width: 1200, height: 1200, fit: "inside" }).jpeg({ quality: 90 }).toBuffer();
+			contentType = "image/jpeg";
+		}
 
-        // Restrict PDF size (e.g., 5MB)
-        if (contentType === "application/pdf" && fileBuffer.length > 5 * 1024 * 1024) {
-            throw new Error("PDF file size exceeds 5MB limit");
-        }
+		const uploadCommand = new PutObjectCommand({
+			Bucket: process.env.AWS_BUCKET_NAME,
+			Key: s3Key,
+			Body: fileBuffer,
+			ContentType: contentType,
+			ACL: "private",
+		});
 
-        // If image, process with sharp
-        if (contentType.startsWith("image/")) {
-            fileBuffer = await sharp(file.buffer)
-                .resize({ width: 1200, height: 1200, fit: "inside" })
-                .jpeg({ quality: 90 })
-                .toBuffer();
-            contentType = "image/jpeg";
-        }
+		await s3Client.send(uploadCommand);
 
-        const uploadCommand = new PutObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: s3Key,
-            Body: fileBuffer,
-            ContentType: contentType,
-            ACL: "private",
-        });
+		return { key: s3Key };
+	}
 
-        await s3Client.send(uploadCommand);
+	async getReceiptUrl(key: string) {
+		if (!key) {
+			throw new Error("Missing key");
+		}
 
-        return { key: s3Key };
-    }
+		const command: GetObjectCommand = new GetObjectCommand({
+			Bucket: process.env.AWS_BUCKET_NAME,
+			Key: key,
+		});
 
-    async getReceiptUrl(key: string) {
-        if (!key) {
-            throw new Error("Missing key");
-        }
+		const url: string = await getSignedUrl(s3Client, command, {
+			expiresIn: 300,
+		});
 
-        const command: GetObjectCommand = new GetObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: key,
-        });
+		return { url };
+	}
 
-        const url: string = await getSignedUrl(s3Client, command, {
-            expiresIn: 300,
-        });
+	async deleteReceipt(userId: string, key: string) {
+		if (!key) {
+			throw new Error("Missing key");
+		}
 
-        return { url };
-    }
+		if (!isAWSConfigured) {
+			throw new Error("S3 not configured");
+		}
 
-    async deleteReceipt(userId: string, key: string) {
-        if (!key) {
-            throw new Error("Missing key");
-        }
+		// Delete from S3
+		const deleteCommand = new DeleteObjectCommand({
+			Bucket: process.env.AWS_BUCKET_NAME,
+			Key: key,
+		});
 
-        if (!isAWSConfigured) {
-            throw new Error("S3 not configured");
-        }
+		await s3Client.send(deleteCommand);
 
-        // Delete from S3
-        const deleteCommand = new DeleteObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: key,
-        });
+		// Update database to remove receipt reference
+		await TransactionDAO.removeReceiptFromTransactions(userId, key);
 
-        await s3Client.send(deleteCommand);
+		return { message: "Receipt deleted successfully" };
+	}
 
-        // Update database to remove receipt reference
-        await TransactionDAO.removeReceiptFromTransactions(userId, key);
+	async getAllTransactionsForAnalytics(userId: string) {
+		const transactions = await TransactionDAO.getAllTransactionsForAnalytics(userId);
+		return { transactions };
+	}
 
-        return { message: "Receipt deleted successfully" };
-    }
+	async deleteRecurringSeries(userId: string, id: string) {
+		// Validate ObjectId early to avoid cast errors
+		if (!mongoose.isValidObjectId(id)) {
+			throw new Error("Invalid transaction id");
+		}
 
+		const result = await TransactionDAO.deleteRecurringSeries(userId, id);
+		if (result.deletedCount === 0) {
+			throw new Error("Expense not found");
+		}
 
-
-    async getAllTransactionsForAnalytics(userId: string) {
-        const transactions = await TransactionDAO.getAllTransactionsForAnalytics(userId);
-        return { transactions };
-    }
-
-    async deleteRecurringSeries(userId: string, id: string) {
-        // Validate ObjectId early to avoid cast errors
-        if (!mongoose.isValidObjectId(id)) {
-            throw new Error("Invalid transaction id");
-        }
-
-        const result = await TransactionDAO.deleteRecurringSeries(userId, id);
-        if (result.deletedCount === 0) {
-            throw new Error("Expense not found");
-        }
-
-        return {
-            message: "Recurring series deleted",
-            deletedCount: result.deletedCount
-        };
-    }
+		return {
+			message: "Recurring series deleted",
+			deletedCount: result.deletedCount,
+		};
+	}
 }
