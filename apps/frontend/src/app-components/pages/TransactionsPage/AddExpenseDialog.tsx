@@ -15,6 +15,7 @@ import { InputField } from "@/app-components/form-fields/InputField";
 import { SelectField } from "@/app-components/form-fields/SelectField";
 import { SwitchField } from "@/app-components/form-fields/SwitchField";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
@@ -26,9 +27,9 @@ import { normalizeUserCurrency } from "@/utils/currency";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { Repeat, XCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Repeat, Info } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Form handling type - with string dates for UI
 export interface TransactionFormData {
@@ -72,6 +73,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     const { toast } = useToast();
     const { user } = useAuth();
     const [showExchangeRate, setShowExchangeRate] = useState<boolean>(false);
+    const [useCustomRate, setUseCustomRate] = useState<boolean>(false);
 
     // Use the cached hook instead of direct API call
     const { data: countryTimezoneData } = useCountryTimezoneCurrency();
@@ -91,8 +93,9 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     } = form;
 
     const isRecurring = watch("isRecurring");
-    const autoCreate = watch("autoCreate");
-    const recurringActive = watch("recurringActive");
+    const amount = watch("amount");
+    const fromRate = watch("fromRate");
+    const toRate = watch("toRate");
     // Use mutation loading states
     const isSubmittingForm: boolean = isSubmitting || isCreating || isUpdating;
 
@@ -132,8 +135,31 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
     useEffect(() => {
         if (open) {
             resetForm();
+            setUseCustomRate(false);
         }
     }, [open, editingExpense, resetForm]);
+
+    // Calculate converted amount
+    const getConvertedAmount = (): number | null => {
+        if (!amount || !fromRate || !toRate) return null;
+        const userCurrencyAmount = (amount * fromRate) / toRate;
+        return userCurrencyAmount;
+    };
+
+    // Get currency symbol helper
+    const getCurrencySymbol = (currencyCode: string): string => {
+        const symbolMap: Record<string, string> = {
+            INR: "₹",
+            USD: "$",
+            EUR: "€",
+            GBP: "£",
+            JPY: "¥",
+            AED: "د.إ",
+            SAR: "ر.س",
+            QAR: "ر.ق",
+        };
+        return symbolMap[currencyCode] || currencyCode;
+    };
 
     const onSubmit = async (data: TransactionFormData) => {
         try {
@@ -265,7 +291,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                 </DialogHeader>
 
                 <FormProvider {...form}>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
                         <DateField name="date" label="" placeholder="Pick a date" source="transaction" />
 
                         <div className="space-y-2">
@@ -352,32 +378,98 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                         />
 
                         {showExchangeRate && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <InputField
-                                    name="fromRate"
-                                    label={`Exchange Rate (${user?.currency || "INR"})`}
-                                    type="number"
-                                    placeholder="Exchange rate"
-                                    step={0.01}
-                                    min={0}
-                                    disabled
-                                    className="mb-0"
-                                />
-                                <InputField
-                                    name="toRate"
-                                    label={`Exchange Rate (${currency})`}
-                                    type="number"
-                                    placeholder="Exchange rate"
-                                    step={0.01}
-                                    min={0}
-                                    className="mb-0"
-                                />
-                                <div className="col-span-2">
-                                    <p className="text-xs text-gray-500">
-                                        You're entering money in {currency}. What exchange rate do you wish to use for
-                                        this transaction?
-                                    </p>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between rounded-md bg-blue-50 px-3 py-2 border border-blue-200">
+                                    {amount && fromRate && toRate ? (
+                                        <>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-gray-700">
+                                                    {getCurrencySymbol(currency)} {Number(amount).toFixed(2)}
+                                                </span>
+                                                <span className="text-xs text-gray-400">≈</span>
+                                                <span className="text-sm font-medium text-blue-700">
+                                                    {getCurrencySymbol(user?.currency || "INR")}{" "}
+                                                    {getConvertedAmount()?.toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                                        >
+                                                            Rate: 1:{(fromRate / toRate).toFixed(2)}
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p className="text-xs">
+                                                            1 {currency} = {(fromRate / toRate).toFixed(4)}{" "}
+                                                            {user?.currency || "INR"}
+                                                        </p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center justify-between w-full">
+                                            <span className="text-sm text-gray-500">
+                                                Using {currency} → {user?.currency || "INR"} conversion
+                                            </span>
+                                            {fromRate && toRate && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <button
+                                                                type="button"
+                                                                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                                            >
+                                                                Rate: 1:{(fromRate / toRate).toFixed(2)}
+                                                            </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p className="text-xs">
+                                                                1 {currency} = {(fromRate / toRate).toFixed(4)}{" "}
+                                                                {user?.currency || "INR"}
+                                                            </p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setUseCustomRate(!useCustomRate)}
+                                    className="text-xs text-gray-600 hover:text-gray-800 underline"
+                                >
+                                    {useCustomRate ? "Use auto rate" : "Custom rate"}
+                                </button>
+
+                                {useCustomRate && (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <InputField
+                                            name="fromRate"
+                                            label={`Rate (${user?.currency || "INR"})`}
+                                            type="number"
+                                            placeholder="1.00"
+                                            step={0.0001}
+                                            min={0}
+                                            className="mb-0"
+                                        />
+                                        <InputField
+                                            name="toRate"
+                                            label={`Rate (${currency})`}
+                                            type="number"
+                                            placeholder="0.041"
+                                            step={0.0001}
+                                            min={0}
+                                            className="mb-0"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -386,7 +478,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             <Repeat className="w-4 h-4 text-gray-500 mt-1" />
                         </div>
                         {isRecurring && (
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2">
                                 <SelectField
                                     name="recurringFrequency"
                                     label="Frequency"
@@ -414,7 +506,7 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                             <AccordionItem value="more-options" className="border-none">
                                 <AccordionTrigger>More Options</AccordionTrigger>
                                 <AccordionContent>
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-1">
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 px-1">
                                         <InputField
                                             name="title"
                                             label="Title"
@@ -434,52 +526,54 @@ const AddExpenseDialog: React.FC<AddExpenseDialogProps> = ({
                                                     Repeat Transaction Settings
                                                 </Label>
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <SwitchField
-                                                            name="autoCreate"
-                                                            label="Auto Create"
-                                                            description=""
+                                                    <div className="flex items-center gap-2">
+                                                        <Switch
+                                                            checked={watch("autoCreate")}
+                                                            onCheckedChange={(checked: boolean) => {
+                                                                setValue("autoCreate", checked, { shouldValidate: true });
+                                                            }}
                                                         />
-                                                        {!autoCreate && (
-                                                            <Alert
-                                                                className={cn(
-                                                                    "mt-2 transition-all",
-                                                                    "border-orange-500 bg-orange-50 text-orange-800"
-                                                                )}
-                                                            >
-                                                                <AlertDescription className="flex items-center gap-2">
-                                                                    <XCircle className="h-4 w-4 flex-shrink-0" />
-                                                                    <span className="text-xs">
-                                                                        Disabling this option will just send a reminder
-                                                                        and not create the transaction automatically.
-                                                                    </span>
-                                                                </AlertDescription>
-                                                            </Alert>
-                                                        )}
+                                                        <div className="flex items-center gap-1">
+                                                            <Label className="text-sm font-medium">Auto Create</Label>
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Info className="h-3.5 w-3.5 text-orange-500 cursor-help flex-shrink-0" />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="top" className="max-w-xs">
+                                                                        <p className="text-xs">
+                                                                            When disabled, won't create the next transaction
+                                                                            automatically - only sends a reminder.
+                                                                        </p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        </div>
                                                     </div>
 
-                                                    <div>
-                                                        <SwitchField
-                                                            name="recurringActive"
-                                                            label="Active"
-                                                            description=""
+                                                    <div className="flex items-center gap-2">
+                                                        <Switch
+                                                            checked={watch("recurringActive")}
+                                                            onCheckedChange={(checked: boolean) => {
+                                                                setValue("recurringActive", checked, { shouldValidate: true });
+                                                            }}
                                                         />
-                                                        {!recurringActive && (
-                                                            <Alert
-                                                                className={cn(
-                                                                    "mt-2 transition-all",
-                                                                    "border-orange-500 bg-orange-50 text-orange-800"
-                                                                )}
-                                                            >
-                                                                <AlertDescription className="flex items-center gap-2">
-                                                                    <XCircle className="h-4 w-4 flex-shrink-0" />
-                                                                    <span className="text-xs">
-                                                                        Disabling this will pause the recurring series.
-                                                                        No new transactions will be created.
-                                                                    </span>
-                                                                </AlertDescription>
-                                                            </Alert>
-                                                        )}
+                                                        <div className="flex items-center gap-1">
+                                                            <Label className="text-sm font-medium">Active</Label>
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Info className="h-3.5 w-3.5 text-orange-500 cursor-help flex-shrink-0" />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="top" className="max-w-xs">
+                                                                        <p className="text-xs">
+                                                                            When disabled, pauses the recurring series - no
+                                                                            new transactions will be created.
+                                                                        </p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
