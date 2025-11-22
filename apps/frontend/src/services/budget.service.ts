@@ -156,7 +156,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
             reminders.push({
                 id: `over-${budget.id}`,
                 budgetId: budget.id,
-                budgetName: budget.title,
+                budgetName: budget.title || "",
                 type: "danger",
                 title: "Budget Exceeded!",
                 message: `You've exceeded your budget "${budget.title}" by ${symbol}${Math.abs(remaining).toFixed(
@@ -172,7 +172,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
             reminders.push({
                 id: `warning-${budget.id}`,
                 budgetId: budget.id,
-                budgetName: budget.title,
+                budgetName: budget.title || "",
                 type: "warning",
                 title: "Budget Warning",
                 message: `You've used ${progress.toFixed(1)}% of your budget "${
@@ -188,7 +188,7 @@ export const processBudgetReminders = (progressData: BudgetProgressResponse): Bu
             reminders.push({
                 id: `info-${budget.id}`,
                 budgetId: budget.id,
-                budgetName: budget.title,
+                budgetName: budget.title || "",
                 type: "warning",
                 title: "Budget Update",
                 message: `You've used ${progress.toFixed(1)}% of your budget "${
