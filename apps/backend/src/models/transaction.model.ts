@@ -9,7 +9,7 @@ const TransactionSchema = new Schema(
         },
         title: {
             type: String,
-            required: true,
+            required: false,
         },
         amount: {
             type: Number,

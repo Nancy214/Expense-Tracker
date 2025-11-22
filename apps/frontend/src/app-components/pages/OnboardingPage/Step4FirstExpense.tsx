@@ -169,7 +169,7 @@ const Step4FirstExpense = ({ onNext, onBack, budget, initialFormData, onFormData
                 {/* Title Field */}
                 <div>
                     <Label htmlFor="title" className="text-sm font-medium text-gray-700">
-                        Expense Title <span className="text-red-500">*</span>
+                        Expense Title (Optional)
                     </Label>
                     <Controller
                         name="title"

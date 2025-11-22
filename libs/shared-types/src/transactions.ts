@@ -81,10 +81,11 @@ export const ZTransaction = z.object({
         .min(1, "Date is required")
         .refine(isValidDate, "Please enter a valid date in DD/MM/YYYY format"),
     title: z
-        .string({ message: "Title is required" })
-        .min(1, "Title is required")
+        .string({ message: "Title must be a string" })
         .max(50, "Title must be less than 50 characters")
-        .trim(),
+        .trim()
+        .optional()
+        .or(z.literal("")),
     amount: z
         .number({ message: "Amount must be a number" })
         .positive("Amount must be greater than 0")
@@ -147,10 +148,11 @@ export type BaseTransaction = z.infer<typeof baseTransactionSchema>;
 // Onboarding expense form schema - for forms that accept string inputs before conversion
 export const expenseOnboardingFormSchema = z.object({
     title: z
-        .string({ message: "Title is required" })
-        .min(1, "Title is required")
+        .string({ message: "Title must be a string" })
         .max(50, "Title must be less than 50 characters")
-        .trim(),
+        .trim()
+        .optional()
+        .or(z.literal("")),
     amount: z.string().min(1, "Amount is required"),
     category: z.enum(Object.values(ExpenseCategory) as [string, ...string[]], {
         message: "Please select a valid category",

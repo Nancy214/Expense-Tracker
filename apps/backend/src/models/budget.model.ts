@@ -10,7 +10,7 @@ const budgetSchema = new Schema<BudgetType>(
 			ref: "User",
 			required: true,
 		},
-		title: { type: String, required: true },
+		title: { type: String, required: false },
 		amount: { type: Number, required: true },
 		currency: { type: String, required: true },
 		fromRate: { type: Number, default: 1 },

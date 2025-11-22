@@ -104,9 +104,8 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
                             <InputField
                                 name="title"
                                 label="Budget Title"
-                                placeholder="Enter budget title"
+                                placeholder="Enter budget title (Optional)"
                                 maxLength={100}
-                                required
                             />
                             <SelectField
                                 name="category"
