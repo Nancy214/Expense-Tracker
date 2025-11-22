@@ -6,8 +6,13 @@ WORKDIR /app
 # Enable corepack and prepare pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package files and pnpm workspace configuration
+# Copy workspace configuration and root package.json
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy all workspace package.json files to preserve workspace structure
+COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
+COPY libs/shared-types/package.json ./libs/shared-types/
 
 # Install all dependencies (including devDependencies for building)
 RUN pnpm install --frozen-lockfile
@@ -26,14 +31,20 @@ WORKDIR /app
 # Enable corepack and prepare pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package files and pnpm workspace configuration
+# Copy workspace configuration and root package.json
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy all workspace package.json files to preserve workspace structure
+COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
+COPY libs/shared-types/package.json ./libs/shared-types/
 
 # Install only production dependencies
 RUN pnpm install --frozen-lockfile --prod && pnpm store prune
 
 # Copy built application from builder stage
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder /app/libs/shared-types/dist ./libs/shared-types/dist
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -51,4 +62,5 @@ EXPOSE 8000
 #   CMD node -e "require('http').get('http://localhost:8000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the application
+WORKDIR /app/apps/backend
 CMD ["pnpm", "run", "serve"]
