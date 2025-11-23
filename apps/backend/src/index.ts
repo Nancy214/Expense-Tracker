@@ -26,7 +26,7 @@ const app = express();
 // CORS must be first to handle preflight requests
 app.use(
 	cors({
-		origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://localhost:3002"],
+		origin: ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://localhost:3002", "http://trauss.sauravkoli.com", "https://trauss.sauravkoli.com"],
 		credentials: true,
 		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
 		allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
@@ -46,7 +46,7 @@ app.use(
 				styleSrc: ["'self'", "'unsafe-inline'", "'https://fonts.googleapis.com'"],
 				imgSrc: ["'self'", "data:", "https://*"],
 				fontSrc: ["'self'", "'fonts.gstatic.com'"],
-				connectSrc: ["'self'", "'api.fxratesapi.com'", "http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
+				connectSrc: ["'self'", "'api.fxratesapi.com'", "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://trauss.sauravkoli.com", "https://trauss.sauravkoli.com"],
 			},
 		},
 		crossOriginResourcePolicy: {
