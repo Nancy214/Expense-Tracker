@@ -8,3 +8,4 @@ export * from "./transactions";
 
 // Explicit exports for better TypeScript resolution
 export { BudgetRecurrence, BudgetCategory, ZBudgetOnboardingFormSchema, type BudgetOnboardingFormData } from "./budget";
+export { ZProfileData, ZSettingsData, ZCountryTimezoneCurrencyData, type ProfileData, type SettingsData, type CountryTimezoneCurrencyData } from "./profile";
