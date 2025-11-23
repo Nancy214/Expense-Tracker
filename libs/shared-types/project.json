@@ -8,7 +8,7 @@
             "executor": "nx:run-commands",
             "outputs": ["{workspaceRoot}/libs/shared-types/dist"],
             "options": {
-                "command": "tsc",
+                "command": "npm run build",
                 "cwd": "libs/shared-types"
             }
         },
