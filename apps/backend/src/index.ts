@@ -14,6 +14,7 @@ import currencyRoutes from "./routes/currency.routes";
 import profileRoutes from "./routes/profile.routes";
 import expenseRoutes from "./routes/transaction.routes";
 import onboardingRoutes from "./routes/onboarding.routes";
+import aiRoutes from "./routes/ai.routes";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { authenticateToken } from "./middleware/auth.middleware";
@@ -149,6 +150,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/currency", currencyRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/onboarding", onboardingRoutes);
+app.use("/api/ai", aiRoutes);
 
 const PORT = process.env.PORT || 8000;
 

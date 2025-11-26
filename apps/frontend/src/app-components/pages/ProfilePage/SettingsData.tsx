@@ -1,13 +1,15 @@
 import type { AuthenticatedUser, SettingsData as SettingsDataType } from "@expense-tracker/shared-types";
-import { LogOut, Save, Settings, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { LogOut, Save, Settings, Shield, Sparkles } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
+import { useAIChat } from "@/hooks/use-ai-chat";
 import { useProfileMutations, useSettings } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,6 +25,9 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 	// Use TanStack Query for settings
 	const { data: settingsData, isLoading: isInitialLoading } = useSettings(user?.id || "");
 	const { updateSettings: updateSettingsMutation, isUpdatingSettings } = useProfileMutations();
+
+	// AI Chat preferences
+	const { preferences: aiPreferences, isLoadingPreferences: isLoadingAI, updatePreferences: updateAIPreferences, isUpdatingPreferences: isUpdatingAI } = useAIChat();
 
 	// Initialize settings state with defaults
 	const getInitialSettings = (): SettingsDataType => {
@@ -211,6 +216,102 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 						<Save className="h-4 w-4 mr-2" />
 						{isUpdatingSettings ? "Saving..." : "Save Settings"}
 					</Button>
+				</CardContent>
+			</Card>
+
+			{/* AI Assistant Settings */}
+			<Card>
+				<CardHeader>
+					<CardTitle className="flex items-center gap-2">
+						<Sparkles className="h-5 w-5" />
+						AI Financial Assistant
+					</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					{isLoadingAI ? (
+						<div className="py-4 text-center">
+							<div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-primary"></div>
+							<p className="text-xs text-muted-foreground">Loading AI settings...</p>
+						</div>
+					) : (
+						<>
+							<div className="flex items-center justify-between">
+								<div className="space-y-0.5">
+									<Label>Enable AI Assistant</Label>
+									<p className="text-xs text-muted-foreground">Get AI-powered financial insights</p>
+								</div>
+								<Switch
+									checked={aiPreferences?.enabled || false}
+									onCheckedChange={async (checked) => {
+										try {
+											await updateAIPreferences({ enabled: checked });
+											toast({
+												title: "Success",
+												description: checked ? "AI Assistant enabled" : "AI Assistant disabled",
+											});
+										} catch {
+											toast({
+												title: "Error",
+												description: "Failed to update AI settings",
+												variant: "destructive",
+											});
+										}
+									}}
+									disabled={isUpdatingAI}
+								/>
+							</div>
+
+							{aiPreferences?.enabled && (
+								<>
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label>Privacy Consent</Label>
+											<p className="text-xs text-muted-foreground">I consent to sharing my financial data with OpenAI for AI insights</p>
+										</div>
+										<Switch
+											checked={aiPreferences?.privacyConsent || false}
+											onCheckedChange={async (checked) => {
+												try {
+													await updateAIPreferences({ privacyConsent: checked });
+													toast({
+														title: "Success",
+														description: checked ? "Privacy consent granted" : "Privacy consent revoked",
+													});
+												} catch {
+													toast({
+														title: "Error",
+														description: "Failed to update privacy consent",
+														variant: "destructive",
+													});
+												}
+											}}
+											disabled={isUpdatingAI}
+										/>
+									</div>
+
+									{aiPreferences?.privacyConsent && (
+										<Alert>
+											<Sparkles className="h-4 w-4" />
+											<AlertDescription>
+												AI Assistant is active! You have {aiPreferences.dailyMessageLimit - aiPreferences.messagesUsedToday} messages remaining today.
+												<Button variant="link" className="ml-1 h-auto p-0" onClick={() => navigate("/ai-assistant")}>
+													Start chatting →
+												</Button>
+											</AlertDescription>
+										</Alert>
+									)}
+
+									{!aiPreferences?.privacyConsent && (
+										<Alert>
+											<AlertDescription className="text-xs">
+												⚠️ You must accept the privacy policy to use AI features. Your transaction data will be sent to OpenAI's API for processing.
+											</AlertDescription>
+										</Alert>
+									)}
+								</>
+							)}
+						</>
+					)}
 				</CardContent>
 			</Card>
 

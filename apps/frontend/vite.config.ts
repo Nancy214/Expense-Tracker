@@ -5,11 +5,14 @@ import { defineConfig } from "vite";
 export default defineConfig({
 	root: __dirname,
 	plugins: [react()],
+	base: "/", // Ensure assets are loaded from root
 	server: {
-		port: 3000,
+		port: 3001,
 		host: "0.0.0.0", // Allow external connections
+		strictPort: true,
 		hmr: {
-			clientPort: 3001,
+			host: "trauss.sauravkoli.com",
+			port: 443,
 		},
 	},
 	resolve: {

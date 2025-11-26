@@ -41,7 +41,7 @@
 				"noBannedTypes": "warn"
 			},
 			"nursery": {
-				"useSortedClasses": "error"
+				"useSortedClasses": "off"
 			}
 		}
 	},

@@ -1,3 +1,6 @@
+// AI Chat Pages
+export { AIChatPage } from "./AIChatPage/AIChatPage";
+
 // Analytics Pages
 export { default as AnalyticsPage } from "./AnalyticsPage/AnalyticsPage";
 export { default as AreaChart } from "./AnalyticsPage/AreaChart";
