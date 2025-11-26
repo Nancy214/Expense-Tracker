@@ -143,6 +143,7 @@ export const ZBudgetProgressResponse = z.object({
 	totalProgress: z.number(),
 	totalBudgetAmount: z.number(),
 	totalSpent: z.number(),
+	activeBudgetsThisMonth: z.number(),
 });
 export type BudgetProgressResponse = z.infer<typeof ZBudgetProgressResponse>;
 

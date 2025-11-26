@@ -295,12 +295,22 @@ export class BudgetDAO {
 		const totalBudgetAmount: number = budgetProgress.reduce((sum: number, budget: BudgetProgress) => sum + budget.amount, 0);
 		const totalSpent: number = budgetProgress.reduce((sum: number, budget: BudgetProgress) => sum + budget.totalSpent, 0);
 		const totalProgress: number = totalBudgetAmount > 0 ? (totalSpent / totalBudgetAmount) * 100 : 0;
+		const activeBudgetsThisMonth: number = budgetProgress.reduce((count: number, budget: BudgetProgress) => {
+			const periodStartDate = budget.periodStart instanceof Date ? budget.periodStart : new Date(budget.periodStart);
+			if (Number.isNaN(periodStartDate.getTime())) {
+				return count;
+			}
+			const hasStarted = new Date(budget.startDate).getTime() <= now.getTime();
+			const isCurrentMonth = periodStartDate.getMonth() === now.getMonth() && periodStartDate.getFullYear() === now.getFullYear();
+			return hasStarted && isCurrentMonth ? count + 1 : count;
+		}, 0);
 
 		return {
 			budgets: budgetProgress,
 			totalProgress: Math.min(totalProgress, 100),
 			totalBudgetAmount,
 			totalSpent,
+			activeBudgetsThisMonth,
 		};
 	}
 

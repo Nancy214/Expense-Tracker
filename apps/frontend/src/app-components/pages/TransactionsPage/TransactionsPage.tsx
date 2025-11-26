@@ -1,6 +1,6 @@
 import type { Transaction } from "@expense-tracker/shared-types";
 import { format, parse } from "date-fns";
-import { Plus, TrendingUp, UploadIcon } from "lucide-react";
+import { Plus, UploadIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
 import {
@@ -10,16 +10,14 @@ import {
 } from "@/app-components/pages/TransactionsPage/ExcelCsvPdfUtils";
 import { FiltersSection } from "@/app-components/pages/TransactionsPage/Filters";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
-import { useCurrencySymbol } from "@/hooks/use-profile";
-import { useAllTransactions, useTransactionSummary } from "@/hooks/use-transactions";
+import { useAllTransactions } from "@/hooks/use-transactions";
+import StatsCards from "@/app-components/utility-components/StatsCards";
 
 const TransactionsPage = () => {
     const { user } = useAuth();
-    const currencySymbol = useCurrencySymbol();
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -40,7 +38,6 @@ const TransactionsPage = () => {
         invalidateAllTransactions,
         isLoading: isAllTransactionsLoading,
     } = useAllTransactions(currentPage, itemsPerPage, filters);
-    const { summary } = useTransactionSummary();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<Transaction | null>(null);
@@ -183,8 +180,6 @@ const TransactionsPage = () => {
         monthsArr.sort((a, b) => b.sortKey - a.sortKey);
         return monthsArr;
     }, [allTransactions]);
-
-    const symbol = currencySymbol;
 
     // Export functionality
     const handleExport = () => {
@@ -357,44 +352,7 @@ const TransactionsPage = () => {
             </div>
 
             {/* Transaction Stats Cards */}
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5" />
-                        Transaction Overview
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">{summary.totalIncome}</div>
-                            <div className="text-sm text-muted-foreground">Total Income Transactions</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                                {symbol}
-                                {(summary.totalIncomeAmount || 0).toFixed(2)}
-                            </div>
-                        </div>
-                        <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-red-600">{summary.totalExpenses}</div>
-                            <div className="text-sm text-muted-foreground">Total Expense Transactions</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                                {symbol}
-                                {(summary.totalExpenseAmount || 0).toFixed(2)}
-                            </div>
-                        </div>
-                        <div className="text-center p-4 bg-muted/50 rounded-lg">
-                            <div className="text-2xl font-bold text-primary">
-                                {allTransactionsPagination?.total || 0}
-                            </div>
-                            <div className="text-sm text-muted-foreground">Total Transactions</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                                Avg: {symbol}
-                                {(summary.averageTransactionAmount || 0).toFixed(2)}
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+            <StatsCards />
 
             {/* Filters */}
             <FiltersSection
