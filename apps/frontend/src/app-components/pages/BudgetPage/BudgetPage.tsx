@@ -15,6 +15,8 @@ import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { useToast } from "@/hooks/use-toast";
@@ -35,7 +37,7 @@ const BudgetPage: React.FC = () => {
 
     const { toast } = useToast();
     const currencySymbol = useCurrencySymbol();
-    const { budgets = [], budgetProgress = { budgets: [] }, isBudgetsLoading: isLoading, budgetsError } = useBudgets();
+    const { budgets = [], budgetProgress, isBudgetsLoading: isLoading, budgetsError } = useBudgets();
 
     const {
         budgetToDelete,
@@ -193,7 +195,7 @@ const BudgetPage: React.FC = () => {
                 </div>
 
                 {/* Budget Overview */}
-                {/* {budgetProgress.budgets.length > 0 && (
+                {budgetProgress.budgets.length > 0 && (
                     <Card className="mb-6">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -202,43 +204,150 @@ const BudgetPage: React.FC = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                                    <div className="text-2xl font-bold text-primary">{budgets.length}</div>
-                                    <div className="text-sm text-muted-foreground">Active Budgets</div>
-                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {/* Savings Achieved */}
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                                     <div className="text-2xl font-bold text-green-600">
-                                        {formatAmount(
-                                            budgetProgress.budgets.reduce(
-                                                (sum: number, b: BudgetProgress) => sum + b.amount,
-                                                0
-                                            )
-                                        )}
+                                        {formatAmount(budgetProgress.savingsAchieved)}
                                     </div>
-                                    <div className="text-sm text-muted-foreground">Total Budget</div>
+                                    <div className="text-sm text-muted-foreground">Saved</div>
+                                    <div className="text-xs text-muted-foreground mt-1">under budget</div>
                                 </div>
+
+                                {/* Days Until Reset */}
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                                     <div className="text-2xl font-bold text-blue-600">
-                                        {formatAmount(
-                                            budgetProgress.budgets.reduce(
-                                                (sum: number, b: BudgetProgress) => sum + b.totalSpent,
-                                                0
-                                            )
-                                        )}
+                                        {budgetProgress.daysUntilReset !== null ? budgetProgress.daysUntilReset : "N/A"}
                                     </div>
-                                    <div className="text-sm text-muted-foreground">Total Spent</div>
+                                    <div className="text-sm text-muted-foreground">
+                                        {budgetProgress.daysUntilReset === 1
+                                            ? "Day"
+                                            : budgetProgress.daysUntilReset === 0
+                                            ? "Today"
+                                            : "Days"}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">until reset</div>
                                 </div>
+
+                                {/* On-Track Budgets */}
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                                     <div className="text-2xl font-bold text-purple-600">
-                                        {budgetProgress.budgets.filter((b: BudgetProgress) => b.isOverBudget).length}
+                                        {budgetProgress.onTrackBudgets} of {budgets.length}
                                     </div>
-                                    <div className="text-sm text-muted-foreground">Over Budget</div>
+                                    <div className="text-sm text-muted-foreground">On Track</div>
+                                    <div className="text-xs text-muted-foreground mt-1">budgets</div>
+                                </div>
+
+                                {/* Budget Health Score */}
+                                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className="cursor-help">
+                                                    <div
+                                                        className={`text-2xl font-bold ${
+                                                            budgetProgress.budgetHealth.color === "green"
+                                                                ? "text-green-600"
+                                                                : budgetProgress.budgetHealth.color === "blue"
+                                                                ? "text-blue-600"
+                                                                : budgetProgress.budgetHealth.color === "yellow"
+                                                                ? "text-yellow-600"
+                                                                : budgetProgress.budgetHealth.color === "orange"
+                                                                ? "text-orange-600"
+                                                                : budgetProgress.budgetHealth.color === "red"
+                                                                ? "text-red-600"
+                                                                : "text-gray-600"
+                                                        }`}
+                                                    >
+                                                        {budgetProgress.budgetHealth.score}/100
+                                                    </div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {budgetProgress.budgetHealth.label}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                                                        <Info className="h-3 w-3" />
+                                                        Health Score
+                                                    </div>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-sm">
+                                                <div className="space-y-2">
+                                                    <div className="font-semibold text-sm border-b pb-1">
+                                                        Health Score Breakdown
+                                                    </div>
+                                                    <div className="text-xs space-y-1">
+                                                        <div className="flex justify-between">
+                                                            <span>Base Score:</span>
+                                                            <span className="font-medium">
+                                                                {budgetProgress.budgetHealth.breakdown.baseScore}
+                                                            </span>
+                                                        </div>
+                                                        {budgetProgress.budgetHealth.breakdown.overBudgetCount > 0 && (
+                                                            <div className="flex justify-between text-red-600">
+                                                                <span>
+                                                                    Over Budget ({budgetProgress.budgetHealth.breakdown.overBudgetCount}
+                                                                    ):
+                                                                </span>
+                                                                <span className="font-medium">
+                                                                    -{budgetProgress.budgetHealth.breakdown.overBudgetPenalty}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {budgetProgress.budgetHealth.breakdown.highUsageCount > 0 && (
+                                                            <div className="flex justify-between text-orange-600">
+                                                                <span>
+                                                                    High Usage 80%+ ({budgetProgress.budgetHealth.breakdown.highUsageCount}
+                                                                    ):
+                                                                </span>
+                                                                <span className="font-medium">
+                                                                    -{budgetProgress.budgetHealth.breakdown.highUsagePenalty}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {budgetProgress.budgetHealth.breakdown.mediumUsageCount > 0 && (
+                                                            <div className="flex justify-between text-yellow-600">
+                                                                <span>
+                                                                    Medium Usage 60-80% (
+                                                                    {budgetProgress.budgetHealth.breakdown.mediumUsageCount}):
+                                                                </span>
+                                                                <span className="font-medium">
+                                                                    -{budgetProgress.budgetHealth.breakdown.mediumUsagePenalty}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {budgetProgress.budgetHealth.breakdown.lowUsageCount > 0 && (
+                                                            <div className="flex justify-between text-green-600">
+                                                                <span>
+                                                                    Low Usage &lt;40% ({budgetProgress.budgetHealth.breakdown.lowUsageCount}
+                                                                    ):
+                                                                </span>
+                                                                <span className="font-medium">
+                                                                    +{budgetProgress.budgetHealth.breakdown.lowUsageBonus}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {budgetProgress.budgetHealth.breakdown.perfectRecordBonus > 0 && (
+                                                            <div className="flex justify-between text-green-600">
+                                                                <span>Perfect Record Bonus:</span>
+                                                                <span className="font-medium">
+                                                                    +{budgetProgress.budgetHealth.breakdown.perfectRecordBonus}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex justify-between border-t pt-1 font-semibold">
+                                                            <span>Final Score:</span>
+                                                            <span>{budgetProgress.budgetHealth.score}/100</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
-                )} */}
+                )}
 
                 {/* Add/Edit Budget Dialog */}
                 <AddBudgetDialog
