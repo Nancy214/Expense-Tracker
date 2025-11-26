@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
-	AIChatPage,
 	AnalyticsPage,
 	BudgetPage,
 	CalendarPage,
@@ -100,11 +99,6 @@ const routes: RouteConfig[] = [
 	{
 		path: "/analytics",
 		element: <AnalyticsPage />,
-		requireAuth: true,
-	},
-	{
-		path: "/ai-assistant",
-		element: <AIChatPage />,
 		requireAuth: true,
 	},
 ];

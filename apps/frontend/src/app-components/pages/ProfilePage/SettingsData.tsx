@@ -293,10 +293,8 @@ const SettingsData: React.FC<SettingsDataProps> = ({ onLogout }) => {
 										<Alert>
 											<Sparkles className="h-4 w-4" />
 											<AlertDescription>
-												AI Assistant is active! You have {aiPreferences.dailyMessageLimit - aiPreferences.messagesUsedToday} messages remaining today.
-												<Button variant="link" className="ml-1 h-auto p-0" onClick={() => navigate("/ai-assistant")}>
-													Start chatting →
-												</Button>
+												AI Assistant is active! You have {aiPreferences.dailyMessageLimit - aiPreferences.messagesUsedToday} messages remaining today. Open
+												it from the Analytics page.
 											</AlertDescription>
 										</Alert>
 									)}

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
+import { AIChatWidget } from "@/app-components/pages/AIChatPage/AIChatWidget";
 import {
 	transformExpensesToHeatmapData,
 	useAllTransactionsForAnalytics,
@@ -472,6 +473,9 @@ const AnalyticsPage = () => {
 
 			{/* Add Transaction Dialog */}
 			<AddExpenseDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
+
+			{/* AI Chat Widget */}
+			<AIChatWidget />
 		</div>
 	);
 };

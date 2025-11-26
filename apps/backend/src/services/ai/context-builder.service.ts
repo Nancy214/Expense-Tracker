@@ -9,11 +9,42 @@ export class ContextBuilderService {
 	 * Build comprehensive financial context from user data
 	 */
 	static buildFinancialContext(user: UserType, transactions: Transaction[], budgets: BudgetType[]) {
-		// Calculate summary statistics
-		const totalIncome = transactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+		// Group transactions by currency
+		const transactionsByCurrency = new Map<string, Transaction[]>();
+		transactions.forEach((t) => {
+			const currency = t.currency || user.currency || "USD";
+			if (!transactionsByCurrency.has(currency)) {
+				transactionsByCurrency.set(currency, []);
+			}
+			transactionsByCurrency.get(currency)!.push(t);
+		});
 
-		const totalExpenses = transactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
+		// Calculate summary statistics per currency
+		const currencySummaries: Array<{ currency: string; income: number; expenses: number; savings: number; savingsRate: number }> = [];
+		transactionsByCurrency.forEach((txns, currency) => {
+			const income = txns.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+			const expenses = txns.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
+			const savings = income - expenses;
+			const savingsRate = income > 0 ? (savings / income) * 100 : 0;
+			currencySummaries.push({ currency, income, expenses, savings, savingsRate });
+		});
 
+		// Determine the actual currency to use for display
+		// If all transactions are in one currency, use that currency
+		// Otherwise, use the user's default currency
+		const currenciesInTransactions = Array.from(transactionsByCurrency.keys());
+		const hasMultipleCurrencies = currenciesInTransactions.length > 1;
+		
+		let displayCurrency = user.currency || "USD";
+		if (!hasMultipleCurrencies && currenciesInTransactions.length === 1) {
+			// All transactions are in the same currency, use that
+			displayCurrency = currenciesInTransactions[0];
+		}
+
+		// Use display currency for main summary
+		const displayCurrencyTxns = transactionsByCurrency.get(displayCurrency) || transactions;
+		const totalIncome = displayCurrencyTxns.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+		const totalExpenses = displayCurrencyTxns.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
 		const savings = totalIncome - totalExpenses;
 		const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0;
 
@@ -26,10 +57,25 @@ export class ContextBuilderService {
 		// Get recent transactions formatted
 		const recentTransactions = this.formatRecentTransactions(transactions);
 
+		// Map currency to symbol
+		const currencySymbolMap: Record<string, string> = {
+			USD: "$",
+			EUR: "€",
+			GBP: "£",
+			INR: "₹",
+			JPY: "¥",
+			CAD: "C$",
+			AUD: "A$",
+			CNY: "¥",
+			CHF: "CHF",
+			SGD: "S$",
+		};
+		const displayCurrencySymbol = currencySymbolMap[displayCurrency] || displayCurrency;
+
 		return {
 			userName: user.name,
-			currency: user.currency || "USD",
-			currencySymbol: user.currencySymbol || "$",
+			currency: displayCurrency,
+			currencySymbol: displayCurrencySymbol,
 			timezone: user.timezone || "UTC",
 			country: user.country || "Unknown",
 			totalIncome,
@@ -39,6 +85,9 @@ export class ContextBuilderService {
 			topCategories,
 			budgetStatus,
 			recentTransactions,
+			hasMultipleCurrencies,
+			currenciesInTransactions,
+			currencySummaries,
 		};
 	}
 
@@ -47,19 +96,28 @@ export class ContextBuilderService {
 	 */
 	private static getCategoryBreakdown(transactions: Transaction[]) {
 		const expenses = transactions.filter((t) => t.type === "expense");
-		const total = expenses.reduce((sum, t) => sum + t.amount, 0);
-
-		const categoryMap = new Map<string, number>();
+		
+		// Group by category (aggregate across all currencies for now)
+		const categoryMap = new Map<string, { amount: number; currencies: Set<string> }>();
 		expenses.forEach((t) => {
-			categoryMap.set(t.category, (categoryMap.get(t.category) || 0) + t.amount);
+			const existing = categoryMap.get(t.category) || { amount: 0, currencies: new Set<string>() };
+			existing.amount += t.amount;
+			existing.currencies.add(t.currency || "USD");
+			categoryMap.set(t.category, existing);
 		});
 
+		// Calculate total for percentage (using all amounts, even if mixed currencies)
+		const total = Array.from(categoryMap.values()).reduce((sum, data) => sum + data.amount, 0);
+
 		return Array.from(categoryMap.entries())
-			.map(([category, amount]) => ({
-				category,
-				amount,
-				percentage: total > 0 ? ((amount / total) * 100).toFixed(1) : "0.0",
-			}))
+			.map(([category, data]) => {
+				const currencyNote = data.currencies.size > 1 ? ` (mixed currencies: ${Array.from(data.currencies).join(", ")})` : ` (${Array.from(data.currencies)[0]})`;
+				return {
+					category: `${category}${currencyNote}`,
+					amount: data.amount,
+					percentage: total > 0 ? ((data.amount / total) * 100).toFixed(1) : "0.0",
+				};
+			})
 			.sort((a, b) => b.amount - a.amount);
 	}
 
@@ -96,6 +154,7 @@ export class ContextBuilderService {
 				amount: t.amount,
 				category: t.category,
 				type: t.type,
+				currency: t.currency || "USD",
 			}));
 	}
 

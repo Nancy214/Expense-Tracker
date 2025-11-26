@@ -1,5 +1,5 @@
-// AI Chat Pages
-export { AIChatPage } from "./AIChatPage/AIChatPage";
+// AI Chat Components
+export { AIChatWidget } from "./AIChatPage/AIChatWidget";
 
 // Analytics Pages
 export { default as AnalyticsPage } from "./AnalyticsPage/AnalyticsPage";
