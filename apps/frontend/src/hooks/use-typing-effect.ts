@@ -34,4 +34,3 @@ export const useTypingEffect = (text: string, speed: number = 20, enabled: boole
 
 	return { displayedText, isComplete };
 };
-

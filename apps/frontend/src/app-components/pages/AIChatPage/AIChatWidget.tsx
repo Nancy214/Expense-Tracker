@@ -112,7 +112,12 @@ export const AIChatWidget = () => {
 		<div className="fixed bottom-4 right-4 z-50">
 			{/* Chat Window */}
 			{isOpen && (
-				<Card className={cn("w-[380px] sm:w-[420px] shadow-2xl border-2 border-border/50 flex flex-col transition-all duration-300 overflow-hidden", isMinimized ? "h-16" : "h-[600px]")}>
+				<Card
+					className={cn(
+						"w-[380px] sm:w-[420px] shadow-2xl border-2 border-border/50 flex flex-col transition-all duration-300 overflow-hidden",
+						isMinimized ? "h-16" : "h-[600px]"
+					)}
+				>
 					{/* Header */}
 					<CardHeader className="flex-row items-center justify-between space-y-0 pb-3 border-b bg-gradient-to-r from-muted/50 to-muted/30 backdrop-blur-sm">
 						<CardTitle className="flex items-center gap-2 text-lg font-semibold">

@@ -34,7 +34,7 @@ export class ContextBuilderService {
 		// Otherwise, use the user's default currency
 		const currenciesInTransactions = Array.from(transactionsByCurrency.keys());
 		const hasMultipleCurrencies = currenciesInTransactions.length > 1;
-		
+
 		let displayCurrency = user.currency || "USD";
 		if (!hasMultipleCurrencies && currenciesInTransactions.length === 1) {
 			// All transactions are in the same currency, use that
@@ -96,7 +96,7 @@ export class ContextBuilderService {
 	 */
 	private static getCategoryBreakdown(transactions: Transaction[]) {
 		const expenses = transactions.filter((t) => t.type === "expense");
-		
+
 		// Group by category (aggregate across all currencies for now)
 		const categoryMap = new Map<string, { amount: number; currencies: Set<string> }>();
 		expenses.forEach((t) => {
