@@ -32,6 +32,12 @@ const ChatMessageSchema = new Schema(
 			responseTime: {
 				type: Number,
 			},
+			promptTokens: {
+				type: Number,
+			},
+			completionTokens: {
+				type: Number,
+			},
 		},
 	},
 	{

@@ -58,6 +58,8 @@ export class AIController {
 					tokensUsed: result.tokensUsed,
 					responseTime: result.responseTime,
 					messagesRemaining: result.messagesRemaining,
+					promptTokens: result.promptTokens,
+					completionTokens: result.completionTokens,
 				},
 			});
 		} catch (error: unknown) {

@@ -12,6 +12,8 @@ export interface ChatMessage {
 		model?: string;
 		tokensUsed?: number;
 		responseTime?: number;
+		promptTokens?: number;
+		completionTokens?: number;
 	};
 }
 
@@ -36,6 +38,8 @@ export interface ChatResponse {
 		tokensUsed: number;
 		responseTime: number;
 		messagesRemaining: number;
+		promptTokens?: number;
+		completionTokens?: number;
 	};
 }
 
@@ -50,5 +54,6 @@ export interface AIPreferencesResponse {
 export interface AIHealthResponse {
 	status: "healthy" | "unavailable" | "error";
 	model: string;
+	provider?: string;
 	error?: string;
 }

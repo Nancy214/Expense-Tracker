@@ -1,12 +1,191 @@
+import { getLangfuseService } from "./langfuse.service";
+
 /**
  * Prompt Template Service - generates system prompts for AI assistant
  * Single Responsibility: Prompt generation and templating
+ *
+ * Now supports Langfuse Prompt Management for:
+ * - Versioning prompts without code changes
+ * - A/B testing different prompt versions
+ * - Tracking prompt performance
  */
 export class PromptTemplateService {
+	private static langfuse = getLangfuseService();
+
 	/**
 	 * Generate system prompt with user financial context
+	 * Fetches prompt template from Langfuse if available, falls back to local
 	 */
-	static generateSystemPrompt(context: {
+	static async generateSystemPrompt(context: {
+		userName: string;
+		currency: string;
+		currencySymbol: string;
+		timezone: string;
+		country: string;
+		totalIncome: number;
+		totalExpenses: number;
+		savings: number;
+		savingsRate: number;
+		topCategories: Array<{
+			category: string;
+			amount: number;
+			percentage: string;
+		}>;
+		budgetStatus: Array<{
+			category: string;
+			limit: number;
+			spent: number;
+			percentage: string;
+			remaining: number;
+		}>;
+		recentTransactions: Array<{
+			date: string;
+			title: string;
+			amount: number;
+			category: string;
+			type: string;
+			currency: string;
+		}>;
+		hasMultipleCurrencies?: boolean;
+		currenciesInTransactions?: string[];
+		currencySummaries?: Array<{
+			currency: string;
+			income: number;
+			expenses: number;
+			savings: number;
+			savingsRate: number;
+		}>;
+	}): Promise<string> {
+		// Try to fetch prompt from Langfuse first
+		try {
+			if (this.langfuse.isEnabled()) {
+				const langfusePrompt = await this.fetchLangfusePrompt("financial-assistant-system", context);
+				if (langfusePrompt) {
+					console.log("[Prompt] Using Langfuse-managed prompt");
+					return langfusePrompt;
+				}
+			}
+		} catch (error) {
+			console.warn("[Prompt] Failed to fetch from Langfuse, using local fallback:", error);
+		}
+
+		// Fallback to local prompt
+		console.log("[Prompt] Using local prompt template");
+		return this.generateLocalSystemPrompt(context);
+	}
+
+	/**
+	 * Fetch prompt from Langfuse Prompt Management
+	 */
+	private static async fetchLangfusePrompt(promptName: string, context: Record<string, any>): Promise<string | null> {
+		try {
+			const promptData = await this.langfuse.getPrompt(promptName);
+
+			if (!promptData) {
+				return null;
+			}
+
+			// Prepare variables for template compilation
+			const variables = {
+				userName: context.userName,
+				currency: context.currency,
+				currencySymbol: context.currencySymbol,
+				timezone: context.timezone,
+				country: context.country,
+				totalIncome: context.totalIncome.toFixed(2),
+				totalExpenses: context.totalExpenses.toFixed(2),
+				savings: context.savings.toFixed(2),
+				savingsRate: context.savingsRate.toFixed(1),
+				topCategories: this.formatTopCategories(context.topCategories, context.currencySymbol),
+				budgetStatus: this.formatBudgetStatus(context.budgetStatus, context.currencySymbol),
+				recentTransactions: this.formatRecentTransactions(context.recentTransactions, context.currency),
+				hasMultipleCurrencies: context.hasMultipleCurrencies || false,
+				currenciesInTransactions: context.currenciesInTransactions?.join(", ") || "",
+			};
+
+			// Compile template with variables
+			const compiled = this.langfuse.compilePrompt(promptData.prompt, variables);
+
+			return compiled;
+		} catch (error) {
+			console.error("[Prompt] Error fetching Langfuse prompt:", error);
+			return null;
+		}
+	}
+
+	/**
+	 * Format top categories for prompt
+	 */
+	private static formatTopCategories(categories: Array<{ category: string; amount: number; percentage: string }>, currencySymbol: string): string {
+		return categories
+			.slice(0, 5)
+			.map((c) => `- ${c.category}: ${currencySymbol}${c.amount.toFixed(2)} (${c.percentage}%)`)
+			.join("\n");
+	}
+
+	/**
+	 * Format budget status for prompt
+	 */
+	private static formatBudgetStatus(
+		budgets: Array<{
+			category: string;
+			limit: number;
+			spent: number;
+			percentage: string;
+			remaining: number;
+		}>,
+		currencySymbol: string
+	): string {
+		if (budgets.length === 0) {
+			return "- No active budgets";
+		}
+
+		return budgets
+			.map(
+				(b) =>
+					`- ${b.category}: ${currencySymbol}${b.spent.toFixed(2)}/${currencySymbol}${b.limit.toFixed(2)} (${b.percentage}% used, ${currencySymbol}${b.remaining.toFixed(2)} remaining)`
+			)
+			.join("\n");
+	}
+
+	/**
+	 * Format recent transactions for prompt
+	 */
+	private static formatRecentTransactions(
+		transactions: Array<{
+			date: string;
+			title: string;
+			amount: number;
+			category: string;
+			type: string;
+			currency: string;
+		}>,
+		defaultCurrency: string
+	): string {
+		const currencyMap: Record<string, string> = {
+			USD: "$",
+			EUR: "€",
+			GBP: "£",
+			INR: "₹",
+			JPY: "¥",
+			CAD: "C$",
+			AUD: "A$",
+		};
+
+		return transactions
+			.slice(0, 10)
+			.map((t) => {
+				const txCurrency = t.currency || defaultCurrency;
+				const txSymbol = currencyMap[txCurrency] || txCurrency;
+				return `- ${t.date}: ${t.title} - ${txSymbol}${t.amount.toFixed(2)} ${txCurrency} [${t.category}]`;
+			})
+			.join("\n");
+	}
+
+	/**
+	 * Generate local system prompt (fallback)
+	 */
+	private static generateLocalSystemPrompt(context: {
 		userName: string;
 		currency: string;
 		currencySymbol: string;

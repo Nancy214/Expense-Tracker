@@ -1,23 +1,22 @@
 import type { Transaction, UserType, BudgetType } from "@expense-tracker/shared-types";
 import { ChatMessageDAO } from "../../daos/chat-message.dao";
 import { AIPreferencesDAO } from "../../daos/ai-preferences.dao";
-import { OpenAIService } from "./openai.service";
 import { ContextBuilderService } from "./context-builder.service";
 import { PromptTemplateService } from "./prompt-template.service";
+import { getLangfuseService } from "./langfuse.service";
 
 /**
  * AI Service - orchestrates AI chat functionality
  * Single Responsibility: Business logic for AI chat operations
+ *
+ * Uses Langfuse for both LLM calls and observability
+ * This allows switching between OpenAI, Anthropic, local models via env variables
  */
 export class AIService {
-	private openaiService: OpenAIService;
-
-	constructor() {
-		this.openaiService = new OpenAIService();
-	}
+	private langfuse = getLangfuseService();
 
 	/**
-	 * Process a chat message and generate AI response
+	 * Process a chat message and generate AI response with Langfuse tracking
 	 */
 	async chat(
 		userId: string,
@@ -30,9 +29,18 @@ export class AIService {
 		tokensUsed: number;
 		responseTime: number;
 		messagesRemaining: number;
+		promptTokens?: number;
+		completionTokens?: number;
 	}> {
 		const startTime = Date.now();
 		const userMessageTimestamp = new Date(startTime);
+
+		// Create Langfuse trace for this conversation
+		const traceId = this.langfuse.createTrace("ai-financial-chat", {
+			userId,
+			userEmail: user.email,
+			sessionId: `user-${userId}-${new Date().toISOString().split("T")[0]}`,
+		});
 
 		// Build financial context
 		const hasData = ContextBuilderService.hasSufficientData(transactions);
@@ -40,7 +48,7 @@ export class AIService {
 		let systemPrompt: string;
 		if (hasData) {
 			const context = ContextBuilderService.buildFinancialContext(user, transactions, budgets);
-			systemPrompt = PromptTemplateService.generateSystemPrompt(context);
+			systemPrompt = await PromptTemplateService.generateSystemPrompt(context);
 		} else {
 			systemPrompt = PromptTemplateService.generateMinimalSystemPrompt(user.name, user.currencySymbol || "$");
 		}
@@ -58,11 +66,23 @@ export class AIService {
 			{ role: "user" as const, content: userMessage },
 		];
 
-		// Call OpenAI
-		const { content: responseContent, tokensUsed } = await this.openaiService.chat(messages);
+		// Call LLM via Langfuse (supports OpenAI, Anthropic, etc.)
+		const { content: responseContent, tokensUsed, promptTokens, completionTokens, model: modelUsed } = await this.langfuse.chat(messages, traceId);
 
 		const responseTime = Date.now() - startTime;
 		const assistantMessageTimestamp = new Date();
+
+		// Update Langfuse trace with additional metadata
+		if (traceId && this.langfuse.isEnabled()) {
+			this.langfuse.updateTrace(traceId, {
+				hasFinancialData: hasData,
+				transactionsCount: transactions.length,
+				budgetsCount: budgets.length,
+				responseTime,
+				userMessage: userMessage.substring(0, 100), // First 100 chars for privacy
+				responsePreview: responseContent.substring(0, 100),
+			});
+		}
 
 		// Save messages to database with proper timestamps
 		await ChatMessageDAO.createMany([
@@ -78,9 +98,11 @@ export class AIService {
 				content: responseContent,
 				timestamp: assistantMessageTimestamp,
 				metadata: {
-					model: this.openaiService.getModel(),
+					model: modelUsed,
 					tokensUsed,
 					responseTime,
+					...(promptTokens !== undefined && { promptTokens }),
+					...(completionTokens !== undefined && { completionTokens }),
 				},
 			},
 		]);
@@ -91,11 +113,18 @@ export class AIService {
 		// Get remaining messages
 		const messagesRemaining = await AIPreferencesDAO.getRemainingMessageCount(userId);
 
+		// Flush Langfuse trace
+		if (this.langfuse.isEnabled()) {
+			await this.langfuse.flush();
+		}
+
 		return {
 			response: responseContent,
 			tokensUsed,
 			responseTime,
 			messagesRemaining,
+			...(promptTokens !== undefined && { promptTokens }),
+			...(completionTokens !== undefined && { completionTokens }),
 		};
 	}
 
@@ -193,11 +222,16 @@ export class AIService {
 	async healthCheck(): Promise<{
 		status: string;
 		model: string;
+		provider: string;
 	}> {
-		const isHealthy = await this.openaiService.healthCheck();
+		const isEnabled = this.langfuse.isEnabled();
+		const model = process.env.LLM_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
+		const provider = process.env.LLM_PROVIDER || "openai";
+
 		return {
-			status: isHealthy ? "healthy" : "unavailable",
-			model: this.openaiService.getModel(),
+			status: isEnabled ? "healthy" : "unavailable",
+			model,
+			provider,
 		};
 	}
 }
