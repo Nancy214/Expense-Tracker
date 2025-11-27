@@ -40,6 +40,10 @@ type HasCurrency = { currency?: string; currencySymbol?: string };
 export const getDefaultValues = (user?: HasCurrency): BudgetFormData => {
 	const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
 
+	// Set default date to 1st of current month
+	const now = new Date();
+	const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
 	return {
 		title: "",
 		amount: 0,
@@ -47,7 +51,7 @@ export const getDefaultValues = (user?: HasCurrency): BudgetFormData => {
 		fromRate: 1,
 		toRate: 1,
 		recurrence: BudgetRecurrence.MONTHLY,
-		startDate: format(new Date(), "dd/MM/yyyy"),
+		startDate: format(firstOfMonth, "dd/MM/yyyy"),
 		category: BudgetCategory.ALL_CATEGORIES,
 		reason: undefined,
 	};

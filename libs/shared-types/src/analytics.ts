@@ -307,3 +307,45 @@ export const ZAnalyticsApiRequestValidationQuery = z.object({
 	subPeriod: z.string().optional(),
 });
 export type AnalyticsApiRequestValidationQuery = z.infer<typeof ZAnalyticsApiRequestValidationQuery>;
+
+// Multi-line comparison chart types
+export const ZComparisonLineData = z.object({
+	name: z.string(), // Day/Month label
+	current: z.number(), // Current period value
+	previous: z.number(), // Previous period value
+});
+export type ComparisonLineData = z.infer<typeof ZComparisonLineData>;
+
+export const ZPeriodComparisonResponse = z.object({
+	success: z.boolean(),
+	data: z.object({
+		current: z.object({
+			label: z.string(), // e.g., "November 2024"
+			data: z.array(ZComparisonLineData),
+		}),
+		previous: z.object({
+			label: z.string(), // e.g., "October 2024"
+			data: z.array(ZComparisonLineData),
+		}),
+	}),
+	summary: z.object({
+		currentTotal: z.number(),
+		previousTotal: z.number(),
+		percentageChange: z.number(),
+		trend: z.enum(["up", "down", "stable"]),
+	}),
+});
+export type PeriodComparisonResponse = z.infer<typeof ZPeriodComparisonResponse>;
+
+export const ZMultiLineChartProps = ZChartProps.extend({
+	data: z.array(ZComparisonLineData),
+	currentPeriodLabel: z.string(),
+	previousPeriodLabel: z.string(),
+	colors: z
+		.object({
+			current: z.string(),
+			previous: z.string(),
+		})
+		.optional(),
+});
+export type MultiLineChartProps = z.infer<typeof ZMultiLineChartProps>;

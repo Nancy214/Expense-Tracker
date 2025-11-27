@@ -1,11 +1,13 @@
 import {
 	type BillsCategoryBreakdownResponse,
+	type ComparisonLineData,
 	type ExpenseCategoryBreakdownResponse,
 	type IncomeExpenseSummaryResponse,
 	type MonthlyIncomeExpenseData,
 	type MonthlySavingsData,
 	type MonthlySavingsTrendResponse,
 	Period,
+	type PeriodComparisonResponse,
 	type HorizontalBarData,
 	type SavingsDataForSpecificMonth,
 	type SpecificPeriodIncomeExpenseData,
@@ -496,6 +498,196 @@ export class AnalyticsService {
 						savings: worstMonth.savings,
 					},
 				},
+			},
+		};
+	}
+
+	// Get period comparison data - compares current period with previous period
+	async getPeriodComparison(userId: string, period: Period = Period.MONTHLY, subPeriod?: string): Promise<PeriodComparisonResponse> {
+		if (!subPeriod) {
+			// Default to current period if not specified
+			const now = new Date();
+			const currentMonth = now.getMonth();
+			const currentYear = now.getFullYear();
+
+			switch (period) {
+				case Period.MONTHLY:
+					subPeriod = getMonthName(currentMonth);
+					break;
+				case Period.QUARTERLY:
+					subPeriod = `Q${Math.floor(currentMonth / 3) + 1}`;
+					break;
+				case Period.HALF_YEARLY:
+					subPeriod = currentMonth < 6 ? "H1" : "H2";
+					break;
+				case Period.YEARLY:
+					subPeriod = currentYear.toString();
+					break;
+			}
+		}
+
+		// Get current period data
+		const { startDate: currentStart, endDate: currentEnd } = this.getDateRange(period, subPeriod);
+
+		// Calculate previous period range
+		let previousStart: Date;
+		let previousEnd: Date;
+		let currentLabel: string;
+		let previousLabel: string;
+
+		switch (period) {
+			case Period.MONTHLY: {
+				// Previous month
+				const currentDate = parse(subPeriod, "MMMM", new Date());
+				const currentMonthIndex = currentDate.getMonth();
+				const currentYear = new Date().getFullYear();
+
+				const prevMonthDate = new Date(currentYear, currentMonthIndex - 1, 1);
+				const prevMonthIndex = prevMonthDate.getMonth();
+				const prevYear = prevMonthDate.getFullYear();
+
+				previousStart = startOfMonth(prevMonthDate);
+				previousEnd = endOfMonth(prevMonthDate);
+
+				currentLabel = `${subPeriod} ${currentYear}`;
+				previousLabel = `${getMonthName(prevMonthIndex)} ${prevYear}`;
+				break;
+			}
+			case Period.QUARTERLY: {
+				// Previous quarter
+				const quarter = parseInt(subPeriod.replace("Q", ""));
+				const currentYear = new Date().getFullYear();
+				const prevQuarter = quarter === 1 ? 4 : quarter - 1;
+				const prevYear = quarter === 1 ? currentYear - 1 : currentYear;
+
+				const prevQuarterStartMonth = (prevQuarter - 1) * 3;
+				const prevQuarterStartDate = new Date(prevYear, prevQuarterStartMonth, 1);
+				previousStart = startOfQuarter(prevQuarterStartDate);
+				previousEnd = endOfQuarter(prevQuarterStartDate);
+
+				currentLabel = `${subPeriod} ${currentYear}`;
+				previousLabel = `Q${prevQuarter} ${prevYear}`;
+				break;
+			}
+			case Period.HALF_YEARLY: {
+				// Previous half-year
+				const half = parseInt(subPeriod.replace("H", ""));
+				const currentYear = new Date().getFullYear();
+				const prevHalf = half === 1 ? 2 : 1;
+				const prevYear = half === 1 ? currentYear - 1 : currentYear;
+
+				const prevHalfStartMonth = (prevHalf - 1) * 6;
+				const prevHalfStartDate = new Date(prevYear, prevHalfStartMonth, 1);
+				previousStart = startOfMonth(prevHalfStartDate);
+				previousEnd = endOfMonth(addMonths(prevHalfStartDate, 5));
+
+				currentLabel = `${subPeriod} ${currentYear}`;
+				previousLabel = `H${prevHalf} ${prevYear}`;
+				break;
+			}
+			case Period.YEARLY: {
+				// Previous year
+				const year = parseInt(subPeriod);
+				const prevYear = year - 1;
+
+				previousStart = startOfYear(new Date(prevYear, 0, 1));
+				previousEnd = endOfYear(new Date(prevYear, 0, 1));
+
+				currentLabel = year.toString();
+				previousLabel = prevYear.toString();
+				break;
+			}
+		}
+
+		// Fetch data for both periods
+		let currentData: ComparisonLineData[] = [];
+		let previousData: ComparisonLineData[] = [];
+
+		if (period === Period.MONTHLY) {
+			// For monthly view, get daily data
+			const currentMonthData = await this.getDailyTransactionsForMonth(
+				userId,
+				currentStart.getFullYear(),
+				currentStart.getMonth()
+			);
+			const previousMonthData = await this.getDailyTransactionsForMonth(
+				userId,
+				previousStart.getFullYear(),
+				previousStart.getMonth()
+			);
+
+			// Create comparison data by day number
+			const maxDays = Math.max(currentMonthData.length, previousMonthData.length);
+			for (let i = 0; i < maxDays; i++) {
+				const currentDay = currentMonthData[i];
+				const previousDay = previousMonthData[i];
+
+				currentData.push({
+					name: (i + 1).toString(),
+					current: currentDay ? currentDay.expenses : 0,
+					previous: previousDay ? previousDay.expenses : 0,
+				});
+			}
+		} else {
+			// For other periods, get monthly aggregates
+			const periodMonths = period === Period.QUARTERLY ? 3 : period === Period.HALF_YEARLY ? 6 : 12;
+
+			for (let i = 0; i < periodMonths; i++) {
+				const currentMonthDate = new Date(currentStart.getFullYear(), currentStart.getMonth() + i, 1);
+				const previousMonthDate = new Date(previousStart.getFullYear(), previousStart.getMonth() + i, 1);
+
+				const currentMonthData = await this.getTransactionsForMonth(
+					userId,
+					currentMonthDate.getFullYear(),
+					currentMonthDate.getMonth()
+				);
+				const previousMonthData = await this.getTransactionsForMonth(
+					userId,
+					previousMonthDate.getFullYear(),
+					previousMonthDate.getMonth()
+				);
+
+				currentData.push({
+					name: getMonthName(currentMonthDate.getMonth()),
+					current: currentMonthData.expenses,
+					previous: previousMonthData.expenses,
+				});
+			}
+		}
+
+		// Calculate summary
+		const currentTotal = currentData.reduce((sum, item) => sum + item.current, 0);
+		const previousTotal = previousData.length > 0
+			? previousData.reduce((sum, item) => sum + item.previous, 0)
+			: currentData.reduce((sum, item) => sum + item.previous, 0);
+
+		const percentageChange = previousTotal === 0
+			? 0
+			: ((currentTotal - previousTotal) / previousTotal) * 100;
+
+		const trend = Math.abs(percentageChange) < 5
+			? "stable"
+			: percentageChange > 0
+			? "up"
+			: "down";
+
+		return {
+			success: true,
+			data: {
+				current: {
+					label: currentLabel,
+					data: currentData,
+				},
+				previous: {
+					label: previousLabel,
+					data: currentData, // Using same array since we store both values in one structure
+				},
+			},
+			summary: {
+				currentTotal,
+				previousTotal,
+				percentageChange: Math.round(percentageChange * 100) / 100,
+				trend,
 			},
 		};
 	}

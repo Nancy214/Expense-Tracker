@@ -138,11 +138,36 @@ export const ZBudgetLogType = z.object({
 });
 export type BudgetLogType = z.infer<typeof ZBudgetLogType>;
 
+export const ZBudgetHealth = z.object({
+	score: z.number(),
+	label: z.string(),
+	color: z.string(),
+	breakdown: z.object({
+		baseScore: z.number(),
+		overBudgetPenalty: z.number(),
+		highUsagePenalty: z.number(),
+		mediumUsagePenalty: z.number(),
+		lowUsageBonus: z.number(),
+		perfectRecordBonus: z.number(),
+		overBudgetCount: z.number(),
+		highUsageCount: z.number(),
+		mediumUsageCount: z.number(),
+		lowUsageCount: z.number(),
+	}),
+});
+export type BudgetHealth = z.infer<typeof ZBudgetHealth>;
+
 export const ZBudgetProgressResponse = z.object({
 	budgets: z.array(ZBudgetProgress),
 	totalProgress: z.number(),
 	totalBudgetAmount: z.number(),
 	totalSpent: z.number(),
+	activeBudgetsThisMonth: z.number(),
+	// Enhanced statistics
+	savingsAchieved: z.number(),
+	daysUntilReset: z.number().nullable(),
+	onTrackBudgets: z.number(),
+	budgetHealth: ZBudgetHealth,
 });
 export type BudgetProgressResponse = z.infer<typeof ZBudgetProgressResponse>;
 

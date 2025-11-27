@@ -223,6 +223,128 @@ export class BudgetDAO {
 	}
 
 	/**
+	 * Calculate days until next budget reset
+	 */
+	static calculateDaysUntilReset(budgets: BudgetProgress[], now: Date): number | null {
+		if (budgets.length === 0) return null;
+
+		// Find the earliest reset date among all budgets
+		const resetDates = budgets.map((budget) => {
+			const { periodEnd } = BudgetDAO.calculatePeriodDates(budget.recurrence, now);
+			return periodEnd;
+		});
+
+		const earliestReset = new Date(Math.min(...resetDates.map((d) => d.getTime())));
+		const daysUntilReset = Math.ceil((earliestReset.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+		return daysUntilReset;
+	}
+
+	/**
+	 * Calculate budget health score using Option 1: Simple Weighted Score
+	 */
+	static calculateBudgetHealth(budgets: BudgetProgress[]): {
+		score: number;
+		label: string;
+		color: string;
+		breakdown: {
+			baseScore: number;
+			overBudgetPenalty: number;
+			highUsagePenalty: number;
+			mediumUsagePenalty: number;
+			lowUsageBonus: number;
+			perfectRecordBonus: number;
+			overBudgetCount: number;
+			highUsageCount: number;
+			mediumUsageCount: number;
+			lowUsageCount: number;
+		};
+	} {
+		if (budgets.length === 0) {
+			return {
+				score: 0,
+				label: "No Data",
+				color: "gray",
+				breakdown: {
+					baseScore: 0,
+					overBudgetPenalty: 0,
+					highUsagePenalty: 0,
+					mediumUsagePenalty: 0,
+					lowUsageBonus: 0,
+					perfectRecordBonus: 0,
+					overBudgetCount: 0,
+					highUsageCount: 0,
+					mediumUsageCount: 0,
+					lowUsageCount: 0,
+				},
+			};
+		}
+
+		const baseScore = 100;
+
+		// Count budgets in each category
+		const overBudgetCount = budgets.filter((b) => b.isOverBudget).length;
+		const highUsageCount = budgets.filter((b) => !b.isOverBudget && b.progress >= 80).length;
+		const mediumUsageCount = budgets.filter((b) => !b.isOverBudget && b.progress >= 60 && b.progress < 80).length;
+		const lowUsageCount = budgets.filter((b) => b.progress < 40).length;
+
+		// Calculate penalties and bonuses
+		const overBudgetPenalty = overBudgetCount * 20;
+		const highUsagePenalty = highUsageCount * 10;
+		const mediumUsagePenalty = mediumUsageCount * 5;
+		const lowUsageBonus = lowUsageCount * 5;
+		const perfectRecordBonus = overBudgetCount === 0 ? 10 : 0;
+
+		// Calculate final score
+		let score = baseScore - overBudgetPenalty - highUsagePenalty - mediumUsagePenalty + lowUsageBonus + perfectRecordBonus;
+
+		// Cap between 0-100
+		score = Math.max(0, Math.min(100, score));
+
+		// Determine label and color
+		let label: string;
+		let color: string;
+
+		if (score >= 90) {
+			label = "Excellent!";
+			color = "green";
+		} else if (score >= 75) {
+			label = "Great!";
+			color = "green";
+		} else if (score >= 60) {
+			label = "Good";
+			color = "blue";
+		} else if (score >= 40) {
+			label = "Fair";
+			color = "yellow";
+		} else if (score >= 20) {
+			label = "Poor";
+			color = "orange";
+		} else {
+			label = "Critical";
+			color = "red";
+		}
+
+		return {
+			score,
+			label,
+			color,
+			breakdown: {
+				baseScore,
+				overBudgetPenalty,
+				highUsagePenalty,
+				mediumUsagePenalty,
+				lowUsageBonus,
+				perfectRecordBonus,
+				overBudgetCount,
+				highUsageCount,
+				mediumUsageCount,
+				lowUsageCount,
+			},
+		};
+	}
+
+	/**
 	 * Calculate budget progress - unified function for single budget or all budgets
 	 * @param userId - User ID to get budgets and expenses for
 	 * @param budgetId - Optional specific budget ID. If provided, returns progress for that budget only
@@ -235,6 +357,27 @@ export class BudgetDAO {
 				totalProgress: number;
 				totalBudgetAmount: number;
 				totalSpent: number;
+				activeBudgetsThisMonth: number;
+				savingsAchieved: number;
+				daysUntilReset: number | null;
+				onTrackBudgets: number;
+				budgetHealth: {
+					score: number;
+					label: string;
+					color: string;
+					breakdown: {
+						baseScore: number;
+						overBudgetPenalty: number;
+						highUsagePenalty: number;
+						mediumUsagePenalty: number;
+						lowUsageBonus: number;
+						perfectRecordBonus: number;
+						overBudgetCount: number;
+						highUsageCount: number;
+						mediumUsageCount: number;
+						lowUsageCount: number;
+					};
+				};
 		  }
 	> {
 		// Get budgets - either specific one or all for user
@@ -248,6 +391,27 @@ export class BudgetDAO {
 				totalProgress: 0,
 				totalBudgetAmount: 0,
 				totalSpent: 0,
+				activeBudgetsThisMonth: 0,
+				savingsAchieved: 0,
+				daysUntilReset: null,
+				onTrackBudgets: 0,
+				budgetHealth: {
+					score: 0,
+					label: "No Data",
+					color: "gray",
+					breakdown: {
+						baseScore: 0,
+						overBudgetPenalty: 0,
+						highUsagePenalty: 0,
+						mediumUsagePenalty: 0,
+						lowUsageBonus: 0,
+						perfectRecordBonus: 0,
+						overBudgetCount: 0,
+						highUsageCount: 0,
+						mediumUsageCount: 0,
+						lowUsageCount: 0,
+					},
+				},
 			};
 		}
 
@@ -295,12 +459,41 @@ export class BudgetDAO {
 		const totalBudgetAmount: number = budgetProgress.reduce((sum: number, budget: BudgetProgress) => sum + budget.amount, 0);
 		const totalSpent: number = budgetProgress.reduce((sum: number, budget: BudgetProgress) => sum + budget.totalSpent, 0);
 		const totalProgress: number = totalBudgetAmount > 0 ? (totalSpent / totalBudgetAmount) * 100 : 0;
+		const activeBudgetsThisMonth: number = budgetProgress.reduce((count: number, budget: BudgetProgress) => {
+			const periodStartDate = budget.periodStart instanceof Date ? budget.periodStart : new Date(budget.periodStart);
+			if (Number.isNaN(periodStartDate.getTime())) {
+				return count;
+			}
+			const hasStarted = new Date(budget.startDate).getTime() <= now.getTime();
+			const isCurrentMonth = periodStartDate.getMonth() === now.getMonth() && periodStartDate.getFullYear() === now.getFullYear();
+			return hasStarted && isCurrentMonth ? count + 1 : count;
+		}, 0);
+
+		// Calculate new statistics
+		// 1. Savings Achieved - sum of all positive remaining amounts
+		const savingsAchieved: number = budgetProgress.reduce((sum: number, budget: BudgetProgress) => {
+			return budget.remaining > 0 ? sum + budget.remaining : sum;
+		}, 0);
+
+		// 2. Days Until Next Budget Reset
+		const daysUntilReset: number | null = BudgetDAO.calculateDaysUntilReset(budgetProgress, now);
+
+		// 3. On-Track Budgets Count (budgets under 80% usage and not over budget)
+		const onTrackBudgets: number = budgetProgress.filter((b) => !b.isOverBudget && b.progress < 80).length;
+
+		// 4. Budget Health Score
+		const budgetHealth = BudgetDAO.calculateBudgetHealth(budgetProgress);
 
 		return {
 			budgets: budgetProgress,
 			totalProgress: Math.min(totalProgress, 100),
 			totalBudgetAmount,
 			totalSpent,
+			activeBudgetsThisMonth,
+			savingsAchieved: Math.round(savingsAchieved * 100) / 100,
+			daysUntilReset,
+			onTrackBudgets,
+			budgetHealth,
 		};
 	}
 
