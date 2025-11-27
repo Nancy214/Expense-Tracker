@@ -127,81 +127,84 @@ const DonutChartComponent: React.FC<DonutChartComponentProps> = ({
             {subtitle && <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">{subtitle}</p>}
 
             <div className="w-full">
-                <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                        <Pie
-                            data={sortedData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius="65%"
-                            outerRadius="90%"
-                            paddingAngle={2}
-                            dataKey="value"
-                            label={false}
-                        >
-                            {sortedData.map((entry, index) => (
-                                <Cell
-                                    key={`cell-${index}`}
-                                    fill={entry.fill}
-                                    className="stroke-white dark:stroke-slate-900"
-                                    strokeWidth={2}
-                                />
-                            ))}
-                            {/* Center label using Label component for proper centering */}
-                            <text x="50%" y="40%" textAnchor="middle" dominantBaseline="central">
-                                <tspan
-                                    x="50%"
-                                    dy="-1.3em"
-                                    className="fill-gray-600 dark:fill-gray-400"
-                                    style={{ fontSize: "14px", fontWeight: 500 }}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    <div className="w-full">
+                        <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                                <Pie
+                                    data={sortedData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius="65%"
+                                    outerRadius="90%"
+                                    paddingAngle={2}
+                                    dataKey="value"
+                                    label={false}
                                 >
-                                    Total
-                                </tspan>
-                                <tspan
-                                    x="50%"
-                                    dy="1.2em"
-                                    className="fill-gray-900 dark:fill-gray-100"
-                                    style={{ fontSize: "28px", fontWeight: 700 }}
-                                >
-                                    {displayCurrency}
-                                    {formatCompactNumber(total)}
-                                </tspan>
-                            </text>
-                        </Pie>
-                        <Tooltip content={<CustomTooltip formatAmount={formatAmount} />} />
-                        {showLegend && <Legend content={renderLegend} />}
-                    </PieChart>
-                </ResponsiveContainer>
-
-                {/* Category breakdown list */}
-                <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
-                    {sortedData.slice(0, 5).map((item, index) => (
-                        <div
-                            key={index}
-                            className="flex items-center justify-between text-xs sm:text-sm rounded hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
-                        >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span
-                                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
-                                    style={{ backgroundColor: item.fill }}
-                                />
-                                <span className="text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
+                                    {sortedData.map((entry, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={entry.fill}
+                                            className="stroke-white dark:stroke-slate-900"
+                                            strokeWidth={2}
+                                        />
+                                    ))}
+                                    {/* Center label using Label component for proper centering */}
+                                    <text x="50%" y="40%" textAnchor="middle" dominantBaseline="central">
+                                        <tspan
+                                            x="50%"
+                                            dy="-1.3em"
+                                            className="fill-gray-600 dark:fill-gray-400"
+                                            style={{ fontSize: "14px", fontWeight: 500 }}
+                                        >
+                                            Total
+                                        </tspan>
+                                        <tspan
+                                            x="50%"
+                                            dy="1.2em"
+                                            className="fill-gray-900 dark:fill-gray-100"
+                                            style={{ fontSize: "28px", fontWeight: 700 }}
+                                        >
+                                            {displayCurrency}
+                                            {formatCompactNumber(total)}
+                                        </tspan>
+                                    </text>
+                                </Pie>
+                                <Tooltip content={<CustomTooltip formatAmount={formatAmount} />} />
+                                {showLegend && <Legend content={renderLegend} />}
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                    {/* Category breakdown list */}
+                    <div className="w-full mt-4 md:mt-0 space-y-2 max-h-48 overflow-y-auto">
+                        {sortedData.slice(0, 5).map((item, index) => (
+                            <div
+                                key={index}
+                                className="flex items-center justify-between text-xs sm:text-sm rounded hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                            >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <span
+                                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
+                                        style={{ backgroundColor: item.fill }}
+                                    />
+                                    <span className="text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
+                                </div>
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                    <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                        {item.percentage.toFixed(1)}%
+                                    </span>
+                                    <span className="text-gray-900 dark:text-gray-100 font-semibold min-w-[70px] sm:min-w-[80px] text-right">
+                                        {formatAmount(item.value)}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-3 flex-shrink-0">
-                                <span className="text-gray-600 dark:text-gray-400 font-medium">
-                                    {item.percentage.toFixed(1)}%
-                                </span>
-                                <span className="text-gray-900 dark:text-gray-100 font-semibold min-w-[70px] sm:min-w-[80px] text-right">
-                                    {formatAmount(item.value)}
-                                </span>
+                        ))}
+                        {sortedData.length > 5 && (
+                            <div className="text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400 pt-2">
+                                +{sortedData.length - 5} more categories
                             </div>
-                        </div>
-                    ))}
-                    {sortedData.length > 5 && (
-                        <div className="text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400 pt-2">
-                            +{sortedData.length - 5} more categories
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

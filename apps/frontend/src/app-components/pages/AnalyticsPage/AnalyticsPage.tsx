@@ -8,15 +8,14 @@ import type {
     Transaction,
 } from "@expense-tracker/shared-types";
 import { ChartTypes, Period } from "@expense-tracker/shared-types";
-import { AlertCircle, TrendingUp, Calendar, TrendingDown } from "lucide-react";
+import { AlertCircle, TrendingUp, Calendar, TrendingDown, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import AddExpenseDialog from "@/app-components/pages/TransactionsPage/AddExpenseDialog";
@@ -394,20 +393,13 @@ const AnalyticsPage = () => {
                             : "Your financial health at a glance"}
                     </p>
                 </div>
-                <div className="flex items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                    <Label
-                        htmlFor="view-toggle"
-                        className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
-                    >
-                        {showAdvancedView ? "Advanced View" : "Simple View"}
-                    </Label>
-                    <Switch
-                        id="view-toggle"
-                        checked={showAdvancedView}
-                        onCheckedChange={setShowAdvancedView}
-                        className="data-[state=checked]:bg-blue-600"
-                    />
-                </div>
+                <Button
+                    onClick={() => setShowAdvancedView(!showAdvancedView)}
+                    variant={showAdvancedView ? "default" : "outline"}
+                    className="shadow-sm"
+                >
+                    Deep Dive <Sparkles className="h-4 w-4 ml-2" />
+                </Button>
             </div>
 
             {/* Error Alert */}
