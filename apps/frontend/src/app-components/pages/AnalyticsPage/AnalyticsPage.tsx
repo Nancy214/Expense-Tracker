@@ -9,7 +9,8 @@ import type {
 } from "@expense-tracker/shared-types";
 import { ChartTypes, Period } from "@expense-tracker/shared-types";
 import { AlertCircle, TrendingUp, Calendar, TrendingDown } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -268,10 +269,18 @@ const QuickInsights: React.FC<{
 
 const AnalyticsPage = () => {
     const { user } = useAuth();
+    const location = useLocation();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [showAdvancedView, setShowAdvancedView] = useState(false);
     const { isLoading: expensesLoading } = useExpenses();
     const { transactions: allTransactions, isLoading: allTransactionsLoading } = useAllTransactionsForAnalytics();
+
+    // Check if navigated with state to show advanced view
+    useEffect(() => {
+        if (location.state && (location.state as any).showAdvanced) {
+            setShowAdvancedView(true);
+        }
+    }, [location]);
 
     // Time period selector state - Default to MONTHLY only
     const [selectedPeriod, setSelectedPeriod] = useState<Period>(Period.MONTHLY);

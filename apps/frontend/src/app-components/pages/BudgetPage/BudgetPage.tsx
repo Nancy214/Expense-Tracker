@@ -200,7 +200,7 @@ const BudgetPage: React.FC = () => {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <TrendingUp className="h-5 w-5" />
-                                Budget Overview
+                                Budget Statistics
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -285,22 +285,38 @@ const BudgetPage: React.FC = () => {
                                                         {budgetProgress.budgetHealth.breakdown.overBudgetCount > 0 && (
                                                             <div className="flex justify-between text-red-600">
                                                                 <span>
-                                                                    Over Budget ({budgetProgress.budgetHealth.breakdown.overBudgetCount}
+                                                                    Over Budget (
+                                                                    {
+                                                                        budgetProgress.budgetHealth.breakdown
+                                                                            .overBudgetCount
+                                                                    }
                                                                     ):
                                                                 </span>
                                                                 <span className="font-medium">
-                                                                    -{budgetProgress.budgetHealth.breakdown.overBudgetPenalty}
+                                                                    -
+                                                                    {
+                                                                        budgetProgress.budgetHealth.breakdown
+                                                                            .overBudgetPenalty
+                                                                    }
                                                                 </span>
                                                             </div>
                                                         )}
                                                         {budgetProgress.budgetHealth.breakdown.highUsageCount > 0 && (
                                                             <div className="flex justify-between text-orange-600">
                                                                 <span>
-                                                                    High Usage 80%+ ({budgetProgress.budgetHealth.breakdown.highUsageCount}
+                                                                    High Usage 80%+ (
+                                                                    {
+                                                                        budgetProgress.budgetHealth.breakdown
+                                                                            .highUsageCount
+                                                                    }
                                                                     ):
                                                                 </span>
                                                                 <span className="font-medium">
-                                                                    -{budgetProgress.budgetHealth.breakdown.highUsagePenalty}
+                                                                    -
+                                                                    {
+                                                                        budgetProgress.budgetHealth.breakdown
+                                                                            .highUsagePenalty
+                                                                    }
                                                                 </span>
                                                             </div>
                                                         )}
@@ -308,29 +324,50 @@ const BudgetPage: React.FC = () => {
                                                             <div className="flex justify-between text-yellow-600">
                                                                 <span>
                                                                     Medium Usage 60-80% (
-                                                                    {budgetProgress.budgetHealth.breakdown.mediumUsageCount}):
+                                                                    {
+                                                                        budgetProgress.budgetHealth.breakdown
+                                                                            .mediumUsageCount
+                                                                    }
+                                                                    ):
                                                                 </span>
                                                                 <span className="font-medium">
-                                                                    -{budgetProgress.budgetHealth.breakdown.mediumUsagePenalty}
+                                                                    -
+                                                                    {
+                                                                        budgetProgress.budgetHealth.breakdown
+                                                                            .mediumUsagePenalty
+                                                                    }
                                                                 </span>
                                                             </div>
                                                         )}
                                                         {budgetProgress.budgetHealth.breakdown.lowUsageCount > 0 && (
                                                             <div className="flex justify-between text-green-600">
                                                                 <span>
-                                                                    Low Usage &lt;40% ({budgetProgress.budgetHealth.breakdown.lowUsageCount}
+                                                                    Low Usage &lt;40% (
+                                                                    {
+                                                                        budgetProgress.budgetHealth.breakdown
+                                                                            .lowUsageCount
+                                                                    }
                                                                     ):
                                                                 </span>
                                                                 <span className="font-medium">
-                                                                    +{budgetProgress.budgetHealth.breakdown.lowUsageBonus}
+                                                                    +
+                                                                    {
+                                                                        budgetProgress.budgetHealth.breakdown
+                                                                            .lowUsageBonus
+                                                                    }
                                                                 </span>
                                                             </div>
                                                         )}
-                                                        {budgetProgress.budgetHealth.breakdown.perfectRecordBonus > 0 && (
+                                                        {budgetProgress.budgetHealth.breakdown.perfectRecordBonus >
+                                                            0 && (
                                                             <div className="flex justify-between text-green-600">
                                                                 <span>Perfect Record Bonus:</span>
                                                                 <span className="font-medium">
-                                                                    +{budgetProgress.budgetHealth.breakdown.perfectRecordBonus}
+                                                                    +
+                                                                    {
+                                                                        budgetProgress.budgetHealth.breakdown
+                                                                            .perfectRecordBonus
+                                                                    }
                                                                 </span>
                                                             </div>
                                                         )}
