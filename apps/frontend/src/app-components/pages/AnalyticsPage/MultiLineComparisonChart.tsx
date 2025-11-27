@@ -1,4 +1,4 @@
-import type { ComparisonLineData, MultiLineChartProps, Period } from "@expense-tracker/shared-types";
+import type { ComparisonLineData, MultiLineChartProps } from "@expense-tracker/shared-types";
 import type React from "react";
 import {
     CartesianGrid,
@@ -71,10 +71,10 @@ const MultiLineComparisonChart: React.FC<MultiLineChartProps> = ({
     currentPeriodLabel = "Current Period",
     previousPeriodLabel = "Previous Period",
     colors = DEFAULT_COLORS,
-    showInsights = true,
+    //showInsights = true,
     showGrid = true,
     showLegend = true,
-    timePeriod,
+    //timePeriod,
     currency,
 }) => {
     const currencySymbol = useCurrencySymbol();
@@ -89,7 +89,7 @@ const MultiLineComparisonChart: React.FC<MultiLineChartProps> = ({
     };
 
     // Generate insights based on comparison data
-    const generateInsights = (data: ComparisonLineData[]): string[] => {
+    /* const generateInsights = (data: ComparisonLineData[]): string[] => {
         const insights: string[] = [];
 
         if (data.length === 0) return [];
@@ -157,9 +157,9 @@ const MultiLineComparisonChart: React.FC<MultiLineChartProps> = ({
         }
 
         return insights;
-    };
+    }; */
 
-    const insights = generateInsights(data);
+    //const insights = generateInsights(data);
 
     return (
         <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">

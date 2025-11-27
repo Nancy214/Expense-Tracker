@@ -63,7 +63,7 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     description = "Track your savings progress over time",
     data = [],
     colors = COLORS,
-    showInsights = true,
+    //showInsights = true,
     showGrid = true,
     showLegend = true,
     timePeriod = Period.MONTHLY,
@@ -80,7 +80,7 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
     };
 
     // Generate insights based on savings data
-    const generateInsights = (data: AreaChartData[]): string[] => {
+    /*  const generateInsights = (data: AreaChartData[]): string[] => {
         const insights: string[] = [];
 
         if (data.length === 0) return [];
@@ -187,7 +187,7 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
         }
 
         return insights.length > 0 ? insights : ["✅ Your savings data shows consistent progress."];
-    };
+    }; */
 
     // Format data based on time period
     const formattedData: AreaChartData[] = formatChartData(data, timePeriod as Period, subPeriod);
