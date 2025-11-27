@@ -93,3 +93,24 @@ export const getMonthlySavingsTrend = async (req: Request, res: Response): Promi
 		res.status(500).json(createErrorResponse("Unable to fetch monthly savings trend"));
 	}
 };
+
+// Get period comparison data - compares current period with previous period
+export const getPeriodComparison = async (req: Request, res: Response): Promise<void> => {
+	try {
+		const userId: string | undefined = (req as AuthRequest).user?.id;
+		if (!userId) {
+			res.status(401).json({ message: "User not authenticated" });
+			return;
+		}
+
+		// Get time period parameters from query
+		const { period = Period.MONTHLY, subPeriod } = req.query;
+
+		const response = await analyticsService.getPeriodComparison(userId, period as Period, subPeriod as string);
+
+		res.json(response);
+	} catch (error: unknown) {
+		logError("getPeriodComparison", error, (req as AuthRequest).user?.id);
+		res.status(500).json(createErrorResponse("Unable to fetch period comparison data"));
+	}
+};

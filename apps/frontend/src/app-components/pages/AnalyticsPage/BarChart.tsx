@@ -335,19 +335,19 @@ const BarChartComponent: React.FC<BarChartProps> = ({
 						: "No data available."}
 				</div>
 
-				{/* Insights Section */}
-				{showInsights && data.length > 0 && (
-					<div className="mt-2 p-3 sm:p-4 bg-muted/100 rounded-lg w-full">
-						<h4 className="text-xs sm:text-sm mb-2 font-semibold text-gray-800 dark:text-gray-100">Smart Insights</h4>
-						<div className="space-y-1 sm:space-y-2">
-							{generateInsights(data).map((insight: string, index: number) => (
-								<div key={`insight-${index}-${insight.slice(0, 20)}`} className="text-xs text-muted-foreground rounded">
-									{insight}
-								</div>
-							))}
-						</div>
+			{/* Insights Section */}
+			{/* {showInsights && data.length > 0 && (
+				<div className="mt-2 p-3 sm:p-4 bg-muted/100 rounded-lg w-full">
+					<h4 className="text-xs sm:text-sm mb-2 font-semibold text-gray-800 dark:text-gray-100">Smart Insights</h4>
+					<div className="space-y-1 sm:space-y-2">
+						{generateInsights(data).map((insight: string, index: number) => (
+							<div key={`insight-${index}-${insight.slice(0, 20)}`} className="text-xs text-muted-foreground rounded">
+								{insight}
+							</div>
+						))}
 					</div>
-				)}
+				</div>
+			)} */}
 			</div>
 		</div>
 	);

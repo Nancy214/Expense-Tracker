@@ -5,6 +5,7 @@ import type {
 	ExpenseCategoryBreakdownResponse,
 	IncomeExpenseSummaryResponse,
 	MonthlySavingsTrendResponse,
+	PeriodComparisonResponse,
 } from "@expense-tracker/shared-types";
 import axios, { type AxiosError, type AxiosResponse } from "axios";
 import { refreshAuthTokens } from "@/utils/authUtils";
@@ -123,6 +124,25 @@ export const getMonthlySavingsTrend = async (query: AnalyticsApiRequestValidatio
 		return response.data;
 	} catch (error) {
 		console.error("Error fetching monthly savings trend:", error);
+		const apiError: ApiError = {
+			success: false,
+			message: error instanceof Error ? error.message : "Unknown error occurred",
+		};
+		throw apiError;
+	}
+};
+
+// Get period comparison data
+export const getPeriodComparison = async (query: AnalyticsApiRequestValidationQuery): Promise<PeriodComparisonResponse> => {
+	try {
+		const params = new URLSearchParams();
+		if (query.period) params.append("period", query.period);
+		if (query.subPeriod) params.append("subPeriod", query.subPeriod);
+
+		const response: AxiosResponse<PeriodComparisonResponse> = await analyticsApi.get(`/period-comparison${params.toString() ? `?${params.toString()}` : ""}`);
+		return response.data;
+	} catch (error) {
+		console.error("Error fetching period comparison:", error);
 		const apiError: ApiError = {
 			success: false,
 			message: error instanceof Error ? error.message : "Unknown error occurred",

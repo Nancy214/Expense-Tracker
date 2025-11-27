@@ -7,13 +7,14 @@ import {
 	type MonthlySavingsTrendResponse,
 	type MonthlyStats,
 	type Period,
+	type PeriodComparisonResponse,
 	type Transaction,
 	TransactionType,
 } from "@expense-tracker/shared-types";
 import { type UseQueryResult, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { getBillsCategoryBreakdown, getExpenseCategoryBreakdown, getIncomeExpenseSummary, getMonthlySavingsTrend } from "@/services/analytics.service";
+import { getBillsCategoryBreakdown, getExpenseCategoryBreakdown, getIncomeExpenseSummary, getMonthlySavingsTrend, getPeriodComparison } from "@/services/analytics.service";
 import { getAllTransactionsForAnalytics } from "@/services/transaction.service";
 import { isInCurrentMonth, parseFromDisplay } from "@/utils/dateUtils";
 
@@ -23,6 +24,7 @@ export const ANALYTICS_QUERY_KEYS = {
 	billsBreakdown: (period?: string, subPeriod?: string) => ["analytics", "bills-breakdown", period, subPeriod] as const,
 	incomeExpenseSummary: (period?: string, subPeriod?: string) => ["analytics", "income-expense-summary", period, subPeriod] as const,
 	monthlySavingsTrend: (period?: string, subPeriod?: string) => ["analytics", "monthly-savings-trend", period, subPeriod] as const,
+	periodComparison: (period?: string, subPeriod?: string) => ["analytics", "period-comparison", period, subPeriod] as const,
 } as const;
 
 // Type for analytics query keys
@@ -217,6 +219,7 @@ export interface AnalyticsInvalidationReturn {
 	invalidateBillsBreakdown: () => Promise<void>;
 	invalidateIncomeExpenseSummary: () => Promise<void>;
 	invalidateMonthlySavingsTrend: () => Promise<void>;
+	invalidatePeriodComparison: () => Promise<void>;
 }
 
 export function useInvalidateAnalytics(): AnalyticsInvalidationReturn {
@@ -257,13 +260,39 @@ export function useInvalidateAnalytics(): AnalyticsInvalidationReturn {
 		});
 	};
 
+	const invalidatePeriodComparison = (): Promise<void> => {
+		return queryClient.invalidateQueries({
+			queryKey: ["analytics", "period-comparison"],
+			exact: false,
+		});
+	};
+
 	return {
 		invalidateAllAnalytics,
 		invalidateExpenseBreakdown,
 		invalidateBillsBreakdown,
 		invalidateIncomeExpenseSummary,
 		invalidateMonthlySavingsTrend,
+		invalidatePeriodComparison,
 	};
+}
+
+export function usePeriodComparison(period?: string, subPeriod?: string): UseQueryResult<PeriodComparisonResponse, Error> {
+	const { isAuthenticated } = useAuth();
+
+	const query: AnalyticsApiRequestValidationQuery = {
+		period: period as Period,
+		subPeriod,
+	};
+
+	return useQuery<PeriodComparisonResponse, Error>({
+		queryKey: ANALYTICS_QUERY_KEYS.periodComparison(period, subPeriod),
+		queryFn: () => getPeriodComparison(query),
+		staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+		gcTime: 10 * 60 * 1000, // Cache for 10 minutes
+		refetchOnWindowFocus: false,
+		enabled: isAuthenticated,
+	});
 }
 
 export function useAllTransactionsForAnalytics(): UseQueryResult<{
