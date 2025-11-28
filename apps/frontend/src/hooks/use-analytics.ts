@@ -329,11 +329,18 @@ export function useAllTransactionsForAnalytics(): UseQueryResult<{
 }
 
 // Derived Data Hook types
+interface CurrencyStats {
+	income: number;
+	expense: number;
+	net: number;
+}
+
 interface ExpensesSelectorReturn {
 	expenses: Transaction[];
 	isLoading: boolean;
 	invalidateExpenses: () => void;
 	monthlyStats: MonthlyStats;
+	monthlyStatsByCurrency: Record<string, CurrencyStats>;
 }
 
 export function useExpensesSelector(): ExpensesSelectorReturn {
@@ -382,6 +389,48 @@ export function useExpensesSelector(): ExpensesSelectorReturn {
 		};
 	}, [allTransactions]);
 
+	const monthlyStatsByCurrency = useMemo((): Record<string, CurrencyStats> => {
+		// Filter current month transactions
+		const currentMonthTransactions = allTransactions.filter((t: Transaction) => {
+			let transactionDate: Date;
+			if (typeof t.date === "string") {
+				const dateStr = t.date;
+				if (dateStr.includes("T") || dateStr.includes("Z")) {
+					transactionDate = new Date(dateStr);
+				} else {
+					transactionDate = parseFromDisplay(dateStr);
+				}
+			} else {
+				transactionDate = t.date as Date;
+			}
+			return isInCurrentMonth(transactionDate);
+		});
+
+		// Group by currency
+		const byCurrency: Record<string, CurrencyStats> = {};
+
+		currentMonthTransactions.forEach((t: Transaction) => {
+			const currency = t.currency || "INR";
+
+			if (!byCurrency[currency]) {
+				byCurrency[currency] = { income: 0, expense: 0, net: 0 };
+			}
+
+			if (t.type === TransactionType.INCOME) {
+				byCurrency[currency].income += t.amount || 0;
+			} else if (t.type === TransactionType.EXPENSE) {
+				byCurrency[currency].expense += t.amount || 0;
+			}
+		});
+
+		// Calculate net for each currency
+		Object.keys(byCurrency).forEach((currency) => {
+			byCurrency[currency].net = byCurrency[currency].income - byCurrency[currency].expense;
+		});
+
+		return byCurrency;
+	}, [allTransactions]);
+
 	const invalidateAllQueries = useCallback(() => {
 		// Invalidate analytics queries
 		queryClient.invalidateQueries({
@@ -394,5 +443,6 @@ export function useExpensesSelector(): ExpensesSelectorReturn {
 		isLoading: analyticsLoading,
 		invalidateExpenses: invalidateAllQueries,
 		monthlyStats,
+		monthlyStatsByCurrency,
 	};
 }

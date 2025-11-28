@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
-import { useCurrencySymbol } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
+import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
 
@@ -24,8 +24,21 @@ interface TabComponentProps {
 }
 
 export function AllTransactionsTab({ data, onEdit, showRecurringIcon = false, showRecurringBadge = false, refreshAllTransactions, onAddTransaction }: TabComponentProps) {
-	const currencySymbol = useCurrencySymbol();
 	const { toast } = useToast();
+	const { data: countryData } = useCountryTimezoneCurrency();
+
+	// Get currency symbol from country-timezone-currency data
+	const getCurrencySymbol = (currencyCode: string): string => {
+		if (!countryData || !currencyCode) return currencyCode;
+
+		// Find the currency in the country data
+		const countryWithCurrency = countryData.find(
+			(country) => country.currency.code === currencyCode
+		);
+
+		// Return the symbol if found, otherwise return the currency code
+		return countryWithCurrency?.currency.symbol || currencyCode;
+	};
 
 	const {
 		isDeleteDialogOpen,
@@ -154,6 +167,8 @@ export function AllTransactionsTab({ data, onEdit, showRecurringIcon = false, sh
 				cell: ({ row }: { row: Row<Transaction> }) => {
 					const amount: number = parseFloat(row.getValue("amount"));
 					const type: string = row.original.type || "expense";
+					const currency: string = row.original.currency || "INR";
+					const currencySymbol = getCurrencySymbol(currency);
 					return (
 						<div className={`text-right font-medium ${type === "income" ? "text-green-600" : "text-red-600"}`}>
 							{currencySymbol}
