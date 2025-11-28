@@ -19,11 +19,12 @@ interface Transaction {
     description?: string;
     amount: number;
     date: Date | string;
+    currency?: string;
 }
 
 interface RecentActivityProps {
     recentTransactions: Transaction[];
-    formatAmount: (amount: number) => string;
+    formatAmount: (amount: number, currency?: string) => string;
 }
 
 const RecentActivity = ({ recentTransactions, formatAmount }: RecentActivityProps) => {
@@ -122,7 +123,7 @@ const RecentActivity = ({ recentTransactions, formatAmount }: RecentActivityProp
                                     </div>
                                 </div>
                                 <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                    {formatAmount(transaction.amount)}
+                                    {formatAmount(transaction.amount, transaction.currency)}
                                 </div>
                             </div>
                         );

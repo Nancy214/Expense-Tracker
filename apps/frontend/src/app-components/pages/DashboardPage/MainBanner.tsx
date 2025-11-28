@@ -9,7 +9,8 @@ interface MainBannerProps {
         totalIncome: number;
         totalExpenses: number;
     };
-    formatAmount: (amount: number) => string;
+    monthlyStatsByCurrency?: Record<string, { income: number; expense: number; net: number }>;
+    formatAmount: (amount: number, currency?: string) => string;
     isLoading: boolean;
     onAddTransaction: () => void;
     onAddBudget: () => void;
@@ -19,11 +20,13 @@ interface MainBannerProps {
         link: string;
         icon: any;
         color: string;
+        insightsByCurrency?: Array<{ currency: string; message: string; color: string }>;
     };
 }
 
 const MainBanner = ({
     monthlyStats,
+    monthlyStatsByCurrency,
     formatAmount,
     isLoading,
     onAddTransaction,
@@ -31,6 +34,76 @@ const MainBanner = ({
     smartInsight,
 }: MainBannerProps) => {
     const navigate = useNavigate();
+
+    // Render multi-currency amounts
+    const renderMultiCurrencyAmount = (type: "income" | "expense" | "net") => {
+        if (!monthlyStatsByCurrency) {
+            const amount =
+                type === "income"
+                    ? monthlyStats.totalIncome
+                    : type === "expense"
+                    ? monthlyStats.totalExpenses
+                    : monthlyStats.balance;
+            return <span>{formatAmount(amount)}</span>;
+        }
+
+        const currencies = Object.keys(monthlyStatsByCurrency);
+        if (currencies.length === 0) {
+            const amount =
+                type === "income"
+                    ? monthlyStats.totalIncome
+                    : type === "expense"
+                    ? monthlyStats.totalExpenses
+                    : monthlyStats.balance;
+            return <span>{formatAmount(amount)}</span>;
+        }
+
+        return (
+            <div className="space-y-1">
+                {currencies.map((currency) => {
+                    const stats = monthlyStatsByCurrency[currency];
+                    const amount = type === "income" ? stats.income : type === "expense" ? stats.expense : stats.net;
+                    return (
+                        <div key={currency} className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+                            {formatAmount(amount, currency)}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const renderMultiCurrencySubAmount = (type: "income" | "expense") => {
+        if (!monthlyStatsByCurrency) {
+            const amount = type === "income" ? monthlyStats.totalIncome : monthlyStats.totalExpenses;
+            return <span>{formatAmount(amount)}</span>;
+        }
+
+        const currencies = Object.keys(monthlyStatsByCurrency);
+        if (currencies.length === 0) {
+            const amount = type === "income" ? monthlyStats.totalIncome : monthlyStats.totalExpenses;
+            return <span>{formatAmount(amount)}</span>;
+        }
+
+        return (
+            <div className="space-y-0.5">
+                {currencies.map((currency) => {
+                    const stats = monthlyStatsByCurrency[currency];
+                    const amount = type === "income" ? stats.income : stats.expense;
+                    return (
+                        <span key={currency} className="flex items-center gap-1.5 text-lg font-medium">
+                            {type === "income" ? (
+                                <TrendingUp className="h-5 w-5" />
+                            ) : (
+                                <TrendingDown className="h-5 w-5" />
+                            )}
+                            {formatAmount(amount, currency)}
+                        </span>
+                    );
+                })}
+            </div>
+        );
+    };
 
     return (
         <div className="space-y-4">
@@ -46,23 +119,15 @@ const MainBanner = ({
                             <div className="flex items-start justify-between">
                                 <div className="space-y-2">
                                     <p className="text-white/90 text-sm font-medium">Balance This Month</p>
-                                    <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-                                        {formatAmount(monthlyStats.balance || 0)}
-                                    </h2>
+                                    {renderMultiCurrencyAmount("net")}
                                     <div className="flex items-center gap-4 text-white text-base">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-sm text-white/80 font-semibold">Income</span>
-                                            <span className="flex items-center gap-1.5 text-lg font-medium">
-                                                <TrendingUp className="h-5 w-5" />
-                                                {formatAmount(monthlyStats.totalIncome || 0)}
-                                            </span>
+                                            {renderMultiCurrencySubAmount("income")}
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <span className="text-sm text-white/80 font-semibold">Expenses</span>
-                                            <span className="flex items-center gap-1.5 text-lg font-medium">
-                                                <TrendingDown className="h-5 w-5" />
-                                                {formatAmount(monthlyStats.totalExpenses || 0)}
-                                            </span>
+                                            {renderMultiCurrencySubAmount("expense")}
                                         </div>
                                     </div>
                                 </div>
@@ -74,7 +139,7 @@ const MainBanner = ({
 
                             {/* Smart Insight */}
                             <div
-                                className="flex items-center justify-between gap-2 text-sm bg-white/20 backdrop-blur-sm rounded-lg p-3 cursor-pointer hover:bg-white/25 transition-colors"
+                                className="bg-white/20 backdrop-blur-sm rounded-lg p-3 cursor-pointer hover:bg-white/25 transition-colors"
                                 onClick={() => {
                                     if (smartInsight.link === "#") {
                                         onAddTransaction();
@@ -83,14 +148,27 @@ const MainBanner = ({
                                     }
                                 }}
                             >
-                                <div className="flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 flex-shrink-0 text-white" />
-                                    <span className="text-white font-medium">{smartInsight.message}</span>
+                                <div className="flex items-center justify-between gap-2 text-sm">
+                                    <div className="flex items-center gap-2 flex-1">
+                                        <Sparkles className="h-4 w-4 flex-shrink-0 text-white" />
+                                        <span className="text-white font-medium">{smartInsight.message}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-xs font-medium text-white/90 hover:text-white">
+                                        <span>{smartInsight.action}</span>
+                                        <ArrowUpRight className="h-3 w-3" />
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-1 text-xs font-medium text-white/90 hover:text-white">
-                                    <span>{smartInsight.action}</span>
-                                    <ArrowUpRight className="h-3 w-3" />
-                                </div>
+                                {/* Per-currency insights */}
+                                {smartInsight.insightsByCurrency && smartInsight.insightsByCurrency.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-white/20 space-y-1">
+                                        {smartInsight.insightsByCurrency.map((insight) => (
+                                            <div key={insight.currency} className="flex items-center gap-2 text-xs">
+                                                <span className="text-white/80 font-medium">{insight.currency}:</span>
+                                                <span className="text-white/90">{insight.message}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -131,4 +209,3 @@ const MainBanner = ({
 };
 
 export default MainBanner;
-

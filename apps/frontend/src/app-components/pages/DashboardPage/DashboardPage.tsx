@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import { useExpensesSelector } from "@/hooks/use-analytics";
 import { useBudgets } from "@/hooks/use-budgets";
-import { useSettings, useCurrencySymbol } from "@/hooks/use-profile";
+import { useSettings, useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import AddExpenseDialog from "../TransactionsPage/AddExpenseDialog";
 import MainBanner from "./MainBanner";
 import MonthlyComparison from "./MonthlyComparison";
@@ -28,7 +28,7 @@ interface FinancialOverviewData {
 const DashboardPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const currencySymbol = useCurrencySymbol();
+    const { data: countryData } = useCountryTimezoneCurrency();
 
     // Load user settings properly
     const { data: settingsData } = useSettings(user?.id || "");
@@ -58,7 +58,12 @@ const DashboardPage = () => {
     const [isAddBudgetDialogOpen, setIsAddBudgetDialogOpen] = useState<boolean>(false);
     const [preselectedCategory, setPreselectedCategory] = useState<string | undefined>(undefined);
 
-    const { monthlyStats, isLoading: statsLoading, expenses: allExpenses } = useExpensesSelector();
+    const {
+        monthlyStats,
+        monthlyStatsByCurrency,
+        isLoading: statsLoading,
+        expenses: allExpenses,
+    } = useExpensesSelector();
     const { budgetProgress, isProgressLoading } = useBudgets();
 
     // Calculate previous month stats for comparison
@@ -74,10 +79,21 @@ const DashboardPage = () => {
         });
 
         const prevMonthTotal = prevMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-        return prevMonthTotal;
+
+        // Calculate by currency
+        const prevMonthByCurrency: Record<string, number> = {};
+        prevMonthExpenses.forEach((expense) => {
+            const currency = expense.currency || "INR";
+            if (!prevMonthByCurrency[currency]) {
+                prevMonthByCurrency[currency] = 0;
+            }
+            prevMonthByCurrency[currency] += expense.amount;
+        });
+
+        return { total: prevMonthTotal, byCurrency: prevMonthByCurrency };
     };
 
-    const previousMonthExpenses = calculatePreviousMonthStats();
+    const previousMonthStats = calculatePreviousMonthStats();
 
     // Financial Overview data
     const financialData: FinancialOverviewData = {
@@ -103,15 +119,23 @@ const DashboardPage = () => {
         localStorage.setItem("dismissedExpenseReminder", JSON.stringify(dismissalData));
     };
 
-    // Format currency with proper symbol
-    const formatAmount = (amount: number) => {
-        const currency: string = user?.currency || "INR";
-        const decimals: number = ["JPY", "KRW"].includes(currency) ? 0 : 2;
+    // Get currency symbol from country-timezone-currency data
+    const getCurrencySymbol = (currencyCode: string): string => {
+        if (!countryData || !currencyCode) return currencyCode;
+        const countryWithCurrency = countryData.find((country) => country.currency.code === currencyCode);
+        return countryWithCurrency?.currency.symbol || currencyCode;
+    };
+
+    // Format currency with proper symbol - accepts optional currency parameter
+    const formatAmount = (amount: number, currency?: string) => {
+        const currencyCode: string = currency || user?.currency || "INR";
+        const decimals: number = ["JPY", "KRW"].includes(currencyCode) ? 0 : 2;
         const formattedAmount: string = new Intl.NumberFormat("en-US", {
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals,
         }).format(Math.abs(amount));
-        const symbolBefore: boolean = !["EUR", "GBP"].includes(currency);
+        const currencySymbol = getCurrencySymbol(currencyCode);
+        const symbolBefore: boolean = !["EUR", "GBP"].includes(currencyCode);
         const formatted = symbolBefore ? `${currencySymbol}${formattedAmount}` : `${formattedAmount}${currencySymbol}`;
         return amount < 0 ? `-${formatted}` : formatted;
     };
@@ -142,17 +166,9 @@ const DashboardPage = () => {
 
     const urgentAlert = getMostUrgentAlert();
 
-    // Get smart insight message with actionable link
+    // Get smart insight message with actionable link - supports multi-currency
     const getSmartInsight = () => {
-        if (financialData.savingsRate >= 20) {
-            return {
-                message: `Saving ${financialData.savingsRate.toFixed(0)}% of income - keep it up!`,
-                action: "View Analytics",
-                link: "/analytics",
-                icon: Sparkles,
-                color: "text-green-600",
-            };
-        }
+        // Budget-related insights (not currency-specific)
         if (financialData.totalBudgets === 0) {
             return {
                 message: "Set budgets to track spending better",
@@ -160,41 +176,161 @@ const DashboardPage = () => {
                 link: "/budget",
                 icon: Target,
                 color: "text-blue-600",
+                insightsByCurrency: undefined,
             };
         }
-        if (financialData.expenseRate > 90) {
+
+        // If no multi-currency data, use aggregated stats
+        if (!monthlyStatsByCurrency || Object.keys(monthlyStatsByCurrency).length === 0) {
+            if (financialData.savingsRate >= 20) {
+                return {
+                    message: `Saving ${financialData.savingsRate.toFixed(0)}% of income - keep it up!`,
+                    action: "View Analytics",
+                    link: "/analytics",
+                    icon: Sparkles,
+                    color: "text-green-600",
+                    insightsByCurrency: undefined,
+                };
+            }
+            if (financialData.expenseRate > 90) {
+                return {
+                    message: `Spending ${financialData.expenseRate.toFixed(0)}% of income`,
+                    action: "Review Spending",
+                    link: "/analytics",
+                    icon: TrendingDown,
+                    color: "text-orange-600",
+                    insightsByCurrency: undefined,
+                };
+            }
+            if (monthlyStats.balance > 0) {
+                return {
+                    message: `Positive cash flow of ${formatAmount(monthlyStats.balance)}`,
+                    action: "View Details",
+                    link: "/analytics",
+                    icon: TrendingUp,
+                    color: "text-blue-600",
+                    insightsByCurrency: undefined,
+                };
+            }
+            if (monthlyStats.balance < 0) {
+                return {
+                    message: `Deficit of ${formatAmount(Math.abs(monthlyStats.balance))}`,
+                    action: "Review Budget",
+                    link: "/budget",
+                    icon: Target,
+                    color: "text-red-600",
+                    insightsByCurrency: undefined,
+                };
+            }
             return {
-                message: `Spending ${financialData.expenseRate.toFixed(0)}% of income`,
-                action: "Review Spending",
+                message: "Start tracking expenses to build insights",
+                action: "Add Transaction",
+                link: "#",
+                icon: DollarSign,
+                color: "text-gray-600",
+                insightsByCurrency: undefined,
+            };
+        }
+
+        // Multi-currency insights
+        const currencies = Object.keys(monthlyStatsByCurrency);
+        const insightsByCurrency: Array<{ currency: string; message: string; color: string }> = [];
+
+        currencies.forEach((currency) => {
+            const stats = monthlyStatsByCurrency[currency];
+            const income = stats.income;
+            const expense = stats.expense;
+            const balance = stats.net;
+            const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0;
+            const expenseRate = income > 0 ? (expense / income) * 100 : 0;
+
+            if (savingsRate >= 20) {
+                insightsByCurrency.push({
+                    currency,
+                    message: `Saving ${savingsRate.toFixed(0)}% of income`,
+                    color: "text-green-600",
+                });
+            } else if (expenseRate > 90) {
+                insightsByCurrency.push({
+                    currency,
+                    message: `Spending ${expenseRate.toFixed(0)}% of income`,
+                    color: "text-orange-600",
+                });
+            } else if (balance > 0) {
+                insightsByCurrency.push({
+                    currency,
+                    message: `Positive cash flow of ${formatAmount(balance, currency)}`,
+                    color: "text-blue-600",
+                });
+            } else if (balance < 0) {
+                insightsByCurrency.push({
+                    currency,
+                    message: `Deficit of ${formatAmount(Math.abs(balance), currency)}`,
+                    color: "text-red-600",
+                });
+            }
+        });
+
+        // Determine overall insight based on currencies
+        if (insightsByCurrency.length === 0) {
+            return {
+                message: "Start tracking expenses to build insights",
+                action: "Add Transaction",
+                link: "#",
+                icon: DollarSign,
+                color: "text-gray-600",
+                insightsByCurrency: undefined,
+            };
+        }
+
+        // If all currencies have positive balance, show combined positive message
+        const allPositive = insightsByCurrency.every(
+            (insight) => insight.color === "text-blue-600" || insight.color === "text-green-600"
+        );
+        const allNegative = insightsByCurrency.every((insight) => insight.color === "text-red-600");
+        const hasSavings = insightsByCurrency.some((insight) => insight.color === "text-green-600");
+
+        if (hasSavings) {
+            return {
+                message: "Great savings across currencies!",
+                action: "View Analytics",
                 link: "/analytics",
-                icon: TrendingDown,
-                color: "text-orange-600",
+                icon: Sparkles,
+                color: "text-green-600",
+                insightsByCurrency,
             };
         }
-        if (monthlyStats.balance > 0) {
+
+        if (allPositive) {
             return {
-                message: `Positive cash flow of ${formatAmount(monthlyStats.balance)}`,
+                message: "Positive cash flow across all currencies",
                 action: "View Details",
                 link: "/analytics",
                 icon: TrendingUp,
                 color: "text-blue-600",
+                insightsByCurrency,
             };
         }
-        if (monthlyStats.balance < 0) {
+
+        if (allNegative) {
             return {
-                message: `Deficit of ${formatAmount(Math.abs(monthlyStats.balance))}`,
+                message: "Review spending across currencies",
                 action: "Review Budget",
                 link: "/budget",
                 icon: Target,
                 color: "text-red-600",
+                insightsByCurrency,
             };
         }
+
+        // Mixed insights - show summary
         return {
-            message: "Start tracking expenses to build insights",
-            action: "Add Transaction",
-            link: "#",
-            icon: DollarSign,
-            color: "text-gray-600",
+            message: "Mixed financial status across currencies",
+            action: "View Analytics",
+            link: "/analytics",
+            icon: TrendingDown,
+            color: "text-orange-600",
+            insightsByCurrency,
         };
     };
 
@@ -307,6 +443,7 @@ const DashboardPage = () => {
             {/* Hero Card - Full Width */}
             <MainBanner
                 monthlyStats={monthlyStats}
+                monthlyStatsByCurrency={monthlyStatsByCurrency}
                 formatAmount={formatAmount}
                 isLoading={statsLoading || isProgressLoading}
                 onAddTransaction={() => {
@@ -322,7 +459,9 @@ const DashboardPage = () => {
                 {/* Monthly Comparison */}
                 <MonthlyComparison
                     monthlyStats={monthlyStats}
-                    previousMonthExpenses={previousMonthExpenses}
+                    monthlyStatsByCurrency={monthlyStatsByCurrency}
+                    previousMonthExpenses={previousMonthStats.total}
+                    previousMonthExpensesByCurrency={previousMonthStats.byCurrency}
                     formatAmount={formatAmount}
                     isLoading={statsLoading}
                 />
