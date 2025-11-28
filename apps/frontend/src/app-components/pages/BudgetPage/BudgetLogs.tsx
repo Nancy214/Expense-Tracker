@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBudgetLogs } from "@/hooks/use-budget-logs";
-import { useCurrencySymbol } from "@/hooks/use-profile";
+import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
+import { useAuth } from "@/context/AuthContext";
+import { normalizeUserCurrency, getCurrencySymbolByCode } from "@/utils/currency";
 import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import { BudgetLogFilters as BudgetLogFiltersComponent } from "./BudgetLogFilters";
 
@@ -27,7 +29,9 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
     }>({});
     const [hasActiveFilters, setHasActiveFilters] = useState(false);
 
-    const currencySymbol = useCurrencySymbol();
+    const { user } = useAuth();
+    const { data: countryData } = useCountryTimezoneCurrency();
+    const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
 
     const { filteredLogs, isLoading, error } = useBudgetLogs({
         budgetId,
@@ -98,10 +102,58 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
         return Number.isNaN(date.getTime()) ? "N/A" : format(date, dateFormat);
     };
 
-    const formatChangeValue = (value: any) => {
+    // Format amount in its original currency
+    const formatAmount = (amount: number, currency?: string): string => {
+        const currencyCode: string = currency || userCurrency;
+        const decimals: number = ["JPY", "KRW"].includes(currencyCode) ? 0 : 2;
+
+        const formattedAmount: string = new Intl.NumberFormat("en-US", {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+        }).format(Math.abs(amount));
+
+        const currencySymbolToUse = getCurrencySymbolByCode(currencyCode, countryData);
+        const symbolBefore: boolean = !["EUR", "GBP"].includes(currencyCode);
+        const formatted = symbolBefore
+            ? `${currencySymbolToUse}${formattedAmount}`
+            : `${formattedAmount}${currencySymbolToUse}`;
+        return amount < 0 ? `-${formatted}` : formatted;
+    };
+
+    // Extract currency from changes array or budget object
+    const getCurrencyFromChanges = (changes: BudgetLogType["changes"]): string | undefined => {
+        // First, check if there's a currency field change
+        const currencyChange = changes.find((c) => c.field === "currency");
+        if (currencyChange) {
+            // Use newValue if available, otherwise oldValue
+            return currencyChange.newValue || currencyChange.oldValue;
+        }
+
+        // Check if there's a budget object in changes
+        const budgetChange = changes.find((c) => c.field === "budget");
+        if (budgetChange) {
+            const budgetValues = budgetChange.newValue || budgetChange.oldValue;
+            if (budgetValues && budgetValues.currency) {
+                return budgetValues.currency;
+            }
+        }
+
+        // For amount changes, try to find currency in the same change's context
+        // This is a fallback - ideally currency should be in the changes array
+        return undefined;
+    };
+
+    const formatChangeValue = (value: any, changes?: BudgetLogType["changes"], currency?: string) => {
         if (value === null) return "N/A";
         if (typeof value === "object" && Object.prototype.hasOwnProperty.call(value, "amount")) {
-            return `${currencySymbol}${value.amount}`;
+            // If it's an amount object, use the currency from the object or from changes
+            const amountCurrency = value.currency || currency || userCurrency;
+            return formatAmount(value.amount, amountCurrency);
+        }
+        if (typeof value === "number" && changes) {
+            // If it's a number and we're in an amount field change, try to get currency
+            const amountCurrency = currency || getCurrencyFromChanges(changes) || userCurrency;
+            return formatAmount(value, amountCurrency);
         }
         if (value instanceof Date || (typeof value === "string" && !Number.isNaN(Date.parse(value)))) {
             return safeFormatDate(value);
@@ -113,19 +165,20 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
     };
 
     const renderChangeDetails = (changes: BudgetLogType["changes"]) => {
+        // Extract currency from changes if available
+        const currency = getCurrencyFromChanges(changes);
+
         return changes.map((change, index) => {
             if (change.field === "budget") {
                 // Handle full budget changes (creation/deletion)
                 const action = change.oldValue === null ? "Created" : "Deleted";
                 const values = change.oldValue || change.newValue;
+                const budgetCurrency = values.currency || currency || userCurrency;
                 return (
                     <div key={`budget-${change.field}-${index}-${action}`} className="mb-2">
                         <p className="text-sm font-medium">{action} budget with:</p>
                         <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400">
-                            <li>
-                                Amount: {currencySymbol}
-                                {values.amount}
-                            </li>
+                            <li>Amount: {formatAmount(values.amount, budgetCurrency)}</li>
                             <li>Recurrence: {values.recurrence}</li>
                             <li>Category: {values.category}</li>
                             <li>Start Date: {safeFormatDate(values.startDate)}</li>
@@ -134,6 +187,8 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
                 );
             } else {
                 // Handle individual field changes
+                // For amount field, use currency from changes or fallback to user currency
+                const fieldCurrency = change.field === "amount" ? currency : undefined;
                 return (
                     <div
                         key={`field-${change.field}-${index}-${change.oldValue}-${change.newValue}`}
@@ -141,7 +196,8 @@ const BudgetLogs: React.FC<BudgetLogsProps> = ({ budgetId }) => {
                     >
                         <span className="font-medium">{change.field}: </span>
                         <span className="text-gray-600 dark:text-gray-400">
-                            {formatChangeValue(change.oldValue)} → {formatChangeValue(change.newValue)}
+                            {formatChangeValue(change.oldValue, changes, fieldCurrency)} →{" "}
+                            {formatChangeValue(change.newValue, changes, fieldCurrency)}
                         </span>
                     </div>
                 );

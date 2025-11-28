@@ -6,6 +6,7 @@ import {
 } from "@expense-tracker/shared-types";
 import { useEffect, useState } from "react";
 import { FormProvider } from "react-hook-form";
+import { format } from "date-fns";
 import { CurrencyAmountField } from "@/app-components/form-fields/CurrencyAmountField";
 import { DateField } from "@/app-components/form-fields/DateField";
 import { InputField } from "@/app-components/form-fields/InputField";
@@ -16,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { useBudgetForm } from "@/hooks/useBudgetForm";
 import { normalizeUserCurrency } from "@/utils/currency";
+import { getExchangeRate } from "@/services/currency.service";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -62,18 +64,26 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
     );
 
     // Extract currency options from the cached data, removing duplicates and empty values
-    const currencyOptions: { value: string; label: string }[] = Array.isArray(countryTimezoneData)
-        ? countryTimezoneData
-              .map((item) => ({
-                  value: item.currency.code,
-                  label: item.currency.code,
-              }))
-              .filter((option) => option.value && option.value.trim() !== "") // Remove empty values
-              .filter(
-                  (option, index, self) => index === self.findIndex((o) => o.value === option.value) // Remove duplicates
-              )
-              .sort((a, b) => a.value.localeCompare(b.value)) // Sort alphabetically
-        : [];
+    const currencyOptions: { value: string; label: string; name: string }[] =
+        countryTimezoneData && countryTimezoneData.length > 0
+            ? (() => {
+                  const seen = new Set<string>();
+                  const options: { value: string; label: string; name: string }[] = [];
+                  for (const item of countryTimezoneData) {
+                      const value = item.currency.code;
+                      if (value && value.trim() !== "" && !seen.has(value)) {
+                          seen.add(value);
+                          options.push({
+                              value,
+                              label: value,
+                              name: item.currency.name,
+                          });
+                      }
+                  }
+                  options.sort((a, b) => a.value.localeCompare(b.value));
+                  return options;
+              })()
+            : [];
 
     // Watch form fields
     const watchedCurrency = form.watch("currency");
@@ -120,8 +130,24 @@ const AddBudgetDialog: React.FC<AddBudgetDialogProps> = ({
         return symbolMap[currencyCode] || currencyCode;
     };
 
-    const handleCurrencyChange = (value: string) => {
+    const handleCurrencyChange = async (value: string) => {
         form.setValue("currency", value);
+        const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
+
+        if (value !== userCurrency) {
+            try {
+                const rate = await getExchangeRate(userCurrency, value, format(new Date(), "yyyy-MM-dd"));
+                form.setValue("fromRate", 1);
+                form.setValue("toRate", rate.rate);
+            } catch (error) {
+                console.error("Error fetching exchange rate:", error);
+                form.setValue("fromRate", 1);
+                form.setValue("toRate", 1);
+            }
+        } else {
+            form.setValue("fromRate", 1);
+            form.setValue("toRate", 1);
+        }
     };
 
     return (

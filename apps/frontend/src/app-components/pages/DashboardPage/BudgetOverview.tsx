@@ -19,6 +19,7 @@ interface Budget {
     id: string;
     category: string;
     amount: number;
+    currency?: string;
     totalSpent: number;
     progress: number;
     isOverBudget: boolean;
@@ -26,7 +27,7 @@ interface Budget {
 
 interface BudgetOverviewProps {
     budgets: Budget[];
-    formatAmount: (amount: number) => string;
+    formatAmount: (amount: number, currency?: string) => string;
     isLoading: boolean;
     onAddBudget: () => void;
 }
@@ -124,7 +125,7 @@ const BudgetOverview = ({ budgets, formatAmount, isLoading, onAddBudget }: Budge
                                                     {budget.category}
                                                 </h4>
                                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                                    {formatAmount(budget.totalSpent)} of {formatAmount(budget.amount)}
+                                                    {formatAmount(budget.totalSpent, budget.currency)} of {formatAmount(budget.amount, budget.currency)}
                                                 </p>
                                             </div>
                                         </div>
@@ -165,7 +166,7 @@ const BudgetOverview = ({ budgets, formatAmount, isLoading, onAddBudget }: Budge
                                                 ? "text-red-600 dark:text-red-400"
                                                 : "text-gray-900 dark:text-white"
                                         }`}>
-                                            {formatAmount(Math.abs(remaining))}
+                                            {formatAmount(Math.abs(remaining), budget.currency)}
                                         </span>
                                     </div>
                                 </div>
