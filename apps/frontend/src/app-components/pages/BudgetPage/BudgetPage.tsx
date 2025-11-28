@@ -20,8 +20,10 @@ import { Info } from "lucide-react";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
 import { useToast } from "@/hooks/use-toast";
-import { useCurrencySymbol } from "@/hooks/use-profile";
+import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
+import { useAuth } from "@/context/AuthContext";
+import { normalizeUserCurrency, getCurrencySymbolByCode } from "@/utils/currency";
 
 const BudgetPage: React.FC = () => {
     const [pageState, setPageState] = useState<{
@@ -36,7 +38,8 @@ const BudgetPage: React.FC = () => {
     const [showBudgetHistory, setShowBudgetHistory] = useState(false);
 
     const { toast } = useToast();
-    const currencySymbol = useCurrencySymbol();
+    const { user } = useAuth();
+    const { data: countryData } = useCountryTimezoneCurrency();
     const { budgets = [], budgetProgress, isBudgetsLoading: isLoading, budgetsError } = useBudgets();
 
     const {
@@ -104,9 +107,45 @@ const BudgetPage: React.FC = () => {
         return recurrence.charAt(0).toUpperCase() + recurrence.slice(1);
     };
 
-    const formatAmount = (amount: number): string => {
-        return `${currencySymbol}${amount.toFixed(2)}`;
+    // Get user currency code
+    const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
+
+    // Format amount in its original currency (no conversion)
+    const formatAmount = (amount: number, currency?: string): string => {
+        const currencyCode: string = currency || userCurrency;
+        const decimals: number = ["JPY", "KRW"].includes(currencyCode) ? 0 : 2;
+
+        const formattedAmount: string = new Intl.NumberFormat("en-US", {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+        }).format(Math.abs(amount));
+
+        const currencySymbolToUse = getCurrencySymbolByCode(currencyCode, countryData);
+        const symbolBefore: boolean = !["EUR", "GBP"].includes(currencyCode);
+        const formatted = symbolBefore
+            ? `${currencySymbolToUse}${formattedAmount}`
+            : `${formattedAmount}${currencySymbolToUse}`;
+        return amount < 0 ? `-${formatted}` : formatted;
     };
+
+    // Calculate savings by currency
+    const calculateSavingsByCurrency = (): Array<{ currency: string; amount: number }> => {
+        const savingsByCurrency = new Map<string, number>();
+
+        budgetProgress.budgets.forEach((budget) => {
+            if (budget.remaining > 0) {
+                const currency = budget.currency || userCurrency;
+                const current = savingsByCurrency.get(currency) || 0;
+                savingsByCurrency.set(currency, current + budget.remaining);
+            }
+        });
+
+        return Array.from(savingsByCurrency.entries())
+            .map(([currency, amount]) => ({ currency, amount: Math.round(amount * 100) / 100 }))
+            .sort((a, b) => b.amount - a.amount);
+    };
+
+    const savingsByCurrency = calculateSavingsByCurrency();
 
     const getProgressColor = (progress: number, isOverBudget: boolean): ProgressColor => {
         if (isOverBudget) return ProgressColor.DANGER;
@@ -207,11 +246,28 @@ const BudgetPage: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 {/* Savings Achieved */}
                                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                                    <div className="text-2xl font-bold text-green-600">
-                                        {formatAmount(budgetProgress.savingsAchieved)}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">Saved</div>
-                                    <div className="text-xs text-muted-foreground mt-1">under budget</div>
+                                    {savingsByCurrency.length > 0 ? (
+                                        <div className="space-y-1">
+                                            {savingsByCurrency.map((saving) => (
+                                                <div
+                                                    key={saving.currency}
+                                                    className="text-2xl font-bold text-green-600"
+                                                >
+                                                    {formatAmount(saving.amount, saving.currency)}
+                                                </div>
+                                            ))}
+                                            <div className="text-sm text-muted-foreground mt-2">Saved</div>
+                                            <div className="text-xs text-muted-foreground mt-1">under budget</div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="text-2xl font-bold text-green-600">
+                                                {formatAmount(0, userCurrency)}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">Saved</div>
+                                            <div className="text-xs text-muted-foreground mt-1">under budget</div>
+                                        </>
+                                    )}
                                 </div>
 
                                 {/* Days Until Reset */}
@@ -438,7 +494,7 @@ const BudgetPage: React.FC = () => {
                                                 <CardTitle className="text-lg font-bold">{budget.category}</CardTitle>
                                                 {/* <div className="text-md text-primary">Title: {budget.title}</div> */}
                                                 <div className="text-md text-primary">
-                                                    {formatAmount(budget.amount)}
+                                                    {formatAmount(budget.amount, budget.currency)}
                                                 </div>
                                                 <CardDescription>
                                                     {formatRecurrence(budget.recurrence as BudgetRecurrence)} Budget{" "}
@@ -484,10 +540,10 @@ const BudgetPage: React.FC = () => {
                                                 />
                                                 <div className="flex justify-between text-gray-500">
                                                     <span className="text-sm text-primary">
-                                                        Spent: {formatAmount(progress.totalSpent)}
+                                                        Spent: {formatAmount(progress.totalSpent, progress.currency)}
                                                     </span>
                                                     <span className="text-sm text-primary">
-                                                        Remaining: {formatAmount(progress.remaining)}
+                                                        Remaining: {formatAmount(progress.remaining, progress.currency)}
                                                     </span>
                                                 </div>
                                                 <div className="text-xs text-gray-500">
@@ -499,7 +555,8 @@ const BudgetPage: React.FC = () => {
                                                         role="alert"
                                                     >
                                                         <XCircle className="h-3 w-3" aria-hidden="true" />
-                                                        Over budget by {formatAmount(Math.abs(progress.remaining))}
+                                                        Over budget by{" "}
+                                                        {formatAmount(Math.abs(progress.remaining), progress.currency)}
                                                     </div>
                                                 )}
                                             </div>
@@ -546,7 +603,7 @@ const BudgetPage: React.FC = () => {
                     budgetToDelete
                         ? `Are you sure you want to delete the ${formatRecurrence(
                               budgetToDelete.recurrence as BudgetRecurrence
-                          )} budget of ${formatAmount(budgetToDelete.amount)} for ${
+                          )} budget of ${formatAmount(budgetToDelete.amount, budgetToDelete.currency)} for ${
                               budgetToDelete.category
                           }? This action cannot be undone.`
                         : "Are you sure you want to delete this budget? This action cannot be undone."
