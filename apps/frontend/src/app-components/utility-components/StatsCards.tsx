@@ -1,14 +1,12 @@
 import { DollarSign, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/context/AuthContext";
 import { useExpensesSelector } from "@/hooks/use-analytics";
 import { useBudgets } from "@/hooks/use-budgets";
-import { useCurrencySymbol } from "@/hooks/use-profile";
+import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
 
 export default function StatsCards() {
-    const { user } = useAuth();
-    const currencySymbol = useCurrencySymbol();
-    const { monthlyStats, isLoading: expensesLoading } = useExpensesSelector();
+    const { data: countryData } = useCountryTimezoneCurrency();
+    const { monthlyStats, monthlyStatsByCurrency, isLoading: expensesLoading } = useExpensesSelector();
     const { budgetProgress, isBudgetsLoading } = useBudgets();
 
     const loading = expensesLoading || isBudgetsLoading;
@@ -18,21 +16,65 @@ export default function StatsCards() {
         activeBudgetsCount: budgetProgress?.activeBudgetsThisMonth ?? 0,
     };
 
-    const formatAmount = (amount: number) => {
-        const currency: string = user?.currency || "INR";
+    // Get currency symbol from country-timezone-currency data
+    const getCurrencySymbol = (currencyCode: string): string => {
+        if (!countryData || !currencyCode) return currencyCode;
+        const countryWithCurrency = countryData.find(
+            (country) => country.currency.code === currencyCode
+        );
+        return countryWithCurrency?.currency.symbol || currencyCode;
+    };
 
+    const formatAmount = (amount: number, currency: string) => {
         // Handle special cases for currencies without decimal places
         const decimals: number = ["JPY", "KRW"].includes(currency) ? 0 : 2;
+
+        // Determine if the amount is negative
+        const isNegative = amount < 0;
+        const absoluteAmount = Math.abs(amount);
 
         // Format with proper thousand separators and decimal places
         const formattedAmount: string = new Intl.NumberFormat("en-US", {
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals,
-        }).format(amount);
+        }).format(absoluteAmount);
 
+        const currencySymbol = getCurrencySymbol(currency);
         // Position the symbol based on currency convention
         const symbolBefore: boolean = !["EUR", "GBP"].includes(currency);
-        return symbolBefore ? `${currencySymbol}${formattedAmount}` : `${formattedAmount}${currencySymbol}`;
+        const formattedWithSymbol = symbolBefore ? `${currencySymbol}${formattedAmount}` : `${formattedAmount}${currencySymbol}`;
+
+        // Add negative sign at the beginning for negative amounts
+        return isNegative ? `-${formattedWithSymbol}` : formattedWithSymbol;
+    };
+
+    // Render multi-currency amounts
+    const renderMultiCurrencyAmount = (type: 'income' | 'expense' | 'net') => {
+        // Check if monthlyStatsByCurrency exists before accessing it
+        if (!monthlyStatsByCurrency) {
+            return <div className="text-lg sm:text-xl xl:text-2xl font-bold">{formatAmount(0, "INR")}</div>;
+        }
+
+        const currencies = Object.keys(monthlyStatsByCurrency);
+
+        if (currencies.length === 0) return <div className="text-lg sm:text-xl xl:text-2xl font-bold">{formatAmount(0, "INR")}</div>;
+
+        return (
+            <div className="space-y-1">
+                {currencies.map((currency) => {
+                    const stats = monthlyStatsByCurrency[currency];
+                    const amount = type === 'income' ? stats.income : type === 'expense' ? stats.expense : stats.net;
+                    const colorClass = type === 'net'
+                        ? (amount >= 0 ? "text-blue-900" : "text-red-900")
+                        : "";
+                    return (
+                        <div key={currency} className={`text-lg sm:text-xl xl:text-2xl font-bold ${colorClass}`}>
+                            {formatAmount(amount, currency)}
+                        </div>
+                    );
+                })}
+            </div>
+        );
     };
 
     if (loading) {
@@ -63,8 +105,8 @@ export default function StatsCards() {
                     <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-lg sm:text-xl xl:text-2xl font-bold text-green-900">
-                        {formatAmount(stats?.totalIncome || 0)}
+                    <div className="text-green-900">
+                        {renderMultiCurrencyAmount('income')}
                     </div>
                     <p className="text-xs text-green-700 mt-1">This month</p>
                 </CardContent>
@@ -75,8 +117,8 @@ export default function StatsCards() {
                     <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-lg sm:text-xl xl:text-2xl font-bold text-red-900">
-                        {formatAmount(stats?.totalExpenses || 0)}
+                    <div className="text-red-900">
+                        {renderMultiCurrencyAmount('expense')}
                     </div>
                     <p className="text-xs text-red-700 mt-1">This month</p>
                 </CardContent>
@@ -87,12 +129,8 @@ export default function StatsCards() {
                     <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                 </CardHeader>
                 <CardContent>
-                    <div
-                        className={`text-lg sm:text-xl xl:text-2xl font-bold ${
-                            stats?.balance && stats?.balance >= 0 ? "text-blue-900" : "text-red-900"
-                        }`}
-                    >
-                        {formatAmount(stats?.balance || 0)}
+                    <div>
+                        {renderMultiCurrencyAmount('net')}
                     </div>
                     <p className="text-xs text-blue-700 mt-1">This month</p>
                 </CardContent>
