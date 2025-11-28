@@ -8,7 +8,8 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useExpenses } from "@/hooks/use-transactions";
-import { useCurrencySymbol } from "@/hooks/use-profile";
+import { useCountryTimezoneCurrency } from "@/hooks/use-profile";
+import { getCurrencySymbolByCode } from "@/utils/currency";
 import "./CalendarStyle.css";
 // Separate color mappings for expense and income categories
 const expenseColors: { [key: string]: string } = {
@@ -68,12 +69,13 @@ const CalendarPage: React.FC = () => {
     const [typeFilters, setTypeFilters] = useState<Record<TransactionType, boolean>>(initialTypeFilters);
     const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
     const { expenses = [], isLoading } = useExpenses();
-    const currencySymbol = useCurrencySymbol();
+    const { data: countryTimezoneData } = useCountryTimezoneCurrency();
 
     // Convert expenses to FullCalendar events
     const calendarEvents: CalendarEvent[] = expenses.map((expense: Transaction) => {
-        // Use the currency symbol from user profile
-        const symbol: string = currencySymbol || expense.currency || "INR";
+        // Get currency symbol from country data for each transaction's specific currency
+        const currency: string = expense.currency || "INR";
+        const symbol: string = getCurrencySymbolByCode(currency, countryTimezoneData);
 
         // Ensure date is a string before split
         let dateStr: string = "";
@@ -147,21 +149,7 @@ const CalendarPage: React.FC = () => {
                                     <span className="font-medium">
                                         {(() => {
                                             const currency: string = expense.currency || "INR";
-                                            const currencySymbols: {
-                                                [key: string]: string;
-                                            } = {
-                                                INR: "₹",
-                                                EUR: "€",
-                                                GBP: "£",
-                                                JPY: "¥",
-                                                USD: "$",
-                                                CAD: "C$",
-                                                AUD: "A$",
-                                                CHF: "CHF",
-                                                CNY: "¥",
-                                                KRW: "₩",
-                                            };
-                                            const symbol: string = currencySymbols[currency] || currency;
+                                            const symbol: string = getCurrencySymbolByCode(currency, countryTimezoneData);
                                             return `${symbol}${expense.amount.toFixed(2)} ${currency}`;
                                         })()}
                                     </span>
