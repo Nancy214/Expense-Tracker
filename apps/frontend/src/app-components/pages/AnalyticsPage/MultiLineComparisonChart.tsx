@@ -1,95 +1,78 @@
 import type { ComparisonLineData, MultiLineChartProps } from "@expense-tracker/shared-types";
 import type React from "react";
-import {
-    CartesianGrid,
-    Legend,
-    Line,
-    LineChart as RechartsLineChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from "recharts";
+import { CartesianGrid, Legend, Line, LineChart as RechartsLineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useCurrencySymbol } from "@/hooks/use-profile";
 
 const DEFAULT_COLORS = {
-    current: "#3b82f6", // Blue for current period
-    previous: "#94a3b8", // Gray for previous period
+	current: "#3b82f6", // Blue for current period
+	previous: "#94a3b8", // Gray for previous period
 };
 
 // Custom tooltip component
 interface CustomTooltipProps {
-    active?: boolean;
-    payload?: any[];
-    label?: string;
-    formatAmount: (amount: number) => string;
-    currentPeriodLabel: string;
-    previousPeriodLabel: string;
+	active?: boolean;
+	payload?: any[];
+	label?: string;
+	formatAmount: (amount: number) => string;
+	currentPeriodLabel: string;
+	previousPeriodLabel: string;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({
-    active,
-    payload,
-    label,
-    formatAmount,
-    currentPeriodLabel,
-    previousPeriodLabel,
-}) => {
-    if (active && payload && payload.length > 0) {
-        const data = payload[0].payload as ComparisonLineData;
-        return (
-            <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                <p className="font-semibold text-gray-800 dark:text-gray-100 mb-2">{label}</p>
-                <p className="text-sm text-blue-600 dark:text-blue-400">
-                    {currentPeriodLabel}: {formatAmount(data.current)}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {previousPeriodLabel}: {formatAmount(data.previous)}
-                </p>
-                {data.current !== data.previous && (
-                    <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">
-                        {data.current > data.previous ? "+" : ""}
-                        {formatAmount(data.current - data.previous)} (
-                        {(() => {
-                            const percentChange = ((data.current - data.previous) / (data.previous || 1)) * 100;
-                            const cappedPercent = Math.max(-100, Math.min(100, percentChange));
-                            return `${cappedPercent.toFixed(1)}${Math.abs(percentChange) > 100 ? "+" : ""}`;
-                        })()}
-                        %)
-                    </p>
-                )}
-            </div>
-        );
-    }
-    return null;
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, formatAmount, currentPeriodLabel, previousPeriodLabel }) => {
+	if (active && payload && payload.length > 0) {
+		const data = payload[0].payload as ComparisonLineData;
+		return (
+			<div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+				<p className="font-semibold text-gray-800 dark:text-gray-100 mb-2">{label}</p>
+				<p className="text-sm text-blue-600 dark:text-blue-400">
+					{currentPeriodLabel}: {formatAmount(data.current)}
+				</p>
+				<p className="text-sm text-gray-600 dark:text-gray-400">
+					{previousPeriodLabel}: {formatAmount(data.previous)}
+				</p>
+				{data.current !== data.previous && (
+					<p className="text-xs mt-1 text-gray-500 dark:text-gray-400">
+						{data.current > data.previous ? "+" : ""}
+						{formatAmount(data.current - data.previous)} ({(() => {
+							const percentChange = ((data.current - data.previous) / (data.previous || 1)) * 100;
+							const cappedPercent = Math.max(-100, Math.min(100, percentChange));
+							return `${cappedPercent.toFixed(1)}${Math.abs(percentChange) > 100 ? "+" : ""}`;
+						})()}
+						%)
+					</p>
+				)}
+			</div>
+		);
+	}
+	return null;
 };
 
 const MultiLineComparisonChart: React.FC<MultiLineChartProps> = ({
-    title = "Spending Comparison",
-    description = "Compare spending patterns between periods",
-    data = [],
-    currentPeriodLabel = "Current Period",
-    previousPeriodLabel = "Previous Period",
-    colors = DEFAULT_COLORS,
-    //showInsights = true,
-    showGrid = true,
-    showLegend = true,
-    //timePeriod,
-    currency,
+	title = "Spending Comparison",
+	description = "Compare spending patterns between periods",
+	data = [],
+	currentPeriodLabel = "Current Period",
+	previousPeriodLabel = "Previous Period",
+	colors = DEFAULT_COLORS,
+	//showInsights = true,
+	showGrid = true,
+	showLegend = true,
+	//timePeriod,
+	currency,
 }) => {
-    const currencySymbol = useCurrencySymbol();
-    const displayCurrency = currency || currencySymbol;
+	const currencySymbol = useCurrencySymbol();
+	const displayCurrency = currency || currencySymbol;
 
-    // Format amount with currency
-    const formatAmount = (amount: number): string => {
-        if (amount === undefined || amount === null || isNaN(amount)) {
-            return `${displayCurrency}0.00`;
-        }
-        return `${displayCurrency}${amount.toFixed(2)}`;
-    };
+	// Format amount with currency
+	const formatAmount = (amount: number): string => {
+		if (amount === undefined || amount === null || isNaN(amount)) {
+			return `${displayCurrency}0.00`;
+		}
+		return `${displayCurrency}${amount.toFixed(2)}`;
+	};
 
-    // Generate insights based on comparison data
-    /* const generateInsights = (data: ComparisonLineData[]): string[] => {
+	// Generate insights based on comparison data
+	/* const generateInsights = (data: ComparisonLineData[]): string[] => {
         const insights: string[] = [];
 
         if (data.length === 0) return [];
@@ -159,97 +142,79 @@ const MultiLineComparisonChart: React.FC<MultiLineChartProps> = ({
         return insights;
     }; */
 
-    //const insights = generateInsights(data);
+	//const insights = generateInsights(data);
 
-    return (
-        <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between">
-                <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100">
-                    {title}
-                </h2>
-            </div>
-            {description && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>}
+	return (
+		<div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">
+			<div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between">
+				<h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
+			</div>
+			{description && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>}
 
-            <div className="w-full flex flex-col items-center mt-4">
-                <div className="w-full h-[300px] sm:h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <RechartsLineChart
-                            data={data}
-                            margin={{
-                                top: 20,
-                                right: 10,
-                                left: 10,
-                                bottom: 20,
-                            }}
-                        >
-                            <defs>
-                                <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={colors.current} stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor={colors.current} stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id="previousGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={colors.previous} stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor={colors.previous} stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />}
-                            <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#6b7280" />
-                            <YAxis
-                                tickFormatter={(value) => formatAmount(value)}
-                                tick={{ fontSize: 10 }}
-                                stroke="#6b7280"
-                            />
-                            <Tooltip
-                                content={
-                                    <CustomTooltip
-                                        formatAmount={formatAmount}
-                                        currentPeriodLabel={currentPeriodLabel}
-                                        previousPeriodLabel={previousPeriodLabel}
-                                    />
-                                }
-                            />
-                            {showLegend && <Legend />}
-                            <Line
-                                type="monotone"
-                                dataKey="current"
-                                stroke={colors.current}
-                                strokeWidth={3}
-                                dot={{ fill: colors.current, r: 4 }}
-                                activeDot={{ r: 6 }}
-                                name={currentPeriodLabel}
-                            />
-                            <Line
-                                type="monotone"
-                                dataKey="previous"
-                                stroke={colors.previous}
-                                strokeWidth={2}
-                                strokeDasharray="5 5"
-                                dot={{ fill: colors.previous, r: 3 }}
-                                activeDot={{ r: 5 }}
-                                name={previousPeriodLabel}
-                            />
-                        </RechartsLineChart>
-                    </ResponsiveContainer>
-                </div>
+			<div className="w-full flex flex-col items-center mt-4">
+				<div className="w-full h-[300px] sm:h-[400px]">
+					<ResponsiveContainer width="100%" height="100%">
+						<RechartsLineChart
+							data={data}
+							margin={{
+								top: 20,
+								right: 10,
+								left: 10,
+								bottom: 20,
+							}}
+						>
+							<defs>
+								<linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="5%" stopColor={colors.current} stopOpacity={0.1} />
+									<stop offset="95%" stopColor={colors.current} stopOpacity={0} />
+								</linearGradient>
+								<linearGradient id="previousGradient" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="5%" stopColor={colors.previous} stopOpacity={0.1} />
+									<stop offset="95%" stopColor={colors.previous} stopOpacity={0} />
+								</linearGradient>
+							</defs>
+							{showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />}
+							<XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#6b7280" />
+							<YAxis tickFormatter={(value) => formatAmount(value)} tick={{ fontSize: 10 }} stroke="#6b7280" />
+							<Tooltip content={<CustomTooltip formatAmount={formatAmount} currentPeriodLabel={currentPeriodLabel} previousPeriodLabel={previousPeriodLabel} />} />
+							{showLegend && <Legend />}
+							<Line
+								type="monotone"
+								dataKey="current"
+								stroke={colors.current}
+								strokeWidth={3}
+								dot={{ fill: colors.current, r: 4 }}
+								activeDot={{ r: 6 }}
+								name={currentPeriodLabel}
+							/>
+							<Line
+								type="monotone"
+								dataKey="previous"
+								stroke={colors.previous}
+								strokeWidth={2}
+								strokeDasharray="5 5"
+								dot={{ fill: colors.previous, r: 3 }}
+								activeDot={{ r: 5 }}
+								name={previousPeriodLabel}
+							/>
+						</RechartsLineChart>
+					</ResponsiveContainer>
+				</div>
 
-                {/* Summary Stats */}
-                <div className="mt-3 sm:mt-4 w-full max-w-2xl mx-auto grid grid-cols-2 gap-3">
-                    <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{currentPeriodLabel}</p>
-                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                            {formatAmount(data.reduce((sum, item) => sum + item.current, 0))}
-                        </p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-950/30 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{previousPeriodLabel}</p>
-                        <p className="text-lg font-bold text-gray-600 dark:text-gray-400">
-                            {formatAmount(data.reduce((sum, item) => sum + item.previous, 0))}
-                        </p>
-                    </div>
-                </div>
+				{/* Summary Stats */}
+				<div className="mt-3 sm:mt-4 w-full max-w-2xl mx-auto grid grid-cols-2 gap-3">
+					<div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+						<p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{currentPeriodLabel}</p>
+						<p className="text-lg font-bold text-blue-600 dark:text-blue-400">{formatAmount(data.reduce((sum, item) => sum + item.current, 0))}</p>
+					</div>
+					<div className="bg-gray-50 dark:bg-gray-950/30 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+						<p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{previousPeriodLabel}</p>
+						<p className="text-lg font-bold text-gray-600 dark:text-gray-400">{formatAmount(data.reduce((sum, item) => sum + item.previous, 0))}</p>
+					</div>
+				</div>
 
-                {/* Insights Section */}
-                {/* {showInsights && insights.length > 0 && (
+				{/* Insights Section */}
+				{/* {showInsights && insights.length > 0 && (
 				<div className="mt-4 p-3 sm:p-4 bg-muted/100 rounded-lg w-full">
 					<h4 className="text-xs sm:text-sm mb-2 font-semibold text-gray-800 dark:text-gray-100">Smart Insights</h4>
 					<div className="space-y-1 sm:space-y-2">
@@ -261,9 +226,9 @@ const MultiLineComparisonChart: React.FC<MultiLineChartProps> = ({
 					</div>
 				</div>
 			)} */}
-            </div>
-        </div>
-    );
+			</div>
+		</div>
+	);
 };
 
 export default MultiLineComparisonChart;

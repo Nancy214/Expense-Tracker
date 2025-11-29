@@ -527,11 +527,10 @@ export class AnalyticsService {
 		}
 
 		// Get current period data
-		const { startDate: currentStart, endDate: currentEnd } = this.getDateRange(period, subPeriod);
+		const { startDate: currentStart } = this.getDateRange(period, subPeriod);
 
 		// Calculate previous period range
 		let previousStart: Date;
-		let previousEnd: Date;
 		let currentLabel: string;
 		let previousLabel: string;
 
@@ -547,7 +546,6 @@ export class AnalyticsService {
 				const prevYear = prevMonthDate.getFullYear();
 
 				previousStart = startOfMonth(prevMonthDate);
-				previousEnd = endOfMonth(prevMonthDate);
 
 				currentLabel = `${subPeriod} ${currentYear}`;
 				previousLabel = `${getMonthName(prevMonthIndex)} ${prevYear}`;
@@ -563,7 +561,6 @@ export class AnalyticsService {
 				const prevQuarterStartMonth = (prevQuarter - 1) * 3;
 				const prevQuarterStartDate = new Date(prevYear, prevQuarterStartMonth, 1);
 				previousStart = startOfQuarter(prevQuarterStartDate);
-				previousEnd = endOfQuarter(prevQuarterStartDate);
 
 				currentLabel = `${subPeriod} ${currentYear}`;
 				previousLabel = `Q${prevQuarter} ${prevYear}`;
@@ -579,7 +576,6 @@ export class AnalyticsService {
 				const prevHalfStartMonth = (prevHalf - 1) * 6;
 				const prevHalfStartDate = new Date(prevYear, prevHalfStartMonth, 1);
 				previousStart = startOfMonth(prevHalfStartDate);
-				previousEnd = endOfMonth(addMonths(prevHalfStartDate, 5));
 
 				currentLabel = `${subPeriod} ${currentYear}`;
 				previousLabel = `H${prevHalf} ${prevYear}`;
@@ -591,7 +587,6 @@ export class AnalyticsService {
 				const prevYear = year - 1;
 
 				previousStart = startOfYear(new Date(prevYear, 0, 1));
-				previousEnd = endOfYear(new Date(prevYear, 0, 1));
 
 				currentLabel = year.toString();
 				previousLabel = prevYear.toString();
@@ -600,21 +595,13 @@ export class AnalyticsService {
 		}
 
 		// Fetch data for both periods
-		let currentData: ComparisonLineData[] = [];
-		let previousData: ComparisonLineData[] = [];
+		const currentData: ComparisonLineData[] = [];
+		const previousData: ComparisonLineData[] = [];
 
 		if (period === Period.MONTHLY) {
 			// For monthly view, get daily data
-			const currentMonthData = await this.getDailyTransactionsForMonth(
-				userId,
-				currentStart.getFullYear(),
-				currentStart.getMonth()
-			);
-			const previousMonthData = await this.getDailyTransactionsForMonth(
-				userId,
-				previousStart.getFullYear(),
-				previousStart.getMonth()
-			);
+			const currentMonthData = await this.getDailyTransactionsForMonth(userId, currentStart.getFullYear(), currentStart.getMonth());
+			const previousMonthData = await this.getDailyTransactionsForMonth(userId, previousStart.getFullYear(), previousStart.getMonth());
 
 			// Create comparison data by day number
 			const maxDays = Math.max(currentMonthData.length, previousMonthData.length);
@@ -636,16 +623,8 @@ export class AnalyticsService {
 				const currentMonthDate = new Date(currentStart.getFullYear(), currentStart.getMonth() + i, 1);
 				const previousMonthDate = new Date(previousStart.getFullYear(), previousStart.getMonth() + i, 1);
 
-				const currentMonthData = await this.getTransactionsForMonth(
-					userId,
-					currentMonthDate.getFullYear(),
-					currentMonthDate.getMonth()
-				);
-				const previousMonthData = await this.getTransactionsForMonth(
-					userId,
-					previousMonthDate.getFullYear(),
-					previousMonthDate.getMonth()
-				);
+				const currentMonthData = await this.getTransactionsForMonth(userId, currentMonthDate.getFullYear(), currentMonthDate.getMonth());
+				const previousMonthData = await this.getTransactionsForMonth(userId, previousMonthDate.getFullYear(), previousMonthDate.getMonth());
 
 				currentData.push({
 					name: getMonthName(currentMonthDate.getMonth()),
@@ -657,19 +636,11 @@ export class AnalyticsService {
 
 		// Calculate summary
 		const currentTotal = currentData.reduce((sum, item) => sum + item.current, 0);
-		const previousTotal = previousData.length > 0
-			? previousData.reduce((sum, item) => sum + item.previous, 0)
-			: currentData.reduce((sum, item) => sum + item.previous, 0);
+		const previousTotal = previousData.length > 0 ? previousData.reduce((sum, item) => sum + item.previous, 0) : currentData.reduce((sum, item) => sum + item.previous, 0);
 
-		const percentageChange = previousTotal === 0
-			? 0
-			: ((currentTotal - previousTotal) / previousTotal) * 100;
+		const percentageChange = previousTotal === 0 ? 0 : ((currentTotal - previousTotal) / previousTotal) * 100;
 
-		const trend = Math.abs(percentageChange) < 5
-			? "stable"
-			: percentageChange > 0
-			? "up"
-			: "down";
+		const trend = Math.abs(percentageChange) < 5 ? "stable" : percentageChange > 0 ? "up" : "down";
 
 		return {
 			success: true,

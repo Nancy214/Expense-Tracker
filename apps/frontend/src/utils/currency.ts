@@ -79,6 +79,33 @@ export function getCurrencyValueForCountry(country: string, countryData: Country
 }
 
 /**
+ * Get currency data for a specific currency code
+ *
+ * @param currencyCode - The 3-letter currency code (e.g., "USD", "EUR", "INR")
+ * @param countryData - Array of country timezone currency data
+ * @returns The currency object for the code or undefined
+ */
+export function getCurrencyByCode(currencyCode: string, countryData: CountryTimezoneCurrencyData[] | undefined): { code: string; symbol: string; name: string } | undefined {
+	if (!currencyCode || !countryData) return undefined;
+
+	const countryDataItem = countryData.find((item) => item.currency?.code === currencyCode);
+	return countryDataItem?.currency;
+}
+
+/**
+ * Get the currency symbol for a specific currency code
+ * This combines getCurrencyByCode and getCurrencyValue
+ *
+ * @param currencyCode - The 3-letter currency code (e.g., "USD", "EUR", "INR")
+ * @param countryData - Array of country timezone currency data
+ * @returns The currency symbol if available, otherwise the currency code
+ */
+export function getCurrencySymbolByCode(currencyCode: string, countryData: CountryTimezoneCurrencyData[] | undefined): string {
+	const currency = getCurrencyByCode(currencyCode, countryData);
+	return getCurrencyValue(currency) || currencyCode;
+}
+
+/**
  * Format an amount with the appropriate currency symbol
  *
  * @param amount - The numeric amount to format

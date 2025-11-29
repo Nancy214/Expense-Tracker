@@ -1,86 +1,61 @@
-import {
-    type AreaChartData,
-    type AreaChartProps,
-    type ChartTooltipProps,
-    ChartTypes,
-    Period,
-} from "@expense-tracker/shared-types";
+import { type AreaChartData, type AreaChartProps, type ChartTooltipProps, ChartTypes, Period } from "@expense-tracker/shared-types";
 import type React from "react";
-import {
-    Area,
-    CartesianGrid,
-    Legend,
-    AreaChart as RechartsAreaChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from "recharts";
+import { Area, CartesianGrid, Legend, AreaChart as RechartsAreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useCurrencySymbol } from "@/hooks/use-profile";
 import { formatChartData } from "@/utils/chartUtils";
 
 const COLORS = {
-    savings: "#10b981", // Green for savings
-    gradient: "url(#savingsGradient)",
+	savings: "#10b981", // Green for savings
+	gradient: "url(#savingsGradient)",
 };
 
 // Custom tooltip component
 interface CustomTooltipProps extends ChartTooltipProps {
-    formatAmount: (amount: number) => string;
+	formatAmount: (amount: number) => string;
 }
 
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, formatAmount }) => {
-    if (active && payload && payload.length > 0) {
-        const data = payload[0].payload;
-        // Use type discrimination to check if it's AreaChartData
-        if (data.type === ChartTypes.AREA) {
-            const areaData: AreaChartData = data;
-            return (
-                <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                    <p className="font-semibold text-gray-800 dark:text-gray-100">{label}</p>
-                    <p className="text-sm text-green-600 dark:text-green-400">
-                        Savings: {formatAmount(areaData.savings)}
-                    </p>
-                    {areaData.income !== undefined && (
-                        <p className="text-sm text-blue-600 dark:text-blue-400">
-                            Income: {formatAmount(areaData.income)}
-                        </p>
-                    )}
-                    {areaData.expenses !== undefined && (
-                        <p className="text-sm text-red-600 dark:text-red-400">
-                            Expenses: {formatAmount(areaData.expenses)}
-                        </p>
-                    )}
-                </div>
-            );
-        }
-    }
-    return null;
+	if (active && payload && payload.length > 0) {
+		const data = payload[0].payload;
+		// Use type discrimination to check if it's AreaChartData
+		if (data.type === ChartTypes.AREA) {
+			const areaData: AreaChartData = data;
+			return (
+				<div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+					<p className="font-semibold text-gray-800 dark:text-gray-100">{label}</p>
+					<p className="text-sm text-green-600 dark:text-green-400">Savings: {formatAmount(areaData.savings)}</p>
+					{areaData.income !== undefined && <p className="text-sm text-blue-600 dark:text-blue-400">Income: {formatAmount(areaData.income)}</p>}
+					{areaData.expenses !== undefined && <p className="text-sm text-red-600 dark:text-red-400">Expenses: {formatAmount(areaData.expenses)}</p>}
+				</div>
+			);
+		}
+	}
+	return null;
 };
 
 const AreaChartComponent: React.FC<AreaChartProps> = ({
-    title = "Monthly Savings Trend",
-    description = "Track your savings progress over time",
-    data = [],
-    colors = COLORS,
-    //showInsights = true,
-    showGrid = true,
-    showLegend = true,
-    timePeriod = Period.MONTHLY,
-    subPeriod = "",
+	title = "Monthly Savings Trend",
+	description = "Track your savings progress over time",
+	data = [],
+	colors = COLORS,
+	//showInsights = true,
+	showGrid = true,
+	showLegend = true,
+	timePeriod = Period.MONTHLY,
+	subPeriod = "",
 }) => {
-    const currencySymbol = useCurrencySymbol();
-    // Format amount with currency
-    const formatAmount = (amount: number): string => {
-        if (amount === undefined || amount === null || isNaN(amount)) {
-            return `${currencySymbol}0.00`;
-        }
+	const currencySymbol = useCurrencySymbol();
+	// Format amount with currency
+	const formatAmount = (amount: number): string => {
+		if (amount === undefined || amount === null || isNaN(amount)) {
+			return `${currencySymbol}0.00`;
+		}
 
-        return `${currencySymbol}${amount.toFixed(2)}`;
-    };
+		return `${currencySymbol}${amount.toFixed(2)}`;
+	};
 
-    // Generate insights based on savings data
-    /*  const generateInsights = (data: AreaChartData[]): string[] => {
+	// Generate insights based on savings data
+	/*  const generateInsights = (data: AreaChartData[]): string[] => {
         const insights: string[] = [];
 
         if (data.length === 0) return [];
@@ -189,161 +164,146 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
         return insights.length > 0 ? insights : ["✅ Your savings data shows consistent progress."];
     }; */
 
-    // Format data based on time period
-    const formattedData: AreaChartData[] = formatChartData(data, timePeriod as Period, subPeriod);
+	// Format data based on time period
+	const formattedData: AreaChartData[] = formatChartData(data, timePeriod as Period, subPeriod);
 
-    return (
-        <div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between">
-                <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100">
-                    {title}
-                </h2>
-            </div>
-            {description && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>}
+	return (
+		<div className="bg-white dark:bg-slate-900/80 rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 transition hover:shadow-2xl">
+			<div className="flex flex-wrap items-center gap-2 sm:gap-4 justify-between">
+				<h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
+			</div>
+			{description && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>}
 
-            <div className="w-full flex flex-col items-center">
-                <div className="w-full h-[300px] sm:h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <RechartsAreaChart
-                            data={formattedData}
-                            margin={{
-                                top: 20,
-                                right: 10,
-                                left: 10,
-                                bottom: 20,
-                            }}
-                        >
-                            <defs>
-                                <linearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={colors.savings} stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor={colors.savings} stopOpacity={0.1} />
-                                </linearGradient>
-                            </defs>
-                            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />}
-                            <XAxis
-                                dataKey="name"
-                                tick={{ fontSize: 10 }}
-                                label={{
-                                    value: "",
-                                    position: "bottom",
-                                    offset: 0,
-                                }}
-                            />
-                            <YAxis
-                                tickFormatter={(value) => formatAmount(value)}
-                                label={{
-                                    value: "",
-                                    position: "top left",
-                                    offset: 0,
-                                }}
-                                tick={{ fontSize: 10 }}
-                            />
-                            <Tooltip content={<CustomTooltip formatAmount={formatAmount} />} />
-                            {showLegend && <Legend />}
-                            <Area
-                                type="monotone"
-                                dataKey="savings"
-                                stroke={colors.savings}
-                                fill={colors.gradient}
-                                strokeWidth={2}
-                                name="Savings"
-                            />
-                        </RechartsAreaChart>
-                    </ResponsiveContainer>
-                </div>
+			<div className="w-full flex flex-col items-center">
+				<div className="w-full h-[300px] sm:h-[400px]">
+					<ResponsiveContainer width="100%" height="100%">
+						<RechartsAreaChart
+							data={formattedData}
+							margin={{
+								top: 20,
+								right: 10,
+								left: 10,
+								bottom: 20,
+							}}
+						>
+							<defs>
+								<linearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
+									<stop offset="5%" stopColor={colors.savings} stopOpacity={0.8} />
+									<stop offset="95%" stopColor={colors.savings} stopOpacity={0.1} />
+								</linearGradient>
+							</defs>
+							{showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />}
+							<XAxis
+								dataKey="name"
+								tick={{ fontSize: 10 }}
+								label={{
+									value: "",
+									position: "bottom",
+									offset: 0,
+								}}
+							/>
+							<YAxis
+								tickFormatter={(value) => formatAmount(value)}
+								label={{
+									value: "",
+									position: "top left",
+									offset: 0,
+								}}
+								tick={{ fontSize: 10 }}
+							/>
+							<Tooltip content={<CustomTooltip formatAmount={formatAmount} />} />
+							{showLegend && <Legend />}
+							<Area type="monotone" dataKey="savings" stroke={colors.savings} fill={colors.gradient} strokeWidth={2} name="Savings" />
+						</RechartsAreaChart>
+					</ResponsiveContainer>
+				</div>
 
-                <div className="mt-3 sm:mt-4 w-full max-w-md mx-auto">
-                    <h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">
-                        {(() => {
-                            switch (timePeriod) {
-                                case Period.MONTHLY:
-                                    return "Daily Average for " + subPeriod;
-                                case Period.QUARTERLY:
-                                    return "Monthly Average for " + subPeriod;
-                                case Period.HALF_YEARLY:
-                                    return "Monthly Average for " + subPeriod;
-                                case Period.YEARLY:
-                                    return "Monthly Average for " + subPeriod;
-                                default:
-                                    return "Period Average Summary";
-                            }
-                        })()}
-                    </h3>
-                    <ul className="divide-y divide-muted-foreground/10">
-                        {(() => {
-                            // Calculate averages from all data points
-                            const totalSavings = formattedData.reduce((sum, item) => sum + (item.savings || 0), 0);
-                            const totalIncome = formattedData.reduce((sum, item) => sum + (item.income || 0), 0);
-                            const totalExpenses = formattedData.reduce((sum, item) => sum + (item.expenses || 0), 0);
-                            const avgSavings = totalSavings / formattedData.length;
-                            const avgIncome = totalIncome / formattedData.length;
-                            const avgExpenses = totalExpenses / formattedData.length;
+				<div className="mt-3 sm:mt-4 w-full max-w-md mx-auto">
+					<h3 className="text-xs sm:text-sm font-semibold mb-2 text-center">
+						{(() => {
+							switch (timePeriod) {
+								case Period.MONTHLY:
+									return "Daily Average for " + subPeriod;
+								case Period.QUARTERLY:
+									return "Monthly Average for " + subPeriod;
+								case Period.HALF_YEARLY:
+									return "Monthly Average for " + subPeriod;
+								case Period.YEARLY:
+									return "Monthly Average for " + subPeriod;
+								default:
+									return "Period Average Summary";
+							}
+						})()}
+					</h3>
+					<ul className="divide-y divide-muted-foreground/10">
+						{(() => {
+							// Calculate averages from all data points
+							const totalSavings = formattedData.reduce((sum, item) => sum + (item.savings || 0), 0);
+							const totalIncome = formattedData.reduce((sum, item) => sum + (item.income || 0), 0);
+							const totalExpenses = formattedData.reduce((sum, item) => sum + (item.expenses || 0), 0);
+							const avgSavings = totalSavings / formattedData.length;
+							const avgIncome = totalIncome / formattedData.length;
+							const avgExpenses = totalExpenses / formattedData.length;
 
-                            const periodLabel = (() => {
-                                switch (timePeriod) {
-                                    case Period.MONTHLY:
-                                        return "Average per Day";
-                                    case Period.QUARTERLY:
-                                    case Period.HALF_YEARLY:
-                                    case Period.YEARLY:
-                                        return "Average per Month";
-                                    default:
-                                        return "Average per Period";
-                                }
-                            })();
+							const periodLabel = (() => {
+								switch (timePeriod) {
+									case Period.MONTHLY:
+										return "Average per Day";
+									case Period.QUARTERLY:
+									case Period.HALF_YEARLY:
+									case Period.YEARLY:
+										return "Average per Month";
+									default:
+										return "Average per Period";
+								}
+							})();
 
-                            return (
-                                <li className="flex items-center justify-between py-2 px-2">
-                                    <span className="text-xs sm:text-sm font-medium">{periodLabel}</span>
-                                    <div className="text-right">
-                                        <div className="text-xs text-blue-600">Income: {formatAmount(avgIncome)}</div>
-                                        <div className="text-xs text-red-600">
-                                            Expenses: {formatAmount(avgExpenses)}
-                                        </div>
-                                        <div className="text-xs text-green-600">
-                                            Savings: {formatAmount(avgSavings)}
-                                        </div>
-                                    </div>
-                                </li>
-                            );
-                        })()}
-                    </ul>
-                </div>
+							return (
+								<li className="flex items-center justify-between py-2 px-2">
+									<span className="text-xs sm:text-sm font-medium">{periodLabel}</span>
+									<div className="text-right">
+										<div className="text-xs text-blue-600">Income: {formatAmount(avgIncome)}</div>
+										<div className="text-xs text-red-600">Expenses: {formatAmount(avgExpenses)}</div>
+										<div className="text-xs text-green-600">Savings: {formatAmount(avgSavings)}</div>
+									</div>
+								</li>
+							);
+						})()}
+					</ul>
+				</div>
 
-                <div className="mt-2 mb-2 text-xs sm:text-sm text-muted-foreground text-center px-2">
-                    {formattedData.length > 0
-                        ? (() => {
-                              const totalSavings = formattedData.reduce((sum, item) => sum + (item.savings || 0), 0);
-                              const totalIncome = formattedData.reduce((sum, item) => sum + (item.income || 0), 0);
-                              const totalExpenses = formattedData.reduce((sum, item) => sum + (item.expenses || 0), 0);
-                              const avgSavings = totalSavings / formattedData.length;
-                              const avgIncome = totalIncome / formattedData.length;
-                              const avgExpenses = totalExpenses / formattedData.length;
+				<div className="mt-2 mb-2 text-xs sm:text-sm text-muted-foreground text-center px-2">
+					{formattedData.length > 0
+						? (() => {
+								const totalSavings = formattedData.reduce((sum, item) => sum + (item.savings || 0), 0);
+								const totalIncome = formattedData.reduce((sum, item) => sum + (item.income || 0), 0);
+								const totalExpenses = formattedData.reduce((sum, item) => sum + (item.expenses || 0), 0);
+								const avgSavings = totalSavings / formattedData.length;
+								const avgIncome = totalIncome / formattedData.length;
+								const avgExpenses = totalExpenses / formattedData.length;
 
-                              const periodLabel = (() => {
-                                  switch (timePeriod) {
-                                      case Period.MONTHLY:
-                                          return "Daily";
-                                      case Period.QUARTERLY:
-                                      case Period.HALF_YEARLY:
-                                      case Period.YEARLY:
-                                          return "Monthly";
-                                      default:
-                                          return "Period";
-                                  }
-                              })();
+								const periodLabel = (() => {
+									switch (timePeriod) {
+										case Period.MONTHLY:
+											return "Daily";
+										case Period.QUARTERLY:
+										case Period.HALF_YEARLY:
+										case Period.YEARLY:
+											return "Monthly";
+										default:
+											return "Period";
+									}
+								})();
 
-                              return `Average ${periodLabel} Income: ${formatAmount(
-                                  avgIncome
-                              )} | Average ${periodLabel} Expenses: ${formatAmount(
-                                  avgExpenses
-                              )} | Average ${periodLabel} Savings: ${formatAmount(avgSavings)}`;
-                          })()
-                        : "No savings data available. Add income and expense transactions to see your savings trend."}
-                </div>
+								return `Average ${periodLabel} Income: ${formatAmount(avgIncome)} | Average ${periodLabel} Expenses: ${formatAmount(
+									avgExpenses
+								)} | Average ${periodLabel} Savings: ${formatAmount(avgSavings)}`;
+							})()
+						: "No savings data available. Add income and expense transactions to see your savings trend."}
+				</div>
 
-                {/* Insights Section */}
-                {/* {showInsights && (
+				{/* Insights Section */}
+				{/* {showInsights && (
                     <div className="mt-2 p-3 sm:p-4 bg-muted/100 rounded-lg w-full">
                         <h4 className="text-xs sm:text-sm mb-2 font-semibold text-gray-800 dark:text-gray-100">
                             Smart Insights
@@ -367,9 +327,9 @@ const AreaChartComponent: React.FC<AreaChartProps> = ({
                         </div>
                     </div>
                 )} */}
-            </div>
-        </div>
-    );
+			</div>
+		</div>
+	);
 };
 
 export default AreaChartComponent;
