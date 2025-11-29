@@ -188,7 +188,7 @@ export class BudgetDAO {
 	}
 
 	/**
-	 * Filter expenses for a budget based on date range, category, and currency
+	 * Filter expenses for a budget based on date range and category
 	 */
 	static filterBudgetExpenses(expenses: Transaction[], budget: BudgetType, budgetStartDate: Date, now: Date): Transaction[] {
 		return expenses.filter((expense: Transaction) => {
@@ -200,20 +200,25 @@ export class BudgetDAO {
 
 			const isInRange: boolean = expenseDateStart >= budgetStartDateStart && expenseDateStart <= nowStart;
 			const matchesCategory: boolean = budget.category === "All Categories" || expense.category === budget.category;
-			const matchesCurrency: boolean = expense.currency === budget.currency;
 
-			return isInRange && matchesCategory && matchesCurrency;
+			return isInRange && matchesCategory;
 		});
 	}
 
 	/**
 	 * Calculate total spent amount for budget expenses
-	 * Note: Expenses are already filtered to match the budget's currency, so no conversion is needed
 	 */
 	static calculateTotalSpent(budgetExpenses: Transaction[]): number {
 		return budgetExpenses.reduce((sum: number, expense: Transaction) => {
-			// All expenses should already be in the budget's currency due to filtering
-			return sum + expense.amount;
+			// Convert to budget's currency if different
+			let amount: number = expense.amount;
+			if (expense.currency !== budget.currency) {
+				// Use exchange rates if available, otherwise assume 1:1
+				if (expense.fromRate && expense.toRate) {
+					amount = expense.amount * expense.fromRate;
+				}
+			}
+			return sum + amount;
 		}, 0);
 	}
 
