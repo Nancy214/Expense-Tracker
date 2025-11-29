@@ -21,6 +21,9 @@ importers:
       '@nx/vite':
         specifier: ^21.5.3
         version: 21.6.6(@babel/traverse@7.28.5)(nx@21.6.6)(typescript@5.9.3)(vite@6.4.1(@types/node@22.18.12)(jiti@1.21.7)(tsx@4.20.6)(yaml@2.8.1))(vitest@3.2.4(@types/node@22.18.12)(jiti@1.21.7)(tsx@4.20.6)(yaml@2.8.1))
+      husky:
+        specifier: ^9.1.7
+        version: 9.1.7
       nx:
         specifier: ^21.5.3
         version: 21.6.6
@@ -3945,6 +3948,11 @@ packages:
   http-errors@2.0.0:
     resolution: {integrity: sha512-FtwrG/euBzaEjYeRqOgly7G0qviiXoJWnvEH2Z1plBdXgbyjv34pHTSb9zoeHMyDy33+DWy5Wt9Wo+TURtOYSQ==}
     engines: {node: '>= 0.8'}
+
+  husky@9.1.7:
+    resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
@@ -9851,6 +9859,8 @@ snapshots:
       setprototypeof: 1.2.0
       statuses: 2.0.1
       toidentifier: 1.0.1
+
+  husky@9.1.7: {}
 
   iconv-lite@0.6.3:
     dependencies:
