@@ -18,12 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDeleteOperations } from "@/hooks/use-delete-operations";
-import { useCurrencySymbol, useCountryTimezoneCurrency } from "@/hooks/use-profile";
+import { useCurrencySymbol } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/app-components/utility-components/EmptyState";
 import { formatToHumanReadableDate } from "@/utils/dateUtils";
-import { useAuth } from "@/context/AuthContext";
-import { normalizeUserCurrency, getCurrencyValue } from "@/utils/currency";
 
 interface TabComponentProps {
     readonly data: Transaction[];
@@ -44,8 +42,6 @@ export function AllTransactionsTab({
 }: TabComponentProps) {
     const currencySymbol = useCurrencySymbol();
     const { toast } = useToast();
-    const { user } = useAuth();
-    const { data: countryTimezoneData } = useCountryTimezoneCurrency();
 
     const {
         isDeleteDialogOpen,
@@ -178,38 +174,14 @@ export function AllTransactionsTab({
                 cell: ({ row }: { row: Row<Transaction> }) => {
                     const amount: number = parseFloat(row.getValue("amount"));
                     const type: string = row.original.type || "expense";
-                    const transactionCurrency = row.original.currency;
-                    const userCurrency = normalizeUserCurrency(user?.currency, user?.currencySymbol);
-                    const isDifferentCurrency = transactionCurrency && transactionCurrency !== userCurrency;
-
-                    // Get currency symbol for transaction currency (only when needed)
-                    const getTransactionCurrencySymbol = (): string => {
-                        if (!transactionCurrency || !countryTimezoneData) return transactionCurrency || "";
-                        const currencyData = countryTimezoneData.find(
-                            (item) => item.currency.code === transactionCurrency
-                        );
-                        return currencyData ? getCurrencyValue(currencyData.currency) : transactionCurrency;
-                    };
-
-                    const convertedAmount = (amount * (row.original.toRate || 1)).toFixed(2);
-                    const originalAmount = amount.toFixed(2);
-
                     return (
                         <div
                             className={`text-right font-medium ${
                                 type === "income" ? "text-green-600" : "text-red-600"
                             }`}
                         >
-                            <div>
-                                {currencySymbol}
-                                {convertedAmount}
-                            </div>
-                            {isDifferentCurrency && (
-                                <div className="text-xs text-muted-foreground">
-                                    ({getTransactionCurrencySymbol()}
-                                    {originalAmount})
-                                </div>
-                            )}
+                            {currencySymbol}
+                            {amount.toFixed(2)}
                         </div>
                     );
                 },

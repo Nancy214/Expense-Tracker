@@ -355,6 +355,7 @@ export function useAllTransactionsForAnalytics(): UseQueryResult<{
     };
 }
 
+// Derived Data Hook types
 interface ExpensesSelectorReturn {
     expenses: Transaction[];
     isLoading: boolean;
