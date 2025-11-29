@@ -7,196 +7,258 @@ import path from "path";
 import sharp from "sharp";
 import { isAWSConfigured, s3Client } from "../config/s3Client";
 import { TransactionDAO } from "../daos/transaction.dao";
+import { AuthDAO } from "src/daos/auth.dao";
+import { ExchangeRateDAO } from "src/daos/exchange-rate.dao";
+import { TransactionDataMapper } from "../dtos/transaction.dto";
 
 export class TransactionService {
-	async getExpenses(userId: string, query: PaginationQuery) {
-		const { expenses, total, page, limit } = await TransactionDAO.getExpenses(userId, query);
+    async getExpenses(userId: string, query: PaginationQuery) {
+        const { expenses, total, page, limit } = await TransactionDAO.getExpenses(userId, query);
 
-		const response: PaginatedResponse<Transaction> = {
-			expenses,
-			pagination: {
-				page,
-				limit,
-				total,
-				totalPages: Math.ceil(total / limit),
-				hasNextPage: page < Math.ceil(total / limit),
-				hasPrevPage: page > 1,
-			},
-		};
+        const response: PaginatedResponse<Transaction> = {
+            expenses,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1,
+            },
+        };
 
-		return response;
-	}
+        return response;
+    }
 
-	async getAllTransactions(userId: string, query: any) {
-		const { transactions, total, page, limit } = await TransactionDAO.getAllTransactions(userId, query);
+    async getAllTransactions(userId: string, query: any) {
+        const [user, allTransactions] = await Promise.all([
+            AuthDAO.findUserById(userId),
+            TransactionDAO.getAllTransactions(userId, query),
+        ]);
 
-		const response: PaginatedResponse<Transaction> = {
-			transactions,
-			pagination: {
-				page,
-				limit,
-				total,
-				totalPages: Math.ceil(total / limit),
-				hasNextPage: page < Math.ceil(total / limit),
-				hasPrevPage: page > 1,
-			},
-		};
+        if (!user) {
+            throw new Error("User not found");
+        }
 
-		return response;
-	}
+        const { transactions, total, page, limit } = allTransactions;
 
-	async getTransactionSummary(userId: string) {
-		const summary = await TransactionDAO.getTransactionSummary(userId);
-		return { summary };
-	}
+        const mappedTransactions = await Promise.all(
+            transactions.map(async (transaction) => {
+                let mappedTransaction = TransactionDataMapper.toResponse(transaction);
 
-	async getExpensesById(userId: string, id: string) {
-		const expense = await TransactionDAO.getTransactionById(userId, id);
-		if (!expense) {
-			throw new Error("Expense not found");
-		}
-		return { expenses: [expense] };
-	}
+                if (transaction.currency !== user.currency) {
+                    const exchangeRate = await ExchangeRateDAO.getExchangeRates(
+                        transaction.currency,
+                        user.currency,
+                        new Date(transaction.date).toISOString().split("T")[0]
+                    );
+                    if (exchangeRate) {
+                        mappedTransaction = TransactionDataMapper.setToRate(
+                            mappedTransaction,
+                            exchangeRate.exchangeRate
+                        );
+                    }
+                }
 
-	async createExpense(userId: string, expenseData: any) {
-		const expense: Transaction = await TransactionDAO.createTransaction(userId, expenseData);
-		return expense;
-	}
+                return mappedTransaction;
+            })
+        );
 
-	async updateExpense(userId: string, id: string, updateData: any) {
-		// Validate ObjectId early to avoid cast errors
-		if (!mongoose.isValidObjectId(id)) {
-			throw new Error("Invalid transaction id");
-		}
+        const response: PaginatedResponse<Transaction> = {
+            transactions: mappedTransactions,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1,
+            },
+        };
 
-		const expense = await TransactionDAO.updateTransaction(userId, id, updateData);
-		if (!expense) {
-			throw new Error("Expense not found");
-		}
-		return expense;
-	}
+        return response;
+    }
 
-	async deleteExpense(userId: string, id: string) {
-		// Validate ObjectId early to avoid cast errors
-		if (!mongoose.isValidObjectId(id)) {
-			throw new Error("Invalid transaction id");
-		}
+    async getTransactionSummary(userId: string) {
+        const summary = await TransactionDAO.getTransactionSummary(userId);
+        return { summary };
+    }
 
-		const expense = await TransactionDAO.deleteTransaction(userId, id);
-		if (!expense) {
-			throw new Error("Expense not found");
-		}
+    async getExpensesById(userId: string, id: string) {
+        const expense = await TransactionDAO.getTransactionById(userId, id);
+        if (!expense) {
+            throw new Error("Expense not found");
+        }
+        return { expenses: [expense] };
+    }
 
-		return { message: "Expense deleted" };
-	}
+    async createExpense(userId: string, expenseData: any) {
+        const expense: Transaction = await TransactionDAO.createTransaction(userId, expenseData);
+        return expense;
+    }
 
-	async uploadReceipt(userId: string, file: Express.Multer.File) {
-		if (!file) {
-			throw new Error("No file uploaded");
-		}
+    async updateExpense(userId: string, id: string, updateData: any) {
+        // Validate ObjectId early to avoid cast errors
+        if (!mongoose.isValidObjectId(id)) {
+            throw new Error("Invalid transaction id");
+        }
 
-		if (!isAWSConfigured) {
-			throw new Error("S3 not configured");
-		}
+        const expense = await TransactionDAO.updateTransaction(userId, id, updateData);
+        if (!expense) {
+            throw new Error("Expense not found");
+        }
+        return expense;
+    }
 
-		const timestamp: number = Date.now();
-		const originalName: string = file.originalname;
-		const hashInput: string = `${originalName}_${timestamp}_${userId}`;
-		let fileName: string = crypto
-			.createHash("sha256")
-			.update(hashInput)
-			.digest("hex")
-			.replace(/[^a-zA-Z0-9]/g, "");
-		const ext: string = path.extname(originalName) || ".jpg";
-		fileName = `${fileName}${ext}`;
-		const s3Key: string = `receipt/${fileName}`;
+    async deleteExpense(userId: string, id: string) {
+        // Validate ObjectId early to avoid cast errors
+        if (!mongoose.isValidObjectId(id)) {
+            throw new Error("Invalid transaction id");
+        }
 
-		let fileBuffer: Buffer = file.buffer;
-		let contentType: string = file.mimetype;
+        const expense = await TransactionDAO.deleteTransaction(userId, id);
+        if (!expense) {
+            throw new Error("Expense not found");
+        }
 
-		// Restrict PDF size (e.g., 5MB)
-		if (contentType === "application/pdf" && fileBuffer.length > 5 * 1024 * 1024) {
-			throw new Error("PDF file size exceeds 5MB limit");
-		}
+        return { message: "Expense deleted" };
+    }
 
-		// If image, process with sharp
-		if (contentType.startsWith("image/")) {
-			fileBuffer = await sharp(file.buffer).resize({ width: 1200, height: 1200, fit: "inside" }).jpeg({ quality: 90 }).toBuffer();
-			contentType = "image/jpeg";
-		}
+    async uploadReceipt(userId: string, file: Express.Multer.File) {
+        if (!file) {
+            throw new Error("No file uploaded");
+        }
 
-		const uploadCommand = new PutObjectCommand({
-			Bucket: process.env.AWS_BUCKET_NAME,
-			Key: s3Key,
-			Body: fileBuffer,
-			ContentType: contentType,
-			ACL: "private",
-		});
+        if (!isAWSConfigured) {
+            throw new Error("S3 not configured");
+        }
 
-		await s3Client.send(uploadCommand);
+        const timestamp: number = Date.now();
+        const originalName: string = file.originalname;
+        const hashInput: string = `${originalName}_${timestamp}_${userId}`;
+        let fileName: string = crypto
+            .createHash("sha256")
+            .update(hashInput)
+            .digest("hex")
+            .replace(/[^a-zA-Z0-9]/g, "");
+        const ext: string = path.extname(originalName) || ".jpg";
+        fileName = `${fileName}${ext}`;
+        const s3Key: string = `receipt/${fileName}`;
 
-		return { key: s3Key };
-	}
+        let fileBuffer: Buffer = file.buffer;
+        let contentType: string = file.mimetype;
 
-	async getReceiptUrl(key: string) {
-		if (!key) {
-			throw new Error("Missing key");
-		}
+        // Restrict PDF size (e.g., 5MB)
+        if (contentType === "application/pdf" && fileBuffer.length > 5 * 1024 * 1024) {
+            throw new Error("PDF file size exceeds 5MB limit");
+        }
 
-		const command: GetObjectCommand = new GetObjectCommand({
-			Bucket: process.env.AWS_BUCKET_NAME,
-			Key: key,
-		});
+        // If image, process with sharp
+        if (contentType.startsWith("image/")) {
+            fileBuffer = await sharp(file.buffer)
+                .resize({ width: 1200, height: 1200, fit: "inside" })
+                .jpeg({ quality: 90 })
+                .toBuffer();
+            contentType = "image/jpeg";
+        }
 
-		const url: string = await getSignedUrl(s3Client, command, {
-			expiresIn: 300,
-		});
+        const uploadCommand = new PutObjectCommand({
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: s3Key,
+            Body: fileBuffer,
+            ContentType: contentType,
+            ACL: "private",
+        });
 
-		return { url };
-	}
+        await s3Client.send(uploadCommand);
 
-	async deleteReceipt(userId: string, key: string) {
-		if (!key) {
-			throw new Error("Missing key");
-		}
+        return { key: s3Key };
+    }
 
-		if (!isAWSConfigured) {
-			throw new Error("S3 not configured");
-		}
+    async getReceiptUrl(key: string) {
+        if (!key) {
+            throw new Error("Missing key");
+        }
 
-		// Delete from S3
-		const deleteCommand = new DeleteObjectCommand({
-			Bucket: process.env.AWS_BUCKET_NAME,
-			Key: key,
-		});
+        const command: GetObjectCommand = new GetObjectCommand({
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: key,
+        });
 
-		await s3Client.send(deleteCommand);
+        const url: string = await getSignedUrl(s3Client, command, {
+            expiresIn: 300,
+        });
 
-		// Update database to remove receipt reference
-		await TransactionDAO.removeReceiptFromTransactions(userId, key);
+        return { url };
+    }
 
-		return { message: "Receipt deleted successfully" };
-	}
+    async deleteReceipt(userId: string, key: string) {
+        if (!key) {
+            throw new Error("Missing key");
+        }
 
-	async getAllTransactionsForAnalytics(userId: string) {
-		const transactions = await TransactionDAO.getAllTransactionsForAnalytics(userId);
-		return { transactions };
-	}
+        if (!isAWSConfigured) {
+            throw new Error("S3 not configured");
+        }
 
-	async deleteRecurringSeries(userId: string, id: string) {
-		// Validate ObjectId early to avoid cast errors
-		if (!mongoose.isValidObjectId(id)) {
-			throw new Error("Invalid transaction id");
-		}
+        // Delete from S3
+        const deleteCommand = new DeleteObjectCommand({
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: key,
+        });
 
-		const result = await TransactionDAO.deleteRecurringSeries(userId, id);
-		if (result.deletedCount === 0) {
-			throw new Error("Expense not found");
-		}
+        await s3Client.send(deleteCommand);
 
-		return {
-			message: "Recurring series deleted",
-			deletedCount: result.deletedCount,
-		};
-	}
+        // Update database to remove receipt reference
+        await TransactionDAO.removeReceiptFromTransactions(userId, key);
+
+        return { message: "Receipt deleted successfully" };
+    }
+
+    async getAllTransactionsForAnalytics(userId: string) {
+        const transactions = await TransactionDAO.getAllTransactionsForAnalytics(userId);
+        const user = await AuthDAO.findUserById(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+        const mappedTransactions = await Promise.all(
+            transactions.map(async (transaction) => {
+                let mappedTransaction = TransactionDataMapper.toResponse(transaction);
+
+                if (transaction.currency !== user.currency) {
+                    const exchangeRate = await ExchangeRateDAO.getExchangeRates(
+                        transaction.currency,
+                        user.currency,
+                        new Date(transaction.date).toISOString().split("T")[0]
+                    );
+                    if (exchangeRate) {
+                        mappedTransaction = TransactionDataMapper.setToRate(
+                            mappedTransaction,
+                            exchangeRate.exchangeRate
+                        );
+                    }
+                }
+
+                return mappedTransaction;
+            })
+        );
+        return { transactions: mappedTransactions };
+    }
+
+    async deleteRecurringSeries(userId: string, id: string) {
+        // Validate ObjectId early to avoid cast errors
+        if (!mongoose.isValidObjectId(id)) {
+            throw new Error("Invalid transaction id");
+        }
+
+        const result = await TransactionDAO.deleteRecurringSeries(userId, id);
+        if (result.deletedCount === 0) {
+            throw new Error("Expense not found");
+        }
+
+        return {
+            message: "Recurring series deleted",
+            deletedCount: result.deletedCount,
+        };
+    }
 }
