@@ -527,11 +527,10 @@ export class AnalyticsService {
 		}
 
 		// Get current period data
-		const { startDate: currentStart, endDate: currentEnd } = this.getDateRange(period, subPeriod);
+		const { startDate: currentStart } = this.getDateRange(period, subPeriod);
 
 		// Calculate previous period range
 		let previousStart: Date;
-		let previousEnd: Date;
 		let currentLabel: string;
 		let previousLabel: string;
 
@@ -547,7 +546,6 @@ export class AnalyticsService {
 				const prevYear = prevMonthDate.getFullYear();
 
 				previousStart = startOfMonth(prevMonthDate);
-				previousEnd = endOfMonth(prevMonthDate);
 
 				currentLabel = `${subPeriod} ${currentYear}`;
 				previousLabel = `${getMonthName(prevMonthIndex)} ${prevYear}`;
@@ -563,7 +561,6 @@ export class AnalyticsService {
 				const prevQuarterStartMonth = (prevQuarter - 1) * 3;
 				const prevQuarterStartDate = new Date(prevYear, prevQuarterStartMonth, 1);
 				previousStart = startOfQuarter(prevQuarterStartDate);
-				previousEnd = endOfQuarter(prevQuarterStartDate);
 
 				currentLabel = `${subPeriod} ${currentYear}`;
 				previousLabel = `Q${prevQuarter} ${prevYear}`;
@@ -579,7 +576,6 @@ export class AnalyticsService {
 				const prevHalfStartMonth = (prevHalf - 1) * 6;
 				const prevHalfStartDate = new Date(prevYear, prevHalfStartMonth, 1);
 				previousStart = startOfMonth(prevHalfStartDate);
-				previousEnd = endOfMonth(addMonths(prevHalfStartDate, 5));
 
 				currentLabel = `${subPeriod} ${currentYear}`;
 				previousLabel = `H${prevHalf} ${prevYear}`;
@@ -591,7 +587,6 @@ export class AnalyticsService {
 				const prevYear = year - 1;
 
 				previousStart = startOfYear(new Date(prevYear, 0, 1));
-				previousEnd = endOfYear(new Date(prevYear, 0, 1));
 
 				currentLabel = year.toString();
 				previousLabel = prevYear.toString();
@@ -600,8 +595,8 @@ export class AnalyticsService {
 		}
 
 		// Fetch data for both periods
-		let currentData: ComparisonLineData[] = [];
-		let previousData: ComparisonLineData[] = [];
+		const currentData: ComparisonLineData[] = [];
+		const previousData: ComparisonLineData[] = [];
 
 		if (period === Period.MONTHLY) {
 			// For monthly view, get daily data

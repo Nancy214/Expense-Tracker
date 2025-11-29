@@ -210,7 +210,7 @@ export class BudgetDAO {
 	 * Calculate total spent amount for budget expenses
 	 * Note: Expenses are already filtered to match the budget's currency, so no conversion is needed
 	 */
-	static calculateTotalSpent(budgetExpenses: Transaction[], budget: BudgetType): number {
+	static calculateTotalSpent(budgetExpenses: Transaction[]): number {
 		return budgetExpenses.reduce((sum: number, expense: Transaction) => {
 			// All expenses should already be in the budget's currency due to filtering
 			return sum + expense.amount;
@@ -424,7 +424,7 @@ export class BudgetDAO {
 			const budgetExpenses: Transaction[] = BudgetDAO.filterBudgetExpenses(expenses, budget, budgetStartDate, now);
 
 			// Calculate total spent from budget start date
-			const totalSpent: number = BudgetDAO.calculateTotalSpent(budgetExpenses, budget);
+			const totalSpent: number = BudgetDAO.calculateTotalSpent(budgetExpenses);
 
 			const progress: number = (totalSpent / budget.amount) * 100;
 			const remaining: number = budget.amount - totalSpent;
