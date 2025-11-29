@@ -355,13 +355,6 @@ export function useAllTransactionsForAnalytics(): UseQueryResult<{
     };
 }
 
-// Derived Data Hook types
-interface CurrencyStats {
-    income: number;
-    expense: number;
-    net: number;
-}
-
 interface ExpensesSelectorReturn {
     expenses: Transaction[];
     isLoading: boolean;
