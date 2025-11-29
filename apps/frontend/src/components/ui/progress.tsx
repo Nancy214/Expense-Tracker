@@ -40,20 +40,11 @@ const Progress = React.forwardRef<React.ElementRef<typeof ProgressPrimitive.Root
 	return (
 		<ProgressPrimitive.Root
 			ref={ref}
-			className={cn(
-				"relative h-3 w-full overflow-hidden rounded-full border border-border/40 shadow-inner",
-				trackClasses[variant],
-				className
-			)}
+			className={cn("relative h-3 w-full overflow-hidden rounded-full border border-border/40 shadow-inner", trackClasses[variant], className)}
 			{...props}
 		>
 			<ProgressPrimitive.Indicator
-				className={cn(
-					"h-full w-full flex-1 transition-all duration-500 ease-out relative rounded-full",
-					variantClasses[variant],
-					shineEffect,
-					patternClasses[variant]
-				)}
+				className={cn("h-full w-full flex-1 transition-all duration-500 ease-out relative rounded-full", variantClasses[variant], shineEffect, patternClasses[variant])}
 				style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
 			/>
 		</ProgressPrimitive.Root>

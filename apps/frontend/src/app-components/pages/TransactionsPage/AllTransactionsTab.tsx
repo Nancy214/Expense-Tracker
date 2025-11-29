@@ -32,9 +32,7 @@ export function AllTransactionsTab({ data, onEdit, showRecurringIcon = false, sh
 		if (!countryData || !currencyCode) return currencyCode;
 
 		// Find the currency in the country data
-		const countryWithCurrency = countryData.find(
-			(country) => country.currency.code === currencyCode
-		);
+		const countryWithCurrency = countryData.find((country) => country.currency.code === currencyCode);
 
 		// Return the symbol if found, otherwise return the currency code
 		return countryWithCurrency?.currency.symbol || currencyCode;
