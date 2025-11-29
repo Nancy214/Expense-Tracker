@@ -1,548 +1,169 @@
-import type { BudgetChange, BudgetFormData, BudgetLogType, BudgetProgress, BudgetType, Transaction } from "@expense-tracker/shared-types";
-import { endOfDay, endOfMonth, endOfWeek, endOfYear, startOfDay, startOfMonth, startOfWeek, startOfYear } from "date-fns";
+import type {
+    BudgetChange,
+    BudgetFormData,
+    BudgetLogType,
+    BudgetType,
+    Transaction,
+} from "@expense-tracker/shared-types";
 import mongoose from "mongoose";
 import { Budget } from "../models/budget.model";
 import { BudgetLog } from "../models/budget-log.model";
 import { TransactionModel } from "../models/transaction.model";
 
 export class BudgetDAO {
-	/**
-	 * Create a new budget
-	 */
-	static async createBudget(userId: string, budgetData: BudgetFormData): Promise<BudgetType> {
-		const { title, amount, currency, fromRate, toRate, recurrence, startDate, category } = budgetData;
+    /**
+     * Create a new budget
+     */
+    static async createBudget(userId: string, budgetData: BudgetFormData): Promise<BudgetType> {
+        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category } = budgetData;
 
-		const budget = new Budget({
-			userId: new mongoose.Types.ObjectId(userId).toString(),
-			title,
-			amount,
-			currency,
-			fromRate: fromRate || 1,
-			toRate: toRate || 1,
-			recurrence,
-			startDate,
-			category,
-		});
+        const budget = new Budget({
+            userId: new mongoose.Types.ObjectId(userId).toString(),
+            title,
+            amount,
+            currency,
+            fromRate: fromRate || 1,
+            toRate: toRate || 1,
+            recurrence,
+            startDate,
+            category,
+        });
 
-		const saved = await budget.save();
-		return {
-			...saved.toObject(),
-			id: saved._id.toString(),
-		} as BudgetType;
-	}
+        const saved = await budget.save();
+        return {
+            ...saved.toObject(),
+            id: saved._id.toString(),
+        } as BudgetType;
+    }
 
-	/**
-	 * Find budget by ID and user ID
-	 */
-	static async findBudgetById(userId: string, budgetId: string): Promise<BudgetType | null> {
-		const budget = await Budget.findOne({
-			_id: new mongoose.Types.ObjectId(budgetId),
-			userId: new mongoose.Types.ObjectId(userId),
-		});
+    /**
+     * Find budget by ID and user ID
+     */
+    static async findBudgetById(userId: string, budgetId: string): Promise<BudgetType | null> {
+        const budget = await Budget.findOne({
+            _id: new mongoose.Types.ObjectId(budgetId),
+            userId: new mongoose.Types.ObjectId(userId),
+        });
 
-		if (!budget) {
-			return null;
-		}
+        if (!budget) {
+            return null;
+        }
 
-		return {
-			...budget.toObject(),
-			id: budget._id.toString(),
-		} as BudgetType;
-	}
+        return {
+            ...budget.toObject(),
+            id: budget._id.toString(),
+        } as BudgetType;
+    }
 
-	/**
-	 * Find all budgets for a user
-	 */
-	static async findBudgetsByUserId(userId: string): Promise<BudgetType[]> {
-		const budgets = await Budget.find({
-			userId: new mongoose.Types.ObjectId(userId),
-		});
+    /**
+     * Find all budgets for a user
+     */
+    static async findBudgetsByUserId(userId: string): Promise<BudgetType[]> {
+        const budgets = await Budget.find({
+            userId: new mongoose.Types.ObjectId(userId),
+        });
 
-		return budgets.map((budget) => ({
-			...budget.toObject(),
-			id: budget._id.toString(),
-		})) as BudgetType[];
-	}
+        return budgets.map((budget) => ({
+            ...budget.toObject(),
+            id: budget._id.toString(),
+        })) as BudgetType[];
+    }
 
-	/**
-	 * Update a budget
-	 */
-	static async updateBudget(userId: string, budgetId: string, budgetData: BudgetFormData): Promise<BudgetType | null> {
-		const { title, amount, currency, fromRate, toRate, recurrence, startDate, category } = budgetData;
+    /**
+     * Update a budget
+     */
+    static async updateBudget(
+        userId: string,
+        budgetId: string,
+        budgetData: BudgetFormData
+    ): Promise<BudgetType | null> {
+        const { title, amount, currency, fromRate, toRate, recurrence, startDate, category } = budgetData;
 
-		const budget = await Budget.findOneAndUpdate(
-			{
-				_id: new mongoose.Types.ObjectId(budgetId),
-				userId: new mongoose.Types.ObjectId(userId),
-			},
-			{
-				title,
-				amount,
-				currency,
-				fromRate: fromRate || 1,
-				toRate: toRate || 1,
-				recurrence,
-				startDate,
-				category,
-			},
-			{ new: true }
-		);
+        const budget = await Budget.findOneAndUpdate(
+            {
+                _id: new mongoose.Types.ObjectId(budgetId),
+                userId: new mongoose.Types.ObjectId(userId),
+            },
+            {
+                title,
+                amount,
+                currency,
+                fromRate: fromRate || 1,
+                toRate: toRate || 1,
+                recurrence,
+                startDate,
+                category,
+            },
+            { new: true }
+        );
 
-		if (!budget) {
-			return null;
-		}
+        if (!budget) {
+            return null;
+        }
 
-		return {
-			...budget.toObject(),
-			id: budget._id.toString(),
-		} as BudgetType;
-	}
+        return {
+            ...budget.toObject(),
+            id: budget._id.toString(),
+        } as BudgetType;
+    }
 
-	/**
-	 * Delete a budget
-	 */
-	static async deleteBudget(userId: string, budgetId: string): Promise<BudgetType | null> {
-		const budget = await Budget.findOneAndDelete({
-			_id: new mongoose.Types.ObjectId(budgetId),
-			userId: new mongoose.Types.ObjectId(userId),
-		});
+    /**
+     * Delete a budget
+     */
+    static async deleteBudget(userId: string, budgetId: string): Promise<BudgetType | null> {
+        const budget = await Budget.findOneAndDelete({
+            _id: new mongoose.Types.ObjectId(budgetId),
+            userId: new mongoose.Types.ObjectId(userId),
+        });
 
-		if (!budget) {
-			return null;
-		}
+        if (!budget) {
+            return null;
+        }
 
-		return {
-			...budget.toObject(),
-			id: budget._id.toString(),
-		} as BudgetType;
-	}
+        return {
+            ...budget.toObject(),
+            id: budget._id.toString(),
+        } as BudgetType;
+    }
 
-	/**
-	 * Get budget logs for a user, optionally filtered by budget ID
-	 */
-	static async getBudgetLogs(userId: string): Promise<BudgetLogType[]> {
-		const query = { userId: new mongoose.Types.ObjectId(userId) };
+    /**
+     * Get budget logs for a user, optionally filtered by budget ID
+     */
+    static async getBudgetLogs(userId: string): Promise<BudgetLogType[]> {
+        const query = { userId: new mongoose.Types.ObjectId(userId) };
 
-		return await BudgetLog.find(query).sort({ timestamp: -1 });
-	}
+        return await BudgetLog.find(query).sort({ timestamp: -1 });
+    }
 
-	/**
-	 * Create a budget log entry
-	 */
-	static async createBudgetLog(budgetId: string, userId: string, changeType: "created" | "updated" | "deleted", changes: BudgetChange[], reason: string): Promise<BudgetLogType> {
-		const budgetLog = new BudgetLog({
-			id: new mongoose.Types.ObjectId().toString(),
-			budgetId,
-			userId,
-			changeType,
-			changes,
-			reason,
-		});
+    /**
+     * Create a budget log entry
+     */
+    static async createBudgetLog(
+        budgetId: string,
+        userId: string,
+        changeType: "created" | "updated" | "deleted",
+        changes: BudgetChange[],
+        reason: string
+    ): Promise<BudgetLogType> {
+        const budgetLog = new BudgetLog({
+            id: new mongoose.Types.ObjectId().toString(),
+            budgetId,
+            userId,
+            changeType,
+            changes,
+            reason,
+        });
 
-		return await budgetLog.save();
-	}
+        return await budgetLog.save();
+    }
 
-	/**
-	 * Get all expenses for a user
-	 */
-	static async getUserExpenses(userId: string): Promise<Transaction[]> {
-		return await TransactionModel.find({
-			userId: new mongoose.Types.ObjectId(userId),
-			type: "expense", // Only consider expenses, not income
-		});
-	}
-
-	/**
-	 * Calculate period dates based on recurrence
-	 */
-	static calculatePeriodDates(
-		recurrence: string,
-		now: Date
-	): {
-		periodStart: Date;
-		periodEnd: Date;
-	} {
-		let periodStart: Date;
-		let periodEnd: Date;
-
-		switch (recurrence) {
-			case "daily":
-				periodStart = startOfDay(now);
-				periodEnd = endOfDay(now);
-				break;
-			case "weekly":
-				periodStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
-				periodEnd = endOfWeek(now, { weekStartsOn: 1 });
-				break;
-
-			case "yearly":
-				periodStart = startOfYear(now);
-				periodEnd = endOfYear(now);
-				break;
-			default:
-				periodStart = startOfMonth(now);
-				periodEnd = endOfMonth(now);
-		}
-
-		return { periodStart, periodEnd };
-	}
-
-	/**
-	 * Filter expenses for a budget based on date range and category
-	 */
-	static filterBudgetExpenses(expenses: Transaction[], budget: BudgetType, budgetStartDate: Date, now: Date): Transaction[] {
-		return expenses.filter((expense: Transaction) => {
-			const expenseDate: Date = new Date(expense.date);
-			// Set time to start of day for consistent comparison
-			const expenseDateStart: Date = new Date(expenseDate.getFullYear(), expenseDate.getMonth(), expenseDate.getDate());
-			const budgetStartDateStart: Date = new Date(budgetStartDate.getFullYear(), budgetStartDate.getMonth(), budgetStartDate.getDate());
-			const nowStart: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-			const isInRange: boolean = expenseDateStart >= budgetStartDateStart && expenseDateStart <= nowStart;
-			const matchesCategory: boolean = budget.category === "All Categories" || expense.category === budget.category;
-
-			return isInRange && matchesCategory;
-		});
-	}
-
-	/**
-	 * Calculate total spent amount for budget expenses
-	 */
-	static calculateTotalSpent(budgetExpenses: Transaction[]): number {
-		return budgetExpenses.reduce((sum: number, expense: Transaction) => {
-			// Convert to budget's currency if different
-			let amount: number = expense.amount;
-			if (expense.currency !== budget.currency) {
-				// Use exchange rates if available, otherwise assume 1:1
-				if (expense.fromRate && expense.toRate) {
-					amount = expense.amount * expense.fromRate;
-				}
-			}
-			return sum + amount;
-		}, 0);
-	}
-
-	/**
-	 * Calculate days until next budget reset
-	 */
-	static calculateDaysUntilReset(budgets: BudgetProgress[], now: Date): number | null {
-		if (budgets.length === 0) return null;
-
-		// Find the earliest reset date among all budgets
-		const resetDates = budgets.map((budget) => {
-			const { periodEnd } = BudgetDAO.calculatePeriodDates(budget.recurrence, now);
-			return periodEnd;
-		});
-
-		const earliestReset = new Date(Math.min(...resetDates.map((d) => d.getTime())));
-		const daysUntilReset = Math.ceil((earliestReset.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-		return daysUntilReset;
-	}
-
-	/**
-	 * Calculate budget health score using Option 1: Simple Weighted Score
-	 */
-	static calculateBudgetHealth(budgets: BudgetProgress[]): {
-		score: number;
-		label: string;
-		color: string;
-		breakdown: {
-			baseScore: number;
-			overBudgetPenalty: number;
-			highUsagePenalty: number;
-			mediumUsagePenalty: number;
-			lowUsageBonus: number;
-			perfectRecordBonus: number;
-			overBudgetCount: number;
-			highUsageCount: number;
-			mediumUsageCount: number;
-			lowUsageCount: number;
-		};
-	} {
-		if (budgets.length === 0) {
-			return {
-				score: 0,
-				label: "No Data",
-				color: "gray",
-				breakdown: {
-					baseScore: 0,
-					overBudgetPenalty: 0,
-					highUsagePenalty: 0,
-					mediumUsagePenalty: 0,
-					lowUsageBonus: 0,
-					perfectRecordBonus: 0,
-					overBudgetCount: 0,
-					highUsageCount: 0,
-					mediumUsageCount: 0,
-					lowUsageCount: 0,
-				},
-			};
-		}
-
-		const baseScore = 100;
-
-		// Count budgets in each category
-		const overBudgetCount = budgets.filter((b) => b.isOverBudget).length;
-		const highUsageCount = budgets.filter((b) => !b.isOverBudget && b.progress >= 80).length;
-		const mediumUsageCount = budgets.filter((b) => !b.isOverBudget && b.progress >= 60 && b.progress < 80).length;
-		const lowUsageCount = budgets.filter((b) => b.progress < 40).length;
-
-		// Calculate penalties and bonuses
-		const overBudgetPenalty = overBudgetCount * 20;
-		const highUsagePenalty = highUsageCount * 10;
-		const mediumUsagePenalty = mediumUsageCount * 5;
-		const lowUsageBonus = lowUsageCount * 5;
-		const perfectRecordBonus = overBudgetCount === 0 ? 10 : 0;
-
-		// Calculate final score
-		let score = baseScore - overBudgetPenalty - highUsagePenalty - mediumUsagePenalty + lowUsageBonus + perfectRecordBonus;
-
-		// Cap between 0-100
-		score = Math.max(0, Math.min(100, score));
-
-		// Determine label and color
-		let label: string;
-		let color: string;
-
-		if (score >= 90) {
-			label = "Excellent!";
-			color = "green";
-		} else if (score >= 75) {
-			label = "Great!";
-			color = "green";
-		} else if (score >= 60) {
-			label = "Good";
-			color = "blue";
-		} else if (score >= 40) {
-			label = "Fair";
-			color = "yellow";
-		} else if (score >= 20) {
-			label = "Poor";
-			color = "orange";
-		} else {
-			label = "Critical";
-			color = "red";
-		}
-
-		return {
-			score,
-			label,
-			color,
-			breakdown: {
-				baseScore,
-				overBudgetPenalty,
-				highUsagePenalty,
-				mediumUsagePenalty,
-				lowUsageBonus,
-				perfectRecordBonus,
-				overBudgetCount,
-				highUsageCount,
-				mediumUsageCount,
-				lowUsageCount,
-			},
-		};
-	}
-
-	/**
-	 * Calculate budget progress - unified function for single budget or all budgets
-	 * @param userId - User ID to get budgets and expenses for
-	 * @param budgetId - Optional specific budget ID. If provided, returns progress for that budget only
-	 * @returns Budget progress data for single budget or all budgets with overall totals
-	 */
-	static async calculateBudgetProgress(userId: string): Promise<
-		| BudgetProgress
-		| {
-				budgets: BudgetProgress[];
-				totalProgress: number;
-				totalBudgetAmount: number;
-				totalSpent: number;
-				activeBudgetsThisMonth: number;
-				savingsAchieved: number;
-				daysUntilReset: number | null;
-				onTrackBudgets: number;
-				budgetHealth: {
-					score: number;
-					label: string;
-					color: string;
-					breakdown: {
-						baseScore: number;
-						overBudgetPenalty: number;
-						highUsagePenalty: number;
-						mediumUsagePenalty: number;
-						lowUsageBonus: number;
-						perfectRecordBonus: number;
-						overBudgetCount: number;
-						highUsageCount: number;
-						mediumUsageCount: number;
-						lowUsageCount: number;
-					};
-				};
-		  }
-	> {
-		// Get budgets - either specific one or all for user
-		let budgets: BudgetType[];
-
-		budgets = await BudgetDAO.findBudgetsByUserId(userId);
-
-		if (budgets.length === 0) {
-			return {
-				budgets: [],
-				totalProgress: 0,
-				totalBudgetAmount: 0,
-				totalSpent: 0,
-				activeBudgetsThisMonth: 0,
-				savingsAchieved: 0,
-				daysUntilReset: null,
-				onTrackBudgets: 0,
-				budgetHealth: {
-					score: 0,
-					label: "No Data",
-					color: "gray",
-					breakdown: {
-						baseScore: 0,
-						overBudgetPenalty: 0,
-						highUsagePenalty: 0,
-						mediumUsagePenalty: 0,
-						lowUsageBonus: 0,
-						perfectRecordBonus: 0,
-						overBudgetCount: 0,
-						highUsageCount: 0,
-						mediumUsageCount: 0,
-						lowUsageCount: 0,
-					},
-				},
-			};
-		}
-
-		// Get all expenses for the user
-		const expenses: Transaction[] = await BudgetDAO.getUserExpenses(userId);
-		const now: Date = new Date();
-
-		// Calculate progress for each budget
-		const budgetProgress = budgets.map((budget: BudgetType) => {
-			const budgetStartDate: Date = new Date(budget.startDate);
-			const { periodStart } = BudgetDAO.calculatePeriodDates(budget.recurrence, now);
-
-			// Filter expenses from the budget start date to now (not just current period)
-			// and match the budget category
-			const budgetExpenses: Transaction[] = BudgetDAO.filterBudgetExpenses(expenses, budget, budgetStartDate, now);
-
-			// Calculate total spent from budget start date
-			const totalSpent: number = BudgetDAO.calculateTotalSpent(budgetExpenses);
-
-			const progress: number = (totalSpent / budget.amount) * 100;
-			const remaining: number = budget.amount - totalSpent;
-			const isOverBudget: boolean = totalSpent > budget.amount;
-
-			return {
-				id: budget.id,
-				title: budget.title,
-				amount: budget.amount,
-				currency: budget.currency,
-				fromRate: budget.fromRate || 1,
-				toRate: budget.toRate || 1,
-				recurrence: budget.recurrence,
-				startDate: budget.startDate,
-				category: budget.category,
-				createdAt: budget.createdAt,
-				periodStart,
-				totalSpent,
-				remaining,
-				progress: Math.min(progress, 100), // Cap at 100%
-				isOverBudget,
-				expensesCount: budgetExpenses.length,
-			} as BudgetProgress;
-		});
-
-		// Calculate overall progress for all budgets
-		const totalBudgetAmount: number = budgetProgress.reduce((sum: number, budget: BudgetProgress) => sum + budget.amount, 0);
-		const totalSpent: number = budgetProgress.reduce((sum: number, budget: BudgetProgress) => sum + budget.totalSpent, 0);
-		const totalProgress: number = totalBudgetAmount > 0 ? (totalSpent / totalBudgetAmount) * 100 : 0;
-		const activeBudgetsThisMonth: number = budgetProgress.reduce((count: number, budget: BudgetProgress) => {
-			const periodStartDate = budget.periodStart instanceof Date ? budget.periodStart : new Date(budget.periodStart);
-			if (Number.isNaN(periodStartDate.getTime())) {
-				return count;
-			}
-			const hasStarted = new Date(budget.startDate).getTime() <= now.getTime();
-			const isCurrentMonth = periodStartDate.getMonth() === now.getMonth() && periodStartDate.getFullYear() === now.getFullYear();
-			return hasStarted && isCurrentMonth ? count + 1 : count;
-		}, 0);
-
-		// Calculate new statistics
-		// 1. Savings Achieved - sum of all positive remaining amounts
-		const savingsAchieved: number = budgetProgress.reduce((sum: number, budget: BudgetProgress) => {
-			return budget.remaining > 0 ? sum + budget.remaining : sum;
-		}, 0);
-
-		// 2. Days Until Next Budget Reset
-		const daysUntilReset: number | null = BudgetDAO.calculateDaysUntilReset(budgetProgress, now);
-
-		// 3. On-Track Budgets Count (budgets under 80% usage and not over budget)
-		const onTrackBudgets: number = budgetProgress.filter((b) => !b.isOverBudget && b.progress < 80).length;
-
-		// 4. Budget Health Score
-		const budgetHealth = BudgetDAO.calculateBudgetHealth(budgetProgress);
-
-		return {
-			budgets: budgetProgress,
-			totalProgress: Math.min(totalProgress, 100),
-			totalBudgetAmount,
-			totalSpent,
-			activeBudgetsThisMonth,
-			savingsAchieved: Math.round(savingsAchieved * 100) / 100,
-			daysUntilReset,
-			onTrackBudgets,
-			budgetHealth,
-		};
-	}
-
-	/**
-	 * Compare old and new budget values to detect changes
-	 * Both oldBudget and newBudgetData should have startDate as Date objects
-	 */
-	static detectBudgetChanges(oldBudget: any, newBudgetData: any): BudgetChange[] {
-		const changes: BudgetChange[] = [];
-
-		if (oldBudget.title !== newBudgetData.title) {
-			changes.push({
-				field: "title",
-				oldValue: oldBudget.title,
-				newValue: newBudgetData.title,
-			});
-		}
-		if (oldBudget.amount !== newBudgetData.amount) {
-			changes.push({
-				field: "amount",
-				oldValue: oldBudget.amount,
-				newValue: newBudgetData.amount,
-			});
-		}
-		if (oldBudget.recurrence !== newBudgetData.recurrence) {
-			changes.push({
-				field: "recurrence",
-				oldValue: oldBudget.recurrence,
-				newValue: newBudgetData.recurrence,
-			});
-		}
-		// Compare dates properly - both should be Date objects at this point
-		const oldDate = oldBudget.startDate instanceof Date ? oldBudget.startDate : new Date(oldBudget.startDate);
-		const newDate = newBudgetData.startDate instanceof Date ? newBudgetData.startDate : new Date(newBudgetData.startDate);
-		if (oldDate.getTime() !== newDate.getTime()) {
-			changes.push({
-				field: "startDate",
-				oldValue: oldBudget.startDate,
-				newValue: newBudgetData.startDate,
-			});
-		}
-		if (oldBudget.category !== newBudgetData.category) {
-			changes.push({
-				field: "category",
-				oldValue: oldBudget.category,
-				newValue: newBudgetData.category,
-			});
-		}
-
-		return changes;
-	}
+    /**
+     * Get all expenses for a user
+     */
+    static async getUserExpenses(userId: string): Promise<Transaction[]> {
+        return await TransactionModel.find({
+            userId: new mongoose.Types.ObjectId(userId),
+            type: "expense", // Only consider expenses, not income
+        });
+    }
 }
