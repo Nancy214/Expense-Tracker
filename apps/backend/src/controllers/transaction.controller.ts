@@ -5,302 +5,302 @@ import { createErrorResponse, logError } from "../services/error.service";
 import { RecurringTransactionJobService } from "../services/recurringTransactionJob.service";
 
 export interface AuthRequest extends Request {
-    user?: TokenPayload;
+	user?: TokenPayload;
 }
 
 // Create service instance
 const transactionService = new TransactionService();
 
 export const getExpenses = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+	try {
+		const userId = (req as AuthRequest).user?.id;
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const response = await transactionService.getExpenses(userId, req.query as any);
+		const response = await transactionService.getExpenses(userId, req.query as any);
 
-        res.json(response);
-    } catch (error: unknown) {
-        logError("getExpenses", error);
-        res.status(500).json(createErrorResponse("Failed to get expenses."));
-    }
+		res.json(response);
+	} catch (error: unknown) {
+		logError("getExpenses", error);
+		res.status(500).json(createErrorResponse("Failed to get expenses."));
+	}
 };
 
 // New function for getting all transactions (non-recurring templates)
 export const getAllTransactions = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+	try {
+		const userId = (req as AuthRequest).user?.id;
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const response = await transactionService.getAllTransactions(userId, req.query);
-        res.json(response);
-    } catch (error: unknown) {
-        logError("getAllTransactions", error);
-        res.status(500).json(createErrorResponse("Failed to get all transactions."));
-    }
+		const response = await transactionService.getAllTransactions(userId, req.query);
+		res.json(response);
+	} catch (error: unknown) {
+		logError("getAllTransactions", error);
+		res.status(500).json(createErrorResponse("Failed to get all transactions."));
+	}
 };
 
 export const getTransactionSummary = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+	try {
+		const userId = (req as AuthRequest).user?.id;
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const response = await transactionService.getTransactionSummary(userId);
-        res.json(response);
-    } catch (error: unknown) {
-        logError("getTransactionSummary", error);
-        res.status(500).json(createErrorResponse("Failed to get transaction summary."));
-    }
+		const response = await transactionService.getTransactionSummary(userId);
+		res.json(response);
+	} catch (error: unknown) {
+		logError("getTransactionSummary", error);
+		res.status(500).json(createErrorResponse("Failed to get transaction summary."));
+	}
 };
 
 export const getExpensesById = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+	try {
+		const userId = (req as AuthRequest).user?.id;
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const response = await transactionService.getExpensesById(userId, req.params.id);
-        res.json(response);
-    } catch (error: unknown) {
-        if (error instanceof Error && error.message === "Expense not found") {
-            res.status(404).json(createErrorResponse("Expense not found"));
-            return;
-        }
+		const response = await transactionService.getExpensesById(userId, req.params.id);
+		res.json(response);
+	} catch (error: unknown) {
+		if (error instanceof Error && error.message === "Expense not found") {
+			res.status(404).json(createErrorResponse("Expense not found"));
+			return;
+		}
 
-        logError("getExpensesById", error);
-        res.status(500).json(createErrorResponse("Failed to get expenses by id."));
-    }
+		logError("getExpensesById", error);
+		res.status(500).json(createErrorResponse("Failed to get expenses by id."));
+	}
 };
 
 export const createExpense = async (req: Request, res: Response): Promise<void> => {
-    const userId = (req as AuthRequest).user?.id;
-    try {
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+	const userId = (req as AuthRequest).user?.id;
+	try {
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const expense = await transactionService.createExpense(userId, req.body);
+		const expense = await transactionService.createExpense(userId, req.body);
 
-        // If this is a recurring transaction with autoCreate enabled,
-        // immediately process it to create any past instances
-        if (expense.isRecurring && expense.autoCreate && expense.recurringActive) {
-            try {
-                const result = await RecurringTransactionJobService.processUserRecurringTransactionsManually(userId);
-                console.log(`[createExpense] Processed recurring transaction: ${result.message}`);
-            } catch (jobError) {
-                // Log but don't fail the request - the transaction was created successfully
-                console.error("[createExpense] Failed to process recurring instances:", jobError);
-            }
-        }
+		// If this is a recurring transaction with autoCreate enabled,
+		// immediately process it to create any past instances
+		if (expense.isRecurring && expense.autoCreate && expense.recurringActive) {
+			try {
+				const result = await RecurringTransactionJobService.processUserRecurringTransactionsManually(userId);
+				console.log(`[createExpense] Processed recurring transaction: ${result.message}`);
+			} catch (jobError) {
+				// Log but don't fail the request - the transaction was created successfully
+				console.error("[createExpense] Failed to process recurring instances:", jobError);
+			}
+		}
 
-        res.json(expense);
-    } catch (error: unknown) {
-        logError("createExpense", error, userId);
-        res.status(500).json(createErrorResponse("Failed to create expense."));
-    }
+		res.json(expense);
+	} catch (error: unknown) {
+		logError("createExpense", error, userId);
+		res.status(500).json(createErrorResponse("Failed to create expense."));
+	}
 };
 
 export const updateExpense = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+	try {
+		const userId = (req as AuthRequest).user?.id;
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const { id } = req.params;
-        const expense = await transactionService.updateExpense(userId, id, req.body);
-        res.json(expense);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            if (error.message === "Invalid transaction id") {
-                res.status(400).json(createErrorResponse(error.message));
-                return;
-            }
-            if (error.message === "Expense not found") {
-                res.status(404).json(createErrorResponse(error.message));
-                return;
-            }
-            // Handle date parsing errors
-            if (error.message.includes("Invalid date format")) {
-                res.status(400).json(createErrorResponse(error.message));
-                return;
-            }
-        }
+		const { id } = req.params;
+		const expense = await transactionService.updateExpense(userId, id, req.body);
+		res.json(expense);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			if (error.message === "Invalid transaction id") {
+				res.status(400).json(createErrorResponse(error.message));
+				return;
+			}
+			if (error.message === "Expense not found") {
+				res.status(404).json(createErrorResponse(error.message));
+				return;
+			}
+			// Handle date parsing errors
+			if (error.message.includes("Invalid date format")) {
+				res.status(400).json(createErrorResponse(error.message));
+				return;
+			}
+		}
 
-        logError("updateExpense", error);
-        res.status(500).json(createErrorResponse("Failed to update expense."));
-    }
+		logError("updateExpense", error);
+		res.status(500).json(createErrorResponse("Failed to update expense."));
+	}
 };
 
 export const deleteExpense = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const userId = (req as AuthRequest).user?.id;
+	try {
+		const { id } = req.params;
+		const userId = (req as AuthRequest).user?.id;
 
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const response = await transactionService.deleteExpense(userId, id);
-        res.json(response);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            if (error.message === "Invalid transaction id") {
-                res.status(400).json(createErrorResponse(error.message));
-                return;
-            }
-            if (error.message === "Expense not found") {
-                res.status(404).json(createErrorResponse(error.message));
-                return;
-            }
-        }
+		const response = await transactionService.deleteExpense(userId, id);
+		res.json(response);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			if (error.message === "Invalid transaction id") {
+				res.status(400).json(createErrorResponse(error.message));
+				return;
+			}
+			if (error.message === "Expense not found") {
+				res.status(404).json(createErrorResponse(error.message));
+				return;
+			}
+		}
 
-        logError("deleteExpense", error);
-        res.status(500).json(createErrorResponse("Failed to delete expense."));
-    }
+		logError("deleteExpense", error);
+		res.status(500).json(createErrorResponse("Failed to delete expense."));
+	}
 };
 
 export const deleteRecurringSeries = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { id } = req.params;
-        const userId = (req as AuthRequest).user?.id;
+	try {
+		const { id } = req.params;
+		const userId = (req as AuthRequest).user?.id;
 
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const response = await transactionService.deleteRecurringSeries(userId, id);
-        res.json(response);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            if (error.message === "Invalid transaction id") {
-                res.status(400).json(createErrorResponse(error.message));
-                return;
-            }
-            if (error.message === "Expense not found") {
-                res.status(404).json(createErrorResponse(error.message));
-                return;
-            }
-        }
+		const response = await transactionService.deleteRecurringSeries(userId, id);
+		res.json(response);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			if (error.message === "Invalid transaction id") {
+				res.status(400).json(createErrorResponse(error.message));
+				return;
+			}
+			if (error.message === "Expense not found") {
+				res.status(404).json(createErrorResponse(error.message));
+				return;
+			}
+		}
 
-        logError("deleteRecurringSeries", error);
-        res.status(500).json(createErrorResponse("Failed to delete recurring series."));
-    }
+		logError("deleteRecurringSeries", error);
+		res.status(500).json(createErrorResponse("Failed to delete recurring series."));
+	}
 };
 
 export const uploadReceipt = async (req: Request, res: Response): Promise<void> => {
-    try {
-        if (!req.file) {
-            res.status(400).json(createErrorResponse("No file uploaded"));
-            return;
-        }
+	try {
+		if (!req.file) {
+			res.status(400).json(createErrorResponse("No file uploaded"));
+			return;
+		}
 
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+		const userId = (req as AuthRequest).user?.id;
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const response = await transactionService.uploadReceipt(userId, req.file);
-        res.json(response);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            if (error.message === "S3 not configured") {
-                res.status(500).json(createErrorResponse(error.message));
-                return;
-            }
-            if (error.message === "PDF file size exceeds 5MB limit") {
-                res.status(400).json(createErrorResponse(error.message));
-                return;
-            }
-        }
+		const response = await transactionService.uploadReceipt(userId, req.file);
+		res.json(response);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			if (error.message === "S3 not configured") {
+				res.status(500).json(createErrorResponse(error.message));
+				return;
+			}
+			if (error.message === "PDF file size exceeds 5MB limit") {
+				res.status(400).json(createErrorResponse(error.message));
+				return;
+			}
+		}
 
-        logError("uploadReceipt", error);
-        res.status(500).json(createErrorResponse("Failed to upload receipt."));
-    }
+		logError("uploadReceipt", error);
+		res.status(500).json(createErrorResponse("Failed to upload receipt."));
+	}
 };
 
 export const getReceiptUrl = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const key: string = decodeURIComponent(req.params.id);
-        if (!key) {
-            res.status(400).json(createErrorResponse("Missing key"));
-            return;
-        }
+	try {
+		const key: string = decodeURIComponent(req.params.id);
+		if (!key) {
+			res.status(400).json(createErrorResponse("Missing key"));
+			return;
+		}
 
-        const response = await transactionService.getReceiptUrl(key);
-        res.json(response);
-    } catch (error: unknown) {
-        if (error instanceof Error && error.message === "Missing key") {
-            res.status(400).json(createErrorResponse(error.message));
-            return;
-        }
+		const response = await transactionService.getReceiptUrl(key);
+		res.json(response);
+	} catch (error: unknown) {
+		if (error instanceof Error && error.message === "Missing key") {
+			res.status(400).json(createErrorResponse(error.message));
+			return;
+		}
 
-        logError("getReceiptUrl", error);
-        res.status(500).json(createErrorResponse("Failed to generate receipt URL."));
-    }
+		logError("getReceiptUrl", error);
+		res.status(500).json(createErrorResponse("Failed to generate receipt URL."));
+	}
 };
 
 export const deleteReceipt = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const key: string = decodeURIComponent(req.params.id);
-        if (!key) {
-            res.status(400).json(createErrorResponse("Missing key"));
-            return;
-        }
+	try {
+		const key: string = decodeURIComponent(req.params.id);
+		if (!key) {
+			res.status(400).json(createErrorResponse("Missing key"));
+			return;
+		}
 
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+		const userId = (req as AuthRequest).user?.id;
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const response = await transactionService.deleteReceipt(userId, key);
-        res.json(response);
-    } catch (error: unknown) {
-        if (error instanceof Error) {
-            if (error.message === "Missing key") {
-                res.status(400).json(createErrorResponse(error.message));
-                return;
-            }
-            if (error.message === "S3 not configured") {
-                res.status(500).json(createErrorResponse(error.message));
-                return;
-            }
-        }
+		const response = await transactionService.deleteReceipt(userId, key);
+		res.json(response);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			if (error.message === "Missing key") {
+				res.status(400).json(createErrorResponse(error.message));
+				return;
+			}
+			if (error.message === "S3 not configured") {
+				res.status(500).json(createErrorResponse(error.message));
+				return;
+			}
+		}
 
-        logError("deleteReceipt", error);
-        res.status(500).json(createErrorResponse("Failed to delete receipt."));
-    }
+		logError("deleteReceipt", error);
+		res.status(500).json(createErrorResponse("Failed to delete receipt."));
+	}
 };
 
 // New function for getting all transactions for analytics (no pagination)
 export const getAllTransactionsForAnalytics = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const userId = (req as AuthRequest).user?.id;
-        if (!userId) {
-            res.status(401).json(createErrorResponse("User not authenticated"));
-            return;
-        }
+	try {
+		const userId = (req as AuthRequest).user?.id;
+		if (!userId) {
+			res.status(401).json(createErrorResponse("User not authenticated"));
+			return;
+		}
 
-        const response = await transactionService.getAllTransactionsForAnalytics(userId);
-        res.json(response);
-    } catch (error: unknown) {
-        logError("getAllTransactionsForAnalytics", error);
-        res.status(500).json(createErrorResponse("Failed to get all transactions for analytics."));
-    }
+		const response = await transactionService.getAllTransactionsForAnalytics(userId);
+		res.json(response);
+	} catch (error: unknown) {
+		logError("getAllTransactionsForAnalytics", error);
+		res.status(500).json(createErrorResponse("Failed to get all transactions for analytics."));
+	}
 };

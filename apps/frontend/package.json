@@ -8,7 +8,8 @@
         "dev": "vite",
         "build": "tsc -b && vite build",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "serve": "serve -s dist -p 3001"
     },
     "dependencies": {
         "@date-fns/tz": "^1.4.1",

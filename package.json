@@ -21,7 +21,8 @@
         "backend:dev": "nx run backend:dev",
         "frontend:dev": "nx run frontend:dev",
         "backend:build": "nx run backend:build",
-        "frontend:build": "nx run frontend:build"
+        "frontend:build": "nx run frontend:build",
+        "frontend:serve": "nx run frontend:serve"
     },
     "devDependencies": {
         "@biomejs/biome": "^2.2.7",

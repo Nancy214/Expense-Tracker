@@ -12,253 +12,233 @@ import { ExchangeRateDAO } from "src/daos/exchange-rate.dao";
 import { TransactionDataMapper } from "../dtos/transaction.dto";
 
 export class TransactionService {
-    async getExpenses(userId: string, query: PaginationQuery) {
-        const { expenses, total, page, limit } = await TransactionDAO.getExpenses(userId, query);
+	async getExpenses(userId: string, query: PaginationQuery) {
+		const { expenses, total, page, limit } = await TransactionDAO.getExpenses(userId, query);
 
-        const response: PaginatedResponse<Transaction> = {
-            expenses,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasNextPage: page < Math.ceil(total / limit),
-                hasPrevPage: page > 1,
-            },
-        };
+		const response: PaginatedResponse<Transaction> = {
+			expenses,
+			pagination: {
+				page,
+				limit,
+				total,
+				totalPages: Math.ceil(total / limit),
+				hasNextPage: page < Math.ceil(total / limit),
+				hasPrevPage: page > 1,
+			},
+		};
 
-        return response;
-    }
+		return response;
+	}
 
-    async getAllTransactions(userId: string, query: any) {
-        const [user, allTransactions] = await Promise.all([
-            AuthDAO.findUserById(userId),
-            TransactionDAO.getAllTransactions(userId, query),
-        ]);
+	async getAllTransactions(userId: string, query: any) {
+		const [user, allTransactions] = await Promise.all([AuthDAO.findUserById(userId), TransactionDAO.getAllTransactions(userId, query)]);
 
-        if (!user) {
-            throw new Error("User not found");
-        }
+		if (!user) {
+			throw new Error("User not found");
+		}
 
-        const { transactions, total, page, limit } = allTransactions;
+		const { transactions, total, page, limit } = allTransactions;
 
-        const mappedTransactions = await Promise.all(
-            transactions.map(async (transaction) => {
-                let mappedTransaction = TransactionDataMapper.toResponse(transaction);
+		const mappedTransactions = await Promise.all(
+			transactions.map(async (transaction) => {
+				let mappedTransaction = TransactionDataMapper.toResponse(transaction);
 
-                if (transaction.currency !== user.currency) {
-                    const exchangeRate = await ExchangeRateDAO.getExchangeRates(
-                        transaction.currency,
-                        user.currency,
-                        new Date(transaction.date).toISOString().split("T")[0]
-                    );
-                    if (exchangeRate) {
-                        mappedTransaction = TransactionDataMapper.setToRate(
-                            mappedTransaction,
-                            exchangeRate.exchangeRate
-                        );
-                    }
-                }
+				if (transaction.currency !== user.currency) {
+					const exchangeRate = await ExchangeRateDAO.getExchangeRates(transaction.currency, user.currency, new Date(transaction.date).toISOString().split("T")[0]);
+					if (exchangeRate) {
+						mappedTransaction = TransactionDataMapper.setToRate(mappedTransaction, exchangeRate.exchangeRate);
+					}
+				}
 
-                return mappedTransaction;
-            })
-        );
+				return mappedTransaction;
+			})
+		);
 
-        const response: PaginatedResponse<Transaction> = {
-            transactions: mappedTransactions,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasNextPage: page < Math.ceil(total / limit),
-                hasPrevPage: page > 1,
-            },
-        };
+		const response: PaginatedResponse<Transaction> = {
+			transactions: mappedTransactions,
+			pagination: {
+				page,
+				limit,
+				total,
+				totalPages: Math.ceil(total / limit),
+				hasNextPage: page < Math.ceil(total / limit),
+				hasPrevPage: page > 1,
+			},
+		};
 
-        return response;
-    }
+		return response;
+	}
 
-    async getTransactionSummary(userId: string) {
-        const summary = await TransactionDAO.getTransactionSummary(userId);
-        return { summary };
-    }
+	async getTransactionSummary(userId: string) {
+		const summary = await TransactionDAO.getTransactionSummary(userId);
+		return { summary };
+	}
 
-    async getExpensesById(userId: string, id: string) {
-        const expense = await TransactionDAO.getTransactionById(userId, id);
-        if (!expense) {
-            throw new Error("Expense not found");
-        }
-        return { expenses: [expense] };
-    }
+	async getExpensesById(userId: string, id: string) {
+		const expense = await TransactionDAO.getTransactionById(userId, id);
+		if (!expense) {
+			throw new Error("Expense not found");
+		}
+		return { expenses: [expense] };
+	}
 
-    async createExpense(userId: string, expenseData: any) {
-        const expense: Transaction = await TransactionDAO.createTransaction(userId, expenseData);
-        return expense;
-    }
+	async createExpense(userId: string, expenseData: any) {
+		const expense: Transaction = await TransactionDAO.createTransaction(userId, expenseData);
+		return expense;
+	}
 
-    async updateExpense(userId: string, id: string, updateData: any) {
-        // Validate ObjectId early to avoid cast errors
-        if (!mongoose.isValidObjectId(id)) {
-            throw new Error("Invalid transaction id");
-        }
+	async updateExpense(userId: string, id: string, updateData: any) {
+		// Validate ObjectId early to avoid cast errors
+		if (!mongoose.isValidObjectId(id)) {
+			throw new Error("Invalid transaction id");
+		}
 
-        const expense = await TransactionDAO.updateTransaction(userId, id, updateData);
-        if (!expense) {
-            throw new Error("Expense not found");
-        }
-        return expense;
-    }
+		const expense = await TransactionDAO.updateTransaction(userId, id, updateData);
+		if (!expense) {
+			throw new Error("Expense not found");
+		}
+		return expense;
+	}
 
-    async deleteExpense(userId: string, id: string) {
-        // Validate ObjectId early to avoid cast errors
-        if (!mongoose.isValidObjectId(id)) {
-            throw new Error("Invalid transaction id");
-        }
+	async deleteExpense(userId: string, id: string) {
+		// Validate ObjectId early to avoid cast errors
+		if (!mongoose.isValidObjectId(id)) {
+			throw new Error("Invalid transaction id");
+		}
 
-        const expense = await TransactionDAO.deleteTransaction(userId, id);
-        if (!expense) {
-            throw new Error("Expense not found");
-        }
+		const expense = await TransactionDAO.deleteTransaction(userId, id);
+		if (!expense) {
+			throw new Error("Expense not found");
+		}
 
-        return { message: "Expense deleted" };
-    }
+		return { message: "Expense deleted" };
+	}
 
-    async uploadReceipt(userId: string, file: Express.Multer.File) {
-        if (!file) {
-            throw new Error("No file uploaded");
-        }
+	async uploadReceipt(userId: string, file: Express.Multer.File) {
+		if (!file) {
+			throw new Error("No file uploaded");
+		}
 
-        if (!isAWSConfigured) {
-            throw new Error("S3 not configured");
-        }
+		if (!isAWSConfigured) {
+			throw new Error("S3 not configured");
+		}
 
-        const timestamp: number = Date.now();
-        const originalName: string = file.originalname;
-        const hashInput: string = `${originalName}_${timestamp}_${userId}`;
-        let fileName: string = crypto
-            .createHash("sha256")
-            .update(hashInput)
-            .digest("hex")
-            .replace(/[^a-zA-Z0-9]/g, "");
-        const ext: string = path.extname(originalName) || ".jpg";
-        fileName = `${fileName}${ext}`;
-        const s3Key: string = `receipt/${fileName}`;
+		const timestamp: number = Date.now();
+		const originalName: string = file.originalname;
+		const hashInput: string = `${originalName}_${timestamp}_${userId}`;
+		let fileName: string = crypto
+			.createHash("sha256")
+			.update(hashInput)
+			.digest("hex")
+			.replace(/[^a-zA-Z0-9]/g, "");
+		const ext: string = path.extname(originalName) || ".jpg";
+		fileName = `${fileName}${ext}`;
+		const s3Key: string = `receipt/${fileName}`;
 
-        let fileBuffer: Buffer = file.buffer;
-        let contentType: string = file.mimetype;
+		let fileBuffer: Buffer = file.buffer;
+		let contentType: string = file.mimetype;
 
-        // Restrict PDF size (e.g., 5MB)
-        if (contentType === "application/pdf" && fileBuffer.length > 5 * 1024 * 1024) {
-            throw new Error("PDF file size exceeds 5MB limit");
-        }
+		// Restrict PDF size (e.g., 5MB)
+		if (contentType === "application/pdf" && fileBuffer.length > 5 * 1024 * 1024) {
+			throw new Error("PDF file size exceeds 5MB limit");
+		}
 
-        // If image, process with sharp
-        if (contentType.startsWith("image/")) {
-            fileBuffer = await sharp(file.buffer)
-                .resize({ width: 1200, height: 1200, fit: "inside" })
-                .jpeg({ quality: 90 })
-                .toBuffer();
-            contentType = "image/jpeg";
-        }
+		// If image, process with sharp
+		if (contentType.startsWith("image/")) {
+			fileBuffer = await sharp(file.buffer).resize({ width: 1200, height: 1200, fit: "inside" }).jpeg({ quality: 90 }).toBuffer();
+			contentType = "image/jpeg";
+		}
 
-        const uploadCommand = new PutObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: s3Key,
-            Body: fileBuffer,
-            ContentType: contentType,
-            ACL: "private",
-        });
+		const uploadCommand = new PutObjectCommand({
+			Bucket: process.env.AWS_BUCKET_NAME,
+			Key: s3Key,
+			Body: fileBuffer,
+			ContentType: contentType,
+			ACL: "private",
+		});
 
-        await s3Client.send(uploadCommand);
+		await s3Client.send(uploadCommand);
 
-        return { key: s3Key };
-    }
+		return { key: s3Key };
+	}
 
-    async getReceiptUrl(key: string) {
-        if (!key) {
-            throw new Error("Missing key");
-        }
+	async getReceiptUrl(key: string) {
+		if (!key) {
+			throw new Error("Missing key");
+		}
 
-        const command: GetObjectCommand = new GetObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: key,
-        });
+		const command: GetObjectCommand = new GetObjectCommand({
+			Bucket: process.env.AWS_BUCKET_NAME,
+			Key: key,
+		});
 
-        const url: string = await getSignedUrl(s3Client, command, {
-            expiresIn: 300,
-        });
+		const url: string = await getSignedUrl(s3Client, command, {
+			expiresIn: 300,
+		});
 
-        return { url };
-    }
+		return { url };
+	}
 
-    async deleteReceipt(userId: string, key: string) {
-        if (!key) {
-            throw new Error("Missing key");
-        }
+	async deleteReceipt(userId: string, key: string) {
+		if (!key) {
+			throw new Error("Missing key");
+		}
 
-        if (!isAWSConfigured) {
-            throw new Error("S3 not configured");
-        }
+		if (!isAWSConfigured) {
+			throw new Error("S3 not configured");
+		}
 
-        // Delete from S3
-        const deleteCommand = new DeleteObjectCommand({
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: key,
-        });
+		// Delete from S3
+		const deleteCommand = new DeleteObjectCommand({
+			Bucket: process.env.AWS_BUCKET_NAME,
+			Key: key,
+		});
 
-        await s3Client.send(deleteCommand);
+		await s3Client.send(deleteCommand);
 
-        // Update database to remove receipt reference
-        await TransactionDAO.removeReceiptFromTransactions(userId, key);
+		// Update database to remove receipt reference
+		await TransactionDAO.removeReceiptFromTransactions(userId, key);
 
-        return { message: "Receipt deleted successfully" };
-    }
+		return { message: "Receipt deleted successfully" };
+	}
 
-    async getAllTransactionsForAnalytics(userId: string) {
-        const transactions = await TransactionDAO.getAllTransactionsForAnalytics(userId);
-        const user = await AuthDAO.findUserById(userId);
-        if (!user) {
-            throw new Error("User not found");
-        }
-        const mappedTransactions = await Promise.all(
-            transactions.map(async (transaction) => {
-                let mappedTransaction = TransactionDataMapper.toResponse(transaction);
+	async getAllTransactionsForAnalytics(userId: string) {
+		const transactions = await TransactionDAO.getAllTransactionsForAnalytics(userId);
+		const user = await AuthDAO.findUserById(userId);
+		if (!user) {
+			throw new Error("User not found");
+		}
+		const mappedTransactions = await Promise.all(
+			transactions.map(async (transaction) => {
+				let mappedTransaction = TransactionDataMapper.toResponse(transaction);
 
-                if (transaction.currency !== user.currency) {
-                    const exchangeRate = await ExchangeRateDAO.getExchangeRates(
-                        transaction.currency,
-                        user.currency,
-                        new Date(transaction.date).toISOString().split("T")[0]
-                    );
-                    if (exchangeRate) {
-                        mappedTransaction = TransactionDataMapper.setToRate(
-                            mappedTransaction,
-                            exchangeRate.exchangeRate
-                        );
-                    }
-                }
+				if (transaction.currency !== user.currency) {
+					const exchangeRate = await ExchangeRateDAO.getExchangeRates(transaction.currency, user.currency, new Date(transaction.date).toISOString().split("T")[0]);
+					if (exchangeRate) {
+						mappedTransaction = TransactionDataMapper.setToRate(mappedTransaction, exchangeRate.exchangeRate);
+					}
+				}
 
-                return mappedTransaction;
-            })
-        );
-        return { transactions: mappedTransactions };
-    }
+				return mappedTransaction;
+			})
+		);
+		return { transactions: mappedTransactions };
+	}
 
-    async deleteRecurringSeries(userId: string, id: string) {
-        // Validate ObjectId early to avoid cast errors
-        if (!mongoose.isValidObjectId(id)) {
-            throw new Error("Invalid transaction id");
-        }
+	async deleteRecurringSeries(userId: string, id: string) {
+		// Validate ObjectId early to avoid cast errors
+		if (!mongoose.isValidObjectId(id)) {
+			throw new Error("Invalid transaction id");
+		}
 
-        const result = await TransactionDAO.deleteRecurringSeries(userId, id);
-        if (result.deletedCount === 0) {
-            throw new Error("Expense not found");
-        }
+		const result = await TransactionDAO.deleteRecurringSeries(userId, id);
+		if (result.deletedCount === 0) {
+			throw new Error("Expense not found");
+		}
 
-        return {
-            message: "Recurring series deleted",
-            deletedCount: result.deletedCount,
-        };
-    }
+		return {
+			message: "Recurring series deleted",
+			deletedCount: result.deletedCount,
+		};
+	}
 }
