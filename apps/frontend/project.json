@@ -21,20 +21,10 @@
             }
         },
         "serve": {
-            "executor": "@nx/vite:dev-server",
-            "defaultConfiguration": "development",
+            "executor": "nx:run-commands",
             "options": {
-                "buildTarget": "frontend:build"
-            },
-            "configurations": {
-                "development": {
-                    "buildTarget": "frontend:build:development",
-                    "hmr": true
-                },
-                "production": {
-                    "buildTarget": "frontend:build:production",
-                    "hmr": false
-                }
+                "command": "npm run serve",
+                "cwd": "apps/frontend"
             }
         },
         "preview": {
