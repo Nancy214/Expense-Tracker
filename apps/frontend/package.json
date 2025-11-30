@@ -9,7 +9,7 @@
         "build": "tsc -b && vite build",
         "lint": "eslint .",
         "preview": "vite preview",
-        "serve": "serve -s dist -p 3001"
+        "serve": "serve -s dist -p 3002"
     },
     "dependencies": {
         "@date-fns/tz": "^1.4.1",
