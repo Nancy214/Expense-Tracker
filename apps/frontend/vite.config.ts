@@ -12,6 +12,11 @@ export default defineConfig({
 		strictPort: true,
 		hmr: true,
 	},
+	build: {
+		cssCodeSplit: true, // Enable CSS code splitting
+		cssMinify: true, // Minify CSS in production
+		assetsDir: "assets", // Output assets to assets directory
+	},
 	resolve: {
 		alias: {
 			"@": path.resolve(__dirname, "./src"),
